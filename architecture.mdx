@@ -35,15 +35,6 @@ The Client SDK is embedded within your host application. It handles:
 | **React Native** | Native bridge to iOS and Android implementations. Single SDK package detects platform and delegates accordingly. |
 | **Web** | Custom player using hls.js (HLS) and dash.js (DASH) with unified API surface. |
 
-## Platform API Gateway
-
-A unified API layer exposing all platform capabilities:
-
-- **Authentication** - Validates API keys (publishable for SDK, secret for server-to-server)
-- **Routing** - Directs requests to appropriate backend services
-- **Rate limiting** - Enforces per-organization request limits
-- **Request validation** - Ensures payload correctness before processing
-
 ## Backend services
 
 ### Content Service
@@ -139,16 +130,6 @@ Identity resolution merges anonymous engagement data with the identified profile
 - Signed CDN URLs with configurable expiry (default: 6 hours)
 - Webhook requests signed with HMAC-SHA256
 - Per-organization data isolation
-
-## Performance targets
-
-| Metric | Target |
-|--------|--------|
-| Feed API response (p50) | < 100ms |
-| Feed API response (p99) | < 500ms |
-| Video start time (pre-buffered) | < 300ms |
-| Video start time (feed entry) | < 1 second |
-| Event → ranking signal | < 60 seconds |
 
 ## Next steps
 
