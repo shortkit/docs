@@ -1,97 +1,91 @@
 ---
 title: "Introduction"
-description: "Welcome to the new home for your documentation"
+description: "Drop-in short-form video feeds for your app. Build a TikTok-quality experience without the infrastructure complexity."
+keywords: ["shortkit", "video feed", "short-form video", "SDK", "video infrastructure"]
 ---
 
-## Setting up
+shortkit is a full-stack platform that enables media companies, news publishers, and content-driven businesses to deploy native, high-quality short-form video feeds within their own mobile and web applications.
 
-Get your documentation site up and running in minutes.
+<Note>
+  Stop ceding attention and ad revenue to TikTok and Instagram Reels. Own your video experience.
+</Note>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
+## Why shortkit?
+
+Media companies create enormous volumes of content but distribute it primarily on centralized platforms. This creates three structural problems:
+
+<Columns cols={3}>
+  <Card title="Attention leakage" icon="eye-slash">
+    Users consume your content but remain on TikTok or Instagram. You build audience for them, not yourself.
+  </Card>
+  <Card title="Revenue leakage" icon="money-bill-transfer">
+    Ad revenue from short-form video accrues to the platform, not you. Your monetization depends on users being in your app.
+  </Card>
+  <Card title="Data loss" icon="database">
+    Engagement signals stay with centralized platforms. You can't use this data to improve your products or sell targeted advertising.
+  </Card>
+</Columns>
+
+## The shortkit platform
+
+shortkit delivers three tightly integrated components:
+
+<Columns cols={3}>
+  <Card title="Client SDK" icon="mobile" href="/sdk/overview">
+    Cross-platform SDK with production-grade vertical video feeds, adaptive bitrate streaming, intelligent prefetch, and extensible UI components.
+  </Card>
+  <Card title="Video infrastructure" icon="server" href="/infrastructure/overview">
+    Managed backend handling upload, transcoding, CDN delivery, feed ranking, analytics, and metadata management.
+  </Card>
+  <Card title="Admin portal" icon="browser" href="/admin-portal/overview">
+    Web dashboard for content management, feed configuration, A/B testing, ad integration, and analytics.
+  </Card>
+</Columns>
+
+## What makes shortkit different
+
+Unlike point solutions that handle only infrastructure or only ranking, shortkit delivers the complete vertical stack as a unified service.
+
+| Capability | shortkit | Mux | Shaped.ai | DIY |
+|------------|----------|-----|-----------|-----|
+| Video transcoding & CDN | Yes | Yes | No | Build yourself |
+| Native player SDKs | Yes | Basic | No | Build yourself |
+| Feed ranking | Yes | No | Yes | Build yourself |
+| A/B experimentation | Yes | No | No | Build yourself |
+| Ad integration | Yes | No | No | Build yourself |
+| Admin portal | Yes | Limited | No | Build yourself |
+
+<Tip>
+  The value proposition isn't just managed video delivery—it's eliminating $300K+ in developer time required to build a performant, algorithmically-ranked video feed from scratch.
+</Tip>
+
+## Supported platforms
+
+<Columns cols={4}>
+  <Card title="iOS" icon="apple" href="/sdk/ios">
+    Swift SDK with custom AVFoundation pipeline
+  </Card>
+  <Card title="Android" icon="android" href="/sdk/android">
+    Kotlin SDK built on Media3/ExoPlayer
+  </Card>
+  <Card title="React Native" icon="react" href="/sdk/react-native">
+    Single package with native bridges
+  </Card>
+  <Card title="Web" icon="globe" href="/sdk/web">
+    TypeScript SDK with hls.js/dash.js
+  </Card>
+</Columns>
+
+## Get started
+
+<Card title="Quickstart" icon="rocket" href="/quickstart" horizontal>
+  Get your first video feed running in under 10 minutes.
 </Card>
 
-## Make it yours
+<Card title="Core concepts" icon="book" href="/core-concepts" horizontal>
+  Understand the key concepts and architecture behind shortkit.
+</Card>
 
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
+<Card title="API reference" icon="code" href="/api-reference/introduction" horizontal>
+  Explore the complete API documentation.
 </Card>

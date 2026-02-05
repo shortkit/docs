@@ -1,0 +1,373 @@
+---
+title: "Ad integration"
+description: "Set up native in-feed video advertising with Google IMA SDK."
+keywords: ["ads", "advertising", "monetization", "IMA", "Google Ad Manager"]
+---
+
+shortkit integrates with Google IMA SDK to deliver native in-feed video ads that match your app's look and feel.
+
+## Overview
+
+The ad integration architecture:
+
+1. **SDK requests ad**: Feed controller determines when an ad slot is due
+2. **IMA SDK fetches ad**: Requests ad from Google Ad Manager
+3. **Native rendering**: SDK renders ad in its own feed card with your styling
+4. **Tracking compliance**: SDK fires all required VAST tracking events
+
+## Account setup
+
+### Option 1: Self-managed
+
+Use your own Google Ad Manager account:
+
+<Steps>
+  <Step title="Get your GAM credentials">
+    From your Google Ad Manager account:
+    - Network code
+    - Ad unit ID for in-feed video
+  </Step>
+  <Step title="Configure in Admin Portal">
+    1. Go to **Ads → Configuration**
+    2. Select **Self-managed**
+    3. Enter your network code and ad unit ID
+    4. Click **Verify Connection**
+  </Step>
+  <Step title="Map content categories">
+    1. Go to **Ads → Configuration → Categories**
+    2. Map your content tags to IAB categories
+    3. This enables targeted ad delivery
+  </Step>
+</Steps>
+
+### Option 2: Platform-managed
+
+Let shortkit handle ad operations:
+
+1. Go to **Ads → Configuration**
+2. Select **Platform-managed**
+3. Complete enrollment form
+4. Our team sets up your inventory
+5. View revenue in the Ads dashboard
+
+Platform-managed benefits:
+- Optimized fill rates and CPMs
+- No ad ops expertise required
+- Aggregate data improves targeting
+- Dedicated support
+
+## SDK configuration
+
+Enable ads in your SDK configuration:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    let config = ShortKitConfig(
+        // ... other config
+        ads: AdsConfig(
+            enabled: true,
+            frequency: .countBased(interval: 5, firstAdAfter: 3)
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    val config = ShortKitConfig(
+        // ... other config
+        ads = AdsConfig(
+            enabled = true,
+            frequency = AdFrequency.CountBased(interval = 5, firstAdAfter = 3)
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    const config = {
+      // ... other config
+      ads: {
+        enabled: true,
+        frequency: {
+          mode: 'count',
+          interval: 5,
+          firstAdAfter: 3
+        }
+      }
+    };
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    const config = {
+      // ... other config
+      ads: {
+        enabled: true,
+        frequency: {
+          mode: 'count',
+          interval: 5,
+          firstAdAfter: 3
+        }
+      }
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Ad frequency modes
+
+### Count-based
+
+Show an ad every N content videos:
+
+```typescript
+ads: {
+  frequency: {
+    mode: 'count',
+    interval: 5,      // Ad every 5 videos
+    firstAdAfter: 3   // No ads until 3rd video
+  }
+}
+```
+
+### Time-based
+
+Show an ad every M minutes of watch time:
+
+```typescript
+ads: {
+  frequency: {
+    mode: 'time',
+    intervalMinutes: 3,      // Ad every 3 minutes
+    minSessionMinutes: 1     // No ads in first minute
+  }
+}
+```
+
+### Platform-optimized
+
+Let the platform determine optimal frequency:
+
+```typescript
+ads: {
+  frequency: {
+    mode: 'platform-optimized'
+  }
+}
+```
+
+Uses heuristics based on:
+- Session depth
+- Content completion rates
+- Aggregate engagement data
+
+## Native ad styling
+
+Ads render as native feed cards matching your theme. Customize the sponsored label:
+
+```typescript
+theme: {
+  sponsoredLabel: {
+    text: 'Ad',
+    textColor: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    fontSize: 11,
+    position: 'topRight'
+  }
+}
+```
+
+### Styling options
+
+| Option | Description |
+|--------|-------------|
+| `text` | Label text: "Ad", "Sponsored", etc. |
+| `textColor` | Label text color |
+| `backgroundColor` | Label background color |
+| `fontSize` | Text size in points |
+| `position` | Corner: topLeft, topRight, bottomLeft, bottomRight |
+
+## Ad events
+
+Handle ad-related events in your app:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    class AdEventHandler: ShortKitDelegate {
+        func shortKit(_ shortKit: ShortKit, didShowAd ad: Ad) {
+            analytics.track("ad_impression", properties: [
+                "adId": ad.id,
+                "position": ad.position
+            ])
+        }
+
+        func shortKit(_ shortKit: ShortKit, didCompleteAd ad: Ad) {
+            analytics.track("ad_completed", properties: [
+                "adId": ad.id,
+                "watchTime": ad.watchTime
+            ])
+        }
+
+        func shortKit(_ shortKit: ShortKit, adDidFail error: AdError) {
+            print("Ad failed: \(error.message)")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    <ShortKitFeed
+      onAdImpression={(ad) => {
+        analytics.track('ad_impression', {
+          adId: ad.id,
+          position: ad.position
+        });
+      }}
+      onAdCompleted={(ad) => {
+        analytics.track('ad_completed', {
+          adId: ad.id,
+          watchTime: ad.watchTime
+        });
+      }}
+      onAdError={(error) => {
+        console.error('Ad error:', error);
+      }}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+### Available events
+
+| Event | Description |
+|-------|-------------|
+| `adImpression` | Ad rendered in feed |
+| `adStarted` | Ad playback began |
+| `adFirstQuartile` | 25% of ad watched |
+| `adMidpoint` | 50% of ad watched |
+| `adThirdQuartile` | 75% of ad watched |
+| `adCompleted` | Ad finished playing |
+| `adSkipped` | User skipped the ad |
+| `adClicked` | User tapped the ad |
+| `adError` | Ad failed to load or play |
+
+## VAST compliance
+
+The SDK automatically handles VAST tracking requirements:
+
+- Impression tracking
+- Quartile events (25%, 50%, 75%)
+- Completion tracking
+- Click tracking
+- Error reporting
+
+This ensures accurate reporting in Google Ad Manager and proper billing.
+
+## Testing ads
+
+### Test mode
+
+Enable test ads during development:
+
+```typescript
+ShortKit.initialize({
+  apiKey: 'pk_live_...',
+  config: {
+    ads: {
+      enabled: true,
+      testMode: true  // Shows test ads
+    }
+  }
+});
+```
+
+Test mode:
+- Shows Google test ad creatives
+- No real impressions recorded
+- No revenue generated
+
+### Ad Inspector
+
+Debug ad delivery:
+
+1. Enable debug logging
+2. View ad request/response in console
+3. Check fill status and errors
+
+```typescript
+ShortKit.setLogLevel('verbose');
+```
+
+## Troubleshooting
+
+### Ads not appearing
+
+1. **Check configuration**
+   - Verify ads are enabled in config
+   - Confirm frequency settings
+   - Check Admin Portal configuration
+
+2. **Verify account connection**
+   - Go to Ads → Configuration
+   - Click **Test Connection**
+
+3. **Check content categories**
+   - Ensure content is categorized
+   - Verify no blanket exclusions
+
+### Low fill rate
+
+1. **Review targeting**
+   - Check geographic restrictions
+   - Verify content category mapping
+
+2. **Check demand**
+   - Some categories have lower demand
+   - Consider broader targeting
+
+3. **Contact support**
+   - Self-managed: Your ad ops team
+   - Platform-managed: shortkit support
+
+### Ad playback issues
+
+1. **Network issues**
+   - Check connectivity
+   - Verify CDN access
+
+2. **Creative issues**
+   - Some creatives may be incompatible
+   - Contact ad network support
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Start with conservative frequency">
+    Begin with 1 ad every 6-8 videos. Monitor retention metrics before increasing.
+  </Accordion>
+  <Accordion title="Monitor user experience">
+    Track session length and return rates. If they drop after changing ad frequency, roll back.
+  </Accordion>
+  <Accordion title="Use A/B testing">
+    Test different frequencies to find the optimal balance between revenue and engagement.
+  </Accordion>
+  <Accordion title="Style ads to match your feed">
+    Native-looking ads perform better and annoy users less than disruptive formats.
+  </Accordion>
+  <Accordion title="Exclude sensitive content">
+    Map content categories carefully to avoid inappropriate ad/content combinations.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Ad management" icon="rectangle-ad" href="/admin-portal/ad-management">
+    Monitor ad performance in the portal.
+  </Card>
+  <Card title="A/B testing" icon="flask" href="/admin-portal/ab-testing">
+    Test ad frequency configurations.
+  </Card>
+</Columns>

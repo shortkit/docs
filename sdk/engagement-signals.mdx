@@ -1,0 +1,317 @@
+---
+title: "Engagement signals"
+description: "Understanding the events collected by the shortkit SDK for analytics and personalization."
+keywords: ["engagement", "signals", "events", "analytics", "tracking", "metrics"]
+---
+
+The shortkit SDK automatically collects engagement signals to power feed personalization, content ranking, and analytics dashboards. This page documents all collected events and how they're used.
+
+## How signals work
+
+The SDK batches engagement events and sends them to the Analytics Service at regular intervals:
+
+- **Default interval**: Every 5 seconds during active playback
+- **On app state changes**: When the app goes to background/foreground
+- **On session end**: When the user exits the feed
+
+Events are processed for two purposes:
+1. **Real-time ranking signals** - Updates within 60 seconds to influence feed ordering
+2. **Aggregate analytics** - Hourly/daily rollups for dashboards and reporting
+
+## Event types
+
+### Impression
+
+Fired when a video enters the viewport and begins rendering.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Unique content identifier |
+| `position` | number | Position in the feed (0-indexed) |
+| `timestamp` | datetime | Event timestamp |
+| `userId` | string | User identifier (anonymous or identified) |
+| `sessionId` | string | Current session identifier |
+
+### Play start
+
+Fired when the first frame of video begins playback.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `startupTime` | number | Milliseconds from impression to first frame |
+| `initialRendition` | string | Starting quality (e.g., "720p") |
+| `codec` | string | Video codec used ("h264" or "av1") |
+| `autoplay` | boolean | Whether playback was automatic |
+
+### Watch progress
+
+Fired periodically during playback (default: every 1 second).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `currentTime` | number | Current playback position (seconds) |
+| `duration` | number | Total content duration (seconds) |
+| `percentComplete` | number | Percentage watched (0-100) |
+| `currentRendition` | string | Current quality level |
+| `currentBitrate` | number | Current bitrate (kbps) |
+
+### Rebuffer
+
+Fired when playback stalls waiting for data.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `currentTime` | number | Position where rebuffer occurred |
+| `rebufferDuration` | number | Duration of stall (milliseconds) |
+| `networkType` | string | Connection type (wifi, cellular, etc.) |
+
+### Quality change
+
+Fired when adaptive bitrate streaming switches renditions.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `fromRendition` | string | Previous quality level |
+| `toRendition` | string | New quality level |
+| `reason` | string | "bandwidth" or "buffer" |
+| `currentTime` | number | Position when switch occurred |
+
+### Error
+
+Fired when a playback error occurs.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `errorCode` | string | Platform-specific error code |
+| `errorMessage` | string | Human-readable error message |
+| `errorType` | string | "network", "decode", or "player" |
+| `currentTime` | number | Position when error occurred |
+| `rendition` | string | Quality level at error time |
+| `networkType` | string | Connection type |
+| `deviceInfo` | object | Device/browser information |
+
+### Completion
+
+Fired when video reaches the end or loops.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `totalWatchTime` | number | Total seconds watched |
+| `didLoop` | boolean | Whether the video looped |
+| `loopCount` | number | Number of loops completed |
+
+### Swipe
+
+Fired when user navigates to a different video.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fromContentId` | string | Content user swiped away from |
+| `toContentId` | string | Content user swiped to |
+| `watchTimeOnFrom` | number | Seconds watched before swiping |
+| `direction` | string | "next" or "previous" |
+
+### Interaction
+
+Fired when user interacts with a control.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `contentId` | string | Content identifier |
+| `interactionType` | string | Type of interaction (see below) |
+| `value` | any | Interaction-specific value |
+
+Interaction types:
+- `share` - User tapped share button
+- `like` - User tapped like/bookmark
+- `caption_toggle` - User enabled/disabled captions
+- `speed_change` - User changed playback speed (value: new speed)
+- `mute_toggle` - User muted/unmuted
+- `seek` - User scrubbed to a new position (value: seek target)
+- `fullscreen_toggle` - User entered/exited fullscreen
+- `pip_toggle` - User entered/exited Picture-in-Picture
+
+### Ad impression
+
+Fired when an ad unit renders in the feed.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `adId` | string | Ad identifier |
+| `adNetworkId` | string | Ad network identifier |
+| `contentIdBefore` | string | Content before the ad |
+| `position` | number | Position in feed |
+
+### Ad completion
+
+Fired when an ad finishes or is skipped.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `adId` | string | Ad identifier |
+| `watchTime` | number | Seconds watched |
+| `didComplete` | boolean | Whether ad played to completion |
+| `didSkip` | boolean | Whether user skipped |
+
+### Feed entry
+
+Fired when user enters the feed.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `entryPoint` | string | How user entered: "tab", "widget", "deepLink" |
+| `timestamp` | datetime | Entry timestamp |
+| `sessionId` | string | New session identifier |
+
+### Feed exit
+
+Fired when user leaves the feed.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `totalSessionTime` | number | Session duration (seconds) |
+| `videosWatched` | number | Number of videos viewed |
+| `adsWatched` | number | Number of ads viewed |
+| `exitMethod` | string | How user exited: "tabSwitch", "background", "navigation" |
+
+## How signals affect ranking
+
+The Feed Service uses engagement signals to personalize content ranking:
+
+| Signal | Ranking Effect |
+|--------|----------------|
+| **Watch time** | Content with high average watch time ranks higher |
+| **Completion rate** | Content users finish ranks higher |
+| **Swipe velocity** | Content users quickly swipe away from ranks lower |
+| **Topic engagement** | Content matching user's topic preferences ranks higher |
+| **Recency** | Fresh signals weighted more than historical |
+
+### Topic affinity
+
+The User Signal Service builds topic affinity profiles based on viewing patterns:
+
+```typescript
+// Conceptual example of how topic affinity is calculated
+userProfile.topicAffinities = {
+  "politics": 0.72,    // High engagement with politics content
+  "sports": 0.45,      // Moderate engagement
+  "entertainment": 0.23 // Lower engagement
+};
+```
+
+When computing feed rankings, content tagged with higher-affinity topics receives a boost.
+
+## Data retention
+
+| Data Type | Retention |
+|-----------|-----------|
+| Real-time signals | 7 days (for ranking) |
+| Aggregated analytics | 2 years |
+| Raw event logs | 90 days |
+| User profiles | Until deletion requested |
+
+## Privacy considerations
+
+### Anonymous mode
+
+Before `setUserId` is called, all signals are attributed to an anonymous device ID:
+
+- Personalization works at the device level
+- No PII is stored
+- Cross-device tracking is not possible
+
+### Identified mode
+
+After `setUserId` is called:
+
+- Signals merge with the identified profile
+- Cross-device personalization becomes possible
+- The host app's user ID is stored (but not validated or enriched)
+
+<Tip>
+  Use an opaque identifier (database ID, UUID) rather than email addresses or other PII for user IDs.
+</Tip>
+
+### Data subject requests
+
+For GDPR/CCPA compliance, use the API to export or delete user data:
+
+```bash
+# Export user data
+curl -X POST https://api.shortkit.dev/v1/users/{userId}/export \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+
+# Delete user data
+curl -X DELETE https://api.shortkit.dev/v1/users/{userId} \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## Accessing signal data
+
+### Admin Portal
+
+View aggregate signals in **Analytics → Content Performance**:
+
+- Views and unique viewers
+- Average watch time and completion rate
+- Engagement by time of day
+- Geographic distribution
+
+### Analytics API
+
+Query signals programmatically:
+
+```bash
+curl https://api.shortkit.dev/v1/analytics/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Response:
+```json
+{
+  "data": {
+    "contentId": "cnt_abc123",
+    "views": 15420,
+    "uniqueViewers": 12350,
+    "totalWatchTime": 289500,
+    "avgWatchTime": 18.7,
+    "completionRate": 0.42,
+    "shares": 234,
+    "rebufferRate": 0.012
+  }
+}
+```
+
+### Raw data export
+
+Export raw event data for custom analysis:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/analytics/export \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31",
+    "format": "jsonl"
+  }'
+```
+
+See [Data export guide](/guides/data-export) for details.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Analytics dashboard" icon="chart-bar" href="/admin-portal/analytics">
+    View and analyze engagement data.
+  </Card>
+  <Card title="Feed ranking" icon="ranking-star" href="/infrastructure/feed-ranking">
+    Understand how signals affect content ranking.
+  </Card>
+</Columns>

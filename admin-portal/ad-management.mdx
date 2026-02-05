@@ -1,0 +1,262 @@
+---
+title: "Ad management"
+description: "Configure ad integration and monitor ad performance in the Admin Portal."
+keywords: ["ads", "advertising", "monetization", "Google Ad Manager", "IMA"]
+---
+
+The Ads section lets you configure ad integration, set frequency rules, and monitor ad performance.
+
+## Ad account setup
+
+### Account models
+
+Choose how to manage your ad inventory:
+
+<Columns cols={2}>
+  <Card title="Self-managed" icon="user">
+    **You control everything**
+    - Connect your own Google Ad Manager account
+    - Manage demand partners directly
+    - Full control over ad units and settings
+  </Card>
+  <Card title="Platform-managed" icon="robot">
+    **We optimize for you**
+    - shortkit manages your ad operations
+    - Optimized fill rates and CPMs
+    - Revenue share model
+  </Card>
+</Columns>
+
+### Self-managed setup
+
+1. Go to **Ads → Configuration**
+2. Select **Self-managed**
+3. Enter your Google Ad Manager credentials:
+   - Network code
+   - Ad unit ID
+4. Click **Verify** to test the connection
+
+### Platform-managed setup
+
+1. Go to **Ads → Configuration**
+2. Select **Platform-managed**
+3. Complete the enrollment form
+4. Our team will set up your ad inventory
+5. You'll receive access to revenue dashboard
+
+## Ad frequency
+
+Control how often ads appear in the feed.
+
+### Frequency modes
+
+<Tabs>
+  <Tab title="Count-based">
+    Show an ad every N content videos:
+
+    ```
+    Ad frequency: Every 5 videos
+    ```
+
+    Settings:
+    - **Interval**: Number of videos between ads (3-10)
+    - **First ad after**: Videos before first ad (default: 3)
+  </Tab>
+  <Tab title="Time-based">
+    Show an ad every M minutes of watch time:
+
+    ```
+    Ad frequency: Every 3 minutes
+    ```
+
+    Settings:
+    - **Interval**: Minutes between ads
+    - **Minimum session**: Watch time before first ad
+  </Tab>
+  <Tab title="Platform-optimized">
+    Dynamic frequency based on engagement patterns:
+
+    - No ad in first 3 videos
+    - Intervals adjust based on session length
+    - Optimizes for long-term retention + revenue
+
+    Uses aggregate data across platform to find optimal balance.
+  </Tab>
+</Tabs>
+
+### Configuration
+
+1. Go to **Ads → Configuration → Frequency**
+2. Select mode
+3. Configure settings
+4. Preview impact on sample feed
+5. Save changes
+
+### A/B test frequency
+
+Test different ad frequencies:
+
+1. Go to **Experiments → Create New**
+2. Select **Ad Frequency** type
+3. Define variants (e.g., every 4 vs. every 6 videos)
+4. Monitor metrics: ad revenue, watch time, retention
+
+## Native ad styling
+
+Customize how ads appear in your feed.
+
+### Styling options
+
+| Setting | Description |
+|---------|-------------|
+| **Sponsored label text** | "Sponsored", "Ad", "Advertisement" |
+| **Label position** | Top-left, top-right, bottom-left, bottom-right |
+| **Label styling** | Colors, font size, background |
+| **Border/divider** | Visual separation from content |
+
+### Preview
+
+See how ads will appear:
+1. Go to **Ads → Configuration → Styling**
+2. Adjust settings
+3. Preview on simulated feed
+4. Save when satisfied
+
+## Ad performance
+
+Monitor ad metrics at **Ads → Performance**.
+
+### Key metrics
+
+| Metric | Description |
+|--------|-------------|
+| **Impressions** | Ad views |
+| **Fill rate** | % of ad requests filled |
+| **CPM** | Revenue per 1,000 impressions |
+| **Revenue** | Total earnings |
+| **Completion rate** | % of ads watched to end |
+| **Click-through rate** | % of ads clicked |
+
+### Dashboard views
+
+- **Overview**: Summary metrics and trends
+- **By date**: Daily breakdown
+- **By content**: Which content generates most ad revenue
+- **By geography**: Revenue by region
+- **By device**: iOS vs. Android vs. Web
+
+### Filters
+
+Filter performance data by:
+- Date range
+- Ad unit
+- Device type
+- Geography
+- Content tags
+
+## Revenue reporting
+
+### Revenue dashboard
+
+View earnings at **Ads → Revenue**:
+
+- Daily/weekly/monthly revenue
+- Revenue trends
+- Top-performing content
+- Revenue by geography
+
+### Payout information (Platform-managed)
+
+For platform-managed accounts:
+- Monthly payout schedule
+- Payment threshold
+- Payout history
+- Tax documentation
+
+### Export revenue data
+
+1. Select date range
+2. Click **Export**
+3. Download CSV with:
+   - Date
+   - Impressions
+   - Fill rate
+   - CPM
+   - Revenue
+
+## Ad troubleshooting
+
+### Low fill rate
+
+If fill rate is below expected:
+
+1. Check ad unit configuration
+2. Verify geographic targeting matches your audience
+3. Review content categories for brand safety
+4. Contact your ad ops team (self-managed) or shortkit support (platform-managed)
+
+### Ads not appearing
+
+If ads aren't showing:
+
+1. Verify SDK has ad controls enabled
+2. Check frequency settings (might be too infrequent)
+3. Verify ad network connection
+4. Check for ad blockers in test environment
+
+### View ad requests
+
+Debug ad delivery:
+
+1. Go to **Ads → Debug**
+2. Select date/time range
+3. View ad requests:
+   - Request time
+   - Fill status
+   - Response time
+   - Error (if any)
+
+## Brand safety
+
+### Content categories
+
+Map your content tags to ad categories:
+
+1. Go to **Ads → Configuration → Categories**
+2. Map content tags to IAB categories
+3. Set exclusions (e.g., no alcohol ads on family content)
+
+### Block lists
+
+Block specific advertisers:
+- By domain
+- By category
+- By keyword
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Start conservative">
+    Begin with lower ad frequency (every 6-8 videos) and increase gradually while monitoring retention.
+  </Accordion>
+  <Accordion title="Monitor retention">
+    Watch session length and return rates. If they drop after increasing ad frequency, pull back.
+  </Accordion>
+  <Accordion title="Test with experiments">
+    Use A/B testing to find optimal ad frequency for your audience.
+  </Accordion>
+  <Accordion title="Consider user experience">
+    Native-styled ads that match your feed perform better than disruptive formats.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Ad integration guide" icon="rectangle-ad" href="/guides/ad-integration">
+    Technical setup for ad integration.
+  </Card>
+  <Card title="A/B testing" icon="flask" href="/admin-portal/ab-testing">
+    Test ad frequency configurations.
+  </Card>
+</Columns>

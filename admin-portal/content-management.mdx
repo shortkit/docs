@@ -1,0 +1,300 @@
+---
+title: "Content management"
+description: "Upload, organize, and manage your video content in the Admin Portal."
+keywords: ["content", "upload", "library", "management", "metadata"]
+---
+
+The Content section of the Admin Portal provides tools for uploading, organizing, and managing your video library.
+
+## Content library
+
+Access your content library at **Content → Library**.
+
+### Views
+
+Switch between display modes:
+
+- **Grid view**: Thumbnail previews with quick actions
+- **List view**: Detailed table with sortable columns
+
+### Filtering
+
+Filter content by:
+
+| Filter | Options |
+|--------|---------|
+| **Status** | Processing, Ready, Scheduled, Live, Archived, Error |
+| **Tags** | Select one or more tags |
+| **Date range** | Publish date or upload date |
+| **Duration** | Short (<30s), Medium (30s-2m), Long (>2m) |
+| **Custom metadata** | Filter by custom field values |
+
+### Sorting
+
+Sort by:
+- Upload date (newest/oldest)
+- Publish date
+- Views
+- Watch time
+- Completion rate
+- Title (A-Z)
+
+### Search
+
+Full-text search across:
+- Title
+- Description
+- Tags
+- Custom metadata values
+
+## Uploading content
+
+### Drag and drop
+
+1. Go to **Content → Upload**
+2. Drag video files onto the upload zone (or click to browse)
+3. Multiple files supported for bulk upload
+
+### Supported formats
+
+| Category | Supported |
+|----------|-----------|
+| **Containers** | MP4, MOV, MKV, WebM, AVI |
+| **Video codecs** | H.264, H.265, VP9, AV1, ProRes |
+| **Audio codecs** | AAC, MP3, Opus, PCM |
+| **Max resolution** | 4K (3840×2160) |
+| **Max file size** | 5 GB |
+
+### Upload progress
+
+During upload you see:
+- Progress bar per file
+- Estimated time remaining
+- Resume capability for interrupted uploads
+
+<Tip>
+  Uploads are resumable. If your connection drops, refresh the page and the upload continues from where it left off.
+</Tip>
+
+## Editing metadata
+
+### Single content item
+
+1. Click on a content item in the library
+2. Edit fields in the detail panel:
+   - **Title** (required)
+   - **Description**
+   - **Tags** (add/remove)
+   - **Custom metadata** (key-value pairs)
+   - **Geo-targeting**
+   - **Scheduling**
+
+3. Click **Save**
+
+### Bulk editing
+
+1. Select multiple items (checkbox or Shift+click)
+2. Click **Bulk Edit** in the toolbar
+3. Choose action:
+   - Add tags
+   - Remove tags
+   - Change status
+   - Set geo-targeting
+   - Set expiry date
+
+## Content scheduling
+
+### Schedule publish
+
+1. Open content detail
+2. Set **Publish Date** to a future time
+3. Content status changes to "Scheduled"
+4. Automatically goes "Live" at scheduled time
+
+### Schedule expiry
+
+1. Open content detail
+2. Set **Expiry Date**
+3. Content automatically archives after this time
+
+### Calendar view
+
+View scheduled content on a calendar:
+1. Go to **Content → Library**
+2. Click **Calendar** tab
+3. See content scheduled across days/weeks
+
+## Captions
+
+### Upload captions
+
+1. Open content detail
+2. Go to **Captions** tab
+3. Click **Upload Caption Track**
+4. Select SRT or VTT file
+5. Set language and label
+
+### Auto-generated captions
+
+If enabled for your organization:
+1. Captions generate automatically during processing
+2. Review in the **Captions** tab
+3. Download VTT to edit and re-upload
+
+### Managing tracks
+
+- Add multiple language tracks
+- Set default track for playback
+- Delete tracks
+
+## Thumbnails
+
+### Auto-generated
+
+The platform generates multiple thumbnail options:
+- First frame
+- Several frames from throughout the video
+
+### Custom thumbnail
+
+1. Open content detail
+2. Go to **Thumbnail** tab
+3. Select from auto-generated options or upload custom image
+
+Requirements for custom thumbnails:
+- JPEG or PNG format
+- Minimum 1280×720 resolution
+- Aspect ratio matches video
+
+## Editorial controls
+
+### Pin
+
+Force content to a specific feed position:
+
+1. Open content detail
+2. Go to **Editorial** tab
+3. Enable **Pin**
+4. Set position (1 = top of feed)
+5. Optionally set expiry time
+
+### Boost
+
+Increase content's ranking score:
+
+1. Open content detail
+2. Go to **Editorial** tab
+3. Enable **Boost**
+4. Set factor (1.5x - 10x)
+5. Optionally set expiry time
+
+### Suppress
+
+Reduce visibility or exclude from feed:
+
+1. Open content detail
+2. Go to **Editorial** tab
+3. Enable **Suppress**
+4. Choose level:
+   - Reduce (0.5x score)
+   - Minimize (0.1x score)
+   - Exclude (remove from feed)
+
+## Asset preview
+
+### Video preview
+
+- Play video directly in the portal
+- Scrub through content
+- View at different quality levels
+
+### Preview assets
+
+View generated assets:
+- First-frame thumbnail
+- Preview GIF
+- Storyboard sprites
+
+## Processing queue
+
+View content being processed at **Content → Processing Queue**:
+
+| Column | Description |
+|--------|-------------|
+| **Title** | Content title |
+| **Status** | Current processing stage |
+| **Progress** | Percentage complete |
+| **Started** | Processing start time |
+| **ETA** | Estimated completion |
+
+### Processing stages
+
+1. **Uploading** - Receiving file
+2. **Analyzing** - Detecting format and metadata
+3. **Transcoding** - Generating ABR ladder
+4. **Generating assets** - Thumbnails, preview, sprites
+5. **Captioning** - Auto-generating captions (if enabled)
+6. **Finalizing** - Preparing for delivery
+
+### Failed processing
+
+For content with errors:
+1. Click the item
+2. View error details
+3. Click **Retry** to reprocess
+
+Common errors:
+- Unsupported codec
+- Corrupt file
+- Missing audio track
+
+## Archiving content
+
+Archive content to remove from feeds while keeping it accessible:
+
+1. Select content
+2. Click **Archive** (or set status to Archived)
+3. Content is removed from feeds
+4. Direct links still work
+5. Can be restored by setting status to Live
+
+## Deleting content
+
+Permanently delete content and all assets:
+
+1. Select content
+2. Click **Delete**
+3. Confirm deletion
+
+<Warning>
+  Deletion is permanent. The video file, all renditions, thumbnails, and analytics data are removed and cannot be recovered.
+</Warning>
+
+## Automated ingestion
+
+Configure automatic content import:
+
+### Webhook ingestion
+
+1. Go to **Content → Ingestion → Webhooks**
+2. Create a new webhook endpoint
+3. Copy the URL and secret
+4. Configure your CMS/DAM to send events
+
+### Bucket polling
+
+1. Go to **Content → Ingestion → Buckets**
+2. Add cloud storage bucket (S3, GCS, Azure)
+3. Configure credentials and path prefix
+4. Set polling interval
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Feed configuration" icon="sliders" href="/admin-portal/feed-configuration">
+    Configure how content is ranked and displayed.
+  </Card>
+  <Card title="Analytics" icon="chart-bar" href="/admin-portal/analytics">
+    View content performance metrics.
+  </Card>
+</Columns>

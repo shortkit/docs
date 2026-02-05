@@ -1,80 +1,466 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get your first short-form video feed running in under 10 minutes."
+keywords: ["quickstart", "getting started", "installation", "setup", "tutorial"]
 ---
 
-## Get started in three steps
+This guide walks you through integrating shortkit into your application. By the end, you'll have a working vertical video feed displaying content from your organization.
 
-Get your documentation site running locally and make your first customization.
+## Before you begin
 
-### Step 1: Set up your local environment
+You need:
+- A shortkit account with API keys ([contact us](https://calendly.com/michael-shortkit/20-min-meeting) to get started)
+- An existing mobile or web application to integrate with
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Step 1: Get your API keys
 
-### Step 2: Deploy your changes
+<Steps>
+  <Step title="Log in to the Admin Portal">
+    Navigate to [dashboard.shortkit.dev](https://dashboard.shortkit.dev) and sign in with your organization credentials.
+  </Step>
+  <Step title="Navigate to API keys">
+    Go to **Settings → API Keys** in the sidebar.
+  </Step>
+  <Step title="Copy your publishable key">
+    You'll see two keys:
+    - **Publishable key**: Used in your client SDK (safe to include in client-side code)
+    - **Secret key**: Used for server-to-server API calls (keep this secure)
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    Copy the publishable key for SDK initialization.
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+<Warning>
+  Never expose your secret key in client-side code. The secret key should only be used in server-side applications.
+</Warning>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+## Step 2: Install the SDK
 
-### Step 3: Go live
+<Tabs>
+  <Tab title="iOS">
+    Add shortkit to your project using Swift Package Manager:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```swift Package.swift
+    dependencies: [
+        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "1.0.0")
+    ]
+    ```
+
+    Or in Xcode: **File → Add Package Dependencies** and enter the repository URL.
+  </Tab>
+  <Tab title="Android">
+    Add the dependency to your `build.gradle.kts`:
+
+    ```kotlin build.gradle.kts
+    dependencies {
+        implementation("dev.shortkit:shortkit-android:1.0.0")
+    }
+    ```
+
+    Make sure you have the shortkit Maven repository in your `settings.gradle.kts`:
+
+    ```kotlin settings.gradle.kts
+    dependencyResolutionManagement {
+        repositories {
+            google()
+            mavenCentral()
+            maven { url = uri("https://maven.shortkit.dev") }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Install via npm or yarn:
+
+    <CodeGroup>
+
+    ```bash npm
+    npm install @shortkit/react-native
+    ```
+
+    ```bash yarn
+    yarn add @shortkit/react-native
+    ```
+
+    </CodeGroup>
+
+    For iOS, run pod install:
+
+    ```bash
+    cd ios && pod install
+    ```
+  </Tab>
+  <Tab title="Expo">
+    Install the Expo-compatible package:
+
+    ```bash
+    npx expo install @shortkit/expo
+    ```
+
+    Add the plugin to your `app.json`:
+
+    ```json app.json
+    {
+      "expo": {
+        "plugins": ["@shortkit/expo"]
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    Install via npm:
+
+    ```bash
+    npm install @shortkit/web
+    ```
+
+    Or include via CDN:
+
+    ```html
+    <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
+    ```
+  </Tab>
+</Tabs>
+
+## Step 3: Initialize the SDK
+
+<Tabs>
+  <Tab title="iOS">
+    Initialize the SDK in your `AppDelegate` or app entry point:
+
+    ```swift AppDelegate.swift
+    import shortkit
+
+    @main
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+        func application(
+            _ application: UIApplication,
+            didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+        ) -> Bool {
+
+            let config = ShortKitConfig(
+                feedOrientation: .vertical,
+                feedHeight: .fullscreen,
+                controls: ControlsConfig(
+                    playPause: true,
+                    scrubber: true,
+                    captions: CaptionConfig(enabled: true, defaultOn: false),
+                    share: ShareConfig(enabled: true)
+                ),
+                theme: ThemeConfig(
+                    primaryColor: "#FF6600",
+                    controlsTint: "#FFFFFF"
+                )
+            )
+
+            ShortKit.initialize(
+                apiKey: "pk_live_your_publishable_key",
+                config: config
+            )
+
+            return true
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Initialize in your `Application` class:
+
+    ```kotlin MyApplication.kt
+    import dev.shortkit.ShortKit
+    import dev.shortkit.ShortKitConfig
+    import dev.shortkit.FeedOrientation
+    import dev.shortkit.FeedHeight
+
+    class MyApplication : Application() {
+        override fun onCreate() {
+            super.onCreate()
+
+            val config = ShortKitConfig(
+                feedOrientation = FeedOrientation.VERTICAL,
+                feedHeight = FeedHeight.FULLSCREEN,
+                controls = ControlsConfig(
+                    playPause = true,
+                    scrubber = true,
+                    captions = CaptionConfig(enabled = true, defaultOn = false),
+                    share = ShareConfig(enabled = true)
+                ),
+                theme = ThemeConfig(
+                    primaryColor = "#FF6600",
+                    controlsTint = "#FFFFFF"
+                )
+            )
+
+            ShortKit.initialize(
+                apiKey = "pk_live_your_publishable_key",
+                config = config
+            )
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Initialize at your app's entry point:
+
+    ```tsx App.tsx
+    import { ShortKit } from '@shortkit/react-native';
+
+    // Initialize before rendering
+    ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key',
+      config: {
+        feedOrientation: 'vertical',
+        feedHeight: 'fullscreen',
+        controls: {
+          playPause: true,
+          scrubber: true,
+          captions: { enabled: true, defaultOn: false },
+          share: { enabled: true }
+        },
+        theme: {
+          primaryColor: '#FF6600',
+          controlsTint: '#FFFFFF'
+        }
+      }
+    });
+
+    export default function App() {
+      return (
+        // Your app components
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    Initialize in your application:
+
+    ```typescript main.ts
+    import { ShortKit } from '@shortkit/web';
+
+    ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key',
+      config: {
+        feedOrientation: 'vertical',
+        feedHeight: 'fullscreen',
+        controls: {
+          playPause: true,
+          scrubber: true,
+          captions: { enabled: true, defaultOn: false },
+          share: { enabled: true }
+        },
+        theme: {
+          primaryColor: '#FF6600',
+          controlsTint: '#FFFFFF'
+        }
+      }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Step 4: Display the feed
+
+<Tabs>
+  <Tab title="iOS">
+    Present the feed view controller:
+
+    ```swift VideoFeedViewController.swift
+    import shortkit
+    import UIKit
+
+    class VideoFeedViewController: UIViewController {
+        override func viewDidLoad() {
+            super.viewDidLoad()
+
+            let feedView = ShortKit.createFeedView()
+            feedView.frame = view.bounds
+            feedView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(feedView)
+        }
+    }
+    ```
+
+    Or use SwiftUI:
+
+    ```swift ContentView.swift
+    import SwiftUI
+    import shortkit
+
+    struct ContentView: View {
+        var body: some View {
+            ShortKitFeedView()
+                .edgesIgnoringSafeArea(.all)
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Add the feed view to your layout:
+
+    ```xml activity_main.xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <dev.shortkit.ui.ShortKitFeedView
+            android:id="@+id/feedView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </FrameLayout>
+    ```
+
+    Or programmatically:
+
+    ```kotlin MainActivity.kt
+    import dev.shortkit.ShortKit
+
+    class MainActivity : AppCompatActivity() {
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+
+            val feedView = ShortKit.createFeedView(this)
+            setContentView(feedView)
+        }
+    }
+    ```
+
+    With Jetpack Compose:
+
+    ```kotlin MainScreen.kt
+    import dev.shortkit.compose.ShortKitFeed
+
+    @Composable
+    fun MainScreen() {
+        ShortKitFeed(
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Use the `ShortKitFeed` component:
+
+    ```tsx VideoScreen.tsx
+    import { ShortKitFeed } from '@shortkit/react-native';
+    import { StyleSheet, View } from 'react-native';
+
+    export function VideoScreen() {
+      return (
+        <View style={styles.container}>
+          <ShortKitFeed style={styles.feed} />
+        </View>
+      );
+    }
+
+    const styles = StyleSheet.create({
+      container: {
+        flex: 1,
+      },
+      feed: {
+        flex: 1,
+      },
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    Mount the feed to a container element:
+
+    ```typescript
+    import { ShortKit } from '@shortkit/web';
+
+    // Mount to a container
+    const container = document.getElementById('video-feed');
+    ShortKit.mountFeed(container);
+    ```
+
+    With React:
+
+    ```tsx VideoFeed.tsx
+    import { ShortKitFeed } from '@shortkit/web/react';
+
+    export function VideoFeed() {
+      return (
+        <div style={{ width: '100%', height: '100vh' }}>
+          <ShortKitFeed />
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Step 5: Upload test content
+
+Before your feed displays content, you need to upload some videos. You can do this via the Admin Portal or API.
+
+<Tabs>
+  <Tab title="Admin Portal">
+    1. Go to [dashboard.shortkit.dev](https://dashboard.shortkit.dev)
+    2. Navigate to **Content → Upload**
+    3. Drag and drop your video files
+    4. Add metadata (title, description, tags)
+    5. Click **Publish**
+
+    Content typically takes 1-2 minutes to process before appearing in feeds.
+  </Tab>
+  <Tab title="API">
+    Use the direct upload flow for client-side uploads:
+
+    ```bash
+    # Step 1: Create upload session
+    curl -X POST https://api.shortkit.dev/v1/uploads \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "title": "My First Video",
+        "description": "Testing shortkit integration",
+        "tags": ["test", "demo"]
+      }'
+    ```
+
+    Response:
+    ```json
+    {
+      "data": {
+        "uploadId": "upl_abc123",
+        "uploadUrl": "https://upload.shortkit.dev/...",
+        "expiresAt": "2024-02-05T12:00:00Z"
+      }
+    }
+    ```
+
+    ```bash
+    # Step 2: Upload file to signed URL
+    curl -X PUT "https://upload.shortkit.dev/..." \
+      -H "Content-Type: video/mp4" \
+      --data-binary @video.mp4
+    ```
+  </Tab>
+</Tabs>
+
+## Step 6: Verify it works
+
+Run your application. You should see your uploaded videos in a vertical scrolling feed. Swipe up to navigate between videos.
+
+<Check>
+  Your shortkit integration is complete. Users can now watch videos in your app.
+</Check>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+<Columns cols={2}>
+  <Card title="Configure the SDK" icon="sliders" href="/sdk/configuration">
+    Customize feed layout, controls, and behavior.
+  </Card>
+  <Card title="Theme your feed" icon="palette" href="/sdk/theming">
+    Match the video player to your brand.
+  </Card>
+  <Card title="Set up user identity" icon="user" href="/guides/identity-management">
+    Enable personalized feeds and cross-device engagement.
+  </Card>
+  <Card title="Integrate ads" icon="rectangle-ad" href="/guides/ad-integration">
+    Monetize your video feed with native ads.
+  </Card>
+</Columns>

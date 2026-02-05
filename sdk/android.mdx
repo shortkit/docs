@@ -1,0 +1,496 @@
+---
+title: "Android SDK"
+description: "Integrate shortkit into your Android application with Kotlin."
+keywords: ["Android", "Kotlin", "Jetpack Compose", "mobile SDK", "ExoPlayer"]
+---
+
+The shortkit Android SDK provides a native video feed experience built on Media3/ExoPlayer with custom extensions for optimal short-form video performance.
+
+## Requirements
+
+- Android 7.0 (API level 24) or later
+- Kotlin 1.8 or later
+- Android Gradle Plugin 8.0 or later
+
+## Installation
+
+Add the shortkit Maven repository and dependency to your project.
+
+### settings.gradle.kts
+
+```kotlin settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://maven.shortkit.dev") }
+    }
+}
+```
+
+### build.gradle.kts (app)
+
+```kotlin build.gradle.kts
+dependencies {
+    implementation("dev.shortkit:shortkit-android:1.0.0")
+
+    // Optional: Jetpack Compose support
+    implementation("dev.shortkit:shortkit-compose:1.0.0")
+}
+```
+
+## Initialization
+
+Initialize the SDK in your `Application` class:
+
+```kotlin MyApplication.kt
+import android.app.Application
+import dev.shortkit.ShortKit
+import dev.shortkit.ShortKitConfig
+import dev.shortkit.FeedOrientation
+import dev.shortkit.FeedHeight
+import dev.shortkit.Environment
+
+class MyApplication : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+
+        val config = ShortKitConfig(
+            feedOrientation = FeedOrientation.VERTICAL,
+            feedHeight = FeedHeight.FULLSCREEN,
+            controls = ControlsConfig(
+                playPause = true,
+                scrubber = true,
+                playbackSpeed = PlaybackSpeedConfig(
+                    enabled = true,
+                    options = listOf(1.0f, 1.25f, 1.5f, 2.0f)
+                ),
+                captions = CaptionConfig(enabled = true, defaultOn = false),
+                volume = true,
+                share = ShareConfig(enabled = true)
+            ),
+            theme = ThemeConfig(
+                primaryColor = "#FF6600",
+                controlsTint = "#FFFFFF",
+                backgroundColor = "#000000"
+            )
+        )
+
+        ShortKit.initialize(
+            context = this,
+            apiKey = "pk_live_your_publishable_key",
+            config = config,
+            environment = Environment.PRODUCTION
+        )
+    }
+}
+```
+
+Register your Application class in `AndroidManifest.xml`:
+
+```xml AndroidManifest.xml
+<application
+    android:name=".MyApplication"
+    ...>
+```
+
+## Displaying the feed
+
+### Jetpack Compose
+
+Use the `ShortKitFeed` composable:
+
+```kotlin VideoFeedScreen.kt
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import dev.shortkit.compose.ShortKitFeed
+
+@Composable
+fun VideoFeedScreen() {
+    ShortKitFeed(
+        modifier = Modifier.fillMaxSize()
+    )
+}
+```
+
+With filters:
+
+```kotlin FilteredFeedScreen.kt
+import dev.shortkit.compose.ShortKitFeed
+import dev.shortkit.FeedFilter
+
+@Composable
+fun SportsFeedScreen() {
+    ShortKitFeed(
+        modifier = Modifier.fillMaxSize(),
+        filter = FeedFilter(tags = listOf("sports", "highlights"))
+    )
+}
+```
+
+### XML Views
+
+Add the feed view to your layout:
+
+```xml activity_video_feed.xml
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <dev.shortkit.ui.ShortKitFeedView
+        android:id="@+id/feedView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</FrameLayout>
+```
+
+```kotlin VideoFeedActivity.kt
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import dev.shortkit.ui.ShortKitFeedView
+
+class VideoFeedActivity : AppCompatActivity() {
+
+    private lateinit var feedView: ShortKitFeedView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_video_feed)
+
+        feedView = findViewById(R.id.feedView)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        feedView.resume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        feedView.pause()
+    }
+}
+```
+
+### Programmatic creation
+
+```kotlin
+import dev.shortkit.ShortKit
+
+class VideoFeedActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val feedView = ShortKit.createFeedView(this)
+        setContentView(feedView)
+    }
+}
+```
+
+## User identity
+
+Associate user identity for personalized feeds:
+
+```kotlin
+// When user logs in
+ShortKit.setUserId("user_12345")
+
+// When user logs out
+ShortKit.clearUserId()
+```
+
+## Event listeners
+
+Set up listeners to respond to SDK events:
+
+```kotlin
+import dev.shortkit.ShortKit
+import dev.shortkit.ShortKitListener
+import dev.shortkit.Content
+import dev.shortkit.ShortKitError
+
+class VideoFeedActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        ShortKit.listener = object : ShortKitListener {
+
+            override fun onShareRequested(content: Content) {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, content.shareUrl)
+                }
+                startActivity(Intent.createChooser(shareIntent, "Share via"))
+            }
+
+            override fun onActionTapped(action: String, content: Content) {
+                when (action) {
+                    "bookmark" -> handleBookmark(content)
+                    "readMore" -> navigateToArticle(content)
+                }
+            }
+
+            override fun onError(error: ShortKitError) {
+                Log.e("ShortKit", "Error: ${error.message}")
+            }
+
+            override fun onMetadataLoaded(content: Content, metadata: Map<String, Any>) {
+                // Access custom metadata from your CMS
+                val articleUrl = metadata["articleUrl"] as? String
+            }
+        }
+    }
+}
+```
+
+With Compose, use the callback parameters:
+
+```kotlin
+@Composable
+fun VideoFeedScreen() {
+    val context = LocalContext.current
+
+    ShortKitFeed(
+        modifier = Modifier.fillMaxSize(),
+        onShareRequested = { content ->
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, content.shareUrl)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share"))
+        },
+        onActionTapped = { action, content ->
+            // Handle custom actions
+        },
+        onError = { error ->
+            // Handle errors
+        }
+    )
+}
+```
+
+## Deep linking
+
+Handle deep links to open specific content:
+
+```kotlin MainActivity.kt
+import android.content.Intent
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import dev.shortkit.ShortKit
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { handleIntent(it) }
+    }
+
+    private fun handleIntent(intent: Intent) {
+        val data = intent.data ?: return
+
+        // Parse your deep link format
+        // e.g., yourapp.com/watch/cnt_abc123
+        if (data.pathSegments.contains("watch")) {
+            val contentId = data.lastPathSegment
+            contentId?.let {
+                ShortKit.openContent(it)
+            }
+        }
+    }
+}
+```
+
+Configure your intent filter in `AndroidManifest.xml`:
+
+```xml AndroidManifest.xml
+<activity android:name=".MainActivity">
+    <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data
+            android:scheme="https"
+            android:host="yourapp.com"
+            android:pathPrefix="/watch" />
+    </intent-filter>
+</activity>
+```
+
+## Picture-in-Picture
+
+Enable PiP for background playback:
+
+```kotlin
+val config = ShortKitConfig(
+    controls = ControlsConfig(
+        pictureInPicture = true
+    )
+)
+```
+
+The SDK handles PiP transitions automatically. You can also trigger it programmatically:
+
+```kotlin
+ShortKit.enterPictureInPicture()
+```
+
+## Chromecast
+
+Enable Chromecast support:
+
+```kotlin
+val config = ShortKitConfig(
+    controls = ControlsConfig(
+        chromecast = true
+    )
+)
+```
+
+Add the Cast SDK dependency:
+
+```kotlin build.gradle.kts
+dependencies {
+    implementation("com.google.android.gms:play-services-cast-framework:21.4.0")
+}
+```
+
+## Entry widget
+
+Create a mini-player widget for other screens:
+
+```kotlin HomeFragment.kt
+import dev.shortkit.ShortKit
+import dev.shortkit.EntryWidgetConfig
+import dev.shortkit.EntryWidgetStyle
+
+class HomeFragment : Fragment() {
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val widgetConfig = EntryWidgetConfig(
+            style = EntryWidgetStyle.THUMBNAIL_ROW,
+            itemCount = 5,
+            autoPlay = true
+        )
+
+        val widget = ShortKit.createEntryWidget(requireContext(), widgetConfig)
+        widget.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            200.dpToPx()
+        )
+
+        widget.setOnContentSelectedListener { content ->
+            // Launch full feed at selected content
+            val intent = Intent(context, VideoFeedActivity::class.java)
+            intent.putExtra("startContentId", content.id)
+            startActivity(intent)
+        }
+
+        binding.widgetContainer.addView(widget)
+    }
+}
+```
+
+With Compose:
+
+```kotlin
+import dev.shortkit.compose.ShortKitEntryWidget
+
+@Composable
+fun HomeScreen(onVideoSelected: (String) -> Unit) {
+    Column {
+        // Other content...
+
+        ShortKitEntryWidget(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            style = EntryWidgetStyle.THUMBNAIL_ROW,
+            itemCount = 5,
+            onContentSelected = { content ->
+                onVideoSelected(content.id)
+            }
+        )
+    }
+}
+```
+
+## Custom overlays
+
+Register custom views for specific content:
+
+```kotlin
+ShortKit.registerOverlay(
+    identifier = "articleCard",
+    viewProvider = { context, content, metadata ->
+        ArticleCardView(context).apply {
+            setHeadline(metadata["headline"] as? String)
+            setSource(metadata["source"] as? String)
+        }
+    }
+)
+```
+
+With Compose:
+
+```kotlin
+ShortKit.registerOverlay(
+    identifier = "articleCard",
+    composableProvider = { content, metadata ->
+        ArticleCard(
+            headline = metadata["headline"] as? String ?: "",
+            source = metadata["source"] as? String ?: ""
+        )
+    }
+)
+```
+
+## ProGuard rules
+
+If using ProGuard/R8, add these rules:
+
+```proguard proguard-rules.pro
+-keep class dev.shortkit.** { *; }
+-keepclassmembers class dev.shortkit.** { *; }
+```
+
+## Debug logging
+
+Enable verbose logging during development:
+
+```kotlin
+ShortKit.initialize(
+    context = this,
+    apiKey = "pk_live_your_publishable_key",
+    config = config,
+    environment = Environment.DEVELOPMENT  // Enables debug logging
+)
+
+// Or explicitly set log level
+ShortKit.logLevel = LogLevel.VERBOSE
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Configuration" icon="sliders" href="/sdk/configuration">
+    Explore all configuration options.
+  </Card>
+  <Card title="Theming" icon="palette" href="/sdk/theming">
+    Customize the visual appearance.
+  </Card>
+</Columns>

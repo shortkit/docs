@@ -1,0 +1,389 @@
+---
+title: "Data export"
+description: "Export raw analytics data for custom analysis."
+keywords: ["export", "data", "analytics", "API"]
+---
+
+The Export API allows you to export raw event data for custom analysis, data warehousing, and compliance requirements.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/analytics/export` | Create export job |
+| `GET` | `/v1/analytics/export/{jobId}` | Get export status |
+| `GET` | `/v1/analytics/exports` | List export jobs |
+| `DELETE` | `/v1/analytics/export/{jobId}` | Cancel export job |
+
+## Create export
+
+Request an export of analytics data.
+
+```bash
+POST /v1/analytics/export
+```
+
+### Request body
+
+<ParamField body="startDate" type="string" required>
+  Start date (ISO 8601: `YYYY-MM-DD`).
+</ParamField>
+
+<ParamField body="endDate" type="string" required>
+  End date. Maximum 30 days from start.
+</ParamField>
+
+<ParamField body="dataTypes" type="string[]" default='["events"]'>
+  Data types to export:
+  - `events` - Engagement events
+  - `quality` - Playback quality events
+  - `ads` - Ad events
+</ParamField>
+
+<ParamField body="format" type="string" default="jsonl">
+  Output format: `jsonl` (JSON Lines) or `csv`.
+</ParamField>
+
+<ParamField body="filters" type="object">
+  Optional filters.
+  <Expandable title="properties">
+    <ParamField body="contentIds" type="string[]">
+      Filter to specific content IDs.
+    </ParamField>
+    <ParamField body="userIds" type="string[]">
+      Filter to specific user IDs.
+    </ParamField>
+    <ParamField body="eventTypes" type="string[]">
+      Filter to specific event types.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="compression" type="string" default="gzip">
+  Compression: `none`, `gzip`.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/analytics/export \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31",
+    "dataTypes": ["events", "quality"],
+    "format": "jsonl",
+    "compression": "gzip"
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "jobId": "exp_abc123",
+    "status": "processing",
+    "estimatedSize": "250MB",
+    "estimatedRowCount": 1250000,
+    "estimatedCompletion": "2024-02-04T12:30:00Z",
+    "createdAt": "2024-02-04T12:00:00Z"
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+## Get export status
+
+Check the status of an export job.
+
+```bash
+GET /v1/analytics/export/{jobId}
+```
+
+### Path parameters
+
+<ParamField path="jobId" type="string" required>
+  Export job ID.
+</ParamField>
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/analytics/export/exp_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response (processing)
+
+```json
+{
+  "data": {
+    "jobId": "exp_abc123",
+    "status": "processing",
+    "progress": 45,
+    "processedRows": 562500,
+    "estimatedRowCount": 1250000
+  }
+}
+```
+
+### Response (complete)
+
+```json
+{
+  "data": {
+    "jobId": "exp_abc123",
+    "status": "complete",
+    "downloadUrl": "https://exports.shortkit.dev/exp_abc123/data.jsonl.gz",
+    "expiresAt": "2024-02-11T12:00:00Z",
+    "fileSize": "245MB",
+    "rowCount": 1250000,
+    "completedAt": "2024-02-04T12:25:00Z"
+  }
+}
+```
+
+### Export statuses
+
+| Status | Description |
+|--------|-------------|
+| `queued` | Job is queued |
+| `processing` | Export in progress |
+| `complete` | Ready for download |
+| `failed` | Export failed |
+| `expired` | Download expired |
+
+## List exports
+
+List all export jobs.
+
+```bash
+GET /v1/analytics/exports
+```
+
+### Query parameters
+
+<ParamField query="limit" type="integer" default={20}>
+  Items per page.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by status.
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/analytics/exports?limit=10" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "jobId": "exp_abc123",
+      "status": "complete",
+      "dateRange": {
+        "start": "2024-01-01",
+        "end": "2024-01-31"
+      },
+      "format": "jsonl",
+      "fileSize": "245MB",
+      "createdAt": "2024-02-04T12:00:00Z",
+      "completedAt": "2024-02-04T12:25:00Z"
+    }
+  ],
+  "meta": {
+    "total": 25
+  }
+}
+```
+
+## Cancel export
+
+Cancel a pending or processing export.
+
+```bash
+DELETE /v1/analytics/export/{jobId}
+```
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/analytics/export/exp_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "jobId": "exp_abc123",
+    "status": "cancelled"
+  }
+}
+```
+
+## Export formats
+
+### JSON Lines (recommended)
+
+One JSON object per line:
+
+```jsonl
+{"event":"impression","contentId":"cnt_abc123","userId":"user_456","timestamp":"2024-01-15T10:30:00Z","data":{"position":0}}
+{"event":"playStart","contentId":"cnt_abc123","userId":"user_456","timestamp":"2024-01-15T10:30:01Z","data":{"startupTime":250}}
+{"event":"completion","contentId":"cnt_abc123","userId":"user_456","timestamp":"2024-01-15T10:30:46Z","data":{"watchTime":45.2}}
+```
+
+### CSV
+
+Tabular format with flattened fields:
+
+```csv
+event,contentId,userId,timestamp,data.position,data.startupTime,data.watchTime
+impression,cnt_abc123,user_456,2024-01-15T10:30:00Z,0,,
+playStart,cnt_abc123,user_456,2024-01-15T10:30:01Z,,250,
+completion,cnt_abc123,user_456,2024-01-15T10:30:46Z,,,45.2
+```
+
+## Data schema
+
+### Event fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Event type |
+| `contentId` | string | Content ID |
+| `userId` | string | User ID (if identified) |
+| `deviceId` | string | Device ID |
+| `sessionId` | string | Session ID |
+| `timestamp` | string | ISO 8601 timestamp |
+| `deviceType` | string | ios, android, web |
+| `country` | string | ISO country code |
+| `data` | object | Event-specific data |
+
+### Event types
+
+| Event | Data Fields |
+|-------|-------------|
+| `impression` | position, entryPoint |
+| `playStart` | startupTime, rendition, codec |
+| `watchProgress` | currentTime, duration, percentComplete |
+| `completion` | watchTime, looped, loopCount |
+| `swipe` | fromContentId, watchTimeOnFrom, direction |
+| `rebuffer` | duration, currentTime, rendition |
+| `qualityChange` | fromQuality, toQuality |
+| `error` | errorCode, errorMessage |
+
+## SDK examples
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    import { ShortKitAdmin } from '@shortkit/node';
+
+    const shortkit = new ShortKitAdmin({ apiKey: 'sk_live_...' });
+
+    // Create export
+    const job = await shortkit.analytics.export({
+      startDate: '2024-01-01',
+      endDate: '2024-01-31',
+      dataTypes: ['events'],
+      format: 'jsonl'
+    });
+
+    // Poll for completion
+    let status;
+    do {
+      await sleep(30000);
+      status = await shortkit.analytics.getExport(job.jobId);
+    } while (status.status === 'processing');
+
+    // Download
+    if (status.status === 'complete') {
+      const response = await fetch(status.downloadUrl);
+      // Process data...
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from shortkit import ShortKitAdmin
+    import time
+
+    shortkit = ShortKitAdmin(api_key='sk_live_...')
+
+    # Create export
+    job = shortkit.analytics.export(
+        start_date='2024-01-01',
+        end_date='2024-01-31',
+        data_types=['events'],
+        format='jsonl'
+    )
+
+    # Poll for completion
+    while True:
+        time.sleep(30)
+        status = shortkit.analytics.get_export(job.job_id)
+        if status.status != 'processing':
+            break
+
+    # Download
+    if status.status == 'complete':
+        import requests
+        response = requests.get(status.download_url)
+        # Process data...
+    ```
+  </Tab>
+</Tabs>
+
+## Processing large exports
+
+For large exports, use streaming parsers:
+
+```javascript
+const readline = require('readline');
+const zlib = require('zlib');
+const https = require('https');
+
+https.get(downloadUrl, (response) => {
+  const gunzip = zlib.createGunzip();
+  const rl = readline.createInterface({
+    input: response.pipe(gunzip)
+  });
+
+  rl.on('line', (line) => {
+    const event = JSON.parse(line);
+    processEvent(event);
+  });
+});
+```
+
+## Rate limits
+
+| Limit | Value |
+|-------|-------|
+| Concurrent exports | 3 |
+| Export jobs per day | 20 |
+| Max date range | 30 days |
+| Download link validity | 7 days |
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Data export guide" icon="book" href="/guides/data-export">
+    Complete export guide.
+  </Card>
+  <Card title="Analytics API" icon="chart-bar" href="/api-reference/endpoints/analytics">
+    Query aggregated analytics.
+  </Card>
+</Columns>

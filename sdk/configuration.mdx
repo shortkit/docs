@@ -1,0 +1,440 @@
+---
+title: "SDK configuration"
+description: "Complete reference for all shortkit SDK configuration options."
+keywords: ["configuration", "config", "options", "settings", "SDK"]
+---
+
+This page documents all configuration options available when initializing the shortkit SDK.
+
+## Initialization parameters
+
+<ResponseField name="apiKey" type="string" required>
+  Your organization's publishable API key. Starts with `pk_live_` or `pk_test_`.
+</ResponseField>
+
+<ResponseField name="config" type="FeedConfig" required>
+  Configuration object defining feed layout, controls, and behavior. See sections below.
+</ResponseField>
+
+<ResponseField name="environment" type="string" default="production">
+  Target environment. One of `production`, `staging`, or `development`. Controls API endpoint and logging verbosity.
+</ResponseField>
+
+<ResponseField name="remoteConfigTTL" type="number" default="300">
+  Cache TTL for remote configuration overlay, in seconds.
+</ResponseField>
+
+<ResponseField name="remoteConfigTimeout" type="number" default="2000">
+  Timeout for remote config fetch, in milliseconds. If exceeded, falls back to cached or code-level config.
+</ResponseField>
+
+## Feed layout
+
+<ResponseField name="feedOrientation" type="string" default="vertical">
+  Primary scroll direction of the feed.
+
+  | Value | Description |
+  |-------|-------------|
+  | `vertical` | Swipe up/down between videos (TikTok-style) |
+  | `horizontal` | Swipe left/right between videos |
+</ResponseField>
+
+<ResponseField name="feedHeight" type="string | object" default="fullscreen">
+  Height of the feed view.
+
+  | Value | Description |
+  |-------|-------------|
+  | `fullscreen` | Occupies entire screen minus safe areas |
+  | `{ percentage: 0.85 }` | Percentage of container (e.g., 85%) |
+</ResponseField>
+
+<ResponseField name="contentTypes" type="string[]" default='["video"]'>
+  Types of content the feed can display.
+
+  | Value | Description |
+  |-------|-------------|
+  | `video` | Video content (default) |
+  | `photoSet` | Swipeable photo carousels |
+</ResponseField>
+
+<ResponseField name="adjacentFeeds" type="FeedConfig[]" default="[]">
+  Additional feeds accessible by horizontal swipe from the primary feed. Each can have its own filters and ranking.
+</ResponseField>
+
+<ResponseField name="entryWidget" type="EntryWidgetConfig | null" default="null">
+  Configuration for embeddable mini-player widgets. See [Entry widget](#entry-widget-configuration).
+</ResponseField>
+
+### Example
+
+```typescript
+const config = {
+  feedOrientation: 'vertical',
+  feedHeight: 'fullscreen',
+  contentTypes: ['video'],
+  adjacentFeeds: [
+    {
+      name: 'Sports',
+      filter: { tags: ['sports'] }
+    },
+    {
+      name: 'Politics',
+      filter: { tags: ['politics'] }
+    }
+  ]
+};
+```
+
+## Video controls
+
+Each control can be independently enabled or disabled.
+
+<ResponseField name="controls.playPause" type="boolean" default="true">
+  Tap-to-pause/play overlay.
+</ResponseField>
+
+<ResponseField name="controls.scrubber" type="boolean" default="true">
+  Progress bar / seek scrubber. Position configurable via `scrubberPosition`.
+</ResponseField>
+
+<ResponseField name="controls.scrubberPosition" type="string" default="bottom">
+  Position of the scrubber. One of `bottom` or `below` (below video for non-fullscreen).
+</ResponseField>
+
+<ResponseField name="controls.playbackSpeed" type="PlaybackSpeedConfig">
+  Playback speed selector configuration.
+
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="boolean" default="true">
+      Whether to show the speed selector.
+    </ResponseField>
+    <ResponseField name="options" type="number[]" default="[1.0, 1.25, 1.5, 2.0]">
+      Available speed options.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="controls.captions" type="CaptionConfig">
+  Caption/subtitle configuration.
+
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="boolean" default="true">
+      Whether to show the caption toggle.
+    </ResponseField>
+    <ResponseField name="defaultOn" type="boolean" default="false">
+      Whether captions are on by default.
+    </ResponseField>
+    <ResponseField name="style" type="CaptionStyle">
+      Caption styling options. See [Theming](/sdk/theming#caption-styling).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="controls.volume" type="boolean" default="true">
+  Mute/unmute toggle.
+</ResponseField>
+
+<ResponseField name="controls.muteOnStart" type="boolean" default="true">
+  Whether videos start muted. Unmute state persists across videos in the session.
+</ResponseField>
+
+<ResponseField name="controls.resolutionSelector" type="boolean" default="false">
+  Manual resolution override. When disabled, resolution is managed automatically via ABR (recommended).
+</ResponseField>
+
+<ResponseField name="controls.pictureInPicture" type="boolean" default="false">
+  Picture-in-Picture mode support. Requires platform configuration.
+</ResponseField>
+
+<ResponseField name="controls.airplay" type="boolean" default="false">
+  AirPlay casting support (iOS only).
+</ResponseField>
+
+<ResponseField name="controls.chromecast" type="boolean" default="false">
+  Chromecast support. Requires Google Cast SDK.
+</ResponseField>
+
+<ResponseField name="controls.share" type="ShareConfig">
+  Share button configuration.
+
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="boolean" default="true">
+      Whether to show the share button.
+    </ResponseField>
+    <ResponseField name="deepLinkDomain" type="string">
+      Domain for generated share URLs. Falls back to organization settings.
+    </ResponseField>
+    <ResponseField name="deepLinkPathTemplate" type="string">
+      Path template with `{contentId}` placeholder. Example: `/watch/{contentId}`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="controls.autoHideControls" type="AutoHideConfig">
+  Auto-hide behavior for control overlays.
+
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="boolean" default="true">
+      Whether controls auto-hide after inactivity.
+    </ResponseField>
+    <ResponseField name="delayMs" type="number" default="3000">
+      Milliseconds of inactivity before hiding.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```typescript
+const config = {
+  controls: {
+    playPause: true,
+    scrubber: true,
+    playbackSpeed: {
+      enabled: true,
+      options: [0.5, 1.0, 1.5, 2.0]
+    },
+    captions: {
+      enabled: true,
+      defaultOn: false
+    },
+    volume: true,
+    muteOnStart: true,
+    share: {
+      enabled: true,
+      deepLinkPathTemplate: '/watch/{contentId}'
+    },
+    autoHideControls: {
+      enabled: true,
+      delayMs: 4000
+    }
+  }
+};
+```
+
+## Custom actions
+
+Configure custom action buttons in the control overlay:
+
+<ResponseField name="actions" type="ActionConfig[]" default="[]">
+  Array of custom action button configurations.
+
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>
+      Unique identifier for the action, passed to callbacks.
+    </ResponseField>
+    <ResponseField name="icon" type="string" required>
+      Icon name or URL. Supports Font Awesome icons or custom image URLs.
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Accessibility label for the button.
+    </ResponseField>
+    <ResponseField name="position" type="string" default="right">
+      Position in the overlay: `left`, `right`, or `bottom`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```typescript
+const config = {
+  actions: [
+    {
+      id: 'bookmark',
+      icon: 'bookmark',
+      label: 'Save',
+      position: 'right'
+    },
+    {
+      id: 'readMore',
+      icon: 'newspaper',
+      label: 'Read Article',
+      position: 'bottom'
+    }
+  ]
+};
+```
+
+## Entry widget configuration
+
+Configure mini-player widgets for embedding in other screens:
+
+<ResponseField name="entryWidget.style" type="string" default="thumbnailRow">
+  Widget display style.
+
+  | Value | Description |
+  |-------|-------------|
+  | `thumbnailRow` | Horizontal row of thumbnail previews |
+  | `thumbnailGrid` | Grid of thumbnail previews |
+  | `carousel` | Horizontal carousel with larger previews |
+</ResponseField>
+
+<ResponseField name="entryWidget.itemCount" type="number" default="6">
+  Number of content items to display.
+</ResponseField>
+
+<ResponseField name="entryWidget.autoPlay" type="boolean" default="false">
+  Whether to auto-play preview animations on hover/focus.
+</ResponseField>
+
+<ResponseField name="entryWidget.previewType" type="string" default="thumbnail">
+  Preview content type.
+
+  | Value | Description |
+  |-------|-------------|
+  | `thumbnail` | Static first-frame thumbnail |
+  | `gif` | Animated preview GIF (first 2-3 seconds) |
+</ResponseField>
+
+```typescript
+const config = {
+  entryWidget: {
+    style: 'thumbnailRow',
+    itemCount: 5,
+    autoPlay: true,
+    previewType: 'gif'
+  }
+};
+```
+
+## Feed filters
+
+Filter content displayed in the feed:
+
+<ResponseField name="filter.tags" type="string[]">
+  Only show content with at least one of these tags.
+</ResponseField>
+
+<ResponseField name="filter.excludeTags" type="string[]">
+  Exclude content with any of these tags.
+</ResponseField>
+
+<ResponseField name="filter.contentIds" type="string[]">
+  Only show specific content IDs (useful for curated playlists).
+</ResponseField>
+
+<ResponseField name="filter.maxAgeDays" type="number">
+  Only show content published within the last N days.
+</ResponseField>
+
+```typescript
+const config = {
+  filter: {
+    tags: ['breaking-news', 'politics'],
+    excludeTags: ['opinion'],
+    maxAgeDays: 7
+  }
+};
+```
+
+## Performance options
+
+<ResponseField name="performance.prefetchCount" type="number" default="3">
+  Number of upcoming videos to pre-buffer.
+</ResponseField>
+
+<ResponseField name="performance.thumbnailPrefetchCount" type="number" default="6">
+  Number of upcoming thumbnails to prefetch.
+</ResponseField>
+
+<ResponseField name="performance.initialBufferMs" type="number" default="2000">
+  Target buffer before starting playback, in milliseconds.
+</ResponseField>
+
+<ResponseField name="performance.lowPowerMode" type="boolean" default="true">
+  Whether to reduce quality when device is in low-power mode.
+</ResponseField>
+
+<ResponseField name="performance.preferAV1" type="boolean" default="true">
+  Whether to prefer AV1 codec when hardware decode is available. AV1 offers better quality at lower bitrate.
+</ResponseField>
+
+```typescript
+const config = {
+  performance: {
+    prefetchCount: 2,
+    thumbnailPrefetchCount: 4,
+    initialBufferMs: 1500,
+    lowPowerMode: true,
+    preferAV1: true
+  }
+};
+```
+
+## Complete example
+
+```typescript
+import { ShortKit } from '@shortkit/web';
+
+ShortKit.initialize({
+  apiKey: 'pk_live_your_publishable_key',
+  environment: 'production',
+  remoteConfigTTL: 300,
+  remoteConfigTimeout: 2000,
+  config: {
+    // Layout
+    feedOrientation: 'vertical',
+    feedHeight: 'fullscreen',
+    contentTypes: ['video'],
+
+    // Controls
+    controls: {
+      playPause: true,
+      scrubber: true,
+      playbackSpeed: {
+        enabled: true,
+        options: [1.0, 1.25, 1.5, 2.0]
+      },
+      captions: {
+        enabled: true,
+        defaultOn: false
+      },
+      volume: true,
+      muteOnStart: true,
+      pictureInPicture: true,
+      share: {
+        enabled: true,
+        deepLinkPathTemplate: '/watch/{contentId}'
+      },
+      autoHideControls: {
+        enabled: true,
+        delayMs: 3000
+      }
+    },
+
+    // Custom actions
+    actions: [
+      { id: 'bookmark', icon: 'bookmark', label: 'Save' }
+    ],
+
+    // Theming (see Theming page for full options)
+    theme: {
+      primaryColor: '#FF6600',
+      controlsTint: '#FFFFFF',
+      backgroundColor: '#000000'
+    },
+
+    // Performance
+    performance: {
+      prefetchCount: 3,
+      thumbnailPrefetchCount: 6,
+      preferAV1: true
+    },
+
+    // Filters
+    filter: {
+      excludeTags: ['draft']
+    }
+  }
+});
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Theming" icon="palette" href="/sdk/theming">
+    Customize colors, fonts, and visual styling.
+  </Card>
+  <Card title="Deep linking" icon="link" href="/sdk/deep-linking">
+    Set up shareable links and content navigation.
+  </Card>
+</Columns>

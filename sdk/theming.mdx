@@ -1,0 +1,388 @@
+---
+title: "Theming"
+description: "Customize the visual appearance of your shortkit video feed to match your brand."
+keywords: ["theming", "styling", "customization", "colors", "fonts", "branding"]
+---
+
+The shortkit SDK provides comprehensive theming options to match your brand's visual identity. All visual properties are configurable through the `theme` configuration object.
+
+## Theme configuration
+
+<ResponseField name="theme.primaryColor" type="string">
+  Accent color for interactive elements (scrubber fill, active toggles, buttons). Accepts hex (`#FF6600`) or rgba (`rgba(255, 102, 0, 1)`).
+</ResponseField>
+
+<ResponseField name="theme.backgroundColor" type="string" default="#000000">
+  Feed background color. Visible during transitions or if content doesn't fill the viewport.
+</ResponseField>
+
+<ResponseField name="theme.controlsTint" type="string" default="#FFFFFF">
+  Tint color for all control icons (play/pause, share, captions, etc.).
+</ResponseField>
+
+<ResponseField name="theme.controlsBackgroundOpacity" type="number" default="0.6">
+  Opacity of the gradient/background behind controls (0.0-1.0). Ensures visibility over video.
+</ResponseField>
+
+<ResponseField name="theme.fontFamily" type="string">
+  Font for all text rendered by the SDK (captions, speed selector, labels). Falls back to system font if not specified.
+</ResponseField>
+
+### Basic example
+
+```typescript
+const config = {
+  theme: {
+    primaryColor: '#FF6600',
+    backgroundColor: '#000000',
+    controlsTint: '#FFFFFF',
+    controlsBackgroundOpacity: 0.5,
+    fontFamily: 'Inter, system-ui, sans-serif'
+  }
+};
+```
+
+## Caption styling
+
+Customize the appearance of captions and subtitles:
+
+<ResponseField name="theme.captionStyle.fontSize" type="number" default="16">
+  Caption text size in points.
+</ResponseField>
+
+<ResponseField name="theme.captionStyle.fontWeight" type="string" default="500">
+  Font weight: `normal`, `medium`, `semibold`, or `bold`.
+</ResponseField>
+
+<ResponseField name="theme.captionStyle.textColor" type="string" default="#FFFFFF">
+  Caption text color.
+</ResponseField>
+
+<ResponseField name="theme.captionStyle.backgroundColor" type="string" default="rgba(0, 0, 0, 0.75)">
+  Background color behind caption text.
+</ResponseField>
+
+<ResponseField name="theme.captionStyle.backgroundOpacity" type="number" default="0.75">
+  Background opacity (0.0-1.0). Alternative to rgba in backgroundColor.
+</ResponseField>
+
+<ResponseField name="theme.captionStyle.position" type="string" default="bottom">
+  Caption position: `top` or `bottom`.
+</ResponseField>
+
+<ResponseField name="theme.captionStyle.edgeStyle" type="string" default="none">
+  Text edge style for readability: `none`, `dropShadow`, `raised`, `depressed`, or `outline`.
+</ResponseField>
+
+```typescript
+const config = {
+  theme: {
+    captionStyle: {
+      fontSize: 18,
+      fontWeight: 'semibold',
+      textColor: '#FFFFFF',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      position: 'bottom',
+      edgeStyle: 'dropShadow'
+    }
+  }
+};
+```
+
+## Scrubber styling
+
+Customize the progress bar/scrubber appearance:
+
+<ResponseField name="theme.scrubberStyle.height" type="number" default="4">
+  Height of the scrubber bar in points.
+</ResponseField>
+
+<ResponseField name="theme.scrubberStyle.knobSize" type="number" default="12">
+  Diameter of the scrubber knob in points.
+</ResponseField>
+
+<ResponseField name="theme.scrubberStyle.playedColor" type="string">
+  Color of the played portion. Defaults to `primaryColor`.
+</ResponseField>
+
+<ResponseField name="theme.scrubberStyle.bufferedColor" type="string" default="rgba(255, 255, 255, 0.5)">
+  Color of the buffered portion.
+</ResponseField>
+
+<ResponseField name="theme.scrubberStyle.unplayedColor" type="string" default="rgba(255, 255, 255, 0.3)">
+  Color of the unplayed portion.
+</ResponseField>
+
+<ResponseField name="theme.scrubberStyle.knobColor" type="string">
+  Color of the scrubber knob. Defaults to `primaryColor`.
+</ResponseField>
+
+```typescript
+const config = {
+  theme: {
+    primaryColor: '#FF6600',
+    scrubberStyle: {
+      height: 3,
+      knobSize: 14,
+      playedColor: '#FF6600',
+      bufferedColor: 'rgba(255, 255, 255, 0.4)',
+      unplayedColor: 'rgba(255, 255, 255, 0.2)',
+      knobColor: '#FFFFFF'
+    }
+  }
+};
+```
+
+## Sponsored label styling
+
+Customize the appearance of "Sponsored" or "Ad" labels on native ad units:
+
+<ResponseField name="theme.sponsoredLabel.text" type="string" default="Sponsored">
+  Label text. Common alternatives: "Ad", "Advertisement", "Promoted".
+</ResponseField>
+
+<ResponseField name="theme.sponsoredLabel.textColor" type="string" default="#FFFFFF">
+  Label text color.
+</ResponseField>
+
+<ResponseField name="theme.sponsoredLabel.backgroundColor" type="string" default="rgba(0, 0, 0, 0.6)">
+  Label background color.
+</ResponseField>
+
+<ResponseField name="theme.sponsoredLabel.fontSize" type="number" default="12">
+  Label font size in points.
+</ResponseField>
+
+<ResponseField name="theme.sponsoredLabel.position" type="string" default="topLeft">
+  Label position: `topLeft`, `topRight`, `bottomLeft`, or `bottomRight`.
+</ResponseField>
+
+```typescript
+const config = {
+  theme: {
+    sponsoredLabel: {
+      text: 'Ad',
+      textColor: '#FFFFFF',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      fontSize: 11,
+      position: 'topRight'
+    }
+  }
+};
+```
+
+## Control icons
+
+Customize individual control button appearances:
+
+<ResponseField name="theme.controlIcons.size" type="number" default="24">
+  Default icon size in points.
+</ResponseField>
+
+<ResponseField name="theme.controlIcons.playPauseSize" type="number" default="48">
+  Size of the center play/pause button.
+</ResponseField>
+
+<ResponseField name="theme.controlIcons.style" type="string" default="filled">
+  Icon style: `filled` or `outlined`.
+</ResponseField>
+
+```typescript
+const config = {
+  theme: {
+    controlIcons: {
+      size: 28,
+      playPauseSize: 56,
+      style: 'outlined'
+    }
+  }
+};
+```
+
+## Gradients
+
+Configure the gradient overlays that ensure control visibility:
+
+<ResponseField name="theme.gradients.top" type="GradientConfig">
+  Gradient at the top of the video (behind top controls).
+
+  <Expandable title="properties">
+    <ResponseField name="enabled" type="boolean" default="true">
+      Whether to show the gradient.
+    </ResponseField>
+    <ResponseField name="height" type="number" default="100">
+      Gradient height in points.
+    </ResponseField>
+    <ResponseField name="colors" type="string[]">
+      Gradient color stops. Default: `['rgba(0,0,0,0.6)', 'transparent']`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="theme.gradients.bottom" type="GradientConfig">
+  Gradient at the bottom of the video (behind scrubber and bottom controls).
+</ResponseField>
+
+```typescript
+const config = {
+  theme: {
+    gradients: {
+      top: {
+        enabled: true,
+        height: 120,
+        colors: ['rgba(0, 0, 0, 0.7)', 'transparent']
+      },
+      bottom: {
+        enabled: true,
+        height: 150,
+        colors: ['transparent', 'rgba(0, 0, 0, 0.8)']
+      }
+    }
+  }
+};
+```
+
+## Platform-specific theming
+
+<Tabs>
+  <Tab title="iOS">
+    The iOS SDK supports additional theming options:
+
+    ```swift
+    let theme = ThemeConfig(
+        primaryColor: "#FF6600",
+        controlsTint: "#FFFFFF",
+        // iOS-specific: Use SF Symbols for icons
+        iconSymbolWeight: .medium,
+        // iOS-specific: Vibrancy effect for controls
+        useVibrancy: true
+    )
+    ```
+  </Tab>
+  <Tab title="Android">
+    The Android SDK integrates with Material Design:
+
+    ```kotlin
+    val theme = ThemeConfig(
+        primaryColor = "#FF6600",
+        controlsTint = "#FFFFFF",
+        // Android-specific: Use Material icons
+        useMaterialIcons = true,
+        // Android-specific: Ripple effect on buttons
+        useRippleEffect = true
+    )
+    ```
+  </Tab>
+  <Tab title="Web">
+    The Web SDK supports CSS custom properties for additional customization:
+
+    ```css
+    :root {
+      --shortkit-primary: #FF6600;
+      --shortkit-background: #000000;
+      --shortkit-controls-tint: #FFFFFF;
+      --shortkit-font-family: 'Inter', system-ui, sans-serif;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Dark/Light mode
+
+The SDK automatically adapts to the system's dark/light mode preference. You can also explicitly set the mode:
+
+```typescript
+const config = {
+  theme: {
+    colorScheme: 'dark', // 'dark', 'light', or 'system'
+
+    // Different colors per mode
+    dark: {
+      primaryColor: '#FF6600',
+      backgroundColor: '#000000',
+      controlsTint: '#FFFFFF'
+    },
+    light: {
+      primaryColor: '#E55500',
+      backgroundColor: '#FFFFFF',
+      controlsTint: '#000000'
+    }
+  }
+};
+```
+
+## Complete theme example
+
+```typescript
+import { ShortKit } from '@shortkit/web';
+
+ShortKit.initialize({
+  apiKey: 'pk_live_your_publishable_key',
+  config: {
+    theme: {
+      // Base colors
+      primaryColor: '#FF6600',
+      backgroundColor: '#0A0A0A',
+      controlsTint: '#FFFFFF',
+      controlsBackgroundOpacity: 0.5,
+      fontFamily: 'Inter, system-ui, sans-serif',
+
+      // Captions
+      captionStyle: {
+        fontSize: 16,
+        fontWeight: 'medium',
+        textColor: '#FFFFFF',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        position: 'bottom',
+        edgeStyle: 'dropShadow'
+      },
+
+      // Scrubber
+      scrubberStyle: {
+        height: 3,
+        knobSize: 12,
+        playedColor: '#FF6600',
+        bufferedColor: 'rgba(255, 255, 255, 0.4)',
+        unplayedColor: 'rgba(255, 255, 255, 0.2)'
+      },
+
+      // Ad labels
+      sponsoredLabel: {
+        text: 'Ad',
+        fontSize: 11,
+        position: 'topRight'
+      },
+
+      // Control icons
+      controlIcons: {
+        size: 24,
+        playPauseSize: 48,
+        style: 'filled'
+      },
+
+      // Gradients
+      gradients: {
+        top: {
+          enabled: true,
+          height: 100
+        },
+        bottom: {
+          enabled: true,
+          height: 120
+        }
+      }
+    }
+  }
+});
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Deep linking" icon="link" href="/sdk/deep-linking">
+    Set up shareable links and content navigation.
+  </Card>
+  <Card title="Engagement signals" icon="signal" href="/sdk/engagement-signals">
+    Understand the events collected by the SDK.
+  </Card>
+</Columns>

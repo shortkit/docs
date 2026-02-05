@@ -1,0 +1,220 @@
+---
+title: "Core concepts"
+description: "Understand the key concepts and terminology used throughout shortkit."
+keywords: ["concepts", "terminology", "fundamentals", "overview"]
+---
+
+This page explains the fundamental concepts you'll encounter when working with shortkit.
+
+## Organizations
+
+An **organization** represents your company or team in shortkit. Each organization has:
+
+- Isolated content library and user data
+- Separate API key pairs (publishable and secret)
+- Independent configuration and settings
+- Its own Admin Portal access
+
+All API requests and SDK operations are scoped to a single organization, identified by your API key.
+
+## Content
+
+**Content** refers to individual video assets in your library. Each content item includes:
+
+- The video file (transcoded into multiple renditions)
+- Metadata (title, description, tags)
+- Generated assets (thumbnails, preview GIFs, caption tracks)
+- Engagement statistics
+
+### Content lifecycle
+
+Content progresses through these states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> processing: Upload
+    processing --> ready: Transcoding complete
+    processing --> error: Transcoding failed
+    ready --> scheduled: Set future publish date
+    scheduled --> live: Publish date reached
+    ready --> live: Publish immediately
+    live --> archived: Manual or auto-expiry
+```
+
+| Status | Description |
+|--------|-------------|
+| `processing` | Video is being transcoded and assets generated |
+| `ready` | Processing complete, not yet visible in feeds |
+| `scheduled` | Set to go live at a future date/time |
+| `live` | Visible in feeds and available for playback |
+| `archived` | Removed from feeds, still accessible via direct link |
+| `error` | Processing failed, requires attention |
+
+## Feeds
+
+A **feed** is a ranked list of content served to users. The feed is personalized based on:
+
+- User engagement history (topics watched, completion rates)
+- Content freshness (recency)
+- Editorial controls (pins, boosts, suppression)
+- Geographic relevance
+- Configured ranking weights
+
+### Feed types
+
+<Columns cols={2}>
+  <Card title="Primary feed" icon="list">
+    The main vertical scroll feed users see when entering the video experience.
+  </Card>
+  <Card title="Adjacent feeds" icon="arrows-left-right">
+    Additional feeds accessible by horizontal swipe, each with their own content filters and ranking.
+  </Card>
+</Columns>
+
+## Users and identity
+
+shortkit uses a **two-phase identity model** to track users:
+
+### Phase 1: Anonymous
+
+On first launch, the SDK generates a unique device ID. All engagement events are attributed to this anonymous identifier. This allows:
+
+- Immediate signal collection without user authentication
+- Device-level personalization
+- Feed ranking that improves from the first session
+
+### Phase 2: Identified
+
+When your app authenticates a user, call `setUserId()` to associate their engagement data with a persistent identifier. This enables:
+
+- Cross-device engagement history
+- Personalization that follows users between devices
+- User-level analytics and reporting
+
+```swift
+// When user logs in
+ShortKit.setUserId("user_12345")
+
+// When user logs out
+ShortKit.clearUserId()
+```
+
+<Info>
+  The user ID should be a unique, persistent string from your system (database ID, UUID, hashed email). shortkit never receives or stores actual user credentials.
+</Info>
+
+## Configuration
+
+shortkit uses a **hybrid configuration model** combining code-level defaults with server-side overrides:
+
+### Code-level config
+
+Configuration passed during SDK initialization. This defines baseline behavior and serves as the fallback when the server is unreachable.
+
+```typescript
+ShortKit.initialize({
+  apiKey: 'pk_live_...',
+  config: {
+    feedOrientation: 'vertical',
+    feedHeight: 'fullscreen',
+    controls: { playPause: true, scrubber: true }
+  }
+});
+```
+
+### Remote config overlay
+
+The SDK fetches configuration from the server on initialization. This overlay contains only the fields that differ from your defaults, including any A/B test variant assignments.
+
+Remote config enables you to:
+- Change behavior without app updates
+- Run A/B experiments
+- Adjust settings per user segment
+
+<Tip>
+  The SDK never blocks rendering waiting for remote config. If the fetch fails or times out (default: 2 seconds), it falls back gracefully to cached or code-level config.
+</Tip>
+
+## Ranking signals
+
+The feed ranking system uses multiple **signals** to determine content order:
+
+| Signal | Description |
+|--------|-------------|
+| **Recency** | How recently the content was published. Newer content scores higher. |
+| **Engagement** | Aggregate engagement across all users: views, watch time, completions, shares. |
+| **Geo-relevance** | Match between user location and content's geographic targeting. |
+| **Topic affinity** | Match between user's historical preferences and content tags. |
+| **Completion rate** | How often users watch this content to the end. |
+
+Weights for each signal are configurable in the Admin Portal, allowing you to tune the balance between freshness and engagement.
+
+## Editorial controls
+
+Editorial teams can override algorithmic ranking with three controls:
+
+<Columns cols={3}>
+  <Card title="Pin" icon="thumbtack">
+    Force content to a specific position (e.g., position 1) regardless of ranking score. Deterministic for all users.
+  </Card>
+  <Card title="Boost" icon="arrow-up">
+    Add a positive modifier to ranking score, causing content to rise while still competing with other signals.
+  </Card>
+  <Card title="Suppress" icon="arrow-down">
+    Add a negative modifier or exclude content from the feed entirely.
+  </Card>
+</Columns>
+
+## Adaptive bitrate streaming
+
+shortkit delivers video using **adaptive bitrate (ABR) streaming**. Each video is transcoded into multiple quality levels:
+
+| Rendition | Resolution | H.264 Bitrate | AV1 Bitrate |
+|-----------|------------|---------------|-------------|
+| 1080p | 1920×1080 | ~4,500 kbps | ~2,500 kbps |
+| 720p | 1280×720 | ~2,500 kbps | ~1,500 kbps |
+| 480p | 854×480 | ~1,200 kbps | ~700 kbps |
+| 360p | 640×360 | ~700 kbps | ~400 kbps |
+| 240p | 426×240 | ~400 kbps | ~250 kbps |
+
+The SDK automatically selects the optimal quality based on:
+- Available network bandwidth
+- Device capabilities
+- Battery state
+
+This ensures smooth playback across varying network conditions while maximizing quality when bandwidth allows.
+
+## Engagement events
+
+The SDK collects **engagement events** to power analytics and feed ranking:
+
+| Event | Trigger |
+|-------|---------|
+| `impression` | Video enters viewport |
+| `playStart` | First frame begins playback |
+| `watchProgress` | Periodic updates during playback |
+| `completion` | Video reaches end |
+| `swipe` | User navigates to next/previous video |
+| `interaction` | User taps a control (share, like, etc.) |
+
+Events are batched and sent at regular intervals (default: every 5 seconds) to minimize network overhead.
+
+## Webhooks
+
+**Webhooks** notify your server when important events occur in shortkit:
+
+- `content.ready` - Content finished processing and is available
+- `content.errored` - Content processing failed
+
+Webhook requests include a signature header (`X-Shortform-Signature`) for verification.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Architecture overview" icon="sitemap" href="/architecture">
+    Understand how shortkit's components work together.
+  </Card>
+  <Card title="SDK configuration" icon="sliders" href="/sdk/configuration">
+    Learn about all available configuration options.
+  </Card>
+</Columns>

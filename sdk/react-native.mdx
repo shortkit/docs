@@ -1,0 +1,513 @@
+---
+title: "React Native SDK"
+description: "Integrate shortkit into your React Native or Expo application."
+keywords: ["React Native", "Expo", "TypeScript", "JavaScript", "cross-platform"]
+---
+
+The shortkit React Native SDK provides a unified API for iOS and Android through native bridges, delivering full feature parity with the native SDKs.
+
+## Requirements
+
+- React Native 0.70 or later
+- iOS 14.0+ / Android API 24+
+- TypeScript 4.7+ (recommended)
+
+For Expo:
+- Expo SDK 49 or later
+- Development build (not Expo Go)
+
+## Installation
+
+<Tabs>
+  <Tab title="React Native CLI">
+    Install the package:
+
+    <CodeGroup>
+
+    ```bash npm
+    npm install @shortkit/react-native
+    ```
+
+    ```bash yarn
+    yarn add @shortkit/react-native
+    ```
+
+    </CodeGroup>
+
+    Install iOS pods:
+
+    ```bash
+    cd ios && pod install
+    ```
+  </Tab>
+  <Tab title="Expo">
+    Install the Expo-compatible package:
+
+    ```bash
+    npx expo install @shortkit/expo
+    ```
+
+    Add the config plugin to your `app.json`:
+
+    ```json app.json
+    {
+      "expo": {
+        "plugins": ["@shortkit/expo"]
+      }
+    }
+    ```
+
+    <Warning>
+      shortkit requires native code and won't work in Expo Go. You need to use a [development build](https://docs.expo.dev/develop/development-builds/introduction/).
+    </Warning>
+
+    Create a development build:
+
+    ```bash
+    npx expo prebuild
+    npx expo run:ios
+    # or
+    npx expo run:android
+    ```
+  </Tab>
+</Tabs>
+
+## Initialization
+
+Initialize the SDK at your app's entry point, before rendering:
+
+```tsx App.tsx
+import { ShortKit } from '@shortkit/react-native';
+// or for Expo: import { ShortKit } from '@shortkit/expo';
+
+// Initialize before rendering
+ShortKit.initialize({
+  apiKey: 'pk_live_your_publishable_key',
+  config: {
+    feedOrientation: 'vertical',
+    feedHeight: 'fullscreen',
+    controls: {
+      playPause: true,
+      scrubber: true,
+      playbackSpeed: {
+        enabled: true,
+        options: [1.0, 1.25, 1.5, 2.0]
+      },
+      captions: {
+        enabled: true,
+        defaultOn: false
+      },
+      volume: true,
+      share: { enabled: true }
+    },
+    theme: {
+      primaryColor: '#FF6600',
+      controlsTint: '#FFFFFF',
+      backgroundColor: '#000000'
+    }
+  },
+  environment: 'production'
+});
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      {/* Your app navigation */}
+    </NavigationContainer>
+  );
+}
+```
+
+## Displaying the feed
+
+Use the `ShortKitFeed` component:
+
+```tsx VideoFeedScreen.tsx
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { ShortKitFeed } from '@shortkit/react-native';
+
+export function VideoFeedScreen() {
+  return (
+    <View style={styles.container}>
+      <ShortKitFeed style={styles.feed} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  feed: {
+    flex: 1,
+  },
+});
+```
+
+### With filters
+
+```tsx SportsFeedScreen.tsx
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { ShortKitFeed } from '@shortkit/react-native';
+
+export function SportsFeedScreen() {
+  return (
+    <View style={styles.container}>
+      <ShortKitFeed
+        style={styles.feed}
+        filter={{
+          tags: ['sports', 'highlights']
+        }}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  feed: {
+    flex: 1,
+  },
+});
+```
+
+### With React Navigation
+
+```tsx
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { ShortKitFeed } from '@shortkit/react-native';
+
+const Tab = createBottomTabNavigator();
+
+function VideoTab() {
+  return <ShortKitFeed style={{ flex: 1 }} />;
+}
+
+export function MainTabs() {
+  return (
+    <Tab.Navigator>
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Videos" component={VideoTab} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+```
+
+## User identity
+
+Associate user identity for personalized feeds:
+
+```tsx
+import { ShortKit } from '@shortkit/react-native';
+
+// When user logs in
+async function handleLogin(userId: string) {
+  await authenticateUser();
+  ShortKit.setUserId(userId);
+}
+
+// When user logs out
+function handleLogout() {
+  ShortKit.clearUserId();
+}
+```
+
+## Event callbacks
+
+Handle SDK events with callback props:
+
+```tsx VideoFeedScreen.tsx
+import React from 'react';
+import { Share, StyleSheet, View } from 'react-native';
+import { ShortKitFeed, Content, ShortKitError } from '@shortkit/react-native';
+import { useNavigation } from '@react-navigation/native';
+
+export function VideoFeedScreen() {
+  const navigation = useNavigation();
+
+  const handleShare = async (content: Content) => {
+    try {
+      await Share.share({
+        message: content.shareUrl,
+        url: content.shareUrl,
+      });
+    } catch (error) {
+      console.error('Share failed:', error);
+    }
+  };
+
+  const handleAction = (action: string, content: Content) => {
+    switch (action) {
+      case 'bookmark':
+        // Save to bookmarks
+        break;
+      case 'readMore':
+        // Navigate to article
+        navigation.navigate('Article', { url: content.metadata?.articleUrl });
+        break;
+    }
+  };
+
+  const handleError = (error: ShortKitError) => {
+    console.error('ShortKit error:', error.message);
+  };
+
+  const handleMetadata = (content: Content, metadata: Record<string, any>) => {
+    // Access custom metadata from your CMS
+    console.log('Content metadata:', metadata);
+  };
+
+  return (
+    <View style={styles.container}>
+      <ShortKitFeed
+        style={styles.feed}
+        onShareRequested={handleShare}
+        onActionTapped={handleAction}
+        onError={handleError}
+        onMetadataLoaded={handleMetadata}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  feed: { flex: 1 },
+});
+```
+
+## Deep linking
+
+Handle deep links to open specific content:
+
+```tsx App.tsx
+import { useEffect } from 'react';
+import { Linking } from 'react-native';
+import { ShortKit } from '@shortkit/react-native';
+
+export default function App() {
+  useEffect(() => {
+    // Handle initial URL
+    Linking.getInitialURL().then(url => {
+      if (url) handleDeepLink(url);
+    });
+
+    // Handle URL while app is open
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  const handleDeepLink = (url: string) => {
+    // Parse your deep link format
+    // e.g., yourapp://watch/cnt_abc123
+    const match = url.match(/watch\/(\w+)/);
+    if (match) {
+      const contentId = match[1];
+      ShortKit.openContent(contentId);
+    }
+  };
+
+  return (
+    // Your app
+  );
+}
+```
+
+For Expo, use `expo-linking`:
+
+```tsx App.tsx
+import * as Linking from 'expo-linking';
+import { ShortKit } from '@shortkit/expo';
+
+export default function App() {
+  const url = Linking.useURL();
+
+  useEffect(() => {
+    if (url) {
+      const { path } = Linking.parse(url);
+      if (path?.startsWith('watch/')) {
+        const contentId = path.replace('watch/', '');
+        ShortKit.openContent(contentId);
+      }
+    }
+  }, [url]);
+
+  return (
+    // Your app
+  );
+}
+```
+
+## Entry widget
+
+Create a mini-player widget for other screens:
+
+```tsx HomeScreen.tsx
+import React from 'react';
+import { StyleSheet, View, Text } from 'react-native';
+import { ShortKitEntryWidget, Content } from '@shortkit/react-native';
+import { useNavigation } from '@react-navigation/native';
+
+export function HomeScreen() {
+  const navigation = useNavigation();
+
+  const handleContentSelected = (content: Content) => {
+    navigation.navigate('VideoFeed', { startContentId: content.id });
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Latest Videos</Text>
+
+      <ShortKitEntryWidget
+        style={styles.widget}
+        itemCount={5}
+        autoPlay={true}
+        onContentSelected={handleContentSelected}
+      />
+
+      {/* Other home screen content */}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  widget: {
+    height: 200,
+    marginBottom: 24,
+  },
+});
+```
+
+## TypeScript types
+
+The SDK includes full TypeScript definitions:
+
+```typescript types.ts
+import type {
+  ShortKitConfig,
+  FeedConfig,
+  ControlsConfig,
+  ThemeConfig,
+  Content,
+  ShortKitError,
+  FeedFilter,
+} from '@shortkit/react-native';
+
+// Config is fully typed
+const config: ShortKitConfig = {
+  apiKey: 'pk_live_...',
+  config: {
+    feedOrientation: 'vertical', // 'vertical' | 'horizontal'
+    feedHeight: 'fullscreen',    // 'fullscreen' | { percentage: number }
+    controls: {
+      playPause: true,
+      scrubber: true,
+      // ...
+    },
+  },
+};
+
+// Content type includes all fields
+function handleContent(content: Content) {
+  console.log(content.id);
+  console.log(content.title);
+  console.log(content.duration);
+  console.log(content.thumbnailUrl);
+  console.log(content.shareUrl);
+  console.log(content.metadata); // Record<string, any>
+}
+```
+
+## Hooks
+
+The SDK provides React hooks for common operations:
+
+```tsx
+import { useShortKit, useCurrentContent } from '@shortkit/react-native';
+
+function VideoControls() {
+  const { isInitialized, userId } = useShortKit();
+  const { content, isPlaying, currentTime, duration } = useCurrentContent();
+
+  if (!isInitialized) {
+    return <ActivityIndicator />;
+  }
+
+  return (
+    <View>
+      <Text>{content?.title}</Text>
+      <Text>{formatTime(currentTime)} / {formatTime(duration)}</Text>
+    </View>
+  );
+}
+```
+
+## Expo configuration
+
+For Expo projects, configure the plugin in `app.json`:
+
+```json app.json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@shortkit/expo",
+        {
+          "ios": {
+            "backgroundModes": ["audio"]
+          },
+          "android": {
+            "enableChromecast": true
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+## Debugging
+
+Enable debug mode during development:
+
+```tsx
+ShortKit.initialize({
+  apiKey: 'pk_live_your_publishable_key',
+  config: { /* ... */ },
+  environment: __DEV__ ? 'development' : 'production'
+});
+
+// View debug logs
+ShortKit.setLogLevel('verbose');
+```
+
+Use React Native Debugger to inspect SDK calls in the network tab.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Configuration" icon="sliders" href="/sdk/configuration">
+    Explore all configuration options.
+  </Card>
+  <Card title="Theming" icon="palette" href="/sdk/theming">
+    Customize the visual appearance.
+  </Card>
+</Columns>

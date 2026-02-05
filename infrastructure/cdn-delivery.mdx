@@ -1,0 +1,289 @@
+---
+title: "CDN delivery"
+description: "Global content delivery with edge caching, signed URLs, and branded domains."
+keywords: ["CDN", "delivery", "caching", "streaming", "edge"]
+---
+
+shortkit delivers video content through a global CDN network, ensuring fast playback and low latency for users worldwide.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    User --> Edge[Edge Node]
+    Edge --> Shield[Origin Shield]
+    Shield --> Origin[Origin Storage]
+
+    Edge -->|Cache Hit| User
+    Shield -->|Cache Hit| Edge
+```
+
+### Edge caching
+
+Popular content is cached at 200+ edge locations closest to users:
+
+- **Cache duration**: Based on content popularity and freshness
+- **Purge on update**: Automatic invalidation when content changes
+- **Regional optimization**: Popular content stays at regional edges
+
+### Origin shield
+
+A mid-tier cache layer reduces origin load:
+
+- Aggregates requests from multiple edge nodes
+- Prevents origin overload during traffic spikes
+- Reduces egress costs
+
+## Branded domains
+
+Configure custom CNAME domains for CDN delivery:
+
+### Setup
+
+<Steps>
+  <Step title="Add domain in Admin Portal">
+    Go to **Settings → Branded CDN Domain** and enter your domain:
+
+    ```
+    video.yourcompany.com
+    ```
+  </Step>
+  <Step title="Create DNS CNAME record">
+    Create a CNAME record pointing to shortkit's CDN:
+
+    | Type | Name | Value |
+    |------|------|-------|
+    | CNAME | video | cdn.shortkit.dev |
+  </Step>
+  <Step title="Verify domain">
+    Click **Verify** in the Admin Portal. Verification typically completes within minutes.
+  </Step>
+  <Step title="Enable SSL">
+    SSL certificates are automatically provisioned via Let's Encrypt. This may take up to 24 hours.
+  </Step>
+</Steps>
+
+Once configured, all video URLs use your branded domain:
+
+```
+https://video.yourcompany.com/v1/streams/cnt_abc123/manifest.m3u8
+```
+
+## Signed URLs
+
+All CDN URLs are signed with time-limited tokens to prevent unauthorized access.
+
+### How it works
+
+1. Feed API returns content with signed streaming URLs
+2. URLs include expiry timestamp and signature
+3. CDN validates signature before serving content
+4. Expired tokens return 403; SDK automatically refreshes
+
+### URL format
+
+```
+https://video.yourcompany.com/v1/streams/cnt_abc123/manifest.m3u8
+  ?token=eyJhbGc...
+  &expires=1707048000
+```
+
+### Token expiry
+
+Configure in Admin Portal (**Settings → CDN URL Expiry**) or via API:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/cdn \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urlExpiry": 21600
+  }'
+```
+
+| Setting | Default | Range | Description |
+|---------|---------|-------|-------------|
+| `urlExpiry` | 6 hours | 1-24 hours | Token validity duration |
+
+<Tip>
+  Shorter expiry improves security but may cause issues for users with very long viewing sessions. The SDK handles token refresh automatically.
+</Tip>
+
+### Key rotation
+
+Signing keys rotate automatically every 90 days with overlap periods to prevent playback interruption.
+
+## Playback restrictions
+
+Restrict video playback to authorized domains.
+
+### Domain allowlist
+
+Only requests from allowed domains can play video content:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "allowedDomains": [
+      "yourcompany.com",
+      "*.yourcompany.com",
+      "staging.yourcompany.com"
+    ],
+    "allowNoReferrer": false,
+    "allowHighRiskUserAgents": false
+  }'
+```
+
+### Configuration options
+
+<ResponseField name="allowedDomains" type="string[]" required>
+  List of allowed domains. Supports exact matches and wildcards (`*.example.com`).
+</ResponseField>
+
+<ResponseField name="allowNoReferrer" type="boolean" default="false">
+  Whether to allow requests with no referrer header. Some mobile apps and direct URL access don't send referrers.
+</ResponseField>
+
+<ResponseField name="allowHighRiskUserAgents" type="boolean" default="false">
+  Whether to allow requests from known scraping/bot user agents.
+</ResponseField>
+
+### Development environments
+
+`localhost` and `127.0.0.1` are automatically allowed in staging/development environments.
+
+### Admin Portal
+
+Configure in **Settings → Playback Restrictions**.
+
+## Streaming manifests
+
+The platform generates optimized manifests for each protocol:
+
+### HLS (HTTP Live Streaming)
+
+Master playlist with variant streams:
+
+```m3u8
+#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-INDEPENDENT-SEGMENTS
+
+#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,CODECS="avc1.64002a,mp4a.40.2"
+1080p/playlist.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720,CODECS="avc1.64001f,mp4a.40.2"
+720p/playlist.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=854x480,CODECS="avc1.640028,mp4a.40.2"
+480p/playlist.m3u8
+```
+
+### DASH (Dynamic Adaptive Streaming over HTTP)
+
+MPD manifest with adaptation sets:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD type="static" mediaPresentationDuration="PT45.2S">
+  <Period>
+    <AdaptationSet mimeType="video/mp4" segmentAlignment="true">
+      <Representation id="1080p" bandwidth="5000000" width="1920" height="1080">
+        <SegmentTemplate media="1080p/segment_$Number$.m4s" />
+      </Representation>
+      <Representation id="720p" bandwidth="2800000" width="1280" height="720">
+        <SegmentTemplate media="720p/segment_$Number$.m4s" />
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
+```
+
+### Multi-codec manifests
+
+When AV1 is available, manifests include both codec options:
+
+```m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2800000,CODECS="av01.0.08M.08"
+720p_av1/playlist.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=4000000,CODECS="avc1.64001f"
+720p_h264/playlist.m3u8
+```
+
+The SDK selects the appropriate codec based on device capabilities.
+
+## Performance metrics
+
+### Target metrics
+
+| Metric | Target |
+|--------|--------|
+| Edge cache hit ratio | > 95% |
+| First byte (cache hit) | < 50ms |
+| First byte (cache miss) | < 200ms |
+| Global availability | 99.99% |
+
+### Monitoring
+
+View CDN performance in Admin Portal (**Analytics → Playback Quality**):
+
+- Cache hit ratio over time
+- Regional latency breakdown
+- Bandwidth usage by rendition
+- Error rates by region
+
+## Geographic distribution
+
+Content is served from the nearest edge location:
+
+| Region | Edge Locations |
+|--------|----------------|
+| North America | 50+ |
+| Europe | 40+ |
+| Asia Pacific | 35+ |
+| South America | 15+ |
+| Africa | 10+ |
+| Middle East | 10+ |
+
+## Delivery usage
+
+Track bandwidth and delivery metrics:
+
+```bash
+curl https://api.shortkit.dev/v1/analytics/delivery \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -G -d "startDate=2024-01-01" -d "endDate=2024-01-31"
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "totalDeliveredSeconds": 15420000,
+    "totalBandwidthGB": 2450.5,
+    "byRendition": {
+      "1080p": { "seconds": 3200000, "bandwidthGB": 1200 },
+      "720p": { "seconds": 5800000, "bandwidthGB": 850 },
+      "480p": { "seconds": 4200000, "bandwidthGB": 300 },
+      "360p": { "seconds": 2220000, "bandwidthGB": 100 }
+    }
+  }
+}
+```
+
+View in Admin Portal: **Analytics → Delivery Usage**
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Feed ranking" icon="ranking-star" href="/infrastructure/feed-ranking">
+    Learn how content is ranked and ordered.
+  </Card>
+  <Card title="Playback restrictions" icon="shield" href="/guides/playback-restrictions">
+    Configure domain restrictions and security.
+  </Card>
+</Columns>

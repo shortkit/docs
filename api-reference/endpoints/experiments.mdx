@@ -1,0 +1,523 @@
+---
+title: "Experiments"
+description: "Create and manage A/B tests for ranking and configuration."
+keywords: ["experiments", "A/B testing", "variants", "API"]
+---
+
+The Experiments API allows you to create and manage A/B tests for feed ranking, configuration settings, and feature flags.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/experiments` | List experiments |
+| `POST` | `/v1/experiments` | Create experiment |
+| `GET` | `/v1/experiments/{id}` | Get experiment details |
+| `PATCH` | `/v1/experiments/{id}` | Update experiment |
+| `POST` | `/v1/experiments/{id}/start` | Start experiment |
+| `POST` | `/v1/experiments/{id}/stop` | Stop experiment |
+| `GET` | `/v1/experiments/{id}/results` | Get experiment results |
+| `DELETE` | `/v1/experiments/{id}` | Delete experiment |
+
+## List experiments
+
+Retrieve all experiments.
+
+```bash
+GET /v1/experiments
+```
+
+### Query parameters
+
+<ParamField query="status" type="string">
+  Filter by status: `draft`, `running`, `completed`, `stopped`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  Items per page.
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/experiments?status=running" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "exp_abc123",
+      "name": "Recency weight test",
+      "description": "Testing higher recency weight",
+      "status": "running",
+      "type": "ranking",
+      "traffic": 0.20,
+      "variants": [
+        { "id": "control", "name": "Control", "traffic": 0.5 },
+        { "id": "treatment", "name": "Higher recency", "traffic": 0.5 }
+      ],
+      "startedAt": "2024-02-01T12:00:00Z",
+      "createdAt": "2024-01-28T10:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 5
+  }
+}
+```
+
+## Create experiment
+
+Create a new A/B test.
+
+```bash
+POST /v1/experiments
+```
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Experiment name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Experiment description.
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  Experiment type: `ranking`, `config`, `feature`.
+</ParamField>
+
+<ParamField body="traffic" type="number" required>
+  Percentage of users in experiment (0.0-1.0).
+</ParamField>
+
+<ParamField body="variants" type="array" required>
+  Experiment variants.
+  <Expandable title="variant properties">
+    <ParamField body="id" type="string" required>
+      Variant identifier.
+    </ParamField>
+    <ParamField body="name" type="string" required>
+      Variant display name.
+    </ParamField>
+    <ParamField body="traffic" type="number" required>
+      Traffic allocation within experiment (must sum to 1.0).
+    </ParamField>
+    <ParamField body="config" type="object">
+      Variant configuration override.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="metrics" type="string[]">
+  Metrics to track: `completionRate`, `watchTime`, `sessionsPerUser`, `retention`.
+</ParamField>
+
+<ParamField body="targetingRules" type="object">
+  Optional user targeting.
+  <Expandable title="properties">
+    <ParamField body="countries" type="string[]">
+      Target specific countries.
+    </ParamField>
+    <ParamField body="devices" type="string[]">
+      Target specific devices: `ios`, `android`, `web`.
+    </ParamField>
+    <ParamField body="userSegments" type="string[]">
+      Target user segments.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example: Ranking experiment
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Engagement weight test",
+    "description": "Testing higher engagement weight in ranking",
+    "type": "ranking",
+    "traffic": 0.20,
+    "variants": [
+      {
+        "id": "control",
+        "name": "Control",
+        "traffic": 0.5,
+        "config": {
+          "weights": {
+            "recency": 0.25,
+            "engagement": 0.20,
+            "topicAffinity": 0.20,
+            "geoRelevance": 0.15,
+            "completionRate": 0.10,
+            "creatorAffinity": 0.10
+          }
+        }
+      },
+      {
+        "id": "high_engagement",
+        "name": "High engagement",
+        "traffic": 0.5,
+        "config": {
+          "weights": {
+            "recency": 0.20,
+            "engagement": 0.35,
+            "topicAffinity": 0.15,
+            "geoRelevance": 0.15,
+            "completionRate": 0.10,
+            "creatorAffinity": 0.05
+          }
+        }
+      }
+    ],
+    "metrics": ["completionRate", "watchTime", "sessionsPerUser"]
+  }'
+```
+
+### Example: Config experiment
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ad frequency test",
+    "description": "Testing different ad frequencies",
+    "type": "config",
+    "traffic": 0.30,
+    "variants": [
+      {
+        "id": "control",
+        "name": "Every 5 videos",
+        "traffic": 0.33,
+        "config": {
+          "ads.frequency.interval": 5
+        }
+      },
+      {
+        "id": "frequent",
+        "name": "Every 4 videos",
+        "traffic": 0.33,
+        "config": {
+          "ads.frequency.interval": 4
+        }
+      },
+      {
+        "id": "sparse",
+        "name": "Every 7 videos",
+        "traffic": 0.34,
+        "config": {
+          "ads.frequency.interval": 7
+        }
+      }
+    ],
+    "metrics": ["completionRate", "sessionsPerUser", "retention"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "exp_xyz789",
+    "name": "Engagement weight test",
+    "status": "draft",
+    "type": "ranking",
+    "traffic": 0.20,
+    "variants": [
+      { "id": "control", "name": "Control", "traffic": 0.5 },
+      { "id": "high_engagement", "name": "High engagement", "traffic": 0.5 }
+    ],
+    "metrics": ["completionRate", "watchTime", "sessionsPerUser"],
+    "createdAt": "2024-02-04T12:00:00Z"
+  }
+}
+```
+
+## Get experiment
+
+Retrieve experiment details.
+
+```bash
+GET /v1/experiments/{id}
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "exp_abc123",
+    "name": "Recency weight test",
+    "description": "Testing higher recency weight",
+    "status": "running",
+    "type": "ranking",
+    "traffic": 0.20,
+    "variants": [
+      {
+        "id": "control",
+        "name": "Control",
+        "traffic": 0.5,
+        "config": { "weights": { "recency": 0.25 } },
+        "participants": 12500
+      },
+      {
+        "id": "treatment",
+        "name": "Higher recency",
+        "traffic": 0.5,
+        "config": { "weights": { "recency": 0.40 } },
+        "participants": 12480
+      }
+    ],
+    "metrics": ["completionRate", "watchTime"],
+    "startedAt": "2024-02-01T12:00:00Z",
+    "createdAt": "2024-01-28T10:00:00Z"
+  }
+}
+```
+
+## Start experiment
+
+Begin running an experiment.
+
+```bash
+POST /v1/experiments/{id}/start
+```
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments/exp_abc123/start \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "exp_abc123",
+    "status": "running",
+    "startedAt": "2024-02-04T12:00:00Z"
+  }
+}
+```
+
+## Stop experiment
+
+End an experiment early.
+
+```bash
+POST /v1/experiments/{id}/stop
+```
+
+### Request body
+
+<ParamField body="winner" type="string">
+  Variant ID to roll out (optional).
+</ParamField>
+
+<ParamField body="reason" type="string">
+  Reason for stopping.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments/exp_abc123/stop \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "winner": "high_engagement",
+    "reason": "Statistical significance reached"
+  }'
+```
+
+## Get results
+
+Retrieve experiment results and statistics.
+
+```bash
+GET /v1/experiments/{id}/results
+```
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/experiments/exp_abc123/results \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "experimentId": "exp_abc123",
+    "status": "running",
+    "duration": {
+      "days": 7,
+      "startedAt": "2024-01-28T12:00:00Z"
+    },
+    "variants": [
+      {
+        "id": "control",
+        "name": "Control",
+        "participants": 12500,
+        "metrics": {
+          "completionRate": {
+            "value": 0.42,
+            "confidence": 0.95
+          },
+          "watchTime": {
+            "value": 28.5,
+            "confidence": 0.95
+          },
+          "sessionsPerUser": {
+            "value": 2.3,
+            "confidence": 0.95
+          }
+        }
+      },
+      {
+        "id": "high_engagement",
+        "name": "High engagement",
+        "participants": 12480,
+        "metrics": {
+          "completionRate": {
+            "value": 0.46,
+            "confidence": 0.95,
+            "lift": 0.095,
+            "significant": true
+          },
+          "watchTime": {
+            "value": 31.2,
+            "confidence": 0.95,
+            "lift": 0.095,
+            "significant": true
+          },
+          "sessionsPerUser": {
+            "value": 2.4,
+            "confidence": 0.95,
+            "lift": 0.043,
+            "significant": false
+          }
+        }
+      }
+    ],
+    "recommendation": {
+      "winner": "high_engagement",
+      "confidence": 0.97,
+      "minimumDetectableEffect": 0.05
+    }
+  }
+}
+```
+
+## Update experiment
+
+Modify experiment settings (only in draft status).
+
+```bash
+PATCH /v1/experiments/{id}
+```
+
+### Request body
+
+<ParamField body="name" type="string">
+  Updated name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="traffic" type="number">
+  Updated traffic allocation.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/experiments/exp_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "traffic": 0.30
+  }'
+```
+
+<Warning>
+  Experiments can only be modified in `draft` status. Running experiments cannot be changed.
+</Warning>
+
+## Delete experiment
+
+Delete an experiment.
+
+```bash
+DELETE /v1/experiments/{id}
+```
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/experiments/exp_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+<Warning>
+  Running experiments cannot be deleted. Stop the experiment first.
+</Warning>
+
+## SDK integration
+
+Track experiment exposure in your app:
+
+```typescript
+// Experiment assignment is included in feed responses
+const feed = await ShortKit.fetchFeed();
+
+if (feed.meta.experimentId) {
+  // Track exposure for accurate results
+  analytics.track('experiment_exposure', {
+    experimentId: feed.meta.experimentId,
+    variant: feed.meta.variant
+  });
+}
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Run experiments for sufficient duration">
+    Wait for statistical significance before concluding. Typically 1-2 weeks minimum.
+  </Accordion>
+  <Accordion title="Start with small traffic allocation">
+    Begin with 10-20% traffic and increase if no negative impact is detected.
+  </Accordion>
+  <Accordion title="Monitor guardrail metrics">
+    Watch for negative impacts on key metrics even if your primary metric improves.
+  </Accordion>
+  <Accordion title="Document experiment learnings">
+    Record conclusions and apply insights to future experiments.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="A/B testing guide" icon="flask" href="/admin-portal/ab-testing">
+    Manage experiments in Admin Portal.
+  </Card>
+  <Card title="Ranking API" icon="sort" href="/api-reference/endpoints/ranking">
+    Configure ranking settings.
+  </Card>
+</Columns>

@@ -1,0 +1,269 @@
+---
+title: "A/B testing"
+description: "Create and manage experiments to optimize your video feed."
+keywords: ["A/B testing", "experiments", "optimization", "variants"]
+---
+
+The Experiments section lets you run controlled tests to optimize feed layout, ranking, ad frequency, and other parameters.
+
+## How experiments work
+
+1. **Define variants**: Different configurations to test
+2. **Assign users**: Deterministic assignment based on user ID hash
+3. **Collect metrics**: Track engagement per variant
+4. **Analyze results**: Statistical significance testing
+5. **Promote winner**: Apply winning config to all users
+
+```mermaid
+flowchart LR
+    A[Create Experiment] --> B[Define Variants]
+    B --> C[Run Experiment]
+    C --> D[Analyze Results]
+    D --> E{Significant?}
+    E -->|Yes| F[Promote Winner]
+    E -->|No| G[Extend or End]
+```
+
+## Creating an experiment
+
+### Step 1: Basic info
+
+Go to **Experiments → Create New**:
+
+1. **Name**: Descriptive name (e.g., "Recency vs Engagement Weight Test")
+2. **Description**: Hypothesis and goals
+3. **Type**: What you're testing
+
+### Experiment types
+
+| Type | What You Can Test |
+|------|-------------------|
+| **Ranking** | Signal weights, decay rates, thresholds |
+| **Layout** | Feed orientation, height, adjacent feeds |
+| **Controls** | Enabled controls, auto-hide settings |
+| **Theme** | Colors, fonts, control styling |
+| **Ad frequency** | Ad placement intervals, modes |
+| **Custom** | Any SDK config parameter |
+
+### Step 2: Define variants
+
+Add 2-4 variants:
+
+<Tabs>
+  <Tab title="Ranking example">
+    **Variant A (Control)**: Current weights
+    ```json
+    {
+      "weights": {
+        "recency": 0.25,
+        "engagement": 0.25,
+        "geoRelevance": 0.15,
+        "topicAffinity": 0.20,
+        "completionRate": 0.15
+      }
+    }
+    ```
+
+    **Variant B (Test)**: More recency
+    ```json
+    {
+      "weights": {
+        "recency": 0.40,
+        "engagement": 0.15,
+        "geoRelevance": 0.15,
+        "topicAffinity": 0.15,
+        "completionRate": 0.15
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Layout example">
+    **Variant A**: Fullscreen feed
+    ```json
+    {
+      "feedHeight": "fullscreen"
+    }
+    ```
+
+    **Variant B**: Partial feed with navigation
+    ```json
+    {
+      "feedHeight": { "percentage": 0.85 }
+    }
+    ```
+  </Tab>
+  <Tab title="Ad frequency example">
+    **Variant A**: Every 5 videos
+    ```json
+    {
+      "adFrequency": {
+        "mode": "count",
+        "interval": 5
+      }
+    }
+    ```
+
+    **Variant B**: Platform optimized
+    ```json
+    {
+      "adFrequency": {
+        "mode": "platform-optimized"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Step 3: Traffic allocation
+
+Set percentage of users for each variant:
+
+- **Equal split**: Automatically divide traffic
+- **Custom split**: Set specific percentages (must sum to 100%)
+
+<Tip>
+  For high-traffic apps, start with a small test population (e.g., 10%) before scaling to full traffic.
+</Tip>
+
+### Step 4: Success metrics
+
+Select primary and secondary metrics:
+
+**Primary metrics** (choose 1-2):
+- Watch time per session
+- Session duration
+- Videos watched per session
+- Completion rate
+- Return rate (next day)
+
+**Secondary metrics** (optional):
+- Share rate
+- Ad impressions
+- Ad revenue
+- Rebuffer rate
+
+### Step 5: Launch
+
+Review and launch:
+1. Preview how variants will look
+2. Set experiment duration (recommended: 2+ weeks)
+3. Click **Launch**
+
+## Managing experiments
+
+### Experiment states
+
+| State | Description |
+|-------|-------------|
+| **Draft** | Not yet launched, can edit |
+| **Running** | Actively collecting data |
+| **Paused** | Temporarily stopped |
+| **Completed** | Reached end date or stopped |
+| **Archived** | Historical record |
+
+### Monitoring
+
+While running, view:
+- Users per variant
+- Real-time metrics
+- Statistical significance progress
+
+### Pausing
+
+Pause an experiment to:
+- Investigate unexpected results
+- Fix a bug in one variant
+- Temporarily stop traffic split
+
+Paused experiments can be resumed.
+
+## Analyzing results
+
+### Results dashboard
+
+View at **Experiments → [Experiment] → Results**:
+
+| Metric | Control | Test | Lift | Confidence |
+|--------|---------|------|------|------------|
+| Watch time | 45.2s | 52.1s | +15.3% | 94% |
+| Completion rate | 42% | 48% | +14.3% | 97% |
+| Session length | 4.2min | 4.8min | +14.3% | 91% |
+
+### Statistical significance
+
+Results show:
+- **Lift**: Percentage change vs. control
+- **Confidence**: Probability that the difference is real (not random)
+- **Status**: Significant (>95%), trending, or inconclusive
+
+<Warning>
+  Wait for at least 95% confidence before making decisions. Early results often change as more data is collected.
+</Warning>
+
+### Segmented analysis
+
+Break down results by:
+- Platform (iOS/Android/Web)
+- Region
+- User tenure (new vs. returning)
+- Device type
+
+## Promoting a winner
+
+When you have significant results:
+
+1. Go to experiment results
+2. Click **Promote Variant** on the winning variant
+3. Choose:
+   - **Apply to 100%**: Immediately apply to all users
+   - **Gradual rollout**: Slowly increase from test percentage
+
+The winning configuration becomes the new default.
+
+## Best practices
+
+### Experiment design
+
+<AccordionGroup>
+  <Accordion title="Test one thing at a time">
+    Changing multiple variables makes it hard to attribute results. If testing both ranking weights and ad frequency, run separate experiments.
+  </Accordion>
+  <Accordion title="Run long enough">
+    Short experiments may show false positives. Run for at least 2 weeks to capture different usage patterns (weekdays vs. weekends, etc.).
+  </Accordion>
+  <Accordion title="Consider sample size">
+    More users = faster significant results. For smaller apps, plan for longer experiment duration.
+  </Accordion>
+  <Accordion title="Document hypotheses">
+    Write down what you expect to happen and why. This helps interpret results and plan follow-up tests.
+  </Accordion>
+</AccordionGroup>
+
+### Common experiments
+
+| Goal | What to Test |
+|------|--------------|
+| Increase watch time | Ranking weights, content diversity |
+| Improve retention | Session start experience, personalization depth |
+| Boost completion | Content length filters, quality thresholds |
+| Increase ad revenue | Ad frequency, placement timing |
+| Reduce rebuffering | ABR settings, prefetch depth |
+
+## Experiment history
+
+View all past experiments at **Experiments → Completed**:
+
+- Search by name, type, or date
+- Filter by outcome (positive lift, no change, negative)
+- Export results for reporting
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Analytics" icon="chart-bar" href="/admin-portal/analytics">
+    Deep dive into engagement metrics.
+  </Card>
+  <Card title="Feed configuration" icon="sliders" href="/admin-portal/feed-configuration">
+    Apply learnings to feed settings.
+  </Card>
+</Columns>

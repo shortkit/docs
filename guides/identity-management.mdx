@@ -1,0 +1,332 @@
+---
+title: "Identity management"
+description: "Set up user identity for personalized feeds and cross-device engagement."
+keywords: ["identity", "user", "personalization", "authentication"]
+---
+
+shortkit uses a two-phase identity model that enables personalization from the first session while supporting cross-device engagement for authenticated users.
+
+## How identity works
+
+```mermaid
+flowchart LR
+    A[First Launch] --> B[Anonymous ID]
+    B --> C[Engagement Tracked]
+    C --> D{User Logs In?}
+    D -->|Yes| E[Call setUserId]
+    E --> F[Identity Resolution]
+    F --> G[Merged Profile]
+    D -->|No| H[Continue Anonymous]
+```
+
+### Phase 1: Anonymous
+
+On first SDK initialization:
+1. SDK generates a unique device ID (UUID v4)
+2. All engagement events are keyed to this anonymous ID
+3. Feed personalization begins immediately based on device-level signals
+
+### Phase 2: Identified
+
+When your app authenticates a user:
+1. You call `setUserId()` with your app's user identifier
+2. SDK sends an identity resolution event to the backend
+3. Anonymous device engagement merges with the identified profile
+4. Future events are keyed to the identified user
+
+## Implementation
+
+### Setting user identity
+
+Call `setUserId()` when your user authenticates:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    // When user logs in
+    func handleLogin(user: User) {
+        // Your authentication logic
+        authenticateUser(user)
+
+        // Associate identity with shortkit
+        ShortKit.setUserId(user.id)
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    // When user logs in
+    fun handleLogin(user: User) {
+        // Your authentication logic
+        authenticateUser(user)
+
+        // Associate identity with shortkit
+        ShortKit.setUserId(user.id)
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    // When user logs in
+    async function handleLogin(user: User) {
+      // Your authentication logic
+      await authenticateUser(user);
+
+      // Associate identity with shortkit
+      ShortKit.setUserId(user.id);
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    // When user logs in
+    async function handleLogin(user: User) {
+      // Your authentication logic
+      await authenticateUser(user);
+
+      // Associate identity with shortkit
+      ShortKit.setUserId(user.id);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Clearing identity
+
+Call `clearUserId()` when the user logs out:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    func handleLogout() {
+        // Your logout logic
+        clearSession()
+
+        // Clear shortkit identity
+        ShortKit.clearUserId()
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    fun handleLogout() {
+        // Your logout logic
+        clearSession()
+
+        // Clear shortkit identity
+        ShortKit.clearUserId()
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    function handleLogout() {
+      // Your logout logic
+      clearSession();
+
+      // Clear shortkit identity
+      ShortKit.clearUserId();
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    function handleLogout() {
+      // Your logout logic
+      clearSession();
+
+      // Clear shortkit identity
+      ShortKit.clearUserId();
+    }
+    ```
+  </Tab>
+</Tabs>
+
+When `clearUserId()` is called:
+- A new anonymous device ID is generated
+- The identified profile remains intact for future logins
+- New engagement starts fresh on the anonymous profile
+
+## Choosing a user ID
+
+### Requirements
+
+The user ID must be:
+- **Unique**: One ID per user within your organization
+- **Persistent**: Same ID across sessions and devices
+- **Stable**: Doesn't change over user lifecycle
+
+### Recommendations
+
+<Columns cols={2}>
+  <Card title="Good identifiers" icon="check">
+    - Database primary key (`user_12345`)
+    - UUID (`550e8400-e29b-41d4-a716-446655440000`)
+    - Hashed email (`sha256:abc123...`)
+  </Card>
+  <Card title="Avoid" icon="xmark">
+    - Raw email addresses (PII)
+    - Phone numbers (PII)
+    - Session tokens (not persistent)
+    - Sequential IDs (guessable)
+  </Card>
+</Columns>
+
+<Warning>
+  Never pass personally identifiable information (PII) as the user ID. Use an opaque identifier from your system.
+</Warning>
+
+### Example user IDs
+
+```typescript
+// Good: Database ID
+ShortKit.setUserId("user_12345");
+
+// Good: UUID
+ShortKit.setUserId("550e8400-e29b-41d4-a716-446655440000");
+
+// Good: Hashed email (if you must use email)
+const hashedEmail = await sha256(user.email.toLowerCase());
+ShortKit.setUserId(`email:${hashedEmail}`);
+
+// Bad: Raw email
+ShortKit.setUserId("user@example.com"); // Don't do this
+```
+
+## Identity resolution
+
+When `setUserId()` is called, the backend performs identity resolution:
+
+### What happens
+
+1. **Lookup**: Check if the user ID exists in the system
+2. **Merge**: Link the anonymous device profile to the identified user
+3. **Consolidate**: Merge engagement history from anonymous session
+
+### Engagement merging
+
+Anonymous session data is merged into the identified profile:
+- Watch history
+- Topic affinities
+- Interaction patterns
+
+This means:
+- Users don't "start over" when they log in
+- Personalization is continuous
+- Cross-device engagement combines
+
+### Multiple devices
+
+When the same user logs in on multiple devices:
+- Each device's anonymous session merges on login
+- Engagement history combines across devices
+- Feed personalization reflects all device activity
+
+## User switching
+
+If a user logs out and a different user logs in:
+
+```typescript
+// User A logs out
+ShortKit.clearUserId();
+
+// User B logs in
+ShortKit.setUserId("user_b_id");
+```
+
+What happens:
+1. `clearUserId()` generates a new anonymous ID
+2. User A's profile is preserved (not deleted)
+3. User B's `setUserId()` triggers identity resolution
+4. Feed now reflects User B's preferences
+
+## Anonymous-only mode
+
+If your app doesn't have user authentication, shortkit works entirely in anonymous mode:
+
+- Each device gets a unique identifier
+- Personalization is device-level only
+- No cross-device engagement tracking
+- Still provides meaningful personalization
+
+You don't need to call any identity methods; anonymous mode is the default.
+
+## Privacy considerations
+
+### Data stored
+
+For each user profile, shortkit stores:
+- User ID (your identifier)
+- Linked device IDs
+- Topic affinities (computed from engagement)
+- Engagement statistics (aggregate metrics)
+
+shortkit does **not** store:
+- Personally identifiable information (unless you pass it as user ID)
+- Authentication credentials
+- Raw engagement event logs (beyond retention period)
+
+### Data subject requests
+
+For GDPR/CCPA compliance:
+
+**Export user data:**
+```bash
+curl -X POST https://api.shortkit.dev/v1/users/{userId}/export \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+**Delete user data:**
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/users/{userId} \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+See [Data export guide](/guides/data-export) for details.
+
+## Troubleshooting
+
+### Identity not persisting
+
+**Symptom**: User preferences reset on app restart
+
+**Causes**:
+- `setUserId()` not called after app restart
+- User ID changing between sessions
+
+**Solution**: Call `setUserId()` on every app launch when user is authenticated:
+
+```typescript
+// On app startup
+if (isUserLoggedIn()) {
+  ShortKit.setUserId(currentUser.id);
+}
+```
+
+### Anonymous engagement not merging
+
+**Symptom**: User's pre-login engagement doesn't affect personalization
+
+**Causes**:
+- `setUserId()` called before SDK initialization
+- Multiple SDK instances
+
+**Solution**: Ensure SDK is initialized before calling `setUserId()`:
+
+```typescript
+// Correct order
+ShortKit.initialize({ apiKey: '...', config: {...} });
+// Later, when user logs in
+ShortKit.setUserId(user.id);
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Feed ranking" icon="ranking-star" href="/infrastructure/feed-ranking">
+    How identity affects personalization.
+  </Card>
+  <Card title="Engagement signals" icon="signal" href="/sdk/engagement-signals">
+    Events tracked for personalization.
+  </Card>
+</Columns>

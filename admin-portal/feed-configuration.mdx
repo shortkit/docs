@@ -1,0 +1,257 @@
+---
+title: "Feed configuration"
+description: "Configure feed ranking, filters, and editorial controls in the Admin Portal."
+keywords: ["feed", "ranking", "configuration", "filters", "editorial"]
+---
+
+The Feed Configuration section lets you control how content is ranked, filtered, and displayed to users.
+
+## Ranking weights
+
+Configure the relative importance of each ranking signal at **Feed → Ranking**.
+
+### Weight sliders
+
+Adjust weights for each signal (must sum to 100%):
+
+| Signal | Description | Default |
+|--------|-------------|---------|
+| **Recency** | Favor newer content | 25% |
+| **Engagement** | Favor popular content | 25% |
+| **Geo-relevance** | Match user location | 15% |
+| **Topic affinity** | Match user interests | 20% |
+| **Completion rate** | Favor content users finish | 15% |
+
+### Advanced settings
+
+<AccordionGroup>
+  <Accordion title="Recency decay">
+    Configure how quickly recency score decays:
+
+    - **Half-life**: Hours until 50% decay (default: 72 hours)
+    - **Max age**: Hard cutoff for content age
+
+    Example: With 48-hour half-life, content from 2 days ago has 50% recency score.
+  </Accordion>
+  <Accordion title="Minimum thresholds">
+    Set minimum engagement levels:
+
+    - **Min views**: Exclude content with fewer views
+    - **Min completion rate**: Exclude poorly-performing content
+
+    Useful for filtering out content that's not resonating with users.
+  </Accordion>
+  <Accordion title="Diversity settings">
+    Prevent feed repetition:
+
+    - **Topic diversity**: Avoid consecutive items with same tag
+    - **Source diversity**: Spread content from different sources
+  </Accordion>
+</AccordionGroup>
+
+### Preview changes
+
+Before applying weight changes:
+
+1. Click **Preview**
+2. Select a sample user profile (or use anonymous)
+3. See how the feed would look with new weights
+4. Compare side-by-side with current weights
+
+## Content filters
+
+Create named filters at **Feed → Filters**.
+
+### Creating a filter
+
+1. Click **Create Filter**
+2. Enter filter name and slug (e.g., "Sports", "sports")
+3. Define conditions:
+
+```
+Tags: ANY OF ["sports", "athletics", "nfl", "nba"]
+AND
+Duration: GREATER THAN 15 seconds
+AND
+Age: LESS THAN 7 days
+```
+
+### Filter conditions
+
+| Condition | Description |
+|-----------|-------------|
+| **Tags (ANY OF)** | Content has at least one matching tag |
+| **Tags (ALL OF)** | Content has all specified tags |
+| **Tags (NONE OF)** | Content has none of specified tags |
+| **Duration** | Video length range |
+| **Age** | Days since publish |
+| **Geo** | Content geo-targeting |
+| **Custom metadata** | Match custom field values |
+
+### Using filters
+
+Filters power:
+- **Adjacent feeds**: User swipes left/right to filtered content
+- **SDK filter parameter**: Request specific content subset
+- **API requests**: Filter feed endpoint results
+
+## Heuristic rules
+
+Define hard rules at **Feed → Ranking → Rules**.
+
+### Creating rules
+
+Rules are evaluated before scoring:
+
+```json
+{
+  "name": "Exclude old content",
+  "condition": "content.ageInDays > 30",
+  "action": "exclude",
+  "priority": 1
+}
+```
+
+### Rule builder
+
+Use the visual rule builder:
+
+1. Click **Add Rule**
+2. Set condition using dropdowns:
+   - **If** [content.tags] **contains** ["opinion"]
+   - **AND** [feed.name] **equals** ["main"]
+   - **Then** [exclude]
+3. Set priority (lower = evaluated first)
+4. Save rule
+
+### Common rules
+
+<AccordionGroup>
+  <Accordion title="Age-based exclusion">
+    ```
+    IF content.ageInDays > 30
+    THEN exclude
+    ```
+  </Accordion>
+  <Accordion title="Geo-boosting">
+    ```
+    IF user.region == "MN"
+    AND content.tags CONTAINS "minnesota"
+    THEN boost 2.0x
+    ```
+  </Accordion>
+  <Accordion title="Category exclusion">
+    ```
+    IF content.tags CONTAINS "crime"
+    AND feed.filter NOT CONTAINS "crime"
+    THEN exclude
+    ```
+  </Accordion>
+  <Accordion title="Breaking news boost">
+    ```
+    IF content.tags CONTAINS "breaking"
+    AND content.ageInHours < 4
+    THEN boost 3.0x
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Editorial dashboard
+
+Manage editorial overrides at **Feed → Editorial**.
+
+### Active overrides
+
+View all content with active pins, boosts, or suppressions:
+
+| Column | Description |
+|--------|-------------|
+| **Content** | Title and thumbnail |
+| **Type** | Pin, Boost, or Suppress |
+| **Value** | Position or factor |
+| **Expires** | When override ends |
+| **Set by** | Who created the override |
+
+### Quick actions
+
+- Click content to edit override
+- Bulk remove expired overrides
+- Export override history
+
+### Editorial calendar
+
+View scheduled overrides:
+- Pins scheduled for specific dates
+- Time-limited boosts
+- Automatic expirations
+
+## Feed preview
+
+Test your configuration at **Feed → Preview**.
+
+### Preview options
+
+1. **User segment**: Select from:
+   - Anonymous (new user)
+   - Sample users with different affinities
+   - Specific user ID
+
+2. **Location**: Simulate different geos
+
+3. **Filter**: Apply content filter
+
+4. **Config**: Test different weight configurations
+
+### Compare mode
+
+Compare two configurations side-by-side:
+
+1. Left: Current production config
+2. Right: New configuration
+
+See how changes affect feed ordering for the same user.
+
+## Configuration history
+
+View and restore previous configurations at **Feed → History**.
+
+### Version history
+
+Every configuration change is tracked:
+
+| Column | Description |
+|--------|-------------|
+| **Version** | Auto-incremented version number |
+| **Changed** | What was modified |
+| **By** | Who made the change |
+| **When** | Timestamp |
+
+### Restore version
+
+1. Find the version to restore
+2. Click **Preview** to see the configuration
+3. Click **Restore** to apply
+4. Current config becomes new version
+
+## A/B testing configurations
+
+Test ranking changes with experiments:
+
+1. Go to **Experiments → Create New**
+2. Select **Ranking** as experiment type
+3. Define variants with different weight configurations
+4. Set traffic allocation
+5. Run experiment and compare metrics
+
+See [A/B testing](/admin-portal/ab-testing) for details.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="A/B testing" icon="flask" href="/admin-portal/ab-testing">
+    Test feed configurations with experiments.
+  </Card>
+  <Card title="Feed ranking" icon="ranking-star" href="/infrastructure/feed-ranking">
+    Technical details on ranking algorithm.
+  </Card>
+</Columns>

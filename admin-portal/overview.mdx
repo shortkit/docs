@@ -1,0 +1,191 @@
+---
+title: "Admin Portal overview"
+description: "Introduction to the shortkit Admin Portal for managing content, configuration, and analytics."
+keywords: ["Admin Portal", "dashboard", "management", "configuration"]
+---
+
+The shortkit Admin Portal is a web application for managing your video feed platform. It provides tools for content management, feed configuration, A/B testing, analytics, and ad management.
+
+<Note>
+  Access the Admin Portal at [dashboard.shortkit.dev](https://dashboard.shortkit.dev)
+</Note>
+
+## Portal sections
+
+<Columns cols={2}>
+  <Card title="Content management" icon="folder" href="/admin-portal/content-management">
+    Upload, organize, and manage your video library.
+  </Card>
+  <Card title="Feed configuration" icon="sliders" href="/admin-portal/feed-configuration">
+    Configure ranking weights, filters, and editorial controls.
+  </Card>
+  <Card title="A/B testing" icon="flask" href="/admin-portal/ab-testing">
+    Create and manage experiments for feed optimization.
+  </Card>
+  <Card title="Analytics" icon="chart-bar" href="/admin-portal/analytics">
+    View engagement metrics, playback quality, and audience insights.
+  </Card>
+  <Card title="Ad management" icon="rectangle-ad" href="/admin-portal/ad-management">
+    Configure ad integration and monitor revenue.
+  </Card>
+  <Card title="Settings" icon="gear" href="/admin-portal/settings">
+    API keys, webhooks, team management, and platform settings.
+  </Card>
+</Columns>
+
+## Dashboard overview
+
+When you log in, you see the Overview dashboard with key metrics:
+
+### Key metrics
+
+- **Total views** (last 7 days)
+- **Unique viewers**
+- **Total watch time**
+- **Average session duration**
+- **Feed depth** (videos watched per session)
+
+### Quick actions
+
+- Upload content
+- View recent uploads
+- Check processing status
+- View active experiments
+
+### Health indicators
+
+- SDK integration status
+- API request volume
+- Error rates
+- Processing queue depth
+
+## Navigation
+
+The sidebar provides access to all portal sections:
+
+```
+├── Overview (Dashboard)
+├── Content
+│   ├── Library
+│   ├── Upload
+│   ├── Live Streams
+│   └── Processing Queue
+├── Feed
+│   ├── Configuration
+│   ├── Ranking
+│   ├── Filters
+│   └── Preview
+├── Experiments
+│   ├── Active
+│   ├── Completed
+│   └── Create New
+├── Analytics
+│   ├── Overview
+│   ├── Content Performance
+│   ├── Playback Quality
+│   ├── Audience
+│   └── Real-time
+├── Ads
+│   ├── Configuration
+│   ├── Performance
+│   └── Revenue
+└── Settings
+    ├── API Keys
+    ├── Webhooks
+    ├── Team
+    ├── Branding
+    └── Playback Restrictions
+```
+
+## User roles
+
+<Note>
+  Role-based access control (RBAC) is coming soon. Currently, all team members have full access.
+</Note>
+
+Planned roles:
+
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full access including settings and team management |
+| **Developer** | API keys, webhooks, SDK configuration |
+| **Product Manager** | Experiments, analytics, feed configuration |
+| **Editor** | Content management, editorial controls |
+| **Ad Ops** | Ad configuration and analytics |
+| **Viewer** | Read-only access to analytics |
+
+## Quick start
+
+### First-time setup
+
+<Steps>
+  <Step title="Get your API keys">
+    Go to **Settings → API Keys** and copy your publishable key for SDK integration.
+  </Step>
+  <Step title="Configure your domain">
+    Go to **Settings → Branding** and set up your branded CDN domain.
+  </Step>
+  <Step title="Set up webhooks">
+    Go to **Settings → Webhooks** to receive notifications when content is ready.
+  </Step>
+  <Step title="Upload content">
+    Go to **Content → Upload** and add your first videos.
+  </Step>
+  <Step title="Configure the feed">
+    Go to **Feed → Configuration** to set up ranking weights and filters.
+  </Step>
+</Steps>
+
+### Common tasks
+
+| Task | Location |
+|------|----------|
+| Upload a video | Content → Upload |
+| Check processing status | Content → Processing Queue |
+| Pin content to top of feed | Content → Library → [Item] → Editorial |
+| Adjust ranking weights | Feed → Ranking |
+| Create an A/B test | Experiments → Create New |
+| View watch time metrics | Analytics → Overview |
+| Generate API keys | Settings → API Keys |
+| Add team members | Settings → Team |
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘ K` / `Ctrl K` | Open command palette |
+| `⌘ U` / `Ctrl U` | Quick upload |
+| `⌘ /` / `Ctrl /` | Show shortcuts |
+| `G then C` | Go to Content |
+| `G then A` | Go to Analytics |
+| `G then S` | Go to Settings |
+
+## Browser support
+
+The Admin Portal works best in modern browsers:
+
+| Browser | Supported |
+|---------|-----------|
+| Chrome | 90+ |
+| Firefox | 90+ |
+| Safari | 14+ |
+| Edge | 90+ |
+
+## Mobile access
+
+The Admin Portal is responsive and works on tablets. For quick tasks like checking analytics or approving content, mobile browsers are supported.
+
+<Tip>
+  For content upload and detailed configuration, we recommend using a desktop browser.
+</Tip>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Content management" icon="folder" href="/admin-portal/content-management">
+    Learn to upload and manage content.
+  </Card>
+  <Card title="Feed configuration" icon="sliders" href="/admin-portal/feed-configuration">
+    Configure how your feed ranks content.
+  </Card>
+</Columns>

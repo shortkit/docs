@@ -1,8 +1,8 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Shortkit",
-  "description": "Enterprise video infrastructure that scales. One line of code.",
+  "name": "shortkit",
+  "description": "Drop-in short-form video feeds for your app. TikTok-quality video experience without the infrastructure complexity.",
   "colors": {
     "primary": "#FF6600",
     "light": "#fff8f5",
@@ -28,71 +28,114 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Home",
+        "icon": "house",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
               "index",
               "quickstart",
-              "development"
+              "core-concepts",
+              "architecture"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Client SDK",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "sdk/overview",
+              "sdk/ios",
+              "sdk/android",
+              "sdk/react-native",
+              "sdk/web",
+              "sdk/configuration",
+              "sdk/theming",
+              "sdk/deep-linking",
+              "sdk/engagement-signals"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Video Infrastructure",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "infrastructure/overview",
+              "infrastructure/content-ingestion",
+              "infrastructure/transcoding",
+              "infrastructure/cdn-delivery",
+              "infrastructure/feed-ranking",
+              "infrastructure/live-streaming"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Admin Portal",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "admin-portal/overview",
+              "admin-portal/content-management",
+              "admin-portal/feed-configuration",
+              "admin-portal/ab-testing",
+              "admin-portal/analytics",
+              "admin-portal/ad-management",
+              "admin-portal/settings"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/identity-management",
+              "guides/ad-integration",
+              "guides/playback-restrictions",
+              "guides/webhooks",
+              "guides/data-export"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/introduction",
+              "api-reference/authentication",
+              "api-reference/errors"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Content",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/endpoints/uploads",
+              "api-reference/endpoints/content",
+              "api-reference/endpoints/content-bulk"
+            ]
+          },
+          {
+            "group": "Feed",
+            "pages": [
+              "api-reference/endpoints/feed",
+              "api-reference/endpoints/config"
+            ]
+          },
+          {
+            "group": "Analytics",
+            "pages": [
+              "api-reference/endpoints/events",
+              "api-reference/endpoints/analytics",
+              "api-reference/endpoints/export"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api-reference/endpoints/ranking",
+              "api-reference/endpoints/experiments",
+              "api-reference/endpoints/webhooks"
             ]
           }
         ]
       }
     ],
     "global": {
-      "anchors": [
-        {
-          "anchor": "Home",
-          "href": "https://shortkit.dev",
-          "icon": "house"
-        }
-      ]
+      "anchors": []
     }
   },
   "logo": {
@@ -115,15 +158,15 @@
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {

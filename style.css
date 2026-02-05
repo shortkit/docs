@@ -1,9 +1,9 @@
 /* Import Roboto Mono font */
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap');
 
-/* Shortkit Custom Styles */
+/* shortkit Custom Styles */
 /* Styled like fal.ai docs - clean, minimal, light */
-/* Accent color: Shortkit Orange #FF6600 */
+/* Accent color: shortkit Orange #FF6600 */
 
 /* ========================================
    BASE STYLES
@@ -423,11 +423,39 @@ html[class*="dark"] button[aria-label*="theme"] {
   background: #3f3f46 !important;
 }
 
+/* Tab padding */
+.nav-tabs-item {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+/* Custom home icon for Home tab */
+.nav-tabs-item[href="/"] svg,
+.nav-tabs-item:first-child svg,
+.nav-tabs .icon,
+.nav-tabs-item .icon {
+  display: none !important;
+}
+
+.nav-tabs-item[href="/"]::before,
+.nav-tabs-item:first-child::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-image: url('/images/home.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin-right: 0;
+}
+
 /* Keep search bar clean */
 .relative.lg\:flex.items-center.flex-1.z-20.justify-center,
 .relative.lg\:flex.items-center.flex-1.z-20.justify-center * {
   background: transparent !important;
 }
+
 
 /* Contact Us button text - same as rest of docs */
 #topbar-cta-button,

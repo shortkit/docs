@@ -1,0 +1,487 @@
+---
+title: "Webhooks"
+description: "Manage webhook endpoints for event notifications."
+keywords: ["webhooks", "events", "notifications", "API"]
+---
+
+The Webhooks API allows you to manage webhook endpoints that receive real-time notifications when events occur in shortkit.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/webhooks` | List webhooks |
+| `POST` | `/v1/webhooks` | Create webhook |
+| `GET` | `/v1/webhooks/{id}` | Get webhook details |
+| `PATCH` | `/v1/webhooks/{id}` | Update webhook |
+| `DELETE` | `/v1/webhooks/{id}` | Delete webhook |
+| `POST` | `/v1/webhooks/{id}/rotate-secret` | Rotate signing secret |
+| `POST` | `/v1/webhooks/{id}/test` | Send test event |
+| `GET` | `/v1/webhooks/{id}/deliveries` | List delivery attempts |
+
+## List webhooks
+
+Retrieve all configured webhooks.
+
+```bash
+GET /v1/webhooks
+```
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/webhooks \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "whk_abc123",
+      "url": "https://yourserver.com/webhooks/shortkit",
+      "events": ["content.ready", "content.errored"],
+      "description": "Production webhook",
+      "status": "active",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 2
+  }
+}
+```
+
+## Create webhook
+
+Register a new webhook endpoint.
+
+```bash
+POST /v1/webhooks
+```
+
+### Request body
+
+<ParamField body="url" type="string" required>
+  HTTPS endpoint URL to receive events.
+</ParamField>
+
+<ParamField body="events" type="string[]" required>
+  Events to subscribe to.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description.
+</ParamField>
+
+### Available events
+
+| Event | Description |
+|-------|-------------|
+| `content.ready` | Content finished processing |
+| `content.errored` | Content processing failed |
+| `live-stream.started` | Live stream went live |
+| `live-stream.ended` | Live stream ended |
+| `live-stream.interrupted` | Encoder disconnected |
+| `live-stream.reconnected` | Encoder reconnected |
+| `live-stream.recording.ready` | VOD recording available |
+| `export.ready` | Data export completed |
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/webhooks \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://yourserver.com/webhooks/shortkit",
+    "events": ["content.ready", "content.errored"],
+    "description": "Production webhook"
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "whk_abc123",
+    "url": "https://yourserver.com/webhooks/shortkit",
+    "events": ["content.ready", "content.errored"],
+    "description": "Production webhook",
+    "secret": "whsec_xyz789abc...",
+    "status": "active",
+    "createdAt": "2024-02-04T12:00:00Z"
+  }
+}
+```
+
+<Warning>
+  The signing secret is only returned once when creating the webhook. Store it securely.
+</Warning>
+
+## Get webhook
+
+Retrieve webhook details.
+
+```bash
+GET /v1/webhooks/{id}
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "whk_abc123",
+    "url": "https://yourserver.com/webhooks/shortkit",
+    "events": ["content.ready", "content.errored"],
+    "description": "Production webhook",
+    "status": "active",
+    "stats": {
+      "totalDeliveries": 1250,
+      "successfulDeliveries": 1245,
+      "failedDeliveries": 5,
+      "lastDeliveryAt": "2024-02-04T11:55:00Z"
+    },
+    "createdAt": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+## Update webhook
+
+Modify webhook configuration.
+
+```bash
+PATCH /v1/webhooks/{id}
+```
+
+### Request body
+
+<ParamField body="url" type="string">
+  Updated endpoint URL.
+</ParamField>
+
+<ParamField body="events" type="string[]">
+  Updated event subscriptions.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Status: `active` or `disabled`.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/webhooks/whk_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": ["content.ready", "content.errored", "live-stream.started"]
+  }'
+```
+
+### Disable webhook
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/webhooks/whk_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "disabled"
+  }'
+```
+
+## Delete webhook
+
+Remove a webhook endpoint.
+
+```bash
+DELETE /v1/webhooks/{id}
+```
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/webhooks/whk_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "whk_abc123",
+    "deleted": true
+  }
+}
+```
+
+## Rotate secret
+
+Generate a new signing secret for a webhook.
+
+```bash
+POST /v1/webhooks/{id}/rotate-secret
+```
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/webhooks/whk_abc123/rotate-secret \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "whk_abc123",
+    "secret": "whsec_newSecret123...",
+    "previousSecretExpiresAt": "2024-02-04T13:00:00Z"
+  }
+}
+```
+
+<Tip>
+  The previous secret remains valid for 1 hour after rotation, allowing time to update your endpoint.
+</Tip>
+
+## Send test event
+
+Send a test event to verify endpoint configuration.
+
+```bash
+POST /v1/webhooks/{id}/test
+```
+
+### Request body
+
+<ParamField body="event" type="string" required>
+  Event type to send.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/webhooks/whk_abc123/test \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "content.ready"
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "deliveryId": "del_test123",
+    "status": "success",
+    "statusCode": 200,
+    "responseTime": 245,
+    "response": "OK"
+  }
+}
+```
+
+## List deliveries
+
+View webhook delivery history.
+
+```bash
+GET /v1/webhooks/{id}/deliveries
+```
+
+### Query parameters
+
+<ParamField query="limit" type="integer" default={20}>
+  Items per page.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by status: `success`, `failed`, `pending`.
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/webhooks/whk_abc123/deliveries?limit=10" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "del_xyz789",
+      "event": "content.ready",
+      "status": "success",
+      "statusCode": 200,
+      "attempts": 1,
+      "responseTime": 185,
+      "payload": {
+        "event": "content.ready",
+        "data": {
+          "contentId": "cnt_abc123",
+          "title": "My Video"
+        }
+      },
+      "createdAt": "2024-02-04T11:55:00Z"
+    },
+    {
+      "id": "del_abc456",
+      "event": "content.errored",
+      "status": "failed",
+      "attempts": 6,
+      "lastAttemptAt": "2024-02-04T10:30:00Z",
+      "lastError": "Connection timeout",
+      "createdAt": "2024-02-04T10:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 150
+  }
+}
+```
+
+## Retry delivery
+
+Retry a failed delivery.
+
+```bash
+POST /v1/webhooks/{webhookId}/deliveries/{deliveryId}/retry
+```
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/webhooks/whk_abc123/deliveries/del_abc456/retry \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "del_abc456",
+    "status": "pending",
+    "attempts": 7,
+    "nextAttemptAt": "2024-02-04T12:00:00Z"
+  }
+}
+```
+
+## Webhook payload format
+
+All webhook events have a consistent format:
+
+```json
+{
+  "event": "content.ready",
+  "data": {
+    "contentId": "cnt_abc123",
+    "title": "My Video",
+    "duration": 45.2,
+    "status": "ready"
+  },
+  "timestamp": "2024-02-04T12:00:00Z",
+  "webhookId": "whk_abc123"
+}
+```
+
+### Headers
+
+| Header | Description |
+|--------|-------------|
+| `Content-Type` | `application/json` |
+| `X-Shortform-Signature` | HMAC-SHA256 signature |
+| `X-Shortform-Timestamp` | Event timestamp |
+| `X-Shortform-Webhook-ID` | Webhook configuration ID |
+| `X-Shortform-Delivery-ID` | Unique delivery attempt ID |
+
+## Retry policy
+
+Failed deliveries are automatically retried:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | Immediate |
+| 2 | 1 minute |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 2 hours |
+| 6 | 24 hours |
+
+After all retries are exhausted, the delivery is marked as failed.
+
+## SDK examples
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    import { ShortKitAdmin } from '@shortkit/node';
+
+    const shortkit = new ShortKitAdmin({ apiKey: 'sk_live_...' });
+
+    // Create webhook
+    const webhook = await shortkit.webhooks.create({
+      url: 'https://yourserver.com/webhooks/shortkit',
+      events: ['content.ready', 'content.errored']
+    });
+
+    console.log('Signing secret:', webhook.secret);
+
+    // List webhooks
+    const webhooks = await shortkit.webhooks.list();
+
+    // Send test event
+    await shortkit.webhooks.test(webhook.id, { event: 'content.ready' });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from shortkit import ShortKitAdmin
+
+    shortkit = ShortKitAdmin(api_key='sk_live_...')
+
+    # Create webhook
+    webhook = shortkit.webhooks.create(
+        url='https://yourserver.com/webhooks/shortkit',
+        events=['content.ready', 'content.errored']
+    )
+
+    print(f'Signing secret: {webhook.secret}')
+
+    # List webhooks
+    webhooks = shortkit.webhooks.list()
+
+    # Send test event
+    shortkit.webhooks.test(webhook.id, event='content.ready')
+    ```
+  </Tab>
+</Tabs>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Webhooks guide" icon="book" href="/guides/webhooks">
+    Complete webhook implementation guide.
+  </Card>
+  <Card title="Content API" icon="video" href="/api-reference/endpoints/content">
+    Content lifecycle events.
+  </Card>
+</Columns>

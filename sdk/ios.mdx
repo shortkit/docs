@@ -1,0 +1,448 @@
+---
+title: "iOS SDK"
+description: "Integrate shortkit into your iOS application with Swift."
+keywords: ["iOS", "Swift", "UIKit", "SwiftUI", "mobile SDK", "Apple"]
+---
+
+The shortkit iOS SDK provides a native video feed experience built on low-level AVFoundation APIs for optimal performance.
+
+## Requirements
+
+- iOS 14.0 or later
+- Xcode 14.0 or later
+- Swift 5.7 or later
+
+## Installation
+
+### Swift Package Manager
+
+Add shortkit to your project in Xcode:
+
+1. Go to **File → Add Package Dependencies**
+2. Enter the repository URL: `https://github.com/shortkit/shortkit-ios.git`
+3. Select version `1.0.0` or later
+
+Or add it to your `Package.swift`:
+
+```swift Package.swift
+dependencies: [
+    .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "1.0.0")
+]
+```
+
+### CocoaPods
+
+```ruby Podfile
+pod 'shortkit', '~> 1.0'
+```
+
+Then run:
+
+```bash
+pod install
+```
+
+## Initialization
+
+Initialize the SDK as early as possible in your app lifecycle, typically in `AppDelegate` or your app's entry point.
+
+<Tabs>
+  <Tab title="UIKit">
+    ```swift AppDelegate.swift
+    import shortkit
+    import UIKit
+
+    @main
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+
+        func application(
+            _ application: UIApplication,
+            didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+        ) -> Bool {
+
+            let config = ShortKitConfig(
+                feedOrientation: .vertical,
+                feedHeight: .fullscreen,
+                controls: ControlsConfig(
+                    playPause: true,
+                    scrubber: true,
+                    playbackSpeed: PlaybackSpeedConfig(
+                        enabled: true,
+                        options: [1.0, 1.25, 1.5, 2.0]
+                    ),
+                    captions: CaptionConfig(enabled: true, defaultOn: false),
+                    volume: true,
+                    share: ShareConfig(enabled: true)
+                ),
+                theme: ThemeConfig(
+                    primaryColor: "#FF6600",
+                    controlsTint: "#FFFFFF",
+                    backgroundColor: "#000000"
+                )
+            )
+
+            ShortKit.initialize(
+                apiKey: "pk_live_your_publishable_key",
+                config: config,
+                environment: .production
+            )
+
+            return true
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="SwiftUI">
+    ```swift MyApp.swift
+    import shortkit
+    import SwiftUI
+
+    @main
+    struct MyApp: App {
+        init() {
+            let config = ShortKitConfig(
+                feedOrientation: .vertical,
+                feedHeight: .fullscreen,
+                controls: ControlsConfig(
+                    playPause: true,
+                    scrubber: true,
+                    captions: CaptionConfig(enabled: true, defaultOn: false),
+                    share: ShareConfig(enabled: true)
+                ),
+                theme: ThemeConfig(
+                    primaryColor: "#FF6600",
+                    controlsTint: "#FFFFFF"
+                )
+            )
+
+            ShortKit.initialize(
+                apiKey: "pk_live_your_publishable_key",
+                config: config
+            )
+        }
+
+        var body: some Scene {
+            WindowGroup {
+                ContentView()
+            }
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Displaying the feed
+
+### SwiftUI
+
+Use `ShortKitFeedView` directly in your view hierarchy:
+
+```swift VideoFeedView.swift
+import shortkit
+import SwiftUI
+
+struct VideoFeedView: View {
+    var body: some View {
+        ShortKitFeedView()
+            .edgesIgnoringSafeArea(.all)
+    }
+}
+```
+
+With filters:
+
+```swift FilteredFeedView.swift
+import shortkit
+import SwiftUI
+
+struct FilteredFeedView: View {
+    var body: some View {
+        ShortKitFeedView(
+            filter: FeedFilter(tags: ["sports", "highlights"])
+        )
+        .edgesIgnoringSafeArea(.all)
+    }
+}
+```
+
+### UIKit
+
+Create and add the feed view to your view controller:
+
+```swift VideoFeedViewController.swift
+import shortkit
+import UIKit
+
+class VideoFeedViewController: UIViewController {
+
+    private var feedView: ShortKitFeedUIView?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        feedView = ShortKit.createFeedView()
+        feedView?.frame = view.bounds
+        feedView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        if let feedView = feedView {
+            view.addSubview(feedView)
+        }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        feedView?.resume()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        feedView?.pause()
+    }
+}
+```
+
+## User identity
+
+Associate user identity for personalized feeds and cross-device engagement:
+
+```swift
+// When user logs in
+ShortKit.setUserId("user_12345")
+
+// When user logs out
+ShortKit.clearUserId()
+```
+
+<Tip>
+  Call `setUserId` as soon as your user authenticates. This triggers identity resolution, merging any anonymous engagement data with the identified profile.
+</Tip>
+
+## Delegate methods
+
+Implement `ShortKitDelegate` to receive callbacks:
+
+```swift
+import shortkit
+
+class VideoFeedCoordinator: ShortKitDelegate {
+
+    init() {
+        ShortKit.delegate = self
+    }
+
+    // Called when user taps share
+    func shortKit(_ shortKit: ShortKit, didRequestShare content: Content) {
+        let url = content.shareUrl
+        let activityVC = UIActivityViewController(
+            activityItems: [url],
+            applicationActivities: nil
+        )
+        // Present share sheet
+    }
+
+    // Called when user taps a custom action
+    func shortKit(_ shortKit: ShortKit, didTapAction action: String, on content: Content) {
+        switch action {
+        case "bookmark":
+            // Handle bookmark
+            break
+        case "readMore":
+            // Navigate to article
+            break
+        default:
+            break
+        }
+    }
+
+    // Called on playback errors
+    func shortKit(_ shortKit: ShortKit, didEncounterError error: ShortKitError) {
+        print("Playback error: \(error.localizedDescription)")
+    }
+
+    // Called when content metadata is available
+    func shortKit(_ shortKit: ShortKit, didLoadMetadata metadata: [String: Any], for content: Content) {
+        // Access custom metadata passed from your CMS
+        if let articleUrl = metadata["articleUrl"] as? String {
+            // Store for "Read More" action
+        }
+    }
+}
+```
+
+## Deep linking
+
+Handle deep links to open specific content:
+
+```swift SceneDelegate.swift
+import shortkit
+import UIKit
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
+    func scene(
+        _ scene: UIScene,
+        continue userActivity: NSUserActivity
+    ) {
+        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+              let url = userActivity.webpageURL else {
+            return
+        }
+
+        // Extract content ID from your URL scheme
+        if let contentId = extractContentId(from: url) {
+            ShortKit.openContent(contentId)
+        }
+    }
+
+    private func extractContentId(from url: URL) -> String? {
+        // Parse your deep link format
+        // e.g., yourapp.com/watch/cnt_abc123
+        let components = url.pathComponents
+        if components.contains("watch"), let id = components.last {
+            return id
+        }
+        return nil
+    }
+}
+```
+
+## Picture-in-Picture
+
+Enable PiP for background playback:
+
+```swift
+let config = ShortKitConfig(
+    // ... other config
+    controls: ControlsConfig(
+        pictureInPicture: true
+    )
+)
+```
+
+Add the background modes capability in your project settings:
+1. Select your target
+2. Go to **Signing & Capabilities**
+3. Add **Background Modes**
+4. Enable **Audio, AirPlay, and Picture in Picture**
+
+## AirPlay
+
+Enable AirPlay casting:
+
+```swift
+let config = ShortKitConfig(
+    controls: ControlsConfig(
+        airplay: true
+    )
+)
+```
+
+## Entry widget
+
+Create a mini-player widget for embedding in other screens:
+
+```swift HomeViewController.swift
+import shortkit
+import UIKit
+
+class HomeViewController: UIViewController {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let widgetConfig = EntryWidgetConfig(
+            style: .thumbnailRow,
+            itemCount: 5,
+            autoPlay: true  // Play preview on hover/focus
+        )
+
+        let widget = ShortKit.createEntryWidget(config: widgetConfig)
+        widget.frame = CGRect(x: 0, y: 100, width: view.bounds.width, height: 200)
+        widget.delegate = self
+        view.addSubview(widget)
+    }
+}
+
+extension HomeViewController: EntryWidgetDelegate {
+    func entryWidget(_ widget: EntryWidget, didSelectContent content: Content) {
+        // Present full feed starting at selected content
+        let feedVC = ShortKitFeedViewController(startingAt: content.id)
+        present(feedVC, animated: true)
+    }
+}
+```
+
+## Custom overlays
+
+Register custom views to render on specific content:
+
+```swift
+// Register a custom overlay component
+ShortKit.registerOverlay(
+    identifier: "articleCard",
+    viewProvider: { content, metadata in
+        let card = ArticleCardView()
+        card.title = metadata["headline"] as? String
+        card.source = metadata["source"] as? String
+        return card
+    }
+)
+```
+
+The overlay renders when content has matching metadata:
+
+```json
+{
+  "customMetadata": {
+    "overlayType": "articleCard",
+    "headline": "Breaking News Story",
+    "source": "CNN"
+  }
+}
+```
+
+## Error handling
+
+```swift
+ShortKit.delegate = self
+
+func shortKit(_ shortKit: ShortKit, didEncounterError error: ShortKitError) {
+    switch error {
+    case .networkError(let underlying):
+        // Handle network issues
+        break
+    case .playbackError(let code, let message):
+        // Handle playback failures
+        break
+    case .configurationError(let message):
+        // Handle config issues
+        break
+    }
+}
+```
+
+## Debug logging
+
+Enable verbose logging during development:
+
+```swift
+ShortKit.initialize(
+    apiKey: "pk_live_your_publishable_key",
+    config: config,
+    environment: .development  // Enables debug logging
+)
+
+// Or explicitly set log level
+ShortKit.logLevel = .verbose
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Configuration" icon="sliders" href="/sdk/configuration">
+    Explore all configuration options.
+  </Card>
+  <Card title="Theming" icon="palette" href="/sdk/theming">
+    Customize the visual appearance.
+  </Card>
+</Columns>

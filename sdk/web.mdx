@@ -1,0 +1,529 @@
+---
+title: "Web SDK"
+description: "Integrate shortkit into your web application with TypeScript or JavaScript."
+keywords: ["Web", "JavaScript", "TypeScript", "React", "browser"]
+---
+
+The shortkit Web SDK provides a video feed experience for browsers using hls.js and dash.js under a unified API.
+
+## Requirements
+
+- Modern browser (Chrome 80+, Firefox 75+, Safari 14+, Edge 80+)
+- For React integration: React 17 or later
+
+## Installation
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install @shortkit/web
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @shortkit/web
+    ```
+  </Tab>
+  <Tab title="CDN">
+    ```html
+    <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
+    ```
+  </Tab>
+</Tabs>
+
+## Initialization
+
+Initialize the SDK before mounting any feed components:
+
+```typescript main.ts
+import { ShortKit } from '@shortkit/web';
+
+ShortKit.initialize({
+  apiKey: 'pk_live_your_publishable_key',
+  config: {
+    feedOrientation: 'vertical',
+    feedHeight: 'fullscreen',
+    controls: {
+      playPause: true,
+      scrubber: true,
+      playbackSpeed: {
+        enabled: true,
+        options: [1.0, 1.25, 1.5, 2.0]
+      },
+      captions: {
+        enabled: true,
+        defaultOn: false
+      },
+      volume: true,
+      share: { enabled: true }
+    },
+    theme: {
+      primaryColor: '#FF6600',
+      controlsTint: '#FFFFFF',
+      backgroundColor: '#000000'
+    }
+  },
+  environment: 'production'
+});
+```
+
+With CDN, access the global `ShortKit` object:
+
+```html
+<script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
+<script>
+  ShortKit.initialize({
+    apiKey: 'pk_live_your_publishable_key',
+    config: {
+      feedOrientation: 'vertical',
+      feedHeight: 'fullscreen'
+    }
+  });
+</script>
+```
+
+## Displaying the feed
+
+### React
+
+Use the `ShortKitFeed` component:
+
+```tsx VideoFeed.tsx
+import React from 'react';
+import { ShortKitFeed } from '@shortkit/web/react';
+
+export function VideoFeed() {
+  return (
+    <div style={{ width: '100%', height: '100vh' }}>
+      <ShortKitFeed />
+    </div>
+  );
+}
+```
+
+With filters:
+
+```tsx SportsFeed.tsx
+import React from 'react';
+import { ShortKitFeed } from '@shortkit/web/react';
+
+export function SportsFeed() {
+  return (
+    <div style={{ width: '100%', height: '100vh' }}>
+      <ShortKitFeed
+        filter={{
+          tags: ['sports', 'highlights']
+        }}
+      />
+    </div>
+  );
+}
+```
+
+### Vanilla JavaScript
+
+Mount the feed to a container element:
+
+```typescript
+import { ShortKit } from '@shortkit/web';
+
+const container = document.getElementById('video-feed');
+const feed = ShortKit.mountFeed(container);
+
+// Later, to unmount:
+feed.unmount();
+```
+
+```html
+<div id="video-feed" style="width: 100%; height: 100vh;"></div>
+
+<script type="module">
+  import { ShortKit } from '@shortkit/web';
+
+  ShortKit.initialize({ /* config */ });
+
+  const container = document.getElementById('video-feed');
+  ShortKit.mountFeed(container);
+</script>
+```
+
+### Partial-height feed
+
+For feeds that don't occupy the full viewport:
+
+```tsx PartialFeed.tsx
+import React from 'react';
+import { ShortKitFeed } from '@shortkit/web/react';
+
+export function PartialFeed() {
+  return (
+    <div className="feed-container">
+      <ShortKitFeed
+        height={{ percentage: 0.7 }}  // 70% of container
+      />
+    </div>
+  );
+}
+```
+
+```css
+.feed-container {
+  width: 400px;
+  height: 80vh;
+  margin: 0 auto;
+}
+```
+
+## User identity
+
+Associate user identity for personalized feeds:
+
+```typescript
+import { ShortKit } from '@shortkit/web';
+
+// When user logs in
+function handleLogin(userId: string) {
+  ShortKit.setUserId(userId);
+}
+
+// When user logs out
+function handleLogout() {
+  ShortKit.clearUserId();
+}
+```
+
+## Event callbacks
+
+### React
+
+```tsx VideoFeed.tsx
+import React from 'react';
+import { ShortKitFeed, Content, ShortKitError } from '@shortkit/web/react';
+
+export function VideoFeed() {
+  const handleShare = async (content: Content) => {
+    if (navigator.share) {
+      await navigator.share({
+        title: content.title,
+        url: content.shareUrl
+      });
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(content.shareUrl);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  const handleAction = (action: string, content: Content) => {
+    switch (action) {
+      case 'bookmark':
+        // Save to bookmarks
+        break;
+      case 'readMore':
+        window.location.href = content.metadata?.articleUrl;
+        break;
+    }
+  };
+
+  const handleError = (error: ShortKitError) => {
+    console.error('ShortKit error:', error.message);
+  };
+
+  return (
+    <div style={{ width: '100%', height: '100vh' }}>
+      <ShortKitFeed
+        onShareRequested={handleShare}
+        onActionTapped={handleAction}
+        onError={handleError}
+      />
+    </div>
+  );
+}
+```
+
+### Vanilla JavaScript
+
+```typescript
+import { ShortKit } from '@shortkit/web';
+
+const feed = ShortKit.mountFeed(container, {
+  onShareRequested: (content) => {
+    navigator.share({
+      title: content.title,
+      url: content.shareUrl
+    });
+  },
+  onActionTapped: (action, content) => {
+    console.log('Action:', action, 'Content:', content.id);
+  },
+  onError: (error) => {
+    console.error('Error:', error);
+  },
+  onMetadataLoaded: (content, metadata) => {
+    console.log('Metadata:', metadata);
+  }
+});
+```
+
+## Deep linking
+
+Handle deep links to open specific content:
+
+```typescript router.ts
+import { ShortKit } from '@shortkit/web';
+
+// Check URL on page load
+function handleRouteChange() {
+  const path = window.location.pathname;
+  const match = path.match(/\/watch\/(\w+)/);
+
+  if (match) {
+    const contentId = match[1];
+    ShortKit.openContent(contentId);
+  }
+}
+
+// Initial check
+handleRouteChange();
+
+// Listen for navigation (with your router)
+window.addEventListener('popstate', handleRouteChange);
+```
+
+With React Router:
+
+```tsx App.tsx
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { ShortKit } from '@shortkit/web';
+
+function WatchPage() {
+  const { contentId } = useParams<{ contentId: string }>();
+
+  useEffect(() => {
+    if (contentId) {
+      ShortKit.openContent(contentId);
+    }
+  }, [contentId]);
+
+  return <ShortKitFeed />;
+}
+```
+
+## Entry widget
+
+Create a mini-player widget for other pages:
+
+### React
+
+```tsx HomePage.tsx
+import React from 'react';
+import { ShortKitEntryWidget, Content } from '@shortkit/web/react';
+import { useNavigate } from 'react-router-dom';
+
+export function HomePage() {
+  const navigate = useNavigate();
+
+  const handleContentSelected = (content: Content) => {
+    navigate(`/videos?start=${content.id}`);
+  };
+
+  return (
+    <div>
+      <h2>Latest Videos</h2>
+
+      <ShortKitEntryWidget
+        style={{ height: 200 }}
+        itemCount={5}
+        autoPlay={true}
+        onContentSelected={handleContentSelected}
+      />
+
+      {/* Other content */}
+    </div>
+  );
+}
+```
+
+### Vanilla JavaScript
+
+```typescript
+import { ShortKit } from '@shortkit/web';
+
+const widgetContainer = document.getElementById('video-widget');
+
+ShortKit.mountEntryWidget(widgetContainer, {
+  itemCount: 5,
+  autoPlay: true,
+  onContentSelected: (content) => {
+    window.location.href = `/videos?start=${content.id}`;
+  }
+});
+```
+
+## Responsive behavior
+
+The feed automatically adapts to container size. For mobile-like experiences on desktop:
+
+```tsx MobileFeed.tsx
+import React from 'react';
+import { ShortKitFeed } from '@shortkit/web/react';
+
+export function MobileFeed() {
+  return (
+    <div className="mobile-container">
+      <ShortKitFeed />
+    </div>
+  );
+}
+```
+
+```css
+.mobile-container {
+  max-width: 430px;
+  height: 100vh;
+  margin: 0 auto;
+}
+
+@media (max-width: 430px) {
+  .mobile-container {
+    max-width: 100%;
+  }
+}
+```
+
+## Keyboard shortcuts
+
+The feed supports keyboard navigation when focused:
+
+| Key | Action |
+|-----|--------|
+| `Space` | Play/Pause |
+| `↑` / `↓` | Previous/Next video |
+| `←` / `→` | Seek backward/forward 5s |
+| `M` | Mute/Unmute |
+| `F` | Toggle fullscreen |
+| `C` | Toggle captions |
+
+Disable keyboard handling if needed:
+
+```tsx
+<ShortKitFeed keyboardEnabled={false} />
+```
+
+## TypeScript types
+
+Full TypeScript definitions are included:
+
+```typescript
+import type {
+  ShortKitConfig,
+  FeedConfig,
+  Content,
+  ShortKitError,
+  FeedFilter,
+} from '@shortkit/web';
+
+const config: ShortKitConfig = {
+  apiKey: 'pk_live_...',
+  config: {
+    feedOrientation: 'vertical',
+    feedHeight: 'fullscreen',
+  },
+};
+```
+
+## Server-side rendering
+
+The SDK is client-side only. For SSR frameworks (Next.js, Remix), use dynamic imports:
+
+### Next.js
+
+```tsx VideoFeed.tsx
+'use client';
+
+import dynamic from 'next/dynamic';
+
+const ShortKitFeed = dynamic(
+  () => import('@shortkit/web/react').then(mod => mod.ShortKitFeed),
+  { ssr: false }
+);
+
+export function VideoFeed() {
+  return <ShortKitFeed />;
+}
+```
+
+Initialize in a client component:
+
+```tsx providers.tsx
+'use client';
+
+import { useEffect } from 'react';
+import { ShortKit } from '@shortkit/web';
+
+export function ShortKitProvider({ children }) {
+  useEffect(() => {
+    ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key',
+      config: { /* ... */ }
+    });
+  }, []);
+
+  return children;
+}
+```
+
+## Content Security Policy
+
+If using CSP headers, allow these sources:
+
+```
+script-src 'self' https://cdn.shortkit.dev;
+connect-src 'self' https://api.shortkit.dev https://*.shortkit.dev;
+media-src 'self' blob: https://*.shortkit.dev;
+img-src 'self' data: https://*.shortkit.dev;
+```
+
+## Browser support
+
+| Browser | Minimum Version |
+|---------|-----------------|
+| Chrome | 80+ |
+| Firefox | 75+ |
+| Safari | 14+ |
+| Edge | 80+ |
+| iOS Safari | 14+ |
+| Chrome Android | 80+ |
+
+<Note>
+  Internet Explorer is not supported.
+</Note>
+
+## Debugging
+
+Enable debug mode:
+
+```typescript
+ShortKit.initialize({
+  apiKey: 'pk_live_your_publishable_key',
+  config: { /* ... */ },
+  environment: 'development'
+});
+
+// Or set log level explicitly
+ShortKit.setLogLevel('verbose');
+```
+
+View logs in the browser developer console.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Configuration" icon="sliders" href="/sdk/configuration">
+    Explore all configuration options.
+  </Card>
+  <Card title="Theming" icon="palette" href="/sdk/theming">
+    Customize the visual appearance.
+  </Card>
+</Columns>

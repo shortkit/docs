@@ -1,0 +1,474 @@
+---
+title: "Ranking"
+description: "Configure feed ranking algorithm weights and rules."
+keywords: ["ranking", "algorithm", "feed", "configuration"]
+---
+
+The Ranking API allows you to configure the feed ranking algorithm, including signal weights, boost rules, and content filters.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/ranking/config` | Get ranking configuration |
+| `PUT` | `/v1/ranking/config` | Update ranking configuration |
+| `GET` | `/v1/ranking/rules` | List ranking rules |
+| `POST` | `/v1/ranking/rules` | Create ranking rule |
+| `PATCH` | `/v1/ranking/rules/{id}` | Update ranking rule |
+| `DELETE` | `/v1/ranking/rules/{id}` | Delete ranking rule |
+| `POST` | `/v1/ranking/preview` | Preview ranking changes |
+
+## Get ranking configuration
+
+Retrieve current ranking algorithm settings.
+
+```bash
+GET /v1/ranking/config
+```
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/ranking/config \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "weights": {
+      "recency": 0.25,
+      "engagement": 0.20,
+      "topicAffinity": 0.20,
+      "geoRelevance": 0.15,
+      "completionRate": 0.10,
+      "creatorAffinity": 0.10
+    },
+    "decayFunction": {
+      "type": "exponential",
+      "halfLife": 24
+    },
+    "diversitySettings": {
+      "creatorDiversity": 0.3,
+      "topicDiversity": 0.2
+    },
+    "coldStart": {
+      "strategy": "popularity",
+      "minDataPoints": 100
+    }
+  },
+  "meta": {
+    "version": 3,
+    "updatedAt": "2024-02-01T12:00:00Z"
+  }
+}
+```
+
+## Update ranking configuration
+
+Modify ranking algorithm weights and settings.
+
+```bash
+PUT /v1/ranking/config
+```
+
+### Request body
+
+<ParamField body="weights" type="object">
+  Signal weights (must sum to 1.0).
+  <Expandable title="properties">
+    <ParamField body="recency" type="number">
+      Weight for content age (0-1).
+    </ParamField>
+    <ParamField body="engagement" type="number">
+      Weight for engagement signals (0-1).
+    </ParamField>
+    <ParamField body="topicAffinity" type="number">
+      Weight for topic match (0-1).
+    </ParamField>
+    <ParamField body="geoRelevance" type="number">
+      Weight for geographic relevance (0-1).
+    </ParamField>
+    <ParamField body="completionRate" type="number">
+      Weight for historical completion rate (0-1).
+    </ParamField>
+    <ParamField body="creatorAffinity" type="number">
+      Weight for creator preference (0-1).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="decayFunction" type="object">
+  Time decay settings.
+  <Expandable title="properties">
+    <ParamField body="type" type="string">
+      Decay type: `exponential`, `linear`, `step`.
+    </ParamField>
+    <ParamField body="halfLife" type="number">
+      Hours until content score is halved (exponential).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="diversitySettings" type="object">
+  Feed diversity controls.
+  <Expandable title="properties">
+    <ParamField body="creatorDiversity" type="number">
+      Penalty for consecutive same-creator content (0-1).
+    </ParamField>
+    <ParamField body="topicDiversity" type="number">
+      Penalty for consecutive same-topic content (0-1).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/ranking/config \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "weights": {
+      "recency": 0.30,
+      "engagement": 0.25,
+      "topicAffinity": 0.15,
+      "geoRelevance": 0.15,
+      "completionRate": 0.10,
+      "creatorAffinity": 0.05
+    },
+    "decayFunction": {
+      "type": "exponential",
+      "halfLife": 12
+    }
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "weights": {
+      "recency": 0.30,
+      "engagement": 0.25,
+      "topicAffinity": 0.15,
+      "geoRelevance": 0.15,
+      "completionRate": 0.10,
+      "creatorAffinity": 0.05
+    },
+    "decayFunction": {
+      "type": "exponential",
+      "halfLife": 12
+    },
+    "diversitySettings": {
+      "creatorDiversity": 0.3,
+      "topicDiversity": 0.2
+    }
+  },
+  "meta": {
+    "version": 4,
+    "updatedAt": "2024-02-04T12:00:00Z"
+  }
+}
+```
+
+## Ranking rules
+
+Rules apply conditional modifications to content scores.
+
+### List rules
+
+```bash
+GET /v1/ranking/rules
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "rule_abc123",
+      "name": "Boost new creators",
+      "condition": {
+        "field": "creator.contentCount",
+        "operator": "lt",
+        "value": 10
+      },
+      "action": {
+        "type": "boost",
+        "value": 1.2
+      },
+      "priority": 10,
+      "enabled": true
+    },
+    {
+      "id": "rule_def456",
+      "name": "Pin featured content",
+      "condition": {
+        "field": "tags",
+        "operator": "contains",
+        "value": "featured"
+      },
+      "action": {
+        "type": "pin",
+        "positions": [0, 5, 10]
+      },
+      "priority": 100,
+      "enabled": true
+    }
+  ]
+}
+```
+
+### Create rule
+
+```bash
+POST /v1/ranking/rules
+```
+
+<ParamField body="name" type="string" required>
+  Rule name for identification.
+</ParamField>
+
+<ParamField body="condition" type="object" required>
+  When to apply the rule.
+  <Expandable title="properties">
+    <ParamField body="field" type="string" required>
+      Field to evaluate.
+    </ParamField>
+    <ParamField body="operator" type="string" required>
+      Comparison: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `contains`, `in`.
+    </ParamField>
+    <ParamField body="value" type="any" required>
+      Value to compare against.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="action" type="object" required>
+  What to do when condition matches.
+  <Expandable title="properties">
+    <ParamField body="type" type="string" required>
+      Action type: `boost`, `suppress`, `pin`, `exclude`.
+    </ParamField>
+    <ParamField body="value" type="number">
+      Multiplier for boost/suppress (e.g., 1.5 = 50% boost).
+    </ParamField>
+    <ParamField body="positions" type="number[]">
+      Positions for pin action.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="priority" type="integer" default={0}>
+  Rule priority (higher = evaluated first).
+</ParamField>
+
+<ParamField body="enabled" type="boolean" default={true}>
+  Whether rule is active.
+</ParamField>
+
+### Example: Create boost rule
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/ranking/rules \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Boost high-engagement content",
+    "condition": {
+      "field": "completionRate",
+      "operator": "gte",
+      "value": 0.7
+    },
+    "action": {
+      "type": "boost",
+      "value": 1.3
+    },
+    "priority": 50
+  }'
+```
+
+### Example: Create pin rule
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/ranking/rules \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Pin promotional content",
+    "condition": {
+      "field": "tags",
+      "operator": "contains",
+      "value": "promo"
+    },
+    "action": {
+      "type": "pin",
+      "positions": [0, 4]
+    },
+    "priority": 100,
+    "enabled": true
+  }'
+```
+
+### Example: Create exclusion rule
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/ranking/rules \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Exclude flagged content",
+    "condition": {
+      "field": "metadata.flagged",
+      "operator": "eq",
+      "value": true
+    },
+    "action": {
+      "type": "exclude"
+    },
+    "priority": 1000
+  }'
+```
+
+### Update rule
+
+```bash
+PATCH /v1/ranking/rules/{id}
+```
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/ranking/rules/rule_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": false
+  }'
+```
+
+### Delete rule
+
+```bash
+DELETE /v1/ranking/rules/{id}
+```
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/ranking/rules/rule_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## Preview ranking changes
+
+Test ranking configuration without applying it.
+
+```bash
+POST /v1/ranking/preview
+```
+
+### Request body
+
+<ParamField body="config" type="object">
+  Proposed ranking configuration.
+</ParamField>
+
+<ParamField body="rules" type="array">
+  Proposed ranking rules.
+</ParamField>
+
+<ParamField body="userId" type="string">
+  User to simulate feed for.
+</ParamField>
+
+<ParamField body="limit" type="integer" default={20}>
+  Number of items to return.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/ranking/preview \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "weights": {
+        "recency": 0.40,
+        "engagement": 0.30,
+        "topicAffinity": 0.10,
+        "geoRelevance": 0.10,
+        "completionRate": 0.05,
+        "creatorAffinity": 0.05
+      }
+    },
+    "userId": "user_123",
+    "limit": 10
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "preview": [
+      {
+        "contentId": "cnt_abc123",
+        "title": "Latest Tech Update",
+        "currentPosition": 5,
+        "previewPosition": 1,
+        "scores": {
+          "current": 0.72,
+          "preview": 0.89
+        },
+        "signalBreakdown": {
+          "recency": 0.38,
+          "engagement": 0.28,
+          "topicAffinity": 0.09
+        }
+      }
+    ],
+    "comparison": {
+      "positionChanges": 8,
+      "newInTop10": 3,
+      "removedFromTop10": 2
+    }
+  }
+}
+```
+
+## Available condition fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tags` | array | Content tags |
+| `metadata.*` | any | Custom metadata fields |
+| `creator.id` | string | Creator identifier |
+| `creator.contentCount` | number | Creator's total content |
+| `duration` | number | Video duration in seconds |
+| `completionRate` | number | Historical completion rate |
+| `createdAt` | datetime | Creation timestamp |
+| `publishedAt` | datetime | Publication timestamp |
+
+## Action types
+
+| Type | Description | Parameters |
+|------|-------------|------------|
+| `boost` | Multiply score | `value`: multiplier (e.g., 1.5) |
+| `suppress` | Reduce score | `value`: multiplier (e.g., 0.5) |
+| `pin` | Force to positions | `positions`: array of indices |
+| `exclude` | Remove from feed | None |
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Feed configuration" icon="list" href="/admin-portal/feed-configuration">
+    Configure ranking in Admin Portal.
+  </Card>
+  <Card title="A/B testing" icon="flask" href="/api-reference/endpoints/experiments">
+    Test ranking variants.
+  </Card>
+</Columns>

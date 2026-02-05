@@ -1,0 +1,419 @@
+---
+title: "Events"
+description: "Send engagement and analytics events."
+keywords: ["events", "analytics", "tracking", "engagement"]
+---
+
+The Events API receives engagement signals from your application. These events power analytics, personalization, and ranking algorithms.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/events` | Send single event |
+| `POST` | `/v1/events/batch` | Send multiple events |
+
+## Event types
+
+### Engagement events
+
+| Event | Trigger | Required Fields |
+|-------|---------|-----------------|
+| `impression` | Content appears in viewport | `contentId`, `position` |
+| `playStart` | Playback begins | `contentId`, `startupTime` |
+| `watchProgress` | Periodic progress update | `contentId`, `currentTime`, `duration` |
+| `completion` | Video completes | `contentId`, `watchTime`, `looped` |
+| `swipe` | User swipes to next | `fromContentId`, `toContentId`, `watchTime` |
+| `like` | User likes content | `contentId` |
+| `share` | User shares content | `contentId`, `platform` |
+| `save` | User saves content | `contentId` |
+
+### Quality events
+
+| Event | Trigger | Required Fields |
+|-------|---------|-----------------|
+| `rebuffer` | Playback stalls | `contentId`, `duration`, `currentTime` |
+| `qualityChange` | Rendition changes | `contentId`, `fromQuality`, `toQuality` |
+| `error` | Playback error | `contentId`, `errorCode`, `errorMessage` |
+
+## Send event
+
+Send a single engagement event.
+
+```bash
+POST /v1/events
+```
+
+### Request body
+
+<ParamField body="event" type="string" required>
+  Event type (e.g., `impression`, `playStart`).
+</ParamField>
+
+<ParamField body="contentId" type="string" required>
+  Content ID the event relates to.
+</ParamField>
+
+<ParamField body="userId" type="string">
+  Identified user ID (if available).
+</ParamField>
+
+<ParamField body="deviceId" type="string">
+  Device identifier.
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Session identifier for grouping events.
+</ParamField>
+
+<ParamField body="timestamp" type="string">
+  Event timestamp (ISO 8601). Defaults to server time.
+</ParamField>
+
+<ParamField body="data" type="object">
+  Event-specific data.
+</ParamField>
+
+### Example: Impression event
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/events \
+  -H "Authorization: Bearer pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "impression",
+    "contentId": "cnt_abc123",
+    "userId": "user_123",
+    "sessionId": "sess_xyz789",
+    "data": {
+      "position": 0,
+      "entryPoint": "feed",
+      "feedId": "feed_abc123"
+    }
+  }'
+```
+
+### Example: Play start event
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/events \
+  -H "Authorization: Bearer pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "playStart",
+    "contentId": "cnt_abc123",
+    "userId": "user_123",
+    "sessionId": "sess_xyz789",
+    "data": {
+      "startupTime": 250,
+      "rendition": "720p",
+      "codec": "h264",
+      "autoplay": true
+    }
+  }'
+```
+
+### Example: Completion event
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/events \
+  -H "Authorization: Bearer pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "completion",
+    "contentId": "cnt_abc123",
+    "userId": "user_123",
+    "sessionId": "sess_xyz789",
+    "data": {
+      "watchTime": 45.2,
+      "looped": false,
+      "loopCount": 0
+    }
+  }'
+```
+
+### Example: Swipe event
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/events \
+  -H "Authorization: Bearer pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "swipe",
+    "contentId": "cnt_def456",
+    "userId": "user_123",
+    "sessionId": "sess_xyz789",
+    "data": {
+      "fromContentId": "cnt_abc123",
+      "watchTimeOnFrom": 12.5,
+      "direction": "next"
+    }
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "received": true,
+    "eventId": "evt_abc123"
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+## Batch events
+
+Send multiple events in a single request for efficiency.
+
+```bash
+POST /v1/events/batch
+```
+
+### Request body
+
+<ParamField body="events" type="array" required>
+  Array of events (max 100 per request).
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/events/batch \
+  -H "Authorization: Bearer pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": [
+      {
+        "event": "impression",
+        "contentId": "cnt_abc123",
+        "userId": "user_123",
+        "timestamp": "2024-02-04T12:00:00Z",
+        "data": { "position": 0 }
+      },
+      {
+        "event": "playStart",
+        "contentId": "cnt_abc123",
+        "userId": "user_123",
+        "timestamp": "2024-02-04T12:00:01Z",
+        "data": { "startupTime": 200 }
+      },
+      {
+        "event": "completion",
+        "contentId": "cnt_abc123",
+        "userId": "user_123",
+        "timestamp": "2024-02-04T12:00:46Z",
+        "data": { "watchTime": 45.2 }
+      }
+    ]
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "received": 3,
+    "failed": 0
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+## Event data schemas
+
+### Impression data
+
+```json
+{
+  "position": 0,
+  "entryPoint": "feed",
+  "feedId": "feed_abc123"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `position` | integer | Position in feed (0-indexed) |
+| `entryPoint` | string | Entry point: `feed`, `search`, `direct`, `share` |
+| `feedId` | string | Feed session ID |
+
+### PlayStart data
+
+```json
+{
+  "startupTime": 250,
+  "rendition": "720p",
+  "codec": "h264",
+  "autoplay": true
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `startupTime` | integer | Time to first frame (ms) |
+| `rendition` | string | Initial quality |
+| `codec` | string | Video codec used |
+| `autoplay` | boolean | Whether autoplay triggered |
+
+### WatchProgress data
+
+```json
+{
+  "currentTime": 15.5,
+  "duration": 45.2,
+  "percentComplete": 34.3,
+  "rendition": "720p"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currentTime` | number | Current playback position |
+| `duration` | number | Total duration |
+| `percentComplete` | number | Percentage watched |
+| `rendition` | string | Current quality |
+
+### Completion data
+
+```json
+{
+  "watchTime": 45.2,
+  "looped": false,
+  "loopCount": 0
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `watchTime` | number | Total watch time |
+| `looped` | boolean | Whether video looped |
+| `loopCount` | integer | Number of loops |
+
+### Rebuffer data
+
+```json
+{
+  "duration": 1200,
+  "currentTime": 12.5,
+  "rendition": "720p"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `duration` | integer | Rebuffer duration (ms) |
+| `currentTime` | number | Playback position when stall occurred |
+| `rendition` | string | Quality when stall occurred |
+
+## SDK integration
+
+SDKs automatically send events. You can also send custom events:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    // Events are sent automatically by the SDK
+
+    // Send custom event
+    shortKit.trackEvent(
+        type: "custom_action",
+        contentId: "cnt_abc123",
+        data: ["action": "bookmark"]
+    )
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    // Events are sent automatically by the SDK
+
+    // Send custom event
+    shortKit.trackEvent(
+        type = "custom_action",
+        contentId = "cnt_abc123",
+        data = mapOf("action" to "bookmark")
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    // Events are sent automatically by the SDK
+
+    // Send custom event
+    ShortKit.trackEvent({
+      type: 'custom_action',
+      contentId: 'cnt_abc123',
+      data: { action: 'bookmark' }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Event batching
+
+The SDK batches events for efficiency:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `batchSize` | 10 | Events before flush |
+| `batchInterval` | 5000ms | Max time before flush |
+| `flushOnBackground` | true | Flush when app backgrounds |
+
+Configure batching:
+
+```typescript
+ShortKit.initialize({
+  apiKey: 'pk_live_...',
+  events: {
+    batchSize: 20,
+    batchInterval: 10000
+  }
+});
+```
+
+## Validation
+
+Events are validated server-side:
+
+| Validation | Behavior |
+|------------|----------|
+| Missing required fields | Event rejected |
+| Invalid contentId | Event rejected |
+| Future timestamp (>5 min) | Timestamp adjusted |
+| Duplicate eventId | Event deduplicated |
+
+Failed events in batch requests don't affect other events.
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use batch endpoint for high-volume apps">
+    Reduce API calls by batching events. The SDK handles this automatically.
+  </Accordion>
+  <Accordion title="Include sessionId for accurate analytics">
+    Session IDs group events from a single viewing session, enabling accurate session-level analytics.
+  </Accordion>
+  <Accordion title="Send events promptly">
+    Events older than 24 hours may not be processed. The SDK flushes on app background.
+  </Accordion>
+  <Accordion title="Handle offline gracefully">
+    The SDK queues events when offline and retries when connectivity returns.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Analytics API" icon="chart-bar" href="/api-reference/endpoints/analytics">
+    Query aggregated analytics.
+  </Card>
+  <Card title="Data export" icon="download" href="/guides/data-export">
+    Export raw event data.
+  </Card>
+</Columns>
