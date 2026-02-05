@@ -1,0 +1,447 @@
+---
+title: "Error handling"
+description: "Understand API error codes and implement robust error handling."
+keywords: ["errors", "error handling", "status codes", "troubleshooting"]
+---
+
+The shortkit API uses conventional HTTP response codes and returns structured error responses to help you handle failures gracefully.
+
+## HTTP status codes
+
+| Code | Meaning |
+|------|---------|
+| `200` | Success |
+| `201` | Created - Resource successfully created |
+| `204` | No Content - Success with no response body |
+| `400` | Bad Request - Invalid request parameters |
+| `401` | Unauthorized - Invalid or missing API key |
+| `403` | Forbidden - Key lacks required permissions |
+| `404` | Not Found - Resource doesn't exist |
+| `409` | Conflict - Resource state conflict |
+| `422` | Unprocessable Entity - Validation failed |
+| `429` | Too Many Requests - Rate limit exceeded |
+| `500` | Internal Server Error - Server-side issue |
+| `503` | Service Unavailable - Temporary outage |
+
+## Error response format
+
+All errors follow a consistent structure:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Title is required",
+    "details": {
+      "field": "title",
+      "reason": "required"
+    }
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+### Error fields
+
+<ResponseField name="error.code" type="string" required>
+  Machine-readable error code for programmatic handling.
+</ResponseField>
+
+<ResponseField name="error.message" type="string" required>
+  Human-readable error description.
+</ResponseField>
+
+<ResponseField name="error.details" type="object">
+  Additional context about the error. Structure varies by error type.
+</ResponseField>
+
+<ResponseField name="meta.requestId" type="string" required>
+  Unique request identifier for support inquiries.
+</ResponseField>
+
+## Error codes reference
+
+### Authentication errors
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `UNAUTHORIZED` | 401 | Missing or invalid API key |
+| `KEY_REVOKED` | 401 | API key has been revoked |
+| `KEY_EXPIRED` | 401 | API key has expired |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `ENVIRONMENT_MISMATCH` | 403 | Wrong environment key |
+
+### Validation errors
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `VALIDATION_ERROR` | 400 | Request validation failed |
+| `INVALID_REQUEST` | 400 | Malformed request body |
+| `MISSING_PARAMETER` | 400 | Required parameter missing |
+| `INVALID_PARAMETER` | 400 | Parameter value invalid |
+
+### Resource errors
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `NOT_FOUND` | 404 | Resource doesn't exist |
+| `ALREADY_EXISTS` | 409 | Resource already exists |
+| `CONFLICT` | 409 | Resource state conflict |
+| `GONE` | 410 | Resource has been deleted |
+
+### Content errors
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `CONTENT_NOT_READY` | 409 | Content still processing |
+| `CONTENT_FAILED` | 422 | Content processing failed |
+| `INVALID_MEDIA_TYPE` | 422 | Unsupported file format |
+| `FILE_TOO_LARGE` | 422 | File exceeds size limit |
+| `DURATION_EXCEEDED` | 422 | Video exceeds max duration |
+
+### Rate limiting errors
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `RATE_LIMITED` | 429 | Too many requests |
+| `QUOTA_EXCEEDED` | 429 | Monthly quota exceeded |
+
+### Server errors
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| `SERVICE_UNAVAILABLE` | 503 | Temporary service outage |
+| `UPSTREAM_ERROR` | 502 | Third-party service failure |
+
+## Handling errors
+
+### Basic error handling
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    async function createContent(data) {
+      try {
+        const response = await fetch('https://api.shortkit.dev/v1/content', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new ShortkitError(error);
+        }
+
+        return response.json();
+      } catch (error) {
+        handleError(error);
+      }
+    }
+
+    function handleError(error) {
+      switch (error.code) {
+        case 'VALIDATION_ERROR':
+          console.error(`Validation failed: ${error.message}`);
+          break;
+        case 'RATE_LIMITED':
+          // Implement retry with backoff
+          break;
+        case 'UNAUTHORIZED':
+          // Refresh credentials or redirect to login
+          break;
+        default:
+          console.error(`API error: ${error.message}`);
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+    from requests.exceptions import RequestException
+
+    def create_content(data):
+        try:
+            response = requests.post(
+                'https://api.shortkit.dev/v1/content',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json'
+                },
+                json=data
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.HTTPError as e:
+            error = e.response.json()
+            handle_error(error['error'])
+
+    def handle_error(error):
+        code = error.get('code')
+        message = error.get('message')
+
+        if code == 'VALIDATION_ERROR':
+            print(f"Validation failed: {message}")
+        elif code == 'RATE_LIMITED':
+            # Implement retry with backoff
+            pass
+        elif code == 'UNAUTHORIZED':
+            # Refresh credentials
+            pass
+        else:
+            print(f"API error: {message}")
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    func createContent(data ContentRequest) (*Content, error) {
+        resp, err := client.Post(
+            "https://api.shortkit.dev/v1/content",
+            data,
+        )
+        if err != nil {
+            return nil, err
+        }
+
+        if resp.StatusCode >= 400 {
+            var apiErr APIError
+            json.NewDecoder(resp.Body).Decode(&apiErr)
+            return nil, handleError(apiErr)
+        }
+
+        var content Content
+        json.NewDecoder(resp.Body).Decode(&content)
+        return &content, nil
+    }
+
+    func handleError(err APIError) error {
+        switch err.Error.Code {
+        case "VALIDATION_ERROR":
+            return fmt.Errorf("validation failed: %s", err.Error.Message)
+        case "RATE_LIMITED":
+            // Implement retry with backoff
+            return ErrRateLimited
+        case "UNAUTHORIZED":
+            return ErrUnauthorized
+        default:
+            return fmt.Errorf("API error: %s", err.Error.Message)
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Retry with exponential backoff
+
+For transient errors (429, 503), implement retry logic:
+
+```javascript
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+
+      if (response.status === 429 || response.status === 503) {
+        if (attempt === maxRetries) throw new Error('Max retries exceeded');
+
+        // Get retry delay from header or use exponential backoff
+        const retryAfter = response.headers.get('Retry-After');
+        const delay = retryAfter
+          ? parseInt(retryAfter) * 1000
+          : Math.pow(2, attempt) * 1000;
+
+        await sleep(delay);
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      await sleep(Math.pow(2, attempt) * 1000);
+    }
+  }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
+
+### Validation error details
+
+Validation errors include field-level details:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": {
+      "errors": [
+        {
+          "field": "title",
+          "reason": "required",
+          "message": "Title is required"
+        },
+        {
+          "field": "duration",
+          "reason": "max",
+          "message": "Duration cannot exceed 180 seconds",
+          "max": 180
+        }
+      ]
+    }
+  }
+}
+```
+
+Handle multiple validation errors:
+
+```javascript
+function displayValidationErrors(error) {
+  if (error.code !== 'VALIDATION_ERROR') return;
+
+  const errors = error.details?.errors || [];
+  errors.forEach(err => {
+    const field = document.querySelector(`[name="${err.field}"]`);
+    if (field) {
+      field.classList.add('error');
+      showFieldError(field, err.message);
+    }
+  });
+}
+```
+
+## SDK error handling
+
+The SDKs provide typed error classes:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    shortKit.fetchFeed { result in
+        switch result {
+        case .success(let feed):
+            self.displayFeed(feed)
+        case .failure(let error):
+            switch error {
+            case .networkError(let underlying):
+                self.showNetworkError()
+            case .authenticationError:
+                self.refreshCredentials()
+            case .rateLimited(let retryAfter):
+                self.scheduleRetry(after: retryAfter)
+            case .serverError(let code, let message):
+                self.showError(message)
+            }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    shortKit.fetchFeed(
+        onSuccess = { feed ->
+            displayFeed(feed)
+        },
+        onError = { error ->
+            when (error) {
+                is ShortkitError.NetworkError -> showNetworkError()
+                is ShortkitError.AuthenticationError -> refreshCredentials()
+                is ShortkitError.RateLimited -> scheduleRetry(error.retryAfter)
+                is ShortkitError.ServerError -> showError(error.message)
+            }
+        }
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    try {
+      const feed = await shortkit.fetchFeed();
+      displayFeed(feed);
+    } catch (error) {
+      if (error instanceof ShortkitError) {
+        switch (error.code) {
+          case 'NETWORK_ERROR':
+            showNetworkError();
+            break;
+          case 'UNAUTHORIZED':
+            refreshCredentials();
+            break;
+          case 'RATE_LIMITED':
+            scheduleRetry(error.retryAfter);
+            break;
+          default:
+            showError(error.message);
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Debugging errors
+
+### Using request IDs
+
+Every response includes a `requestId`. Include this when contacting support:
+
+```bash
+curl -i https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_..."
+
+# Response headers include:
+# X-Request-Id: req_xyz789
+```
+
+### Verbose logging
+
+Enable verbose logging in SDKs for debugging:
+
+```typescript
+shortkit.setLogLevel('verbose');
+```
+
+### Common issues
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized with valid key">
+    - Check for extra whitespace in the key
+    - Verify key hasn't been revoked
+    - Confirm environment matches (live vs test)
+  </Accordion>
+  <Accordion title="CORS errors in browser">
+    - Ensure domain is in your allowlist
+    - Check that you're using a publishable key
+    - Verify request origin matches configuration
+  </Accordion>
+  <Accordion title="Intermittent 500 errors">
+    - Check shortkit status page
+    - Implement retry logic
+    - Contact support with request IDs
+  </Accordion>
+  <Accordion title="Validation errors on previously working requests">
+    - Check for API version changes
+    - Review changelog for breaking changes
+    - Verify request body structure
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn about API key management.
+  </Card>
+  <Card title="API introduction" icon="book" href="/api/introduction">
+    Overview of API design patterns.
+  </Card>
+</Columns>

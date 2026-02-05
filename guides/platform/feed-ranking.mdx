@@ -1,0 +1,329 @@
+---
+title: "Feed ranking"
+description: "How shortkit ranks and orders content in the feed using signals and editorial controls."
+keywords: ["ranking", "algorithm", "personalization", "feed", "signals"]
+---
+
+shortkit's Feed Service computes personalized, ranked feeds for each user request. The ranking combines engagement signals, content freshness, user preferences, and editorial controls.
+
+## How ranking works
+
+For each feed request, the ranking system retrieves candidate content matching any filters, computes scores using signal weights, applies editorial overrides (pins, boosts, suppressions), and returns the feed ordered by final score.
+
+## Signal-weighted ranking
+
+The score for each content item is computed as:
+
+```
+score = w_recency × recency
+      + w_engagement × engagement
+      + w_geo × geo_relevance
+      + w_topic × topic_affinity
+      + w_completion × completion_rate
+      + editorial_boost
+```
+
+### Ranking signals
+
+| Signal | Description | Example |
+|--------|-------------|---------|
+| **Recency** | Exponential decay based on publish time | Content from 1 hour ago scores higher than 1 day ago |
+| **Engagement** | Aggregate engagement across all users | High view count and watch time = higher score |
+| **Geo-relevance** | Match between user location and content geo-targeting | Minnesota user sees Minnesota content boosted |
+| **Topic affinity** | Match between user preferences and content tags | User who watches sports content sees sports boosted |
+| **Completion rate** | How often users finish watching | Content with 80% completion rate ranks higher |
+
+### Signal weights
+
+Default weights (configurable):
+
+| Signal | Default Weight |
+|--------|---------------|
+| Recency | 0.25 |
+| Engagement | 0.25 |
+| Geo-relevance | 0.15 |
+| Topic affinity | 0.20 |
+| Completion rate | 0.15 |
+
+## Configuring ranking
+
+### Admin Portal
+
+Adjust weights in **Feed Configuration → Ranking**:
+
+- Use sliders to adjust relative importance
+- Preview changes on sample feeds
+- A/B test different weight configurations
+
+### API
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/ranking \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "weights": {
+      "recency": 0.30,
+      "engagement": 0.20,
+      "geoRelevance": 0.20,
+      "topicAffinity": 0.15,
+      "completionRate": 0.15
+    },
+    "recencyDecayHours": 48,
+    "minCompletionRate": 0.1
+  }'
+```
+
+### Configuration options
+
+<ResponseField name="weights" type="object">
+  Signal weights. Must sum to 1.0.
+</ResponseField>
+
+<ResponseField name="recencyDecayHours" type="number" default="72">
+  Half-life for recency decay in hours. Content older than this has 50% recency score.
+</ResponseField>
+
+<ResponseField name="minCompletionRate" type="number" default="0.1">
+  Minimum completion rate to include content. Filters out content with very low engagement.
+</ResponseField>
+
+<ResponseField name="maxContentAgeDays" type="number">
+  Hard cutoff for content age. Content older than this is excluded regardless of score.
+</ResponseField>
+
+## Editorial controls
+
+Editorial teams can override algorithmic ranking with three controls:
+
+### Pin
+
+Force content to a specific position regardless of ranking score:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "editorialOverrides": {
+      "pin": {
+        "position": 1,
+        "expiresAt": "2024-02-05T00:00:00Z"
+      }
+    }
+  }'
+```
+
+- **Deterministic**: All users see pinned content at the same position
+- **Expiry**: Optional expiration time
+- **Conflicts**: If two items are pinned to the same position, the more recently pinned takes precedence
+
+### Boost
+
+Add a positive modifier to ranking score:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "editorialOverrides": {
+      "boost": {
+        "factor": 2.0,
+        "expiresAt": "2024-02-05T00:00:00Z"
+      }
+    }
+  }'
+```
+
+- **Factor range**: 1.1x to 10x score multiplier
+- **Competitive**: Boosted content still competes with other signals
+- **Personalized**: Final position varies by user
+
+### Suppress
+
+Reduce visibility or exclude entirely:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "editorialOverrides": {
+      "suppress": {
+        "level": "exclude"
+      }
+    }
+  }'
+```
+
+Suppression levels:
+- `reduce` - Apply 0.5x score modifier
+- `minimize` - Apply 0.1x score modifier
+- `exclude` - Remove from feed entirely
+
+### Admin Portal
+
+Manage editorial controls in **Content → [Content Item] → Editorial**:
+
+- One-click pin, boost, suppress
+- Set expiration times
+- View active overrides across all content
+
+## Heuristic rules
+
+Define hard rules evaluated before scoring:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/ranking/rules \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rules": [
+      {
+        "name": "No old content",
+        "condition": "content.ageInDays > 30",
+        "action": "exclude"
+      },
+      {
+        "name": "Boost Minnesota for MN users",
+        "condition": "user.region == \"MN\" && content.tags.includes(\"minnesota\")",
+        "action": "boost",
+        "factor": 2.0
+      },
+      {
+        "name": "Exclude crime from default feed",
+        "condition": "content.tags.includes(\"crime\") && !feed.filter.includes(\"crime\")",
+        "action": "exclude"
+      }
+    ]
+  }'
+```
+
+### Rule conditions
+
+Available variables:
+- `content.*` - Content metadata (tags, ageInDays, duration, etc.)
+- `user.*` - User context (region, topicAffinities, etc.)
+- `feed.*` - Feed context (filter, name, etc.)
+
+### Rule actions
+
+- `exclude` - Remove from feed
+- `include` - Force include (override other exclusions)
+- `boost` - Apply score multiplier
+- `suppress` - Apply negative modifier
+
+## Content filters
+
+Define named filters for content subsets:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/config/filters \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sports",
+    "slug": "sports",
+    "conditions": {
+      "tags": ["sports", "athletics", "nfl", "nba", "mlb"]
+    }
+  }'
+```
+
+Filters power:
+- **Adjacent feeds**: Swipe between filtered feeds
+- **SDK filter parameter**: Request filtered content
+- **User-facing filter UI**: Let users select categories
+
+## Topic affinity
+
+The User Signal Service builds topic affinity profiles based on engagement:
+
+### How it's calculated
+
+```
+affinity[topic] = Σ (engagement_score × recency_weight) / total_engagement
+```
+
+Where engagement score considers:
+- Watch time (weighted highest)
+- Completion rate
+- Interactions (shares, likes)
+- Return views
+
+### Profile example
+
+```json
+{
+  "userId": "user_123",
+  "topicAffinities": {
+    "politics": 0.72,
+    "sports": 0.45,
+    "entertainment": 0.23,
+    "weather": 0.15
+  }
+}
+```
+
+### Cold start
+
+For new users with no engagement history:
+- Topic affinity defaults to neutral (0.5 for all topics)
+- Recency and engagement signals drive initial ranking
+- Personalization improves with each interaction
+
+## A/B testing ranking
+
+Test different ranking configurations:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Recency vs Engagement",
+    "type": "ranking",
+    "variants": [
+      {
+        "name": "control",
+        "weight": 0.5,
+        "config": {
+          "weights": { "recency": 0.25, "engagement": 0.25 }
+        }
+      },
+      {
+        "name": "recency-heavy",
+        "weight": 0.5,
+        "config": {
+          "weights": { "recency": 0.40, "engagement": 0.15 }
+        }
+      }
+    ],
+    "metrics": ["watchTime", "sessionLength", "completionRate"]
+  }'
+```
+
+View results in Admin Portal: **Experiments → [Experiment] → Results**
+
+## Future: ML-based ranking
+
+The current signal-weighted model will be augmented with ML-based ranking:
+
+- **Content embeddings**: Multimodal representations (visual + text + audio)
+- **User embeddings**: Dense vectors capturing engagement patterns
+- **Two-tower retrieval**: Candidate generation via embedding similarity
+- **Ranking model**: Listwise re-ranking optimizing for engagement and retention
+
+Editorial overrides (pin, boost, suppress) continue to work with ML ranking.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
+    Run experiments on ranking configurations.
+  </Card>
+  <Card title="Analytics" icon="chart-bar" href="/portal/analytics">
+    Measure ranking effectiveness.
+  </Card>
+</Columns>

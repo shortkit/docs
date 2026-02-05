@@ -1,0 +1,383 @@
+---
+title: "Webhooks"
+description: "Receive real-time notifications when events occur in shortkit."
+keywords: ["webhooks", "notifications", "events", "integration"]
+---
+
+Webhooks notify your server when important events occur in Shortkit, such as content finishing processing or data exports completing.
+
+## Overview
+
+When an event occurs:
+1. shortkit sends an HTTP POST to your endpoint
+2. Request includes event data and signature
+3. Your server verifies and processes the event
+
+## Setting up webhooks
+
+### Create a webhook endpoint
+
+Your endpoint must:
+- Accept POST requests
+- Use HTTPS (required)
+- Return 2xx status within 30 seconds
+- Verify the signature
+
+### Register in Admin Portal
+
+1. Go to **Settings → Webhooks**
+2. Click **Add Webhook**
+3. Enter your endpoint URL
+4. Select events to receive
+5. Copy the signing secret
+
+### Register via API
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/webhooks \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://yourserver.com/webhooks/shortkit",
+    "events": ["content.ready", "content.errored"],
+    "description": "Production webhook"
+  }'
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "webhookId": "whk_abc123",
+    "url": "https://yourserver.com/webhooks/shortkit",
+    "events": ["content.ready", "content.errored"],
+    "secret": "whsec_xyz789...",
+    "status": "active"
+  }
+}
+```
+
+<Warning>
+  The signing secret is shown only once. Store it securely.
+</Warning>
+
+## Available events
+
+### Content events
+
+| Event | Trigger |
+|-------|---------|
+| `content.ready` | Content finished processing and is available |
+| `content.errored` | Content processing failed |
+| `export.ready` | Data export completed |
+
+## Webhook payload
+
+### Format
+
+```json
+{
+  "event": "content.ready",
+  "data": {
+    "contentId": "cnt_abc123",
+    "title": "My Video",
+    "duration": 45.2,
+    "status": "ready"
+  },
+  "timestamp": "2024-02-04T12:00:00Z",
+  "webhookId": "whk_xyz789"
+}
+```
+
+### Headers
+
+| Header | Description |
+|--------|-------------|
+| `Content-Type` | `application/json` |
+| `X-Shortform-Signature` | HMAC-SHA256 signature |
+| `X-Shortform-Timestamp` | Event timestamp |
+| `X-Shortform-Webhook-ID` | Webhook configuration ID |
+| `X-Shortform-Delivery-ID` | Unique delivery attempt ID |
+
+## Signature verification
+
+Always verify webhook signatures to ensure requests are from shortkit.
+
+### Verification process
+
+1. Extract timestamp and signature from headers
+2. Construct the signed payload: `{timestamp}.{body}`
+3. Compute expected signature using your secret
+4. Compare signatures using timing-safe comparison
+
+### Implementation examples
+
+<Tabs>
+  <Tab title="Node.js">
+    ```javascript
+    const crypto = require('crypto');
+
+    function verifyWebhook(req, secret) {
+      const signature = req.headers['x-shortform-signature'];
+      const timestamp = req.headers['x-shortform-timestamp'];
+      const body = req.rawBody; // Raw request body string
+
+      // Construct signed payload
+      const signedPayload = `${timestamp}.${body}`;
+
+      // Compute expected signature
+      const expected = crypto
+        .createHmac('sha256', secret)
+        .update(signedPayload)
+        .digest('hex');
+
+      const expectedSignature = `sha256=${expected}`;
+
+      // Timing-safe comparison
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      );
+    }
+
+    // Express middleware
+    app.post('/webhooks/shortkit', express.raw({ type: 'application/json' }), (req, res) => {
+      if (!verifyWebhook(req, process.env.SHORTKIT_WEBHOOK_SECRET)) {
+        return res.status(401).send('Invalid signature');
+      }
+
+      const event = JSON.parse(req.body);
+      // Process event...
+
+      res.status(200).send('OK');
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import hmac
+    import hashlib
+    from flask import Flask, request
+
+    app = Flask(__name__)
+    WEBHOOK_SECRET = os.environ['SHORTKIT_WEBHOOK_SECRET']
+
+    def verify_webhook(request):
+        signature = request.headers.get('X-Shortform-Signature')
+        timestamp = request.headers.get('X-Shortform-Timestamp')
+        body = request.get_data(as_text=True)
+
+        # Construct signed payload
+        signed_payload = f"{timestamp}.{body}"
+
+        # Compute expected signature
+        expected = hmac.new(
+            WEBHOOK_SECRET.encode(),
+            signed_payload.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        expected_signature = f"sha256={expected}"
+
+        # Timing-safe comparison
+        return hmac.compare_digest(signature, expected_signature)
+
+    @app.route('/webhooks/shortkit', methods=['POST'])
+    def handle_webhook():
+        if not verify_webhook(request):
+            return 'Invalid signature', 401
+
+        event = request.get_json()
+        # Process event...
+
+        return 'OK', 200
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    package main
+
+    import (
+        "crypto/hmac"
+        "crypto/sha256"
+        "encoding/hex"
+        "io"
+        "net/http"
+    )
+
+    func verifyWebhook(r *http.Request, secret string) bool {
+        signature := r.Header.Get("X-Shortform-Signature")
+        timestamp := r.Header.Get("X-Shortform-Timestamp")
+
+        body, _ := io.ReadAll(r.Body)
+
+        // Construct signed payload
+        signedPayload := timestamp + "." + string(body)
+
+        // Compute expected signature
+        mac := hmac.New(sha256.New, []byte(secret))
+        mac.Write([]byte(signedPayload))
+        expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+
+        return hmac.Equal([]byte(signature), []byte(expected))
+    }
+
+    func webhookHandler(w http.ResponseWriter, r *http.Request) {
+        if !verifyWebhook(r, os.Getenv("SHORTKIT_WEBHOOK_SECRET")) {
+            http.Error(w, "Invalid signature", http.StatusUnauthorized)
+            return
+        }
+
+        // Process event...
+        w.WriteHeader(http.StatusOK)
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Retry policy
+
+Failed webhook deliveries are retried automatically:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | Immediate |
+| 2 | 1 minute |
+| 3 | 5 minutes |
+| 4 | 30 minutes |
+| 5 | 2 hours |
+| 6 | 24 hours |
+
+A delivery is considered failed if:
+- Connection timeout (10 seconds)
+- Non-2xx response code
+- Response not received within 30 seconds
+
+After all retries are exhausted, the delivery is marked as failed.
+
+## Event handling
+
+### Idempotency
+
+Events may be delivered more than once. Handle duplicates using the `X-Shortform-Delivery-ID`:
+
+```javascript
+const processedDeliveries = new Set();
+
+app.post('/webhooks/shortkit', (req, res) => {
+  const deliveryId = req.headers['x-shortform-delivery-id'];
+
+  if (processedDeliveries.has(deliveryId)) {
+    return res.status(200).send('Already processed');
+  }
+
+  // Process event...
+
+  processedDeliveries.add(deliveryId);
+  res.status(200).send('OK');
+});
+```
+
+### Async processing
+
+For long-running tasks, acknowledge immediately and process asynchronously:
+
+```javascript
+app.post('/webhooks/shortkit', async (req, res) => {
+  // Verify signature...
+
+  // Acknowledge immediately
+  res.status(200).send('OK');
+
+  // Process asynchronously
+  const event = JSON.parse(req.body);
+  await queue.add('process-webhook', event);
+});
+```
+
+## Testing webhooks
+
+### Send test event
+
+From the Admin Portal:
+1. Go to **Settings → Webhooks**
+2. Click on your webhook
+3. Click **Send Test Event**
+4. Select event type
+5. View response
+
+### Local development
+
+Use a tunnel service for local testing:
+
+```bash
+# Using ngrok
+ngrok http 3000
+
+# Register the ngrok URL as your webhook
+# https://abc123.ngrok.io/webhooks/shortkit
+```
+
+### Webhook logs
+
+View delivery history:
+1. Go to **Settings → Webhooks → [Your Webhook]**
+2. See **Recent Deliveries**
+3. View request/response for each attempt
+
+## Managing webhooks
+
+### List webhooks
+
+```bash
+curl https://api.shortkit.dev/v1/webhooks \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Update webhook
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/webhooks/whk_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": ["content.ready", "content.errored", "export.ready"]
+  }'
+```
+
+### Disable webhook
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/webhooks/whk_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "disabled"
+  }'
+```
+
+### Delete webhook
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/webhooks/whk_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Rotate secret
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/webhooks/whk_abc123/rotate-secret \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Content API" icon="code" href="/api/content">
+    Learn about content lifecycle events.
+  </Card>
+  <Card title="Data export" icon="download" href="/guides/integration/data-export">
+    Export analytics and event data.
+  </Card>
+</Columns>

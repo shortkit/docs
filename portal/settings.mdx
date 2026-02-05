@@ -1,0 +1,318 @@
+---
+title: "Settings"
+description: "Configure API keys, webhooks, team access, and platform settings."
+keywords: ["settings", "API keys", "webhooks", "team", "configuration"]
+---
+
+The Settings section lets you manage API credentials, webhooks, team members, and platform configuration.
+
+## API keys
+
+Manage API credentials at **Settings → API Keys**.
+
+### Key types
+
+| Type | Prefix | Usage | Security |
+|------|--------|-------|----------|
+| **Publishable** | `pk_` | SDK initialization | Safe for client code |
+| **Secret** | `sk_` | Server API, Admin Portal | Never expose publicly |
+
+### Environments
+
+Separate keys for each environment:
+
+- **Production**: Live keys for your production app
+- **Staging**: Test keys for staging environment
+- **Development**: Keys for local development
+
+### Creating keys
+
+1. Go to **Settings → API Keys**
+2. Click **Create Key Pair**
+3. Select environment
+4. Optionally add a description
+5. Copy and securely store the secret key
+
+<Warning>
+  Secret keys are shown only once. Store them securely in your environment variables or secrets manager.
+</Warning>
+
+### Rotating keys
+
+To rotate a compromised key:
+
+1. Create a new key pair
+2. Update your applications with the new keys
+3. Delete the old key pair
+
+### Key permissions
+
+Coming soon: Fine-grained permissions for API keys.
+
+## Webhooks
+
+Configure event notifications at **Settings → Webhooks**.
+
+### Creating a webhook
+
+1. Click **Add Webhook**
+2. Enter endpoint URL (must be HTTPS)
+3. Select events to receive:
+   - `content.ready`
+   - `content.errored`
+   - `export.ready`
+4. Save
+
+### Webhook format
+
+Events are sent as POST requests:
+
+```json
+{
+  "event": "content.ready",
+  "data": {
+    "contentId": "cnt_abc123",
+    "title": "My Video",
+    "duration": 45.2,
+    "status": "ready"
+  },
+  "timestamp": "2024-02-04T12:00:00Z",
+  "webhookId": "whk_xyz789"
+}
+```
+
+### Signature verification
+
+Verify webhook authenticity using the signature header:
+
+```
+X-Shortform-Signature: sha256=abc123...
+```
+
+Verify in your code:
+
+```javascript
+const crypto = require('crypto');
+
+function verifyWebhook(payload, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  return `sha256=${expected}` === signature;
+}
+```
+
+### Webhook secret
+
+Find your signing secret:
+1. Go to **Settings → Webhooks**
+2. Click on a webhook
+3. Copy the **Signing Secret**
+
+### Testing webhooks
+
+Send a test event:
+1. Go to webhook detail
+2. Click **Send Test**
+3. Select event type
+4. Check your endpoint received it
+
+### Retry policy
+
+Failed webhooks are retried:
+- 5 attempts with exponential backoff
+- 1 min, 5 min, 30 min, 2 hours, 24 hours
+- After all retries, event is logged as failed
+
+### Webhook logs
+
+View delivery attempts:
+1. Go to webhook detail
+2. See **Recent Deliveries**
+3. View request/response for each attempt
+
+## Team management
+
+Manage team access at **Settings → Team**.
+
+### Inviting members
+
+1. Click **Invite Member**
+2. Enter email address
+3. Select role (currently all members have full access)
+4. Click **Send Invite**
+
+Invitee receives email with login link.
+
+### Managing members
+
+- View all team members
+- See last active time
+- Remove members
+
+### Role-based access (coming soon)
+
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full access, team management |
+| **Developer** | API keys, webhooks, SDK config |
+| **Product Manager** | Experiments, analytics, feed config |
+| **Editor** | Content management, editorial |
+| **Ad Ops** | Ad configuration, revenue |
+| **Viewer** | Read-only analytics |
+
+## Organization profile
+
+Update organization info at **Settings → Profile**.
+
+### Basic info
+
+- **Organization name**: Displayed in Admin Portal
+- **Logo**: Used in portal branding
+- **Billing contact**: For invoices
+
+### Billing
+
+- View current plan
+- Usage metrics
+- Invoice history
+- Update payment method
+
+## Branded CDN domain
+
+Configure custom domain at **Settings → Branding → CDN Domain**.
+
+### Setup
+
+1. Enter your domain (e.g., `video.yourcompany.com`)
+2. Create DNS CNAME record pointing to `cdn.shortkit.dev`
+3. Click **Verify**
+4. SSL is automatically provisioned
+
+### DNS configuration
+
+| Type | Name | Value |
+|------|------|-------|
+| CNAME | video | cdn.shortkit.dev |
+
+## Deep link domain
+
+Configure sharing URLs at **Settings → Branding → Deep Links**.
+
+### Configuration
+
+- **Domain**: Your app's deep link domain
+- **Path template**: URL pattern (e.g., `/watch/{contentId}`)
+- **Fallback URL**: Where to send users without the app
+
+## Playback restrictions
+
+Configure security at **Settings → Playback Restrictions**.
+
+### Domain allowlist
+
+Only allow playback from specified domains:
+
+1. Add allowed domains
+2. Support wildcards (e.g., `*.yourcompany.com`)
+3. Save
+
+### Additional settings
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Allow no referrer** | Allow requests without referrer header | Off |
+| **Allow high-risk user agents** | Allow known scraper user agents | Off |
+
+### CDN URL expiry
+
+Configure signed URL validity:
+- Range: 1-24 hours
+- Default: 6 hours
+- Shorter = more secure, longer = better for long sessions
+
+## Auto-captioning
+
+Configure at **Settings → Auto-captioning**.
+
+### Settings
+
+- **Enable auto-captions**: Generate captions automatically
+- **Default languages**: Languages to generate
+- **Apply to**: New content only, or all content
+
+### Transcription vocabulary
+
+Add custom words for better accuracy:
+
+1. Go to **Settings → Transcription Vocabulary**
+2. Add words/phrases (brand names, technical terms)
+3. Up to 1,000 phrases
+
+## Watermarking
+
+Configure at **Settings → Watermarking**.
+
+### Visible watermark
+
+- **Text**: Watermark text (e.g., "© Your Company")
+- **Position**: Corner placement
+- **Opacity**: Transparency level
+- **Font size**: Text size
+
+### Forensic watermark
+
+Enable invisible watermarking for tracking unauthorized distribution.
+
+## Data export
+
+Configure scheduled exports at **Settings → Data Export**.
+
+### Scheduled exports
+
+1. Enable scheduled exports
+2. Set frequency (daily, weekly)
+3. Select data types
+4. Configure delivery:
+   - Webhook URL
+   - Email notification
+
+## Integrations
+
+Connect third-party services at **Settings → Integrations**.
+
+### Available integrations
+
+- **Slack**: Notifications for content ready, errors
+- **Analytics**: Send data to your analytics platform
+- **CMS**: Connect to content management systems
+
+## Audit log
+
+View all changes at **Settings → Audit Log**.
+
+### Logged events
+
+- Configuration changes
+- Team member changes
+- API key operations
+- Content actions
+
+### Filtering
+
+- By user
+- By action type
+- By date range
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Webhooks guide" icon="webhook" href="/guides/integration/webhooks">
+    Detailed webhook integration guide.
+  </Card>
+  <Card title="Playback restrictions" icon="shield" href="/guides/integration/playback-security">
+    Configure security settings.
+  </Card>
+</Columns>

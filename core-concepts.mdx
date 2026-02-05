@@ -28,18 +28,7 @@ All API requests and SDK operations are scoped to a single organization, identif
 
 ### Content lifecycle
 
-Content progresses through these states:
-
-```mermaid
-stateDiagram-v2
-    [*] --> processing: Upload
-    processing --> ready: Transcoding complete
-    processing --> error: Transcoding failed
-    ready --> scheduled: Set future publish date
-    scheduled --> live: Publish date reached
-    ready --> live: Publish immediately
-    live --> archived: Manual or auto-expiry
-```
+Content progresses through these states: `processing` → `ready` → `live` → `archived`. If transcoding fails, content enters the `error` state.
 
 | Status | Description |
 |--------|-------------|

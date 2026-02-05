@@ -1,0 +1,440 @@
+---
+title: "Content"
+description: "Create, retrieve, update, and delete video content."
+keywords: ["content", "videos", "API", "CRUD"]
+---
+
+The Content API manages your video library. Use it to create content records, update metadata, and control availability.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/content` | Create content from URL |
+| `GET` | `/v1/content` | List all content |
+| `GET` | `/v1/content/{id}` | Get content by ID |
+| `PATCH` | `/v1/content/{id}` | Update content |
+| `DELETE` | `/v1/content/{id}` | Delete content |
+
+## Create content
+
+Creates a new content record and starts processing.
+
+```bash
+POST /v1/content
+```
+
+### Request body
+
+<ParamField body="sourceUrl" type="string" required>
+  URL to the source video file. Must be publicly accessible or a signed URL.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Display title (max 200 characters).
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description (max 2000 characters).
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Tags for categorization and filtering.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Custom metadata key-value pairs.
+</ParamField>
+
+<ParamField body="visibility" type="string" default="private">
+  Initial visibility: `private`, `unlisted`, or `public`.
+</ParamField>
+
+<ParamField body="publishAt" type="string">
+  ISO 8601 timestamp for scheduled publishing.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceUrl": "https://storage.example.com/videos/my-video.mp4",
+    "title": "Product Launch Announcement",
+    "description": "Exciting news about our latest product",
+    "tags": ["announcement", "product"],
+    "metadata": {
+      "campaign": "spring-2024",
+      "creator": "marketing-team"
+    },
+    "visibility": "private"
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "cnt_abc123",
+    "title": "Product Launch Announcement",
+    "description": "Exciting news about our latest product",
+    "status": "processing",
+    "visibility": "private",
+    "duration": null,
+    "aspectRatio": null,
+    "tags": ["announcement", "product"],
+    "metadata": {
+      "campaign": "spring-2024",
+      "creator": "marketing-team"
+    },
+    "thumbnails": null,
+    "createdAt": "2024-02-04T12:00:00Z",
+    "updatedAt": "2024-02-04T12:00:00Z",
+    "publishedAt": null
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+## List content
+
+Retrieves a paginated list of content.
+
+```bash
+GET /v1/content
+```
+
+### Query parameters
+
+<ParamField query="limit" type="integer" default={20}>
+  Items per page (1-100).
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor from previous response.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by status: `processing`, `ready`, `failed`.
+</ParamField>
+
+<ParamField query="visibility" type="string">
+  Filter by visibility: `private`, `unlisted`, `public`.
+</ParamField>
+
+<ParamField query="tags" type="string">
+  Comma-separated tags to filter by.
+</ParamField>
+
+<ParamField query="createdAfter" type="string">
+  Filter by creation date (ISO 8601).
+</ParamField>
+
+<ParamField query="createdBefore" type="string">
+  Filter by creation date (ISO 8601).
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search titles and descriptions.
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=product" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "cnt_abc123",
+      "title": "Product Launch Announcement",
+      "status": "ready",
+      "visibility": "public",
+      "duration": 45.2,
+      "aspectRatio": "9:16",
+      "thumbnails": {
+        "default": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/default.jpg",
+        "small": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/small.jpg"
+      },
+      "createdAt": "2024-02-04T12:00:00Z",
+      "publishedAt": "2024-02-04T14:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 150,
+    "nextCursor": "eyJvZmZzZXQiOjIwfQ=="
+  }
+}
+```
+
+## Get content
+
+Retrieves a single content item by ID.
+
+```bash
+GET /v1/content/{id}
+```
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content ID (e.g., `cnt_abc123`).
+</ParamField>
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "cnt_abc123",
+    "title": "Product Launch Announcement",
+    "description": "Exciting news about our latest product",
+    "status": "ready",
+    "visibility": "public",
+    "duration": 45.2,
+    "aspectRatio": "9:16",
+    "resolution": {
+      "width": 1080,
+      "height": 1920
+    },
+    "codecs": ["h264", "av1"],
+    "tags": ["announcement", "product"],
+    "metadata": {
+      "campaign": "spring-2024",
+      "creator": "marketing-team"
+    },
+    "thumbnails": {
+      "default": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/default.jpg",
+      "small": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/small.jpg",
+      "animated": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/preview.webp"
+    },
+    "streamingUrls": {
+      "hls": "https://video.shortkit.dev/v1/streams/cnt_abc123/manifest.m3u8",
+      "dash": "https://video.shortkit.dev/v1/streams/cnt_abc123/manifest.mpd"
+    },
+    "analytics": {
+      "impressions": 12500,
+      "plays": 8200,
+      "completions": 4100,
+      "averageWatchTime": 32.5
+    },
+    "createdAt": "2024-02-04T12:00:00Z",
+    "updatedAt": "2024-02-04T14:30:00Z",
+    "publishedAt": "2024-02-04T14:00:00Z"
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+### Content status
+
+| Status | Description |
+|--------|-------------|
+| `processing` | Video is being transcoded |
+| `ready` | Video is ready for playback |
+| `failed` | Processing failed |
+
+## Update content
+
+Updates content metadata. Cannot update source video after creation.
+
+```bash
+PATCH /v1/content/{id}
+```
+
+### Request body
+
+<ParamField body="title" type="string">
+  Updated title.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Replace all tags.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Merge with existing metadata (use `null` to remove keys).
+</ParamField>
+
+<ParamField body="visibility" type="string">
+  Update visibility: `private`, `unlisted`, `public`.
+</ParamField>
+
+<ParamField body="publishAt" type="string">
+  Schedule publishing (ISO 8601) or `null` to cancel.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Title",
+    "visibility": "public",
+    "tags": ["featured", "product"],
+    "metadata": {
+      "featured": true,
+      "campaign": null
+    }
+  }'
+```
+
+### Response
+
+Returns the updated content object.
+
+## Delete content
+
+Permanently deletes content and all associated data.
+
+```bash
+DELETE /v1/content/{id}
+```
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content ID to delete.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/content/cnt_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "cnt_abc123",
+    "deleted": true
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+<Warning>
+  Deletion is permanent. All video files, thumbnails, and analytics data are removed within 24 hours.
+</Warning>
+
+## Content object
+
+<ResponseField name="id" type="string">
+  Unique identifier (prefix: `cnt_`).
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Optional description.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Processing status: `processing`, `ready`, `failed`.
+</ResponseField>
+
+<ResponseField name="visibility" type="string">
+  Visibility: `private`, `unlisted`, `public`.
+</ResponseField>
+
+<ResponseField name="duration" type="number">
+  Video duration in seconds (available when ready).
+</ResponseField>
+
+<ResponseField name="aspectRatio" type="string">
+  Aspect ratio (e.g., `9:16`, `16:9`).
+</ResponseField>
+
+<ResponseField name="resolution" type="object">
+  Source resolution with `width` and `height`.
+</ResponseField>
+
+<ResponseField name="codecs" type="string[]">
+  Available codecs (e.g., `["h264", "av1"]`).
+</ResponseField>
+
+<ResponseField name="tags" type="string[]">
+  Content tags.
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  Custom metadata.
+</ResponseField>
+
+<ResponseField name="thumbnails" type="object">
+  Thumbnail URLs by size.
+</ResponseField>
+
+<ResponseField name="streamingUrls" type="object">
+  HLS and DASH streaming URLs (signed, time-limited).
+</ResponseField>
+
+<ResponseField name="analytics" type="object">
+  Engagement metrics summary.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  Creation timestamp (ISO 8601).
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  Last update timestamp (ISO 8601).
+</ResponseField>
+
+<ResponseField name="publishedAt" type="string">
+  Publication timestamp (ISO 8601).
+</ResponseField>
+
+## Webhooks
+
+Subscribe to content lifecycle events:
+
+| Event | Trigger |
+|-------|---------|
+| `content.ready` | Processing completed |
+| `content.errored` | Processing failed |
+
+See [Webhooks](/guides/webhooks) for setup instructions.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Uploads" icon="upload" href="/api/uploads">
+    Direct file upload endpoint.
+  </Card>
+  <Card title="Bulk operations" icon="layer-group" href="/api/bulk-operations">
+    Batch content operations.
+  </Card>
+</Columns>

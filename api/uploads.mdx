@@ -1,0 +1,416 @@
+---
+title: "Uploads"
+description: "Direct file upload API for video content."
+keywords: ["upload", "files", "videos", "multipart"]
+---
+
+The Uploads API provides direct file upload capabilities for video content. Use this when you have video files to upload directly rather than from a URL.
+
+## Upload methods
+
+| Method | Best For | Max Size |
+|--------|----------|----------|
+| [Direct upload](#direct-upload) | Small files (< 100MB) | 100MB |
+| [Resumable upload](#resumable-upload) | Large files, unreliable networks | 5GB |
+| [URL-based](#url-based-upload) | Files already hosted elsewhere | N/A |
+
+## Direct upload
+
+Simple multipart upload for smaller files.
+
+```bash
+POST /v1/content/upload
+```
+
+### Request
+
+Send as `multipart/form-data`:
+
+<ParamField body="file" type="file" required>
+  Video file to upload.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Display title.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description.
+</ParamField>
+
+<ParamField body="tags" type="string">
+  Comma-separated tags.
+</ParamField>
+
+<ParamField body="metadata" type="string">
+  JSON-encoded metadata object.
+</ParamField>
+
+<ParamField body="visibility" type="string" default="private">
+  Initial visibility.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/upload \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -F "file=@video.mp4" \
+  -F "title=My Video" \
+  -F "tags=demo,tutorial" \
+  -F 'metadata={"creator": "team-a"}'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "cnt_abc123",
+    "title": "My Video",
+    "status": "processing",
+    "uploadedBytes": 15728640,
+    "createdAt": "2024-02-04T12:00:00Z"
+  },
+  "meta": {
+    "requestId": "req_xyz789"
+  }
+}
+```
+
+### Idempotency
+
+Use the `Idempotency-Key` header to safely retry uploads:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/upload \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Idempotency-Key: unique-upload-id-123" \
+  -F "file=@video.mp4" \
+  -F "title=My Video"
+```
+
+## Resumable upload
+
+For large files or unreliable networks, use resumable uploads.
+
+### Step 1: Initialize upload
+
+```bash
+POST /v1/uploads
+```
+
+<ParamField body="filename" type="string" required>
+  Original filename.
+</ParamField>
+
+<ParamField body="fileSize" type="integer" required>
+  Total file size in bytes.
+</ParamField>
+
+<ParamField body="mimeType" type="string" required>
+  MIME type (e.g., `video/mp4`).
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Content title.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Content metadata.
+</ParamField>
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/uploads \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filename": "large-video.mp4",
+    "fileSize": 524288000,
+    "mimeType": "video/mp4",
+    "title": "Large Video Upload"
+  }'
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "uploadId": "upl_abc123",
+    "uploadUrl": "https://upload.shortkit.dev/v1/uploads/upl_abc123",
+    "expiresAt": "2024-02-05T12:00:00Z",
+    "partSize": 10485760
+  }
+}
+```
+
+### Step 2: Upload parts
+
+Upload file in chunks using the provided `uploadUrl`:
+
+```bash
+# Upload part 1
+curl -X PUT "https://upload.shortkit.dev/v1/uploads/upl_abc123?partNumber=1" \
+  -H "Content-Type: application/octet-stream" \
+  -H "Content-Length: 10485760" \
+  --data-binary @part1.bin
+
+# Upload part 2
+curl -X PUT "https://upload.shortkit.dev/v1/uploads/upl_abc123?partNumber=2" \
+  -H "Content-Type: application/octet-stream" \
+  -H "Content-Length: 10485760" \
+  --data-binary @part2.bin
+```
+
+Part response:
+
+```json
+{
+  "data": {
+    "partNumber": 1,
+    "etag": "\"abc123def456\"",
+    "size": 10485760
+  }
+}
+```
+
+### Step 3: Check upload status
+
+```bash
+GET /v1/uploads/{uploadId}
+```
+
+```bash
+curl https://api.shortkit.dev/v1/uploads/upl_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "uploadId": "upl_abc123",
+    "status": "in_progress",
+    "uploadedBytes": 104857600,
+    "totalBytes": 524288000,
+    "parts": [
+      { "partNumber": 1, "etag": "\"abc123\"", "size": 10485760 },
+      { "partNumber": 2, "etag": "\"def456\"", "size": 10485760 }
+    ]
+  }
+}
+```
+
+### Step 4: Complete upload
+
+```bash
+POST /v1/uploads/{uploadId}/complete
+```
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/uploads/upl_abc123/complete \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "parts": [
+      { "partNumber": 1, "etag": "\"abc123\"" },
+      { "partNumber": 2, "etag": "\"def456\"" }
+    ]
+  }'
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "contentId": "cnt_xyz789",
+    "status": "processing"
+  }
+}
+```
+
+### Resuming interrupted uploads
+
+If an upload is interrupted, query the upload status and resume from the last successful part:
+
+```javascript
+async function resumeUpload(uploadId, file) {
+  // Get current status
+  const status = await getUploadStatus(uploadId);
+  const uploadedParts = status.parts.map(p => p.partNumber);
+
+  // Find missing parts
+  const totalParts = Math.ceil(file.size / PART_SIZE);
+  for (let i = 1; i <= totalParts; i++) {
+    if (!uploadedParts.includes(i)) {
+      await uploadPart(uploadId, file, i);
+    }
+  }
+
+  // Complete upload
+  await completeUpload(uploadId);
+}
+```
+
+### Abort upload
+
+Cancel an incomplete upload:
+
+```bash
+DELETE /v1/uploads/{uploadId}
+```
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/uploads/upl_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## URL-based upload
+
+Create content from an existing URL (see [Content API](/api/content)):
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceUrl": "https://storage.example.com/video.mp4",
+    "title": "My Video"
+  }'
+```
+
+## Supported formats
+
+### Video formats
+
+| Format | Extensions | MIME Types |
+|--------|------------|------------|
+| MP4 | `.mp4`, `.m4v` | `video/mp4` |
+| QuickTime | `.mov` | `video/quicktime` |
+| WebM | `.webm` | `video/webm` |
+| MKV | `.mkv` | `video/x-matroska` |
+
+### Video requirements
+
+| Property | Requirement |
+|----------|-------------|
+| Duration | 1-180 seconds |
+| Resolution | 480p - 4K |
+| Frame rate | 24-60 fps |
+| Bitrate | Up to 50 Mbps |
+| Codec | H.264, H.265, VP9, AV1 |
+
+<Warning>
+  Files not meeting these requirements may fail processing. Check content status after upload.
+</Warning>
+
+## Upload SDK helpers
+
+SDKs provide upload helpers with progress tracking:
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    import { ShortkitAdmin } from '@shortkit/node';
+
+    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
+
+    // Simple upload
+    const content = await shortkit.content.upload({
+      file: fs.createReadStream('video.mp4'),
+      title: 'My Video',
+      onProgress: (progress) => {
+        console.log(`${progress.percent}% uploaded`);
+      }
+    });
+
+    // Resumable upload
+    const upload = shortkit.content.createResumableUpload({
+      file: fs.createReadStream('large-video.mp4'),
+      title: 'Large Video'
+    });
+
+    upload.on('progress', (progress) => {
+      console.log(`${progress.uploadedBytes} / ${progress.totalBytes}`);
+    });
+
+    upload.on('complete', (content) => {
+      console.log(`Created: ${content.id}`);
+    });
+
+    await upload.start();
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from shortkit import ShortkitAdmin
+
+    shortkit = ShortkitAdmin(api_key='sk_live_...')
+
+    # Simple upload
+    with open('video.mp4', 'rb') as f:
+        content = shortkit.content.upload(
+            file=f,
+            title='My Video',
+            on_progress=lambda p: print(f"{p.percent}% uploaded")
+        )
+
+    # Resumable upload
+    upload = shortkit.content.create_resumable_upload(
+        file_path='large-video.mp4',
+        title='Large Video'
+    )
+
+    for progress in upload:
+        print(f"{progress.uploaded_bytes} / {progress.total_bytes}")
+
+    content = upload.result()
+    ```
+  </Tab>
+</Tabs>
+
+## Error handling
+
+### Common upload errors
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `FILE_TOO_LARGE` | File exceeds size limit | Use resumable upload |
+| `INVALID_MEDIA_TYPE` | Unsupported format | Check supported formats |
+| `DURATION_EXCEEDED` | Video too long | Trim to under 180 seconds |
+| `UPLOAD_EXPIRED` | Resumable upload expired | Start new upload |
+| `PART_SIZE_MISMATCH` | Part size incorrect | Use specified part size |
+
+### Handling failures
+
+```javascript
+try {
+  const content = await shortkit.content.upload({ file, title });
+} catch (error) {
+  switch (error.code) {
+    case 'FILE_TOO_LARGE':
+      // Switch to resumable upload
+      break;
+    case 'INVALID_MEDIA_TYPE':
+      // Show format error to user
+      break;
+    case 'UPLOAD_EXPIRED':
+      // Restart upload
+      break;
+  }
+}
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Content API" icon="video" href="/api/content">
+    Manage content after upload.
+  </Card>
+  <Card title="Transcoding" icon="film" href="/guides/platform/transcoding">
+    Understand video processing.
+  </Card>
+</Columns>

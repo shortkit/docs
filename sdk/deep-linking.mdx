@@ -8,19 +8,7 @@ Deep linking allows users to share content from your video feed and have recipie
 
 ## How it works
 
-When a user taps the share button, the SDK generates a shareable URL. When the recipient taps this link:
-
-1. If they have your app installed, it opens directly to the video
-2. If not, they're taken to a web fallback (your website or app store)
-
-```mermaid
-flowchart LR
-    A[User shares video] --> B[SDK generates URL]
-    B --> C[Recipient taps link]
-    C --> D{App installed?}
-    D -->|Yes| E[App opens to video]
-    D -->|No| F[Web fallback]
-```
+When a user taps the share button, the SDK generates a shareable URL. When the recipient taps this link, the system checks if your app is installed. If so, the app opens directly to that video. If not, they're taken to a web fallback (your website or app store).
 
 ## Configuration
 
@@ -480,7 +468,7 @@ curl https://yourapp.com/.well-known/assetlinks.json
   <Card title="Engagement signals" icon="signal" href="/sdk/engagement-signals">
     Understand the events collected by the SDK.
   </Card>
-  <Card title="Analytics" icon="chart-bar" href="/admin-portal/analytics">
+  <Card title="Analytics" icon="chart-bar" href="/portal/analytics">
     View share and engagement analytics.
   </Card>
 </Columns>

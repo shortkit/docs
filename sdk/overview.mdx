@@ -120,18 +120,11 @@ shortkit.clearUserId();
 
 ## Configuration hierarchy
 
-The SDK uses a layered configuration model:
+The SDK uses a layered configuration model where each layer overrides the previous:
 
 1. **Code-level config** - Passed at initialization, serves as baseline and fallback
 2. **Remote config overlay** - Fetched from server, contains only overridden fields
 3. **A/B variants** - Experiment-specific overrides included in remote config
-
-```mermaid
-flowchart LR
-    A[Code Config] --> B[Remote Overlay]
-    B --> C[A/B Variants]
-    C --> D[Final Config]
-```
 
 If remote config fetch fails, the SDK gracefully falls back to cached config (if available) or code-level defaults. The feed never blocks waiting for configuration.
 

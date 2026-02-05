@@ -28,8 +28,8 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Home",
-        "icon": "house",
+        "tab": "Overview",
+        "icon": "sparkles",
         "groups": [
           {
             "group": "Getting Started",
@@ -39,96 +39,149 @@
               "core-concepts",
               "architecture"
             ]
-          },
-          {
-            "group": "Client SDK",
-            "pages": [
-              "sdk/overview",
-              "sdk/ios",
-              "sdk/android",
-              "sdk/react-native",
-              "sdk/web",
-              "sdk/configuration",
-              "sdk/theming",
-              "sdk/deep-linking",
-              "sdk/engagement-signals"
-            ]
-          },
-          {
-            "group": "Video Infrastructure",
-            "pages": [
-              "infrastructure/overview",
-              "infrastructure/content-ingestion",
-              "infrastructure/transcoding",
-              "infrastructure/cdn-delivery",
-              "infrastructure/feed-ranking",
-              "infrastructure/live-streaming"
-            ]
-          },
-          {
-            "group": "Admin Portal",
-            "pages": [
-              "admin-portal/overview",
-              "admin-portal/content-management",
-              "admin-portal/feed-configuration",
-              "admin-portal/ab-testing",
-              "admin-portal/analytics",
-              "admin-portal/ad-management",
-              "admin-portal/settings"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/identity-management",
-              "guides/ad-integration",
-              "guides/playback-restrictions",
-              "guides/webhooks",
-              "guides/data-export"
-            ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "tab": "SDK",
+        "icon": "puzzle-piece",
         "groups": [
           {
-            "group": "Overview",
+            "group": "Getting Started",
             "pages": [
-              "api-reference/introduction",
-              "api-reference/authentication",
-              "api-reference/errors"
+              "sdk/overview",
+              "sdk/installation"
             ]
           },
           {
-            "group": "Content",
+            "group": "Platform Guides",
             "pages": [
-              "api-reference/endpoints/uploads",
-              "api-reference/endpoints/content",
-              "api-reference/endpoints/content-bulk"
-            ]
-          },
-          {
-            "group": "Feed",
-            "pages": [
-              "api-reference/endpoints/feed",
-              "api-reference/endpoints/config"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "pages": [
-              "api-reference/endpoints/events",
-              "api-reference/endpoints/analytics",
-              "api-reference/endpoints/export"
+              "sdk/ios",
+              "sdk/android",
+              "sdk/react-native",
+              "sdk/web"
             ]
           },
           {
             "group": "Configuration",
             "pages": [
-              "api-reference/endpoints/ranking",
-              "api-reference/endpoints/experiments",
-              "api-reference/endpoints/webhooks"
+              "sdk/configuration",
+              "sdk/theming",
+              "sdk/deep-linking",
+              "sdk/engagement-signals"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Platform",
+            "pages": [
+              "guides/platform/content-pipeline",
+              "guides/platform/transcoding",
+              "guides/platform/cdn-delivery",
+              "guides/platform/feed-ranking"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "guides/integration/identity-management",
+              "guides/integration/ad-integration",
+              "guides/integration/webhooks",
+              "guides/integration/data-export",
+              "guides/integration/playback-security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Portal",
+        "icon": "gauge",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "portal/overview"
+            ]
+          },
+          {
+            "group": "Content",
+            "pages": [
+              "portal/content-management"
+            ]
+          },
+          {
+            "group": "Feed",
+            "pages": [
+              "portal/feed-configuration",
+              "portal/ab-testing"
+            ]
+          },
+          {
+            "group": "Analytics",
+            "pages": [
+              "portal/analytics"
+            ]
+          },
+          {
+            "group": "Monetization",
+            "pages": [
+              "portal/ad-management"
+            ]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "portal/settings"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API",
+        "icon": "terminal",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/introduction",
+              "api/authentication",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Content",
+            "pages": [
+              "api/uploads",
+              "api/content",
+              "api/bulk-operations"
+            ]
+          },
+          {
+            "group": "Feed",
+            "pages": [
+              "api/feed",
+              "api/configuration"
+            ]
+          },
+          {
+            "group": "Analytics",
+            "pages": [
+              "api/events",
+              "api/analytics",
+              "api/export"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api/ranking",
+              "api/experiments",
+              "api/webhooks"
             ]
           }
         ]

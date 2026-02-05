@@ -1,0 +1,278 @@
+---
+title: "Installation"
+description: "Install the Shortkit SDK for your platform."
+keywords: ["installation", "setup", "npm", "cocoapods", "gradle"]
+---
+
+Get Shortkit running in your app in under 5 minutes. Choose your platform below.
+
+## Requirements
+
+<Tabs>
+  <Tab title="iOS">
+    - iOS 14.0+
+    - Xcode 14+
+    - Swift 5.7+
+  </Tab>
+  <Tab title="Android">
+    - Android API 21+ (Android 5.0)
+    - Kotlin 1.8+
+    - Android Studio Flamingo+
+  </Tab>
+  <Tab title="React Native">
+    - React Native 0.70+
+    - iOS 14.0+ / Android API 21+
+    - Expo SDK 48+ (if using Expo)
+  </Tab>
+  <Tab title="Web">
+    - Modern browser (Chrome 80+, Safari 14+, Firefox 78+, Edge 80+)
+    - Node.js 16+ (for build tools)
+  </Tab>
+</Tabs>
+
+## Package installation
+
+<Tabs>
+  <Tab title="iOS">
+    ### Swift Package Manager (Recommended)
+
+    1. In Xcode, go to **File → Add Package Dependencies**
+    2. Enter the repository URL:
+    ```
+    https://github.com/AirTVapp/shortkit-ios
+    ```
+    3. Select version and click **Add Package**
+
+    ### CocoaPods
+
+    Add to your `Podfile`:
+
+    ```ruby
+    pod 'ShortKit', '~> 1.0'
+    ```
+
+    Then run:
+
+    ```bash
+    pod install
+    ```
+  </Tab>
+  <Tab title="Android">
+    ### Gradle
+
+    Add the repository to your project's `settings.gradle.kts`:
+
+    ```kotlin
+    dependencyResolutionManagement {
+        repositories {
+            maven { url = uri("https://maven.shortkit.dev/releases") }
+        }
+    }
+    ```
+
+    Add the dependency to your app's `build.gradle.kts`:
+
+    ```kotlin
+    dependencies {
+        implementation("dev.shortkit:shortkit-android:1.0.0")
+    }
+    ```
+
+    Sync your project.
+  </Tab>
+  <Tab title="React Native">
+    ### npm
+
+    ```bash
+    npm install @shortkit/react-native
+    ```
+
+    ### Yarn
+
+    ```bash
+    yarn add @shortkit/react-native
+    ```
+
+    ### Expo
+
+    ```bash
+    npx expo install @shortkit/react-native
+    ```
+
+    ### iOS Setup (React Native CLI only)
+
+    ```bash
+    cd ios && pod install
+    ```
+  </Tab>
+  <Tab title="Web">
+    ### npm
+
+    ```bash
+    npm install @shortkit/web
+    ```
+
+    ### Yarn
+
+    ```bash
+    yarn add @shortkit/web
+    ```
+
+    ### CDN
+
+    ```html
+    <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
+    ```
+  </Tab>
+</Tabs>
+
+## Quick initialization
+
+After installation, initialize the SDK with your publishable key:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    import ShortKit
+
+    // In your AppDelegate or App init
+    ShortKit.initialize(apiKey: "pk_live_your_publishable_key")
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    import dev.shortkit.ShortKit
+
+    // In your Application class
+    class MyApp : Application() {
+        override fun onCreate() {
+            super.onCreate()
+            ShortKit.initialize(this, "pk_live_your_publishable_key")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    import { ShortKit } from '@shortkit/react-native';
+
+    // In your app entry point
+    ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key'
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    import { ShortKit } from '@shortkit/web';
+
+    ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key'
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Get your API keys from the [Admin Portal](https://admin.shortkit.dev) under **Settings → API Keys**.
+</Tip>
+
+## Verify installation
+
+Test that everything is working:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    // Check SDK is initialized
+    print("Shortkit version:", ShortKit.version)
+
+    // Fetch a test feed
+    Task {
+        do {
+            let feed = try await ShortKit.shared.fetchFeed(limit: 1)
+            print("Feed loaded: \(feed.items.count) items")
+        } catch {
+            print("Error: \(error)")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    // Check SDK is initialized
+    Log.d("Shortkit", "Version: ${ShortKit.version}")
+
+    // Fetch a test feed
+    ShortKit.fetchFeed(limit = 1) { result ->
+        result.onSuccess { feed ->
+            Log.d("Shortkit", "Feed loaded: ${feed.items.size} items")
+        }.onFailure { error ->
+            Log.e("Shortkit", "Error: $error")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    // Check SDK is initialized
+    console.log('Shortkit version:', ShortKit.version);
+
+    // Fetch a test feed
+    const feed = await ShortKit.fetchFeed({ limit: 1 });
+    console.log('Feed loaded:', feed.items.length, 'items');
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    // Check SDK is initialized
+    console.log('Shortkit version:', ShortKit.version);
+
+    // Fetch a test feed
+    const feed = await ShortKit.fetchFeed({ limit: 1 });
+    console.log('Feed loaded:', feed.items.length, 'items');
+    ```
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="iOS: Module not found">
+    - Ensure you've run `pod install` or added the Swift Package correctly
+    - Clean build folder: **Product → Clean Build Folder**
+    - Restart Xcode
+  </Accordion>
+  <Accordion title="Android: Dependency resolution failed">
+    - Verify the maven repository URL is correct
+    - Check your internet connection
+    - Run `./gradlew --refresh-dependencies`
+  </Accordion>
+  <Accordion title="React Native: Native module not linked">
+    - For RN CLI: Run `cd ios && pod install`
+    - For Expo: Rebuild with `npx expo prebuild --clean`
+    - Check that autolinking is working
+  </Accordion>
+  <Accordion title="Web: CORS errors">
+    - Ensure your domain is in the allowlist in Admin Portal
+    - Check you're using a publishable key, not a secret key
+    - Verify the API key is for the correct environment
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="iOS Guide" icon="apple" href="/sdk/ios">
+    Deep dive into iOS integration.
+  </Card>
+  <Card title="Android Guide" icon="android" href="/sdk/android">
+    Deep dive into Android integration.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/sdk/configuration">
+    Customize SDK behavior.
+  </Card>
+  <Card title="Theming" icon="palette" href="/sdk/theming">
+    Match your app's design.
+  </Card>
+</Columns>

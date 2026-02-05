@@ -97,10 +97,28 @@ html[class*="dark"] #navbar {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Active nav tab - purple underline */
+/* Active nav tab - orange text and underline */
 .nav-tabs-item[data-state="active"],
-.nav-tabs-item.active {
+.nav-tabs-item.active,
+[role="tablist"] [aria-selected="true"],
+[role="tab"][aria-selected="true"],
+nav [data-state="active"],
+nav .active,
+#navbar [data-state="active"],
+#navbar .active,
+.tabs-trigger[data-state="active"],
+[data-radix-collection-item][data-state="active"] {
   border-bottom: 2px solid #FF6600 !important;
+  color: #FF6600 !important;
+}
+
+/* Top navigation tabs - active state text color */
+nav a[data-state="active"],
+nav button[data-state="active"],
+header [data-state="active"],
+.navigation-tabs [data-state="active"],
+[class*="tab"][data-state="active"],
+[class*="Tab"][data-state="active"] {
   color: #FF6600 !important;
 }
 

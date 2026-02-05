@@ -1,0 +1,423 @@
+---
+title: "Configuration"
+description: "Manage platform configuration settings via API."
+keywords: ["configuration", "settings", "API", "remote config"]
+---
+
+The Configuration API allows you to manage platform settings programmatically. These settings override SDK defaults and take effect without app updates.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/config` | Get all configuration |
+| `GET` | `/v1/config/{key}` | Get specific config |
+| `PUT` | `/v1/config/{key}` | Update configuration |
+| `DELETE` | `/v1/config/{key}` | Reset to default |
+
+## Configuration categories
+
+| Category | Key | Description |
+|----------|-----|-------------|
+| Playback | `playback` | Player behavior settings |
+| Feed | `feed` | Feed ranking and display |
+| CDN | `cdn` | Content delivery settings |
+| Ads | `ads` | Advertising configuration |
+| Playback Restrictions | `playback-restrictions` | Domain and security settings |
+| Theme | `theme` | UI theming (remote override) |
+
+## Get all configuration
+
+Retrieve the complete configuration for your organization.
+
+```bash
+GET /v1/config
+```
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/config \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "playback": {
+      "autoplay": true,
+      "muted": true,
+      "loop": true,
+      "preloadCount": 3,
+      "maxBitrate": null,
+      "preferredCodec": "auto"
+    },
+    "feed": {
+      "pageSize": 20,
+      "prefetchCount": 5,
+      "refreshInterval": 300
+    },
+    "cdn": {
+      "urlExpiry": 21600,
+      "preferredEdge": "auto"
+    },
+    "ads": {
+      "enabled": true,
+      "frequency": {
+        "mode": "count",
+        "interval": 5,
+        "firstAdAfter": 3
+      }
+    },
+    "playback-restrictions": {
+      "allowedDomains": ["yourcompany.com", "*.yourcompany.com"],
+      "allowNoReferrer": false,
+      "allowHighRiskUserAgents": false
+    }
+  },
+  "meta": {
+    "version": 12,
+    "updatedAt": "2024-02-04T12:00:00Z"
+  }
+}
+```
+
+## Get specific configuration
+
+Retrieve a single configuration category.
+
+```bash
+GET /v1/config/{key}
+```
+
+### Path parameters
+
+<ParamField path="key" type="string" required>
+  Configuration category key.
+</ParamField>
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/config/playback \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "autoplay": true,
+    "muted": true,
+    "loop": true,
+    "preloadCount": 3,
+    "maxBitrate": null,
+    "preferredCodec": "auto"
+  },
+  "meta": {
+    "version": 5,
+    "updatedAt": "2024-02-01T10:00:00Z"
+  }
+}
+```
+
+## Update configuration
+
+Update settings for a configuration category.
+
+```bash
+PUT /v1/config/{key}
+```
+
+### Playback configuration
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/playback \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "autoplay": true,
+    "muted": true,
+    "loop": true,
+    "preloadCount": 5,
+    "maxBitrate": 4000000,
+    "preferredCodec": "av1"
+  }'
+```
+
+<ResponseField name="autoplay" type="boolean" default={true}>
+  Auto-start playback when content is visible.
+</ResponseField>
+
+<ResponseField name="muted" type="boolean" default={true}>
+  Start playback muted.
+</ResponseField>
+
+<ResponseField name="loop" type="boolean" default={true}>
+  Loop video on completion.
+</ResponseField>
+
+<ResponseField name="preloadCount" type="integer" default={3}>
+  Number of videos to preload (1-10).
+</ResponseField>
+
+<ResponseField name="maxBitrate" type="integer">
+  Maximum bitrate in bps. `null` for unlimited.
+</ResponseField>
+
+<ResponseField name="preferredCodec" type="string" default="auto">
+  Preferred codec: `auto`, `h264`, `av1`.
+</ResponseField>
+
+### Feed configuration
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/feed \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pageSize": 20,
+    "prefetchCount": 5,
+    "refreshInterval": 300
+  }'
+```
+
+<ResponseField name="pageSize" type="integer" default={20}>
+  Items per feed request (10-50).
+</ResponseField>
+
+<ResponseField name="prefetchCount" type="integer" default={5}>
+  Items to prefetch ahead (1-10).
+</ResponseField>
+
+<ResponseField name="refreshInterval" type="integer" default={300}>
+  Auto-refresh interval in seconds (60-3600).
+</ResponseField>
+
+### CDN configuration
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/cdn \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urlExpiry": 21600,
+    "preferredEdge": "auto"
+  }'
+```
+
+<ResponseField name="urlExpiry" type="integer" default={21600}>
+  Signed URL expiry in seconds (3600-86400).
+</ResponseField>
+
+<ResponseField name="preferredEdge" type="string" default="auto">
+  Preferred edge location: `auto`, `us`, `eu`, `asia`.
+</ResponseField>
+
+### Ads configuration
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/ads \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "frequency": {
+      "mode": "count",
+      "interval": 5,
+      "firstAdAfter": 3
+    },
+    "testMode": false
+  }'
+```
+
+<ResponseField name="enabled" type="boolean" default={false}>
+  Enable in-feed advertising.
+</ResponseField>
+
+<ResponseField name="frequency" type="object">
+  Ad frequency settings.
+  <Expandable title="properties">
+    <ResponseField name="mode" type="string" default="count">
+      Frequency mode: `count`, `time`, `platform-optimized`.
+    </ResponseField>
+    <ResponseField name="interval" type="integer" default={5}>
+      Videos between ads (count mode).
+    </ResponseField>
+    <ResponseField name="firstAdAfter" type="integer" default={3}>
+      Minimum videos before first ad.
+    </ResponseField>
+    <ResponseField name="intervalMinutes" type="number">
+      Minutes between ads (time mode).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="testMode" type="boolean" default={false}>
+  Show test ads only.
+</ResponseField>
+
+### Playback restrictions
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "allowedDomains": ["yourcompany.com", "*.yourcompany.com"],
+    "allowNoReferrer": true,
+    "allowHighRiskUserAgents": false
+  }'
+```
+
+<ResponseField name="allowedDomains" type="string[]" required>
+  Domains allowed to play content.
+</ResponseField>
+
+<ResponseField name="allowNoReferrer" type="boolean" default={false}>
+  Allow requests without referrer header.
+</ResponseField>
+
+<ResponseField name="allowHighRiskUserAgents" type="boolean" default={false}>
+  Allow known bot/scraper user agents.
+</ResponseField>
+
+### Response
+
+```json
+{
+  "data": {
+    "autoplay": true,
+    "muted": true,
+    "loop": true,
+    "preloadCount": 5,
+    "maxBitrate": 4000000,
+    "preferredCodec": "av1"
+  },
+  "meta": {
+    "version": 6,
+    "updatedAt": "2024-02-04T12:00:00Z",
+    "previousVersion": 5
+  }
+}
+```
+
+## Reset configuration
+
+Reset a configuration category to defaults.
+
+```bash
+DELETE /v1/config/{key}
+```
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/config/playback \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "reset": true,
+    "defaults": {
+      "autoplay": true,
+      "muted": true,
+      "loop": true,
+      "preloadCount": 3,
+      "maxBitrate": null,
+      "preferredCodec": "auto"
+    }
+  }
+}
+```
+
+## Configuration versioning
+
+Each configuration update creates a new version:
+
+```bash
+curl https://api.shortkit.dev/v1/config/playback/versions \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    {
+      "version": 6,
+      "updatedAt": "2024-02-04T12:00:00Z",
+      "updatedBy": "user@company.com"
+    },
+    {
+      "version": 5,
+      "updatedAt": "2024-02-01T10:00:00Z",
+      "updatedBy": "admin@company.com"
+    }
+  ]
+}
+```
+
+### Rollback to previous version
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/config/playback/rollback \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "version": 5 }'
+```
+
+## SDK sync
+
+SDKs fetch configuration on initialization and periodically refresh:
+
+```typescript
+shortkit.initialize({
+  apiKey: 'pk_live_...',
+  config: {
+    refreshInterval: 300000  // Check every 5 minutes
+  }
+});
+
+// Force refresh
+await shortkit.refreshConfig();
+
+// Get current config
+const config = shortkit.getConfig();
+```
+
+Configuration changes take effect on next SDK refresh (typically within 5 minutes).
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Test in staging first">
+    Always validate configuration changes in staging before applying to production.
+  </Accordion>
+  <Accordion title="Use gradual rollouts">
+    For significant changes, use A/B testing to roll out to a subset of users first.
+  </Accordion>
+  <Accordion title="Monitor after changes">
+    Watch analytics after configuration changes to detect any negative impact.
+  </Accordion>
+  <Accordion title="Document changes">
+    Keep a changelog of configuration updates for troubleshooting.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="SDK configuration" icon="gear" href="/sdk/configuration">
+    Configure SDK defaults.
+  </Card>
+  <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
+    Test configuration variants.
+  </Card>
+</Columns>

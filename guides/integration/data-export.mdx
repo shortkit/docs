@@ -1,0 +1,381 @@
+---
+title: "Data export"
+description: "Export raw analytics data for custom analysis and compliance."
+keywords: ["export", "data", "analytics", "GDPR", "compliance"]
+---
+
+shortkit provides data export capabilities for custom analysis, data warehousing, and compliance with privacy regulations.
+
+## Export methods
+
+| Method | Best For | Access |
+|--------|----------|--------|
+| [On-demand export](#on-demand-export) | Ad-hoc analysis, specific date ranges | API or Admin Portal |
+| [Scheduled export](#scheduled-exports) | Regular data pipeline feeds | Admin Portal |
+| [User data export](#user-data-export) | GDPR/CCPA subject requests | API |
+
+## On-demand export
+
+### Via Admin Portal
+
+1. Go to **Analytics → Export Data**
+2. Select date range (max 30 days)
+3. Choose data types to include
+4. Select format (CSV or JSON Lines)
+5. Click **Export**
+6. Download when ready
+
+### Via API
+
+Request an export:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/analytics/export \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31",
+    "dataTypes": ["events", "quality"],
+    "format": "jsonl"
+  }'
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "jobId": "exp_abc123",
+    "status": "processing",
+    "estimatedSize": "250MB",
+    "estimatedCompletion": "2024-02-04T12:30:00Z"
+  }
+}
+```
+
+Check status and get download URL:
+
+```bash
+curl https://api.shortkit.dev/v1/analytics/export/exp_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Response when complete:
+
+```json
+{
+  "data": {
+    "jobId": "exp_abc123",
+    "status": "complete",
+    "downloadUrl": "https://exports.shortkit.dev/...",
+    "expiresAt": "2024-02-11T12:00:00Z",
+    "fileSize": "245MB",
+    "rowCount": 1250000
+  }
+}
+```
+
+### Export parameters
+
+<ResponseField name="startDate" type="string" required>
+  Start date (ISO 8601 format: `YYYY-MM-DD`).
+</ResponseField>
+
+<ResponseField name="endDate" type="string" required>
+  End date (ISO 8601 format: `YYYY-MM-DD`). Maximum 30 days from start.
+</ResponseField>
+
+<ResponseField name="dataTypes" type="string[]" default='["events"]'>
+  Data types to include:
+  - `events` - Engagement events (impressions, playStart, completion, etc.)
+  - `quality` - Playback quality events (rebuffer, qualityChange, error)
+  - `ads` - Ad events (impression, completion, click)
+</ResponseField>
+
+<ResponseField name="format" type="string" default="jsonl">
+  Output format:
+  - `jsonl` - JSON Lines (one event per line)
+  - `csv` - Comma-separated values
+</ResponseField>
+
+<ResponseField name="filters" type="object">
+  Optional filters:
+
+  <Expandable title="properties">
+    <ResponseField name="contentIds" type="string[]">
+      Filter to specific content IDs.
+    </ResponseField>
+    <ResponseField name="userIds" type="string[]">
+      Filter to specific user IDs.
+    </ResponseField>
+    <ResponseField name="eventTypes" type="string[]">
+      Filter to specific event types.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Export formats
+
+### JSON Lines (recommended)
+
+One JSON object per line, easy to process with streaming parsers:
+
+```jsonl
+{"event":"impression","contentId":"cnt_abc123","userId":"user_456","timestamp":"2024-01-15T10:30:00Z","data":{"position":0}}
+{"event":"playStart","contentId":"cnt_abc123","userId":"user_456","timestamp":"2024-01-15T10:30:01Z","data":{"startupTime":250,"rendition":"720p"}}
+{"event":"completion","contentId":"cnt_abc123","userId":"user_456","timestamp":"2024-01-15T10:30:46Z","data":{"watchTime":45.2,"looped":false}}
+```
+
+### CSV
+
+Tabular format for spreadsheet analysis:
+
+```csv
+event,contentId,userId,timestamp,position,startupTime,rendition,watchTime
+impression,cnt_abc123,user_456,2024-01-15T10:30:00Z,0,,,
+playStart,cnt_abc123,user_456,2024-01-15T10:30:01Z,,250,720p,
+completion,cnt_abc123,user_456,2024-01-15T10:30:46Z,,,,45.2
+```
+
+## Exported data schema
+
+### Engagement events
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Event type |
+| `contentId` | string | Content identifier |
+| `userId` | string | User identifier |
+| `timestamp` | datetime | Event timestamp |
+| `sessionId` | string | Session identifier |
+| `deviceType` | string | ios, android, web |
+| `data` | object | Event-specific data |
+
+### Event-specific data
+
+<AccordionGroup>
+  <Accordion title="impression">
+    ```json
+    {
+      "position": 0,
+      "entryPoint": "feed"
+    }
+    ```
+  </Accordion>
+  <Accordion title="playStart">
+    ```json
+    {
+      "startupTime": 250,
+      "rendition": "720p",
+      "codec": "h264"
+    }
+    ```
+  </Accordion>
+  <Accordion title="watchProgress">
+    ```json
+    {
+      "currentTime": 15.5,
+      "duration": 45.2,
+      "percentComplete": 34.3,
+      "rendition": "720p"
+    }
+    ```
+  </Accordion>
+  <Accordion title="completion">
+    ```json
+    {
+      "watchTime": 45.2,
+      "looped": false,
+      "loopCount": 0
+    }
+    ```
+  </Accordion>
+  <Accordion title="swipe">
+    ```json
+    {
+      "fromContentId": "cnt_abc123",
+      "watchTimeOnFrom": 12.5,
+      "direction": "next"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Quality events
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | rebuffer, qualityChange, error |
+| `contentId` | string | Content identifier |
+| `userId` | string | User identifier |
+| `timestamp` | datetime | Event timestamp |
+| `currentTime` | number | Playback position |
+| `data` | object | Event-specific data |
+
+## Scheduled exports
+
+Set up automatic recurring exports:
+
+### Configure in Admin Portal
+
+1. Go to **Settings → Data Export**
+2. Enable **Scheduled Exports**
+3. Configure:
+   - **Frequency**: Daily or weekly
+   - **Data types**: Select data to include
+   - **Format**: CSV or JSON Lines
+   - **Delivery**: Webhook URL or email
+
+### Webhook delivery
+
+When an export is ready, a POST request is sent to your webhook:
+
+```json
+{
+  "event": "export.ready",
+  "data": {
+    "exportId": "exp_daily_20240204",
+    "dateRange": {
+      "start": "2024-02-03",
+      "end": "2024-02-03"
+    },
+    "downloadUrl": "https://exports.shortkit.dev/...",
+    "expiresAt": "2024-02-11T00:00:00Z",
+    "fileSize": "45MB"
+  }
+}
+```
+
+## User data export
+
+For GDPR/CCPA data subject requests, export all data for a specific user:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/users/{userId}/export \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "jobId": "usr_exp_abc123",
+    "status": "processing"
+  }
+}
+```
+
+### Exported user data
+
+The export includes:
+- User profile (topic affinities, engagement summary)
+- All engagement events attributed to the user
+- Linked device IDs
+- Experiment assignments
+
+### Data deletion
+
+To delete user data (right to erasure):
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/users/{userId} \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+This permanently deletes:
+- User profile
+- All engagement events
+- Topic affinity data
+- Device linkages
+
+<Warning>
+  User deletion is irreversible. The user ID can be reused, but all historical data is lost.
+</Warning>
+
+## Data retention
+
+| Data Type | Retention Period |
+|-----------|-----------------|
+| Raw events | 90 days |
+| Aggregated analytics | 2 years |
+| User profiles | Until deletion |
+| Export files | 7 days |
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use streaming parsers for large exports">
+    JSON Lines format allows processing line-by-line without loading the entire file:
+
+    ```javascript
+    const readline = require('readline');
+    const fs = require('fs');
+
+    const rl = readline.createInterface({
+      input: fs.createReadStream('export.jsonl')
+    });
+
+    rl.on('line', (line) => {
+      const event = JSON.parse(line);
+      // Process event
+    });
+    ```
+  </Accordion>
+  <Accordion title="Schedule exports during off-peak hours">
+    Large exports can take time to generate. Schedule them for low-traffic periods.
+  </Accordion>
+  <Accordion title="Implement incremental processing">
+    Rather than re-processing all data, track your last processed timestamp and export only new data.
+  </Accordion>
+  <Accordion title="Secure your export files">
+    Export URLs are signed and expire after 7 days. Download and secure files promptly.
+  </Accordion>
+</AccordionGroup>
+
+## Integration examples
+
+### Data warehouse (BigQuery)
+
+```bash
+# Download export
+curl -o events.jsonl "https://exports.shortkit.dev/..."
+
+# Load to BigQuery
+bq load --source_format=NEWLINE_DELIMITED_JSON \
+  your_dataset.shortkit_events \
+  events.jsonl \
+  event:STRING,contentId:STRING,userId:STRING,timestamp:TIMESTAMP
+```
+
+### Analytics pipeline (Python)
+
+```python
+import pandas as pd
+import requests
+
+# Download export
+response = requests.get(export_url)
+with open('events.jsonl', 'wb') as f:
+    f.write(response.content)
+
+# Load to pandas
+df = pd.read_json('events.jsonl', lines=True)
+
+# Analyze
+watch_time_by_content = df[df['event'] == 'completion'].groupby('contentId')['data'].apply(
+    lambda x: sum(d['watchTime'] for d in x)
+)
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Analytics" icon="chart-bar" href="/portal/analytics">
+    View analytics in the Admin Portal.
+  </Card>
+  <Card title="Analytics API" icon="code" href="/api/analytics">
+    Query analytics programmatically.
+  </Card>
+</Columns>

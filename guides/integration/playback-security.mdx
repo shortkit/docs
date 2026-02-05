@@ -1,0 +1,304 @@
+---
+title: "Playback security"
+description: "Configure domain restrictions, signed URLs, and security settings for video playback."
+keywords: ["security", "playback", "domain", "restrictions", "signed URLs", "tokens"]
+---
+
+Playback restrictions prevent unauthorized access to your video content by limiting which domains can embed and play your videos.
+
+## Overview
+
+All video playback is restricted by default:
+- Only requests from allowed domains can play content
+- URLs are signed with time-limited tokens
+- Referrer headers are validated
+
+## Domain allowlist
+
+### Configuration
+
+Add allowed domains via Admin Portal or API:
+
+<Tabs>
+  <Tab title="Admin Portal">
+    1. Go to **Settings → Playback Restrictions**
+    2. Add domains to the allowlist
+    3. Save changes
+  </Tab>
+  <Tab title="API">
+    ```bash
+    curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "allowedDomains": [
+          "yourcompany.com",
+          "*.yourcompany.com",
+          "staging.yourcompany.com"
+        ]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Domain formats
+
+| Format | Example | Matches |
+|--------|---------|---------|
+| Exact domain | `yourcompany.com` | Only `yourcompany.com` |
+| Wildcard subdomain | `*.yourcompany.com` | Any subdomain (e.g., `www.`, `app.`, `staging.`) |
+| Specific subdomain | `app.yourcompany.com` | Only `app.yourcompany.com` |
+
+### Examples
+
+```json
+{
+  "allowedDomains": [
+    "yourcompany.com",         // Main domain
+    "*.yourcompany.com",       // All subdomains
+    "partner-site.com",        // Specific partner
+    "192.168.1.100"           // Local IP for development
+  ]
+}
+```
+
+## Development environments
+
+### Automatic localhost access
+
+In staging and development environments, these are automatically allowed:
+- `localhost`
+- `127.0.0.1`
+- `*.localhost`
+
+Production environments require explicit domain configuration.
+
+### Environment-specific settings
+
+Configure different restrictions per environment:
+
+```bash
+# Development - more permissive
+curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_test_your_key" \
+  -d '{ "allowedDomains": ["*"] }'  # Allow all (dev only!)
+
+# Production - strict
+curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_live_your_key" \
+  -d '{ "allowedDomains": ["yourcompany.com", "*.yourcompany.com"] }'
+```
+
+<Warning>
+  Never use wildcard (`*`) in production. This disables domain restrictions entirely.
+</Warning>
+
+## Referrer handling
+
+### No-referrer requests
+
+Some scenarios don't send referrer headers:
+- Direct URL access in browser address bar
+- Some mobile app WebViews
+- Privacy browser extensions
+- HTTPS → HTTP transitions
+
+Configure how to handle these:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "allowedDomains": ["yourcompany.com"],
+    "allowNoReferrer": true
+  }'
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `allowNoReferrer` | `false` | Allow requests with no referrer header |
+
+<Tip>
+  If your mobile app has playback issues, try enabling `allowNoReferrer`. Some WebView implementations don't send referrers.
+</Tip>
+
+## User agent filtering
+
+Block known scraping and bot user agents:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "allowedDomains": ["yourcompany.com"],
+    "allowHighRiskUserAgents": false
+  }'
+```
+
+When `allowHighRiskUserAgents` is `false`:
+- Known scraper user agents are blocked
+- Bot traffic is rejected
+- Headless browser signatures are blocked
+
+## Signed URLs
+
+### How signing works
+
+1. Feed API returns content with signed streaming URLs
+2. Signature includes:
+   - Content ID
+   - Expiration timestamp
+   - Organization identifier
+3. CDN validates signature before serving
+
+### URL format
+
+```
+https://video.yourcompany.com/v1/streams/cnt_abc123/manifest.m3u8
+  ?token=eyJhbGciOiJIUzI1NiIs...
+  &expires=1707048000
+```
+
+### Token expiry
+
+Configure how long tokens are valid:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/config/cdn \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urlExpiry": 21600
+  }'
+```
+
+| Setting | Default | Range | Description |
+|---------|---------|-------|-------------|
+| `urlExpiry` | 6 hours | 1-24 hours | Token validity in seconds |
+
+Trade-offs:
+- **Shorter expiry**: More secure, but may cause issues during long viewing sessions
+- **Longer expiry**: Better user experience, but tokens remain valid longer if leaked
+
+### Automatic refresh
+
+The SDK automatically handles token refresh:
+- Monitors token expiry
+- Refreshes before expiration
+- Seamless to users
+
+## Error responses
+
+### Blocked requests
+
+When a request is blocked, the CDN returns:
+
+```
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{
+  "error": "PLAYBACK_RESTRICTED",
+  "message": "Domain not allowed",
+  "code": "DOMAIN_NOT_ALLOWED"
+}
+```
+
+### Error codes
+
+| Code | Description |
+|------|-------------|
+| `DOMAIN_NOT_ALLOWED` | Request domain not in allowlist |
+| `TOKEN_EXPIRED` | Signed URL token has expired |
+| `TOKEN_INVALID` | Token signature verification failed |
+| `REFERRER_BLOCKED` | Referrer header blocked |
+| `USER_AGENT_BLOCKED` | User agent blocked |
+
+## Monitoring
+
+### View blocked requests
+
+In the Admin Portal:
+1. Go to **Analytics → Playback Quality → Errors**
+2. Filter by error type
+3. View blocked request details:
+   - Requesting domain
+   - User agent
+   - Timestamp
+   - Content requested
+
+### Alerts
+
+Set up alerts for unusual block patterns:
+1. Go to **Settings → Alerts**
+2. Create rule for blocked request rate
+3. Get notified of potential issues or attacks
+
+## Testing restrictions
+
+### Verify configuration
+
+Check current settings:
+
+```bash
+curl https://api.shortkit.dev/v1/config/playback-restrictions \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Test from different domains
+
+Use browser developer tools:
+1. Open your site in a browser
+2. Try to play a video
+3. Check Network tab for request/response
+
+Test from unauthorized domain:
+1. Create a test HTML page on a different domain
+2. Embed your video player
+3. Verify playback is blocked
+
+## Troubleshooting
+
+### Legitimate traffic being blocked
+
+**Symptom**: Users report videos not playing
+
+**Check**:
+1. Verify domain is in allowlist
+2. Check for typos in domain configuration
+3. Verify referrer handling settings
+
+### Mobile app issues
+
+**Symptom**: Videos don't play in mobile app
+
+**Possible causes**:
+- WebView not sending referrer
+- App domain not configured
+
+**Solutions**:
+- Enable `allowNoReferrer`
+- Add app's WebView domain to allowlist
+- Check SDK initialization
+
+### Partner/embed issues
+
+**Symptom**: Videos don't play on partner sites
+
+**Solution**:
+- Add partner domain to allowlist
+- Use wildcard if multiple subdomains
+- Consider separate API keys for partners
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="CDN delivery" icon="globe" href="/guides/platform/cdn-delivery">
+    Learn about content delivery architecture.
+  </Card>
+  <Card title="Settings" icon="gear" href="/portal/settings">
+    Configure all security settings.
+  </Card>
+</Columns>
