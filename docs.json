@@ -1,11 +1,28 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "theme": "maple",
+  "name": "Shortkit",
+  "description": "Enterprise video infrastructure that scales. One line of code.",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#FF6600",
+    "light": "#FF6600",
+    "dark": "#FF8533"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Roboto Mono",
+      "weight": 500
+    },
+    "body": {
+      "family": "Roboto Mono",
+      "weight": 400
+    }
+  },
+  "background": {
+    "color": {
+      "light": "#F3EEE6",
+      "dark": "#0A0A0A"
+    }
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -71,33 +88,29 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Home",
+          "href": "https://shortkit.dev",
+          "icon": "house"
         }
       ]
     }
   },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "href": "https://shortkit.dev"
   },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Home",
+        "href": "https://shortkit.dev"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Contact Us",
+      "href": "https://calendly.com/michael-shortkit/20-min-meeting"
     }
   },
   "contextual": {
@@ -114,9 +127,16 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/shortkit",
+      "github": "https://github.com/shortkit"
+    }
+  },
+  "styling": {
+    "codeblocks": {
+      "theme": {
+        "light": "github-light",
+        "dark": "github-dark"
+      }
     }
   }
 }
