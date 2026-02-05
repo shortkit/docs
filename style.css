@@ -112,13 +112,9 @@ nav .active,
   color: #FF6600 !important;
 }
 
-/* Top navigation tabs - active state text color */
-nav a[data-state="active"],
-nav button[data-state="active"],
-header [data-state="active"],
-.navigation-tabs [data-state="active"],
-[class*="tab"][data-state="active"],
-[class*="Tab"][data-state="active"] {
+/* Top navigation tabs - active state (has text-shadow when active) */
+.nav-tabs-item[style*="text-shadow"],
+.nav-tabs-item.\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\] {
   color: #FF6600 !important;
 }
 
@@ -461,11 +457,22 @@ html[class*="dark"] button[aria-label*="theme"] {
   display: inline-block;
   width: 16px;
   height: 16px;
-  background-image: url('/images/home.svg');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  -webkit-mask-image: url('/images/home.svg');
+  mask-image: url('/images/home.svg');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  background-color: currentColor;
   margin-right: 0;
+}
+
+/* Home icon - orange when selected */
+.nav-tabs-item[href="/"].\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\]::before,
+.nav-tabs-item:first-child.\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\]::before {
+  background-color: #FF6600 !important;
 }
 
 /* Keep search bar clean */
