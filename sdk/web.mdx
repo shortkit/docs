@@ -36,9 +36,9 @@ The shortkit Web SDK provides a video feed experience for browsers using hls.js 
 Initialize the SDK before mounting any feed components:
 
 ```typescript main.ts
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   config: {
     feedOrientation: 'vertical',
@@ -67,12 +67,12 @@ ShortKit.initialize({
 });
 ```
 
-With CDN, access the global `ShortKit` object:
+With CDN, access the global `shortkit` object:
 
 ```html
 <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
 <script>
-  ShortKit.initialize({
+  shortkit.initialize({
     apiKey: 'pk_live_your_publishable_key',
     config: {
       feedOrientation: 'vertical',
@@ -86,16 +86,16 @@ With CDN, access the global `ShortKit` object:
 
 ### React
 
-Use the `ShortKitFeed` component:
+Use the `ShortkitFeed` component:
 
 ```tsx VideoFeed.tsx
 import React from 'react';
-import { ShortKitFeed } from '@shortkit/web/react';
+import { ShortkitFeed } from '@shortkit/web/react';
 
 export function VideoFeed() {
   return (
     <div style={{ width: '100%', height: '100vh' }}>
-      <ShortKitFeed />
+      <ShortkitFeed />
     </div>
   );
 }
@@ -105,12 +105,12 @@ With filters:
 
 ```tsx SportsFeed.tsx
 import React from 'react';
-import { ShortKitFeed } from '@shortkit/web/react';
+import { ShortkitFeed } from '@shortkit/web/react';
 
 export function SportsFeed() {
   return (
     <div style={{ width: '100%', height: '100vh' }}>
-      <ShortKitFeed
+      <ShortkitFeed
         filter={{
           tags: ['sports', 'highlights']
         }}
@@ -125,10 +125,10 @@ export function SportsFeed() {
 Mount the feed to a container element:
 
 ```typescript
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
 const container = document.getElementById('video-feed');
-const feed = ShortKit.mountFeed(container);
+const feed = shortkit.mountFeed(container);
 
 // Later, to unmount:
 feed.unmount();
@@ -138,12 +138,12 @@ feed.unmount();
 <div id="video-feed" style="width: 100%; height: 100vh;"></div>
 
 <script type="module">
-  import { ShortKit } from '@shortkit/web';
+  import { shortkit } from '@shortkit/web';
 
-  ShortKit.initialize({ /* config */ });
+  shortkit.initialize({ /* config */ });
 
   const container = document.getElementById('video-feed');
-  ShortKit.mountFeed(container);
+  shortkit.mountFeed(container);
 </script>
 ```
 
@@ -153,12 +153,12 @@ For feeds that don't occupy the full viewport:
 
 ```tsx PartialFeed.tsx
 import React from 'react';
-import { ShortKitFeed } from '@shortkit/web/react';
+import { ShortkitFeed } from '@shortkit/web/react';
 
 export function PartialFeed() {
   return (
     <div className="feed-container">
-      <ShortKitFeed
+      <ShortkitFeed
         height={{ percentage: 0.7 }}  // 70% of container
       />
     </div>
@@ -179,16 +179,16 @@ export function PartialFeed() {
 Associate user identity for personalized feeds:
 
 ```typescript
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
 // When user logs in
 function handleLogin(userId: string) {
-  ShortKit.setUserId(userId);
+  shortkit.setUserId(userId);
 }
 
 // When user logs out
 function handleLogout() {
-  ShortKit.clearUserId();
+  shortkit.clearUserId();
 }
 ```
 
@@ -198,7 +198,7 @@ function handleLogout() {
 
 ```tsx VideoFeed.tsx
 import React from 'react';
-import { ShortKitFeed, Content, ShortKitError } from '@shortkit/web/react';
+import { ShortkitFeed, Content, ShortkitError } from '@shortkit/web/react';
 
 export function VideoFeed() {
   const handleShare = async (content: Content) => {
@@ -225,13 +225,13 @@ export function VideoFeed() {
     }
   };
 
-  const handleError = (error: ShortKitError) => {
-    console.error('ShortKit error:', error.message);
+  const handleError = (error: ShortkitError) => {
+    console.error('shortkit error:', error.message);
   };
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
-      <ShortKitFeed
+      <ShortkitFeed
         onShareRequested={handleShare}
         onActionTapped={handleAction}
         onError={handleError}
@@ -244,9 +244,9 @@ export function VideoFeed() {
 ### Vanilla JavaScript
 
 ```typescript
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
-const feed = ShortKit.mountFeed(container, {
+const feed = shortkit.mountFeed(container, {
   onShareRequested: (content) => {
     navigator.share({
       title: content.title,
@@ -270,7 +270,7 @@ const feed = ShortKit.mountFeed(container, {
 Handle deep links to open specific content:
 
 ```typescript router.ts
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
 // Check URL on page load
 function handleRouteChange() {
@@ -279,7 +279,7 @@ function handleRouteChange() {
 
   if (match) {
     const contentId = match[1];
-    ShortKit.openContent(contentId);
+    shortkit.openContent(contentId);
   }
 }
 
@@ -295,18 +295,18 @@ With React Router:
 ```tsx App.tsx
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
 function WatchPage() {
   const { contentId } = useParams<{ contentId: string }>();
 
   useEffect(() => {
     if (contentId) {
-      ShortKit.openContent(contentId);
+      shortkit.openContent(contentId);
     }
   }, [contentId]);
 
-  return <ShortKitFeed />;
+  return <ShortkitFeed />;
 }
 ```
 
@@ -318,7 +318,7 @@ Create a mini-player widget for other pages:
 
 ```tsx HomePage.tsx
 import React from 'react';
-import { ShortKitEntryWidget, Content } from '@shortkit/web/react';
+import { ShortkitEntryWidget, Content } from '@shortkit/web/react';
 import { useNavigate } from 'react-router-dom';
 
 export function HomePage() {
@@ -332,7 +332,7 @@ export function HomePage() {
     <div>
       <h2>Latest Videos</h2>
 
-      <ShortKitEntryWidget
+      <ShortkitEntryWidget
         style={{ height: 200 }}
         itemCount={5}
         autoPlay={true}
@@ -348,11 +348,11 @@ export function HomePage() {
 ### Vanilla JavaScript
 
 ```typescript
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
 const widgetContainer = document.getElementById('video-widget');
 
-ShortKit.mountEntryWidget(widgetContainer, {
+shortkit.mountEntryWidget(widgetContainer, {
   itemCount: 5,
   autoPlay: true,
   onContentSelected: (content) => {
@@ -367,12 +367,12 @@ The feed automatically adapts to container size. For mobile-like experiences on 
 
 ```tsx MobileFeed.tsx
 import React from 'react';
-import { ShortKitFeed } from '@shortkit/web/react';
+import { ShortkitFeed } from '@shortkit/web/react';
 
 export function MobileFeed() {
   return (
     <div className="mobile-container">
-      <ShortKitFeed />
+      <ShortkitFeed />
     </div>
   );
 }
@@ -408,7 +408,7 @@ The feed supports keyboard navigation when focused:
 Disable keyboard handling if needed:
 
 ```tsx
-<ShortKitFeed keyboardEnabled={false} />
+<ShortkitFeed keyboardEnabled={false} />
 ```
 
 ## TypeScript types
@@ -417,14 +417,14 @@ Full TypeScript definitions are included:
 
 ```typescript
 import type {
-  ShortKitConfig,
+  ShortkitConfig,
   FeedConfig,
   Content,
-  ShortKitError,
+  ShortkitError,
   FeedFilter,
 } from '@shortkit/web';
 
-const config: ShortKitConfig = {
+const config: ShortkitConfig = {
   apiKey: 'pk_live_...',
   config: {
     feedOrientation: 'vertical',
@@ -444,13 +444,13 @@ The SDK is client-side only. For SSR frameworks (Next.js, Remix), use dynamic im
 
 import dynamic from 'next/dynamic';
 
-const ShortKitFeed = dynamic(
-  () => import('@shortkit/web/react').then(mod => mod.ShortKitFeed),
+const ShortkitFeed = dynamic(
+  () => import('@shortkit/web/react').then(mod => mod.ShortkitFeed),
   { ssr: false }
 );
 
 export function VideoFeed() {
-  return <ShortKitFeed />;
+  return <ShortkitFeed />;
 }
 ```
 
@@ -460,11 +460,11 @@ Initialize in a client component:
 'use client';
 
 import { useEffect } from 'react';
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
-export function ShortKitProvider({ children }) {
+export function ShortkitProvider({ children }) {
   useEffect(() => {
-    ShortKit.initialize({
+    shortkit.initialize({
       apiKey: 'pk_live_your_publishable_key',
       config: { /* ... */ }
     });
@@ -505,14 +505,14 @@ img-src 'self' data: https://*.shortkit.dev;
 Enable debug mode:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   config: { /* ... */ },
   environment: 'development'
 });
 
 // Or set log level explicitly
-ShortKit.setLogLevel('verbose');
+shortkit.setLogLevel('verbose');
 ```
 
 View logs in the browser developer console.

@@ -346,7 +346,7 @@ SDKs automatically send events. You can also send custom events:
     // Events are sent automatically by the SDK
 
     // Send custom event
-    ShortKit.trackEvent({
+    shortkit.trackEvent({
       type: 'custom_action',
       contentId: 'cnt_abc123',
       data: { action: 'bookmark' }
@@ -368,7 +368,7 @@ The SDK batches events for efficiency:
 Configure batching:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_...',
   events: {
     batchSize: 20,

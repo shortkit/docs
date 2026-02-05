@@ -49,7 +49,7 @@ Call `setUserId()` when your user authenticates:
         authenticateUser(user)
 
         // Associate identity with shortkit
-        ShortKit.setUserId(user.id)
+        shortkit.setUserId(user.id)
     }
     ```
   </Tab>
@@ -61,7 +61,7 @@ Call `setUserId()` when your user authenticates:
         authenticateUser(user)
 
         // Associate identity with shortkit
-        ShortKit.setUserId(user.id)
+        shortkit.setUserId(user.id)
     }
     ```
   </Tab>
@@ -73,7 +73,7 @@ Call `setUserId()` when your user authenticates:
       await authenticateUser(user);
 
       // Associate identity with shortkit
-      ShortKit.setUserId(user.id);
+      shortkit.setUserId(user.id);
     }
     ```
   </Tab>
@@ -85,7 +85,7 @@ Call `setUserId()` when your user authenticates:
       await authenticateUser(user);
 
       // Associate identity with shortkit
-      ShortKit.setUserId(user.id);
+      shortkit.setUserId(user.id);
     }
     ```
   </Tab>
@@ -103,7 +103,7 @@ Call `clearUserId()` when the user logs out:
         clearSession()
 
         // Clear shortkit identity
-        ShortKit.clearUserId()
+        shortkit.clearUserId()
     }
     ```
   </Tab>
@@ -114,7 +114,7 @@ Call `clearUserId()` when the user logs out:
         clearSession()
 
         // Clear shortkit identity
-        ShortKit.clearUserId()
+        shortkit.clearUserId()
     }
     ```
   </Tab>
@@ -125,7 +125,7 @@ Call `clearUserId()` when the user logs out:
       clearSession();
 
       // Clear shortkit identity
-      ShortKit.clearUserId();
+      shortkit.clearUserId();
     }
     ```
   </Tab>
@@ -136,7 +136,7 @@ Call `clearUserId()` when the user logs out:
       clearSession();
 
       // Clear shortkit identity
-      ShortKit.clearUserId();
+      shortkit.clearUserId();
     }
     ```
   </Tab>
@@ -180,17 +180,17 @@ The user ID must be:
 
 ```typescript
 // Good: Database ID
-ShortKit.setUserId("user_12345");
+shortkit.setUserId("user_12345");
 
 // Good: UUID
-ShortKit.setUserId("550e8400-e29b-41d4-a716-446655440000");
+shortkit.setUserId("550e8400-e29b-41d4-a716-446655440000");
 
 // Good: Hashed email (if you must use email)
 const hashedEmail = await sha256(user.email.toLowerCase());
-ShortKit.setUserId(`email:${hashedEmail}`);
+shortkit.setUserId(`email:${hashedEmail}`);
 
 // Bad: Raw email
-ShortKit.setUserId("user@example.com"); // Don't do this
+shortkit.setUserId("user@example.com"); // Don't do this
 ```
 
 ## Identity resolution
@@ -228,10 +228,10 @@ If a user logs out and a different user logs in:
 
 ```typescript
 // User A logs out
-ShortKit.clearUserId();
+shortkit.clearUserId();
 
 // User B logs in
-ShortKit.setUserId("user_b_id");
+shortkit.setUserId("user_b_id");
 ```
 
 What happens:
@@ -299,7 +299,7 @@ See [Data export guide](/guides/data-export) for details.
 ```typescript
 // On app startup
 if (isUserLoggedIn()) {
-  ShortKit.setUserId(currentUser.id);
+  shortkit.setUserId(currentUser.id);
 }
 ```
 
@@ -315,9 +315,9 @@ if (isUserLoggedIn()) {
 
 ```typescript
 // Correct order
-ShortKit.initialize({ apiKey: '...', config: {...} });
+shortkit.initialize({ apiKey: '...', config: {...} });
 // Later, when user logs in
-ShortKit.setUserId(user.id);
+shortkit.setUserId(user.id);
 ```
 
 ## Next steps

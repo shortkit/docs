@@ -35,22 +35,22 @@ Use publishable keys when initializing client SDKs:
 <Tabs>
   <Tab title="iOS">
     ```swift
-    ShortKit.initialize(apiKey: "pk_live_your_publishable_key")
+    shortkit.initialize(apiKey: "pk_live_your_publishable_key")
     ```
   </Tab>
   <Tab title="Android">
     ```kotlin
-    ShortKit.initialize(context, "pk_live_your_publishable_key")
+    shortkit.initialize(context, "pk_live_your_publishable_key")
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
-    ShortKit.initialize({ apiKey: 'pk_live_your_publishable_key' });
+    shortkit.initialize({ apiKey: 'pk_live_your_publishable_key' });
     ```
   </Tab>
   <Tab title="Web">
     ```typescript
-    ShortKit.initialize({ apiKey: 'pk_live_your_publishable_key' });
+    shortkit.initialize({ apiKey: 'pk_live_your_publishable_key' });
     ```
   </Tab>
 </Tabs>
@@ -190,7 +190,7 @@ The SDKs handle authentication automatically once initialized. Additional option
 For multi-tenant applications, specify organization context:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   organizationId: 'org_abc123'  // Optional: explicit org context
 });
@@ -202,7 +202,7 @@ Associate requests with authenticated users:
 
 ```typescript
 // After user logs in
-ShortKit.identifyUser({
+shortkit.identifyUser({
   userId: 'user_123',
   traits: {
     plan: 'premium',

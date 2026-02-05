@@ -483,7 +483,7 @@ Track experiment exposure in your app:
 
 ```typescript
 // Experiment assignment is included in feed responses
-const feed = await ShortKit.fetchFeed();
+const feed = await shortkit.fetchFeed();
 
 if (feed.meta.experimentId) {
   // Track exposure for accurate results

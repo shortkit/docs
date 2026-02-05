@@ -314,9 +314,9 @@ SDKs provide upload helpers with progress tracking:
 <Tabs>
   <Tab title="JavaScript">
     ```javascript
-    import { ShortKitAdmin } from '@shortkit/node';
+    import { ShortkitAdmin } from '@shortkit/node';
 
-    const shortkit = new ShortKitAdmin({ apiKey: 'sk_live_...' });
+    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
 
     // Simple upload
     const content = await shortkit.content.upload({
@@ -346,9 +346,9 @@ SDKs provide upload helpers with progress tracking:
   </Tab>
   <Tab title="Python">
     ```python
-    from shortkit import ShortKitAdmin
+    from shortkit import ShortkitAdmin
 
-    shortkit = ShortKitAdmin(api_key='sk_live_...')
+    shortkit = ShortkitAdmin(api_key='sk_live_...')
 
     # Simple upload
     with open('video.mp4', 'rb') as f:

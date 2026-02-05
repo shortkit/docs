@@ -366,15 +366,15 @@ SDKs handle feed fetching and pagination automatically:
   <Tab title="React Native">
     ```typescript
     // Fetch feed
-    const { items, cursor, hasMore } = await ShortKit.fetchFeed({ limit: 20 });
+    const { items, cursor, hasMore } = await shortkit.fetchFeed({ limit: 20 });
 
     // Paginate
     if (hasMore) {
-      const nextPage = await ShortKit.fetchFeed({ limit: 20, cursor });
+      const nextPage = await shortkit.fetchFeed({ limit: 20, cursor });
     }
 
     // Topic feed
-    const techFeed = await ShortKit.fetchFeed({
+    const techFeed = await shortkit.fetchFeed({
       topic: 'technology',
       limit: 20
     });

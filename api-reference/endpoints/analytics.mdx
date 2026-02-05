@@ -477,9 +477,9 @@ curl https://api.shortkit.dev/v1/analytics/realtime \
 <Tabs>
   <Tab title="JavaScript">
     ```javascript
-    import { ShortKitAdmin } from '@shortkit/node';
+    import { ShortkitAdmin } from '@shortkit/node';
 
-    const shortkit = new ShortKitAdmin({ apiKey: 'sk_live_...' });
+    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
 
     // Get overview
     const overview = await shortkit.analytics.overview({
@@ -502,9 +502,9 @@ curl https://api.shortkit.dev/v1/analytics/realtime \
   </Tab>
   <Tab title="Python">
     ```python
-    from shortkit import ShortKitAdmin
+    from shortkit import ShortkitAdmin
 
-    shortkit = ShortKitAdmin(api_key='sk_live_...')
+    shortkit = ShortkitAdmin(api_key='sk_live_...')
 
     # Get overview
     overview = shortkit.analytics.overview(

@@ -29,7 +29,7 @@ flowchart LR
 Configure the deep link format in your SDK initialization:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   config: {
     controls: {
@@ -109,7 +109,7 @@ You can also configure deep link settings in the Admin Portal:
             if let watchIndex = pathComponents.firstIndex(of: "watch"),
                watchIndex + 1 < pathComponents.count {
                 let contentId = pathComponents[watchIndex + 1]
-                ShortKit.openContent(contentId)
+                shortkit.openContent(contentId)
             }
         }
     }
@@ -131,7 +131,7 @@ You can also configure deep link settings in the Admin Portal:
 
         private func handleDeepLink(_ url: URL) {
             if let contentId = extractContentId(from: url) {
-                ShortKit.openContent(contentId)
+                shortkit.openContent(contentId)
             }
         }
     }
@@ -187,7 +187,7 @@ You can also configure deep link settings in the Admin Portal:
     import android.content.Intent
     import android.os.Bundle
     import androidx.appcompat.app.AppCompatActivity
-    import dev.shortkit.ShortKit
+    import dev.shortkit.shortkit
 
     class MainActivity : AppCompatActivity() {
 
@@ -210,7 +210,7 @@ You can also configure deep link settings in the Admin Portal:
             val watchIndex = pathSegments.indexOf("watch")
             if (watchIndex >= 0 && watchIndex + 1 < pathSegments.size) {
                 val contentId = pathSegments[watchIndex + 1]
-                ShortKit.openContent(contentId)
+                shortkit.openContent(contentId)
             }
         }
     }
@@ -225,7 +225,7 @@ You can also configure deep link settings in the Admin Portal:
     ```tsx App.tsx
     import { useEffect } from 'react';
     import { Linking } from 'react-native';
-    import { ShortKit } from '@shortkit/react-native';
+    import { shortkit } from '@shortkit/react-native';
 
     export default function App() {
       useEffect(() => {
@@ -245,7 +245,7 @@ You can also configure deep link settings in the Admin Portal:
       const handleDeepLink = (url: string) => {
         const match = url.match(/\/watch\/(\w+)/);
         if (match) {
-          ShortKit.openContent(match[1]);
+          shortkit.openContent(match[1]);
         }
       };
 
@@ -256,7 +256,7 @@ You can also configure deep link settings in the Admin Portal:
   <Tab title="Expo">
     ```tsx App.tsx
     import * as Linking from 'expo-linking';
-    import { ShortKit } from '@shortkit/expo';
+    import { shortkit } from '@shortkit/expo';
 
     export default function App() {
       const url = Linking.useURL();
@@ -266,7 +266,7 @@ You can also configure deep link settings in the Admin Portal:
           const { path } = Linking.parse(url);
           if (path?.startsWith('watch/')) {
             const contentId = path.replace('watch/', '');
-            ShortKit.openContent(contentId);
+            shortkit.openContent(contentId);
           }
         }
       }, [url]);
@@ -309,14 +309,14 @@ You can also configure deep link settings in the Admin Portal:
 ### Web
 
 ```typescript router.ts
-import { ShortKit } from '@shortkit/web';
+import { shortkit } from '@shortkit/web';
 
 function handleRoute() {
   const path = window.location.pathname;
   const match = path.match(/\/watch\/(\w+)/);
 
   if (match) {
-    ShortKit.openContent(match[1]);
+    shortkit.openContent(match[1]);
   }
 }
 
@@ -332,18 +332,18 @@ With React Router:
 ```tsx WatchPage.tsx
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShortKit, ShortKitFeed } from '@shortkit/web/react';
+import { shortkit, ShortkitFeed } from '@shortkit/web/react';
 
 export function WatchPage() {
   const { contentId } = useParams<{ contentId: string }>();
 
   useEffect(() => {
     if (contentId) {
-      ShortKit.openContent(contentId);
+      shortkit.openContent(contentId);
     }
   }, [contentId]);
 
-  return <ShortKitFeed />;
+  return <ShortkitFeed />;
 }
 ```
 
@@ -354,7 +354,7 @@ export function WatchPage() {
 Navigate to a specific content item:
 
 ```typescript
-ShortKit.openContent('cnt_abc123');
+shortkit.openContent('cnt_abc123');
 ```
 
 The feed will:
@@ -367,7 +367,7 @@ The feed will:
 Programmatically get a share URL for content:
 
 ```typescript
-const shareUrl = ShortKit.getShareUrl('cnt_abc123');
+const shareUrl = shortkit.getShareUrl('cnt_abc123');
 // https://yourapp.com/watch/cnt_abc123
 ```
 
@@ -376,7 +376,7 @@ const shareUrl = ShortKit.getShareUrl('cnt_abc123');
 Override the default share behavior:
 
 ```typescript
-<ShortKitFeed
+<ShortkitFeed
   onShareRequested={async (content) => {
     const url = content.shareUrl;
 
@@ -405,7 +405,7 @@ If you have the web SDK integrated, the same deep link URL can render a web play
 
 ```tsx pages/watch/[contentId].tsx
 // Next.js example
-import { ShortKitFeed } from '@shortkit/web/react';
+import { ShortkitFeed } from '@shortkit/web/react';
 import { useParams } from 'next/navigation';
 
 export default function WatchPage() {
@@ -413,7 +413,7 @@ export default function WatchPage() {
 
   return (
     <div className="mobile-container">
-      <ShortKitFeed startContentId={contentId} />
+      <ShortkitFeed startContentId={contentId} />
     </div>
   );
 }

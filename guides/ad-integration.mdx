@@ -63,7 +63,7 @@ Enable ads in your SDK configuration:
 <Tabs>
   <Tab title="iOS">
     ```swift
-    let config = ShortKitConfig(
+    let config = ShortkitConfig(
         // ... other config
         ads: AdsConfig(
             enabled: true,
@@ -74,7 +74,7 @@ Enable ads in your SDK configuration:
   </Tab>
   <Tab title="Android">
     ```kotlin
-    val config = ShortKitConfig(
+    val config = ShortkitConfig(
         // ... other config
         ads = AdsConfig(
             enabled = true,
@@ -195,22 +195,22 @@ Handle ad-related events in your app:
 <Tabs>
   <Tab title="iOS">
     ```swift
-    class AdEventHandler: ShortKitDelegate {
-        func shortKit(_ shortKit: ShortKit, didShowAd ad: Ad) {
+    class AdEventHandler: ShortkitDelegate {
+        func shortKit(_ shortKit: shortkit, didShowAd ad: Ad) {
             analytics.track("ad_impression", properties: [
                 "adId": ad.id,
                 "position": ad.position
             ])
         }
 
-        func shortKit(_ shortKit: ShortKit, didCompleteAd ad: Ad) {
+        func shortKit(_ shortKit: shortkit, didCompleteAd ad: Ad) {
             analytics.track("ad_completed", properties: [
                 "adId": ad.id,
                 "watchTime": ad.watchTime
             ])
         }
 
-        func shortKit(_ shortKit: ShortKit, adDidFail error: AdError) {
+        func shortKit(_ shortKit: shortkit, adDidFail error: AdError) {
             print("Ad failed: \(error.message)")
         }
     }
@@ -218,7 +218,7 @@ Handle ad-related events in your app:
   </Tab>
   <Tab title="React Native">
     ```typescript
-    <ShortKitFeed
+    <ShortkitFeed
       onAdImpression={(ad) => {
         analytics.track('ad_impression', {
           adId: ad.id,
@@ -272,7 +272,7 @@ This ensures accurate reporting in Google Ad Manager and proper billing.
 Enable test ads during development:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_...',
   config: {
     ads: {
@@ -297,7 +297,7 @@ Debug ad delivery:
 3. Check fill status and errors
 
 ```typescript
-ShortKit.setLogLevel('verbose');
+shortkit.setLogLevel('verbose');
 ```
 
 ## Troubleshooting

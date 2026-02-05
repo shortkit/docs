@@ -136,7 +136,7 @@ All errors follow a consistent structure:
 
         if (!response.ok) {
           const error = await response.json();
-          throw new ShortKitError(error);
+          throw new ShortkitError(error);
         }
 
         return response.json();
@@ -353,10 +353,10 @@ The SDKs provide typed error classes:
         },
         onError = { error ->
             when (error) {
-                is ShortKitError.NetworkError -> showNetworkError()
-                is ShortKitError.AuthenticationError -> refreshCredentials()
-                is ShortKitError.RateLimited -> scheduleRetry(error.retryAfter)
-                is ShortKitError.ServerError -> showError(error.message)
+                is ShortkitError.NetworkError -> showNetworkError()
+                is ShortkitError.AuthenticationError -> refreshCredentials()
+                is ShortkitError.RateLimited -> scheduleRetry(error.retryAfter)
+                is ShortkitError.ServerError -> showError(error.message)
             }
         }
     )
@@ -365,10 +365,10 @@ The SDKs provide typed error classes:
   <Tab title="React Native">
     ```typescript
     try {
-      const feed = await ShortKit.fetchFeed();
+      const feed = await shortkit.fetchFeed();
       displayFeed(feed);
     } catch (error) {
-      if (error instanceof ShortKitError) {
+      if (error instanceof ShortkitError) {
         switch (error.code) {
           case 'NETWORK_ERROR':
             showNetworkError();
@@ -407,7 +407,7 @@ curl -i https://api.shortkit.dev/v1/content/cnt_abc123 \
 Enable verbose logging in SDKs for debugging:
 
 ```typescript
-ShortKit.setLogLevel('verbose');
+shortkit.setLogLevel('verbose');
 ```
 
 ### Common issues

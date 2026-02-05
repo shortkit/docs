@@ -45,8 +45,8 @@ Initialize the SDK in your `Application` class:
 
 ```kotlin MyApplication.kt
 import android.app.Application
-import dev.shortkit.ShortKit
-import dev.shortkit.ShortKitConfig
+import dev.shortkit.shortkit
+import dev.shortkit.ShortkitConfig
 import dev.shortkit.FeedOrientation
 import dev.shortkit.FeedHeight
 import dev.shortkit.Environment
@@ -56,7 +56,7 @@ class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        val config = ShortKitConfig(
+        val config = ShortkitConfig(
             feedOrientation = FeedOrientation.VERTICAL,
             feedHeight = FeedHeight.FULLSCREEN,
             controls = ControlsConfig(
@@ -77,7 +77,7 @@ class MyApplication : Application() {
             )
         )
 
-        ShortKit.initialize(
+        shortkit.initialize(
             context = this,
             apiKey = "pk_live_your_publishable_key",
             config = config,
@@ -99,17 +99,17 @@ Register your Application class in `AndroidManifest.xml`:
 
 ### Jetpack Compose
 
-Use the `ShortKitFeed` composable:
+Use the `ShortkitFeed` composable:
 
 ```kotlin VideoFeedScreen.kt
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import dev.shortkit.compose.ShortKitFeed
+import dev.shortkit.compose.ShortkitFeed
 
 @Composable
 fun VideoFeedScreen() {
-    ShortKitFeed(
+    ShortkitFeed(
         modifier = Modifier.fillMaxSize()
     )
 }
@@ -118,12 +118,12 @@ fun VideoFeedScreen() {
 With filters:
 
 ```kotlin FilteredFeedScreen.kt
-import dev.shortkit.compose.ShortKitFeed
+import dev.shortkit.compose.ShortkitFeed
 import dev.shortkit.FeedFilter
 
 @Composable
 fun SportsFeedScreen() {
-    ShortKitFeed(
+    ShortkitFeed(
         modifier = Modifier.fillMaxSize(),
         filter = FeedFilter(tags = listOf("sports", "highlights"))
     )
@@ -141,7 +141,7 @@ Add the feed view to your layout:
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <dev.shortkit.ui.ShortKitFeedView
+    <dev.shortkit.ui.ShortkitFeedView
         android:id="@+id/feedView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -152,11 +152,11 @@ Add the feed view to your layout:
 ```kotlin VideoFeedActivity.kt
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import dev.shortkit.ui.ShortKitFeedView
+import dev.shortkit.ui.ShortkitFeedView
 
 class VideoFeedActivity : AppCompatActivity() {
 
-    private lateinit var feedView: ShortKitFeedView
+    private lateinit var feedView: ShortkitFeedView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -180,14 +180,14 @@ class VideoFeedActivity : AppCompatActivity() {
 ### Programmatic creation
 
 ```kotlin
-import dev.shortkit.ShortKit
+import dev.shortkit.shortkit
 
 class VideoFeedActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val feedView = ShortKit.createFeedView(this)
+        val feedView = shortkit.createFeedView(this)
         setContentView(feedView)
     }
 }
@@ -199,10 +199,10 @@ Associate user identity for personalized feeds:
 
 ```kotlin
 // When user logs in
-ShortKit.setUserId("user_12345")
+shortkit.setUserId("user_12345")
 
 // When user logs out
-ShortKit.clearUserId()
+shortkit.clearUserId()
 ```
 
 ## Event listeners
@@ -210,17 +210,17 @@ ShortKit.clearUserId()
 Set up listeners to respond to SDK events:
 
 ```kotlin
-import dev.shortkit.ShortKit
-import dev.shortkit.ShortKitListener
+import dev.shortkit.shortkit
+import dev.shortkit.ShortkitListener
 import dev.shortkit.Content
-import dev.shortkit.ShortKitError
+import dev.shortkit.ShortkitError
 
 class VideoFeedActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        ShortKit.listener = object : ShortKitListener {
+        shortkit.listener = object : ShortkitListener {
 
             override fun onShareRequested(content: Content) {
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -237,8 +237,8 @@ class VideoFeedActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onError(error: ShortKitError) {
-                Log.e("ShortKit", "Error: ${error.message}")
+            override fun onError(error: ShortkitError) {
+                Log.e("shortkit", "Error: ${error.message}")
             }
 
             override fun onMetadataLoaded(content: Content, metadata: Map<String, Any>) {
@@ -257,7 +257,7 @@ With Compose, use the callback parameters:
 fun VideoFeedScreen() {
     val context = LocalContext.current
 
-    ShortKitFeed(
+    ShortkitFeed(
         modifier = Modifier.fillMaxSize(),
         onShareRequested = { content ->
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -284,7 +284,7 @@ Handle deep links to open specific content:
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import dev.shortkit.ShortKit
+import dev.shortkit.shortkit
 
 class MainActivity : AppCompatActivity() {
 
@@ -306,7 +306,7 @@ class MainActivity : AppCompatActivity() {
         if (data.pathSegments.contains("watch")) {
             val contentId = data.lastPathSegment
             contentId?.let {
-                ShortKit.openContent(it)
+                shortkit.openContent(it)
             }
         }
     }
@@ -334,7 +334,7 @@ Configure your intent filter in `AndroidManifest.xml`:
 Enable PiP for background playback:
 
 ```kotlin
-val config = ShortKitConfig(
+val config = ShortkitConfig(
     controls = ControlsConfig(
         pictureInPicture = true
     )
@@ -344,7 +344,7 @@ val config = ShortKitConfig(
 The SDK handles PiP transitions automatically. You can also trigger it programmatically:
 
 ```kotlin
-ShortKit.enterPictureInPicture()
+shortkit.enterPictureInPicture()
 ```
 
 ## Chromecast
@@ -352,7 +352,7 @@ ShortKit.enterPictureInPicture()
 Enable Chromecast support:
 
 ```kotlin
-val config = ShortKitConfig(
+val config = ShortkitConfig(
     controls = ControlsConfig(
         chromecast = true
     )
@@ -372,7 +372,7 @@ dependencies {
 Create a mini-player widget for other screens:
 
 ```kotlin HomeFragment.kt
-import dev.shortkit.ShortKit
+import dev.shortkit.shortkit
 import dev.shortkit.EntryWidgetConfig
 import dev.shortkit.EntryWidgetStyle
 
@@ -387,7 +387,7 @@ class HomeFragment : Fragment() {
             autoPlay = true
         )
 
-        val widget = ShortKit.createEntryWidget(requireContext(), widgetConfig)
+        val widget = shortkit.createEntryWidget(requireContext(), widgetConfig)
         widget.layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             200.dpToPx()
@@ -408,14 +408,14 @@ class HomeFragment : Fragment() {
 With Compose:
 
 ```kotlin
-import dev.shortkit.compose.ShortKitEntryWidget
+import dev.shortkit.compose.ShortkitEntryWidget
 
 @Composable
 fun HomeScreen(onVideoSelected: (String) -> Unit) {
     Column {
         // Other content...
 
-        ShortKitEntryWidget(
+        ShortkitEntryWidget(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp),
@@ -434,7 +434,7 @@ fun HomeScreen(onVideoSelected: (String) -> Unit) {
 Register custom views for specific content:
 
 ```kotlin
-ShortKit.registerOverlay(
+shortkit.registerOverlay(
     identifier = "articleCard",
     viewProvider = { context, content, metadata ->
         ArticleCardView(context).apply {
@@ -448,7 +448,7 @@ ShortKit.registerOverlay(
 With Compose:
 
 ```kotlin
-ShortKit.registerOverlay(
+shortkit.registerOverlay(
     identifier = "articleCard",
     composableProvider = { content, metadata ->
         ArticleCard(
@@ -473,7 +473,7 @@ If using ProGuard/R8, add these rules:
 Enable verbose logging during development:
 
 ```kotlin
-ShortKit.initialize(
+shortkit.initialize(
     context = this,
     apiKey = "pk_live_your_publishable_key",
     config = config,
@@ -481,7 +481,7 @@ ShortKit.initialize(
 )
 
 // Or explicitly set log level
-ShortKit.logLevel = LogLevel.VERBOSE
+shortkit.logLevel = LogLevel.VERBOSE
 ```
 
 ## Next steps

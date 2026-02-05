@@ -77,11 +77,11 @@ For Expo:
 Initialize the SDK at your app's entry point, before rendering:
 
 ```tsx App.tsx
-import { ShortKit } from '@shortkit/react-native';
-// or for Expo: import { ShortKit } from '@shortkit/expo';
+import { shortkit } from '@shortkit/react-native';
+// or for Expo: import { shortkit } from '@shortkit/expo';
 
 // Initialize before rendering
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   config: {
     feedOrientation: 'vertical',
@@ -120,17 +120,17 @@ export default function App() {
 
 ## Displaying the feed
 
-Use the `ShortKitFeed` component:
+Use the `ShortkitFeed` component:
 
 ```tsx VideoFeedScreen.tsx
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ShortKitFeed } from '@shortkit/react-native';
+import { ShortkitFeed } from '@shortkit/react-native';
 
 export function VideoFeedScreen() {
   return (
     <View style={styles.container}>
-      <ShortKitFeed style={styles.feed} />
+      <ShortkitFeed style={styles.feed} />
     </View>
   );
 }
@@ -150,12 +150,12 @@ const styles = StyleSheet.create({
 ```tsx SportsFeedScreen.tsx
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ShortKitFeed } from '@shortkit/react-native';
+import { ShortkitFeed } from '@shortkit/react-native';
 
 export function SportsFeedScreen() {
   return (
     <View style={styles.container}>
-      <ShortKitFeed
+      <ShortkitFeed
         style={styles.feed}
         filter={{
           tags: ['sports', 'highlights']
@@ -179,12 +179,12 @@ const styles = StyleSheet.create({
 
 ```tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ShortKitFeed } from '@shortkit/react-native';
+import { ShortkitFeed } from '@shortkit/react-native';
 
 const Tab = createBottomTabNavigator();
 
 function VideoTab() {
-  return <ShortKitFeed style={{ flex: 1 }} />;
+  return <ShortkitFeed style={{ flex: 1 }} />;
 }
 
 export function MainTabs() {
@@ -203,17 +203,17 @@ export function MainTabs() {
 Associate user identity for personalized feeds:
 
 ```tsx
-import { ShortKit } from '@shortkit/react-native';
+import { shortkit } from '@shortkit/react-native';
 
 // When user logs in
 async function handleLogin(userId: string) {
   await authenticateUser();
-  ShortKit.setUserId(userId);
+  shortkit.setUserId(userId);
 }
 
 // When user logs out
 function handleLogout() {
-  ShortKit.clearUserId();
+  shortkit.clearUserId();
 }
 ```
 
@@ -224,7 +224,7 @@ Handle SDK events with callback props:
 ```tsx VideoFeedScreen.tsx
 import React from 'react';
 import { Share, StyleSheet, View } from 'react-native';
-import { ShortKitFeed, Content, ShortKitError } from '@shortkit/react-native';
+import { ShortkitFeed, Content, ShortkitError } from '@shortkit/react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export function VideoFeedScreen() {
@@ -253,8 +253,8 @@ export function VideoFeedScreen() {
     }
   };
 
-  const handleError = (error: ShortKitError) => {
-    console.error('ShortKit error:', error.message);
+  const handleError = (error: ShortkitError) => {
+    console.error('shortkit error:', error.message);
   };
 
   const handleMetadata = (content: Content, metadata: Record<string, any>) => {
@@ -264,7 +264,7 @@ export function VideoFeedScreen() {
 
   return (
     <View style={styles.container}>
-      <ShortKitFeed
+      <ShortkitFeed
         style={styles.feed}
         onShareRequested={handleShare}
         onActionTapped={handleAction}
@@ -288,7 +288,7 @@ Handle deep links to open specific content:
 ```tsx App.tsx
 import { useEffect } from 'react';
 import { Linking } from 'react-native';
-import { ShortKit } from '@shortkit/react-native';
+import { shortkit } from '@shortkit/react-native';
 
 export default function App() {
   useEffect(() => {
@@ -311,7 +311,7 @@ export default function App() {
     const match = url.match(/watch\/(\w+)/);
     if (match) {
       const contentId = match[1];
-      ShortKit.openContent(contentId);
+      shortkit.openContent(contentId);
     }
   };
 
@@ -325,7 +325,7 @@ For Expo, use `expo-linking`:
 
 ```tsx App.tsx
 import * as Linking from 'expo-linking';
-import { ShortKit } from '@shortkit/expo';
+import { shortkit } from '@shortkit/expo';
 
 export default function App() {
   const url = Linking.useURL();
@@ -335,7 +335,7 @@ export default function App() {
       const { path } = Linking.parse(url);
       if (path?.startsWith('watch/')) {
         const contentId = path.replace('watch/', '');
-        ShortKit.openContent(contentId);
+        shortkit.openContent(contentId);
       }
     }
   }, [url]);
@@ -353,7 +353,7 @@ Create a mini-player widget for other screens:
 ```tsx HomeScreen.tsx
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { ShortKitEntryWidget, Content } from '@shortkit/react-native';
+import { ShortkitEntryWidget, Content } from '@shortkit/react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export function HomeScreen() {
@@ -367,7 +367,7 @@ export function HomeScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Latest Videos</Text>
 
-      <ShortKitEntryWidget
+      <ShortkitEntryWidget
         style={styles.widget}
         itemCount={5}
         autoPlay={true}
@@ -402,17 +402,17 @@ The SDK includes full TypeScript definitions:
 
 ```typescript types.ts
 import type {
-  ShortKitConfig,
+  ShortkitConfig,
   FeedConfig,
   ControlsConfig,
   ThemeConfig,
   Content,
-  ShortKitError,
+  ShortkitError,
   FeedFilter,
 } from '@shortkit/react-native';
 
 // Config is fully typed
-const config: ShortKitConfig = {
+const config: ShortkitConfig = {
   apiKey: 'pk_live_...',
   config: {
     feedOrientation: 'vertical', // 'vertical' | 'horizontal'
@@ -441,10 +441,10 @@ function handleContent(content: Content) {
 The SDK provides React hooks for common operations:
 
 ```tsx
-import { useShortKit, useCurrentContent } from '@shortkit/react-native';
+import { useshortkit, useCurrentContent } from '@shortkit/react-native';
 
 function VideoControls() {
-  const { isInitialized, userId } = useShortKit();
+  const { isInitialized, userId } = useshortkit();
   const { content, isPlaying, currentTime, duration } = useCurrentContent();
 
   if (!isInitialized) {
@@ -489,14 +489,14 @@ For Expo projects, configure the plugin in `app.json`:
 Enable debug mode during development:
 
 ```tsx
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   config: { /* ... */ },
   environment: __DEV__ ? 'development' : 'production'
 });
 
 // View debug logs
-ShortKit.setLogLevel('verbose');
+shortkit.setLogLevel('verbose');
 ```
 
 Use React Native Debugger to inspect SDK calls in the network tab.

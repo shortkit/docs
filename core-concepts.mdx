@@ -93,10 +93,10 @@ When your app authenticates a user, call `setUserId()` to associate their engage
 
 ```swift
 // When user logs in
-ShortKit.setUserId("user_12345")
+shortkit.setUserId("user_12345")
 
 // When user logs out
-ShortKit.clearUserId()
+shortkit.clearUserId()
 ```
 
 <Info>
@@ -112,7 +112,7 @@ shortkit uses a **hybrid configuration model** combining code-level defaults wit
 Configuration passed during SDK initialization. This defines baseline behavior and serves as the fallback when the server is unreachable.
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_...',
   config: {
     feedOrientation: 'vertical',

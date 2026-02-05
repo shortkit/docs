@@ -289,9 +289,9 @@ completion,cnt_abc123,user_456,2024-01-15T10:30:46Z,,,45.2
 <Tabs>
   <Tab title="JavaScript">
     ```javascript
-    import { ShortKitAdmin } from '@shortkit/node';
+    import { ShortkitAdmin } from '@shortkit/node';
 
-    const shortkit = new ShortKitAdmin({ apiKey: 'sk_live_...' });
+    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
 
     // Create export
     const job = await shortkit.analytics.export({
@@ -317,10 +317,10 @@ completion,cnt_abc123,user_456,2024-01-15T10:30:46Z,,,45.2
   </Tab>
   <Tab title="Python">
     ```python
-    from shortkit import ShortKitAdmin
+    from shortkit import ShortkitAdmin
     import time
 
-    shortkit = ShortKitAdmin(api_key='sk_live_...')
+    shortkit = ShortkitAdmin(api_key='sk_live_...')
 
     # Create export
     job = shortkit.analytics.export(

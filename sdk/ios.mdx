@@ -60,7 +60,7 @@ Initialize the SDK as early as possible in your app lifecycle, typically in `App
             didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
         ) -> Bool {
 
-            let config = ShortKitConfig(
+            let config = ShortkitConfig(
                 feedOrientation: .vertical,
                 feedHeight: .fullscreen,
                 controls: ControlsConfig(
@@ -81,7 +81,7 @@ Initialize the SDK as early as possible in your app lifecycle, typically in `App
                 )
             )
 
-            ShortKit.initialize(
+            shortkit.initialize(
                 apiKey: "pk_live_your_publishable_key",
                 config: config,
                 environment: .production
@@ -100,7 +100,7 @@ Initialize the SDK as early as possible in your app lifecycle, typically in `App
     @main
     struct MyApp: App {
         init() {
-            let config = ShortKitConfig(
+            let config = ShortkitConfig(
                 feedOrientation: .vertical,
                 feedHeight: .fullscreen,
                 controls: ControlsConfig(
@@ -115,7 +115,7 @@ Initialize the SDK as early as possible in your app lifecycle, typically in `App
                 )
             )
 
-            ShortKit.initialize(
+            shortkit.initialize(
                 apiKey: "pk_live_your_publishable_key",
                 config: config
             )
@@ -135,7 +135,7 @@ Initialize the SDK as early as possible in your app lifecycle, typically in `App
 
 ### SwiftUI
 
-Use `ShortKitFeedView` directly in your view hierarchy:
+Use `ShortkitFeedView` directly in your view hierarchy:
 
 ```swift VideoFeedView.swift
 import shortkit
@@ -143,7 +143,7 @@ import SwiftUI
 
 struct VideoFeedView: View {
     var body: some View {
-        ShortKitFeedView()
+        ShortkitFeedView()
             .edgesIgnoringSafeArea(.all)
     }
 }
@@ -157,7 +157,7 @@ import SwiftUI
 
 struct FilteredFeedView: View {
     var body: some View {
-        ShortKitFeedView(
+        ShortkitFeedView(
             filter: FeedFilter(tags: ["sports", "highlights"])
         )
         .edgesIgnoringSafeArea(.all)
@@ -175,12 +175,12 @@ import UIKit
 
 class VideoFeedViewController: UIViewController {
 
-    private var feedView: ShortKitFeedUIView?
+    private var feedView: ShortkitFeedUIView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        feedView = ShortKit.createFeedView()
+        feedView = shortkit.createFeedView()
         feedView?.frame = view.bounds
         feedView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
@@ -207,10 +207,10 @@ Associate user identity for personalized feeds and cross-device engagement:
 
 ```swift
 // When user logs in
-ShortKit.setUserId("user_12345")
+shortkit.setUserId("user_12345")
 
 // When user logs out
-ShortKit.clearUserId()
+shortkit.clearUserId()
 ```
 
 <Tip>
@@ -219,19 +219,19 @@ ShortKit.clearUserId()
 
 ## Delegate methods
 
-Implement `ShortKitDelegate` to receive callbacks:
+Implement `ShortkitDelegate` to receive callbacks:
 
 ```swift
 import shortkit
 
-class VideoFeedCoordinator: ShortKitDelegate {
+class VideoFeedCoordinator: ShortkitDelegate {
 
     init() {
-        ShortKit.delegate = self
+        shortkit.delegate = self
     }
 
     // Called when user taps share
-    func shortKit(_ shortKit: ShortKit, didRequestShare content: Content) {
+    func shortKit(_ shortKit: shortkit, didRequestShare content: Content) {
         let url = content.shareUrl
         let activityVC = UIActivityViewController(
             activityItems: [url],
@@ -241,7 +241,7 @@ class VideoFeedCoordinator: ShortKitDelegate {
     }
 
     // Called when user taps a custom action
-    func shortKit(_ shortKit: ShortKit, didTapAction action: String, on content: Content) {
+    func shortKit(_ shortKit: shortkit, didTapAction action: String, on content: Content) {
         switch action {
         case "bookmark":
             // Handle bookmark
@@ -255,12 +255,12 @@ class VideoFeedCoordinator: ShortKitDelegate {
     }
 
     // Called on playback errors
-    func shortKit(_ shortKit: ShortKit, didEncounterError error: ShortKitError) {
+    func shortKit(_ shortKit: shortkit, didEncounterError error: ShortkitError) {
         print("Playback error: \(error.localizedDescription)")
     }
 
     // Called when content metadata is available
-    func shortKit(_ shortKit: ShortKit, didLoadMetadata metadata: [String: Any], for content: Content) {
+    func shortKit(_ shortKit: shortkit, didLoadMetadata metadata: [String: Any], for content: Content) {
         // Access custom metadata passed from your CMS
         if let articleUrl = metadata["articleUrl"] as? String {
             // Store for "Read More" action
@@ -290,7 +290,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // Extract content ID from your URL scheme
         if let contentId = extractContentId(from: url) {
-            ShortKit.openContent(contentId)
+            shortkit.openContent(contentId)
         }
     }
 
@@ -311,7 +311,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 Enable PiP for background playback:
 
 ```swift
-let config = ShortKitConfig(
+let config = ShortkitConfig(
     // ... other config
     controls: ControlsConfig(
         pictureInPicture: true
@@ -330,7 +330,7 @@ Add the background modes capability in your project settings:
 Enable AirPlay casting:
 
 ```swift
-let config = ShortKitConfig(
+let config = ShortkitConfig(
     controls: ControlsConfig(
         airplay: true
     )
@@ -356,7 +356,7 @@ class HomeViewController: UIViewController {
             autoPlay: true  // Play preview on hover/focus
         )
 
-        let widget = ShortKit.createEntryWidget(config: widgetConfig)
+        let widget = shortkit.createEntryWidget(config: widgetConfig)
         widget.frame = CGRect(x: 0, y: 100, width: view.bounds.width, height: 200)
         widget.delegate = self
         view.addSubview(widget)
@@ -366,7 +366,7 @@ class HomeViewController: UIViewController {
 extension HomeViewController: EntryWidgetDelegate {
     func entryWidget(_ widget: EntryWidget, didSelectContent content: Content) {
         // Present full feed starting at selected content
-        let feedVC = ShortKitFeedViewController(startingAt: content.id)
+        let feedVC = ShortkitFeedViewController(startingAt: content.id)
         present(feedVC, animated: true)
     }
 }
@@ -378,7 +378,7 @@ Register custom views to render on specific content:
 
 ```swift
 // Register a custom overlay component
-ShortKit.registerOverlay(
+shortkit.registerOverlay(
     identifier: "articleCard",
     viewProvider: { content, metadata in
         let card = ArticleCardView()
@@ -404,9 +404,9 @@ The overlay renders when content has matching metadata:
 ## Error handling
 
 ```swift
-ShortKit.delegate = self
+shortkit.delegate = self
 
-func shortKit(_ shortKit: ShortKit, didEncounterError error: ShortKitError) {
+func shortKit(_ shortKit: shortkit, didEncounterError error: ShortkitError) {
     switch error {
     case .networkError(let underlying):
         // Handle network issues
@@ -426,14 +426,14 @@ func shortKit(_ shortKit: ShortKit, didEncounterError error: ShortKitError) {
 Enable verbose logging during development:
 
 ```swift
-ShortKit.initialize(
+shortkit.initialize(
     apiKey: "pk_live_your_publishable_key",
     config: config,
     environment: .development  // Enables debug logging
 )
 
 // Or explicitly set log level
-ShortKit.logLevel = .verbose
+shortkit.logLevel = .verbose
 ```
 
 ## Next steps

@@ -378,7 +378,7 @@ curl -X POST https://api.shortkit.dev/v1/config/playback/rollback \
 SDKs fetch configuration on initialization and periodically refresh:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_...',
   config: {
     refreshInterval: 300000  // Check every 5 minutes
@@ -386,10 +386,10 @@ ShortKit.initialize({
 });
 
 // Force refresh
-await ShortKit.refreshConfig();
+await shortkit.refreshConfig();
 
 // Get current config
-const config = ShortKit.getConfig();
+const config = shortkit.getConfig();
 ```
 
 Configuration changes take effect on next SDK refresh (typically within 5 minutes).

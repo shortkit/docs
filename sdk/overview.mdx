@@ -97,7 +97,7 @@ shortkit uses custom media pipelines optimized for short-form video performance:
 The SDK follows a consistent initialization pattern across platforms:
 
 ```typescript
-ShortKit.initialize({
+shortkit.initialize({
   apiKey: 'pk_live_your_publishable_key',
   config: FeedConfig,
   environment: 'production' | 'staging' | 'development',
@@ -112,10 +112,10 @@ Initialization is **non-blocking**. The feed begins rendering immediately with c
 
 ```typescript
 // Associate user identity for personalization
-ShortKit.setUserId('user_12345');
+shortkit.setUserId('user_12345');
 
 // Clear identity on logout (generates new anonymous ID)
-ShortKit.clearUserId();
+shortkit.clearUserId();
 ```
 
 ## Configuration hierarchy
@@ -147,7 +147,7 @@ Display the feed using platform-appropriate components:
 
     struct VideoTab: View {
         var body: some View {
-            ShortKitFeedView()
+            ShortkitFeedView()
                 .edgesIgnoringSafeArea(.all)
         }
     }
@@ -161,7 +161,7 @@ Display the feed using platform-appropriate components:
     class VideoViewController: UIViewController {
         override func viewDidLoad() {
             super.viewDidLoad()
-            let feedView = ShortKit.createFeedView()
+            let feedView = shortkit.createFeedView()
             feedView.frame = view.bounds
             view.addSubview(feedView)
         }
@@ -170,11 +170,11 @@ Display the feed using platform-appropriate components:
   </Tab>
   <Tab title="Android (Compose)">
     ```kotlin
-    import dev.shortkit.compose.ShortKitFeed
+    import dev.shortkit.compose.ShortkitFeed
 
     @Composable
     fun VideoTab() {
-        ShortKitFeed(
+        ShortkitFeed(
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -182,12 +182,12 @@ Display the feed using platform-appropriate components:
   </Tab>
   <Tab title="Android (View)">
     ```kotlin
-    import dev.shortkit.ShortKit
+    import dev.shortkit.shortkit
 
     class VideoActivity : AppCompatActivity() {
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-            val feedView = ShortKit.createFeedView(this)
+            val feedView = shortkit.createFeedView(this)
             setContentView(feedView)
         }
     }
@@ -195,19 +195,19 @@ Display the feed using platform-appropriate components:
   </Tab>
   <Tab title="React Native">
     ```tsx
-    import { ShortKitFeed } from '@shortkit/react-native';
+    import { ShortkitFeed } from '@shortkit/react-native';
 
     export function VideoTab() {
-      return <ShortKitFeed style={{ flex: 1 }} />;
+      return <ShortkitFeed style={{ flex: 1 }} />;
     }
     ```
   </Tab>
   <Tab title="Web">
     ```tsx
-    import { ShortKitFeed } from '@shortkit/web/react';
+    import { ShortkitFeed } from '@shortkit/web/react';
 
     export function VideoTab() {
-      return <ShortKitFeed />;
+      return <ShortkitFeed />;
     }
     ```
   </Tab>
