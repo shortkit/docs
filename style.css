@@ -1,101 +1,398 @@
+/* Import Roboto Mono font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap');
+
 /* Shortkit Custom Styles */
-/* NOTE: Global CSS requires Mintlify Business plan */
+/* Styled like fal.ai docs - clean, minimal, light */
+/* Accent color: Shortkit Orange #FF6600 */
 
-/* Sharper border radius (4px like fal.ai) */
-* {
-  border-radius: 4px !important;
-}
+/* ========================================
+   BASE STYLES
+   ======================================== */
 
-/* Keep buttons rounded */
-button,
-[role="button"] {
-  border-radius: 9999px !important;
-}
-
-/* Code blocks - slightly more rounded */
-pre,
-code {
-  border-radius: 6px !important;
-}
-
-/* Font smoothing */
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar - light mode */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Clean rounded corners */
+* {
+  border-radius: 8px !important;
 }
 
-::-webkit-scrollbar-track {
-  background: #F5F2EE;
+/* Slightly more rounded for cards */
+.card,
+.callout,
+.accordion {
+  border-radius: 12px !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #DCD4CC;
-  border-radius: 4px;
+/* Buttons - rounded pill */
+button,
+[role="button"] {
+  border-radius: 8px !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #B4ACA0;
+/* Code blocks */
+pre,
+code,
+.code-block {
+  border-radius: 8px !important;
 }
 
-/* Navbar blur effect */
-#navbar {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
+/* ========================================
+   LIGHT THEME - Clean & Minimal
+   ======================================== */
 
-/* Orange selection highlight */
+/* Selection highlight */
 ::selection {
   background: rgba(255, 102, 0, 0.2);
   color: inherit;
 }
 
-/* Inline code - orange tinted background */
+/* Inline code */
 :not(pre) > code {
-  background: rgba(255, 102, 0, 0.08) !important;
+  background: #f4f4f5 !important;
   padding: 0.125rem 0.375rem !important;
+  color: #18181b !important;
+  font-size: 0.875em;
 }
 
-/* Dark mode inline code */
-.dark :not(pre) > code {
-  background: rgba(255, 102, 0, 0.15) !important;
+.dark :not(pre) > code,
+html.dark :not(pre) > code,
+html[class*="dark"] :not(pre) > code {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e4e4e7 !important;
 }
 
-/* Card hover - orange glow */
-.group:hover {
-  border-color: rgba(255, 102, 0, 0.3) !important;
-  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.08) !important;
+/* Links */
+a {
+  transition: color 0.15s ease;
 }
 
-/* Blockquote - orange left border */
-blockquote {
-  border-left-color: #FF6600 !important;
-}
-
-/* Links hover - orange */
 a:hover {
   color: #FF6600 !important;
 }
 
-/* Focus states - orange outline */
+/* Focus states */
 *:focus-visible {
-  outline-color: #FF6600 !important;
+  outline: 2px solid #FF6600 !important;
+  outline-offset: 2px;
 }
 
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-track {
-  background: #1C1916;
+/* ========================================
+   NAVBAR - Clean top bar
+   ======================================== */
+
+#navbar {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e4e4e7 !important;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #463F38;
+.dark #navbar,
+html.dark #navbar,
+html[class*="dark"] #navbar {
+  background: rgba(15, 15, 18, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #645C52;
+/* Active nav tab - purple underline */
+.nav-tabs-item[data-state="active"],
+.nav-tabs-item.active {
+  border-bottom: 2px solid #FF6600 !important;
+  color: #FF6600 !important;
+}
+
+/* ========================================
+   SIDEBAR - Clean with subtle active state
+   ======================================== */
+
+#sidebar,
+#sidebar-content {
+  background: #fafafa !important;
+}
+
+#sidebar,
+#sidebar-content {
+  border-right: 1px solid #e4e4e7 !important;
+}
+
+/* Left area beside sidebar */
+html,
+body {
+  background: #fafafa !important;
+}
+
+.dark #sidebar,
+.dark #sidebar-content,
+html.dark #sidebar,
+html.dark #sidebar-content,
+html[class*="dark"] #sidebar,
+html[class*="dark"] #sidebar-content {
+  background: #0f0f12 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sidebar group headers */
+.sidebar-group-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #71717a;
+}
+
+/* Active sidebar item - lavender background like fal.ai */
+.sidebar-title.active,
+.nav-anchor.active,
+[data-active="true"] {
+  background: rgba(255, 102, 0, 0.1) !important;
+  color: #FF6600 !important;
+  border-radius: 6px !important;
+}
+
+/* ========================================
+   CONTENT AREA
+   ======================================== */
+
+/* Main content wrapper */
+.lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip,
+.max-lg\:contents.lg\:flex-1,
+.almond-layout,
+.mint-layout {
+  background: #fafafa !important;
+}
+
+.dark .lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip,
+.dark .almond-layout,
+.dark .mint-layout,
+html.dark .lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip,
+html[class*="dark"] .lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip {
+  background: #0f0f12 !important;
+}
+
+/* ========================================
+   CARDS - Clean with subtle border
+   ======================================== */
+
+.card {
+  background: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+  transition: all 0.2s ease;
+}
+
+.dark .card,
+html.dark .card,
+html[class*="dark"] .card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.card:hover {
+  border-color: #FF6600 !important;
+  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.1) !important;
+}
+
+/* ========================================
+   TABLE OF CONTENTS - Purple active indicator
+   ======================================== */
+
+#table-of-contents,
+#table-of-contents-content {
+  border-left: none !important;
+}
+
+/* Active TOC item - purple left border like fal.ai */
+.toc-item.active,
+.toc-item[data-active="true"] {
+  color: #FF6600 !important;
+  border-left: 2px solid #FF6600 !important;
+  padding-left: 8px;
+}
+
+/* ========================================
+   CODE BLOCKS
+   ======================================== */
+
+.code-block,
+pre {
+  background: #fafafa !important;
+  border: 1px solid #e4e4e7 !important;
+}
+
+.dark .code-block,
+.dark pre,
+html.dark .code-block,
+html.dark pre,
+html[class*="dark"] .code-block,
+html[class*="dark"] pre {
+  background: #1a1a1e !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   CALLOUTS
+   ======================================== */
+
+.callout {
+  background: #fafafa !important;
+  border: 1px solid #e4e4e7 !important;
+}
+
+.dark .callout,
+html.dark .callout,
+html[class*="dark"] .callout {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   SCROLLBAR - Minimal
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+.dark ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb,
+html[class*="dark"] ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover,
+html[class*="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* ========================================
+   PAGINATION
+   ======================================== */
+
+.pagination-next,
+.pagination-prev {
+  background: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+  transition: all 0.15s ease;
+}
+
+.dark .pagination-next,
+.dark .pagination-prev,
+html.dark .pagination-next,
+html.dark .pagination-prev,
+html[class*="dark"] .pagination-next,
+html[class*="dark"] .pagination-prev {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.pagination-next:hover,
+.pagination-prev:hover {
+  border-color: #FF6600 !important;
+}
+
+/* ========================================
+   ACCORDION
+   ======================================== */
+
+.accordion {
+  background: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+}
+
+.dark .accordion,
+html.dark .accordion,
+html[class*="dark"] .accordion {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   FOOTER
+   ======================================== */
+
+footer {
+  border-top: 1px solid #e4e4e7 !important;
+}
+
+.dark footer,
+html.dark footer,
+html[class*="dark"] footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   CTA BUTTON
+   ======================================== */
+
+/* Parent container - no background */
+.flex.space-x-6.items-center,
+.flex.space-x-6.items-center * {
+  background: transparent !important;
+}
+
+/* Contact Us button background element */
+.absolute.inset-0.bg-primary-dark.rounded-xl {
+  background: #000000 !important;
+  border-radius: 6px !important;
+}
+
+.absolute.inset-0.bg-primary-dark.rounded-xl.group-hover\:opacity-\[0\.9\]:hover,
+.group:hover .absolute.inset-0.bg-primary-dark.rounded-xl {
+  background: #1a1a1a !important;
+}
+
+/* Contact Us button text */
+#topbar-cta-button,
+#topbar-cta-button *,
+#topbar-cta-button span,
+.mr-0\.5.space-x-2\.5.flex.items-center,
+.mr-0\.5.space-x-2\.5.flex.items-center *,
+.mr-0\.5.space-x-2\.5.flex.items-center span {
+  font-family: 'Roboto Mono', monospace !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Hide arrow after Contact Us button */
+#topbar-cta-button svg,
+#topbar-cta-button .icon,
+#topbar-cta-button::after,
+.mr-0\.5.space-x-2\.5.flex.items-center svg,
+.mr-0\.5.space-x-2\.5.flex.items-center .icon {
+  display: none !important;
+}
+
+/* ========================================
+   SEARCH BAR
+   ======================================== */
+
+#search-bar-entry,
+.search-bar-entry {
+  background: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 8px !important;
+}
+
+.dark #search-bar-entry,
+.dark .search-bar-entry,
+html.dark #search-bar-entry,
+html[class*="dark"] #search-bar-entry {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }

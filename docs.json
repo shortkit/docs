@@ -1,20 +1,26 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "almond",
+  "theme": "mint",
   "name": "Shortkit",
   "description": "Enterprise video infrastructure that scales. One line of code.",
   "colors": {
     "primary": "#FF6600",
-    "light": "#F3EEE6",
-    "dark": "#0A0A0A"
+    "light": "#fff8f5",
+    "dark": "#121216"
+  },
+  "background": {
+    "color": {
+      "light": "#ffffff",
+      "dark": "#0f0f12"
+    }
   },
   "fonts": {
     "heading": {
-      "family": "Roboto Mono",
-      "weight": 500
+      "family": "Public Sans",
+      "weight": 600
     },
     "body": {
-      "family": "Roboto Mono",
+      "family": "Public Sans",
       "weight": 400
     }
   },
@@ -129,7 +135,7 @@
     "codeblocks": {
       "theme": {
         "light": "github-light",
-        "dark": "github-dark"
+        "dark": "one-dark-pro"
       }
     }
   }
