@@ -14,29 +14,29 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Clean rounded corners */
+/* Slightly rounded corners throughout */
 * {
-  border-radius: 8px !important;
+  border-radius: 4px !important;
 }
 
-/* Slightly more rounded for cards */
+/* Square cards */
 .card,
 .callout,
 .accordion {
-  border-radius: 12px !important;
+  border-radius: 4px !important;
 }
 
 /* Buttons - rounded pill */
 button,
 [role="button"] {
-  border-radius: 8px !important;
+  border-radius: 4px !important;
 }
 
 /* Code blocks */
 pre,
 code,
 .code-block {
-  border-radius: 8px !important;
+  border-radius: 4px !important;
 }
 
 /* ========================================
@@ -149,7 +149,7 @@ html[class*="dark"] #sidebar-content {
 [data-active="true"] {
   background: rgba(255, 102, 0, 0.1) !important;
   color: #FF6600 !important;
-  border-radius: 6px !important;
+  border-radius: 4px !important;
 }
 
 /* ========================================
@@ -262,7 +262,7 @@ html[class*="dark"] .callout {
 
 ::-webkit-scrollbar-thumb {
   background: #d4d4d8;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -341,16 +341,43 @@ html[class*="dark"] footer {
    CTA BUTTON
    ======================================== */
 
+/* Logo - make it bigger */
+.nav-logo img,
+#navbar img[src*="logo"],
+.nav-logo,
+header img {
+  height: 2.5rem !important;
+  width: auto !important;
+}
+
 /* Parent container - no background */
 .flex.space-x-6.items-center,
 .flex.space-x-6.items-center * {
   background: transparent !important;
 }
 
-/* Contact Us button background element */
+/* Reduce space between Contact Us and light/dark toggle */
+#topbar-cta-button {
+  margin-right: 0.5rem !important;
+}
+
+button[aria-label*="theme"],
+button[aria-label*="mode"],
+button[aria-label*="dark"],
+button[aria-label*="light"],
+.theme-toggle {
+  margin-left: 0 !important;
+}
+
+/* Reduce spacing to the left of flex items-center */
+.flex.items-center {
+  margin-left: 0 !important;
+}
+
+/* Contact Us button background element - light mode */
 .absolute.inset-0.bg-primary-dark.rounded-xl {
   background: #000000 !important;
-  border-radius: 6px !important;
+  border-radius: 4px !important;
 }
 
 .absolute.inset-0.bg-primary-dark.rounded-xl.group-hover\:opacity-\[0\.9\]:hover,
@@ -358,15 +385,59 @@ html[class*="dark"] footer {
   background: #1a1a1a !important;
 }
 
-/* Contact Us button text */
+/* Contact Us button - dark mode */
+.dark .absolute.inset-0.bg-primary-dark.rounded-xl,
+html.dark .absolute.inset-0.bg-primary-dark.rounded-xl,
+html[class*="dark"] .absolute.inset-0.bg-primary-dark.rounded-xl {
+  background: #E97043 !important;
+}
+
+.dark .group:hover .absolute.inset-0.bg-primary-dark.rounded-xl,
+html.dark .group:hover .absolute.inset-0.bg-primary-dark.rounded-xl,
+html[class*="dark"] .group:hover .absolute.inset-0.bg-primary-dark.rounded-xl {
+  background: #d4633a !important;
+}
+
+/* Light/dark mode toggle button */
+button[aria-label*="theme"],
+button[aria-label*="mode"],
+button[aria-label*="dark"],
+button[aria-label*="light"],
+.theme-toggle {
+  background: #e4e4e7 !important;
+  padding: 0.5rem !important;
+  border-radius: 4px !important;
+  height: 2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.dark button[aria-label*="theme"],
+.dark button[aria-label*="mode"],
+.dark button[aria-label*="dark"],
+.dark button[aria-label*="light"],
+.dark .theme-toggle,
+html.dark button[aria-label*="theme"],
+html[class*="dark"] button[aria-label*="theme"] {
+  background: #3f3f46 !important;
+}
+
+/* Keep search bar clean */
+.relative.lg\:flex.items-center.flex-1.z-20.justify-center,
+.relative.lg\:flex.items-center.flex-1.z-20.justify-center * {
+  background: transparent !important;
+}
+
+/* Contact Us button text - same as rest of docs */
 #topbar-cta-button,
 #topbar-cta-button *,
 #topbar-cta-button span,
 .mr-0\.5.space-x-2\.5.flex.items-center,
 .mr-0\.5.space-x-2\.5.flex.items-center *,
 .mr-0\.5.space-x-2\.5.flex.items-center span {
-  font-family: 'Roboto Mono', monospace !important;
-  letter-spacing: 0.02em !important;
+  font-family: inherit !important;
+  text-transform: none !important;
 }
 
 /* Hide arrow after Contact Us button */
@@ -386,7 +457,7 @@ html[class*="dark"] footer {
 .search-bar-entry {
   background: #ffffff !important;
   border: 1px solid #e4e4e7 !important;
-  border-radius: 8px !important;
+  border-radius: 4px !important;
 }
 
 .dark #search-bar-entry,

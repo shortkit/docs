@@ -96,8 +96,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
+    "light": "/logo/shortkit_logo.jpeg",
+    "dark": "/logo/shortkit_logo.jpeg",
     "href": "https://shortkit.dev"
   },
   "navbar": {
