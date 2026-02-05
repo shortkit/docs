@@ -1,0 +1,169 @@
+/* Shortkit Custom Styles */
+/* Based on fal.ai's Mintlify customization approach */
+
+:root {
+  /* Primary colors - Orange brand */
+  --primary: 255 102 0;           /* #FF6600 */
+  --primary-light: 255 153 77;    /* Lighter orange for accents */
+  --primary-dark: 255 133 51;     /* #FF8533 for dark mode */
+
+  /* Backgrounds */
+  --background-light: 243 238 230;  /* #F3EEE6 warm cream */
+  --background-dark: 10 10 10;      /* #0A0A0A near black */
+
+  /* Custom gray scale with warm/orange tint */
+  --gray-50: 250 248 245;    /* Warmest white */
+  --gray-100: 245 242 238;   /* Warm off-white */
+  --gray-200: 235 230 222;   /* Light warm gray */
+  --gray-300: 220 212 200;   /* */
+  --gray-400: 180 172 160;   /* */
+  --gray-500: 140 132 120;   /* Mid-tone warm gray */
+  --gray-600: 100 92 82;     /* */
+  --gray-700: 70 64 56;      /* */
+  --gray-800: 45 40 35;      /* Dark warm gray */
+  --gray-900: 28 25 22;      /* Near black warm */
+  --gray-950: 15 13 10;      /* Darkest */
+
+  /* Typography */
+  --font-family-headings-custom: "Roboto Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-family-body-custom: "Roboto Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Code blocks */
+  --twoslash-popup-bg: #FAF8F5;
+  --twoslash-popup-shadow: rgba(255, 102, 0, 0.08) 0px 1px 4px;
+  --twoslash-error-color: #E05050;
+  --twoslash-error-bg: #E0505020;
+  --twoslash-warn-color: #FF6600;
+  --twoslash-warn-bg: #FF660020;
+  --twoslash-tag-color: #FF6600;
+  --twoslash-tag-bg: #FF660015;
+}
+
+/* Dark mode overrides */
+.dark {
+  --twoslash-popup-bg: #1A1816;
+  --twoslash-popup-shadow: rgba(255, 102, 0, 0.15) 0px 1px 4px;
+}
+
+/* Sharper border radius (like fal.ai's 4px approach) */
+*:not(li.toc-item):not(li.toc-item *):not(.link):not(.flex-1):not(.flex-1 *) {
+  border-radius: 4px !important;
+}
+
+/* Keep some elements rounder */
+button,
+[role="button"],
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+/* Code blocks - keep slightly more rounded */
+pre,
+code,
+.code-block {
+  border-radius: 6px !important;
+}
+
+/* Font feature settings for better legibility */
+html {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--gray-100));
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--gray-300));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--gray-400));
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgb(var(--gray-900));
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(var(--gray-700));
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--gray-600));
+}
+
+/* Navbar styling */
+#navbar {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Links - orange accent on hover */
+a:hover {
+  color: rgb(var(--primary));
+}
+
+/* Selection highlight */
+::selection {
+  background: rgba(255, 102, 0, 0.2);
+  color: inherit;
+}
+
+/* Code inline styling */
+:not(pre) > code {
+  background: rgba(255, 102, 0, 0.08);
+  color: rgb(var(--gray-800));
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+}
+
+.dark :not(pre) > code {
+  background: rgba(255, 102, 0, 0.15);
+  color: rgb(var(--gray-100));
+}
+
+/* Card hover effects */
+.card:hover,
+[class*="Card"]:hover {
+  border-color: rgba(255, 102, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.08);
+}
+
+/* Table styling */
+table {
+  border-color: rgb(var(--gray-200));
+}
+
+.dark table {
+  border-color: rgb(var(--gray-800));
+}
+
+th {
+  background: rgb(var(--gray-50));
+  font-weight: 600;
+}
+
+.dark th {
+  background: rgb(var(--gray-900));
+}
+
+/* Blockquote accent */
+blockquote {
+  border-left-color: rgb(var(--primary));
+}
+
+/* Focus states */
+*:focus-visible {
+  outline-color: rgb(var(--primary));
+  outline-offset: 2px;
+}
