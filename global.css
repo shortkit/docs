@@ -1,5 +1,9 @@
 /* Shortkit Custom Styles */
-/* NOTE: Global CSS requires Mintlify Business plan */
+
+/* TEST - bright red background */
+body {
+  background-color: red !important;
+}
 
 /* Sharper border radius (4px like fal.ai) */
 * {
