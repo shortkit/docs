@@ -1,6 +1,6 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="32" height="32" rx="6" fill="#F3EEE6"/>
-  <text x="4" y="26" font-family="'Roboto Mono', monospace" font-size="24" font-weight="500">
+  <text x="15" y="22" text-anchor="middle" dominant-baseline="central" font-family="'Roboto Mono', monospace" font-size="24" font-weight="500">
     <tspan fill="#000000">s</tspan><tspan fill="#FF6600">k</tspan>
   </text>
 </svg>
