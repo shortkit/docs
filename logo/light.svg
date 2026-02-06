@@ -1,5 +1,61 @@
-<svg width="64" height="48" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <text x="0" y="40" font-family="'Roboto Mono', monospace" font-size="48" font-weight="500">
-    <tspan fill="#000000">s</tspan><tspan fill="#FF6600">k</tspan>
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32">
+  <style>
+    .t {
+      font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      fill: #000;
+    }
+    .clip-rect {
+      animation: reveal 0.96s step-end forwards;
+    }
+    @keyframes reveal {
+      0%     { width: 0; }
+      12.5%  { width: 14px; }
+      25%    { width: 28px; }
+      37.5%  { width: 42px; }
+      50%    { width: 56px; }
+      62.5%  { width: 70px; }
+      75%    { width: 84px; }
+      87.5%  { width: 98px; }
+      100%   { width: 120px; }
+    }
+    .cursor {
+      animation-name: cursorMove, cursorBlink, cursorFade;
+      animation-duration: 0.96s, 1s, 0.5s;
+      animation-delay: 0s, 0.96s, 4.96s;
+      animation-timing-function: step-end, step-end, ease-out;
+      animation-iteration-count: 1, 4, 1;
+      animation-fill-mode: forwards, none, forwards;
+    }
+    @keyframes cursorMove {
+      0%     { transform: translateX(0); }
+      12.5%  { transform: translateX(14px); }
+      25%    { transform: translateX(28px); }
+      37.5%  { transform: translateX(42px); }
+      50%    { transform: translateX(56px); }
+      62.5%  { transform: translateX(70px); }
+      75%    { transform: translateX(84px); }
+      87.5%  { transform: translateX(98px); }
+      100%   { transform: translateX(112px); }
+    }
+    @keyframes cursorBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    @keyframes cursorFade {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+
+  <defs>
+    <clipPath id="r">
+      <rect class="clip-rect" x="0" y="0" height="32" width="0"/>
+    </clipPath>
+  </defs>
+
+  <text class="t" clip-path="url(#r)" x="0" y="24" textLength="112" lengthAdjust="spacing">shortkit</text>
+  <rect class="cursor" fill="#000" x="2" y="5" width="2" height="22"/>
 </svg>
