@@ -74,7 +74,6 @@ All responses use a consistent envelope structure with `data`, `meta`, and `erro
     }
   ],
   "meta": {
-    "next_cursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9",
     "request_id": "req_9d4e3f2a"
   }
 }
@@ -102,67 +101,15 @@ All responses use a consistent envelope structure with `data`, `meta`, and `erro
   Every response -- success or error -- includes a `meta.request_id` field. Include this value when contacting support to enable fast debugging.
 </Note>
 
-## Pagination
-
-List endpoints use **cursor-based pagination** with opaque cursor tokens. This provides consistent performance regardless of how deep into the result set you paginate.
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | integer | `10` | Number of items to return per page. Maximum: `50`. |
-| `cursor` | string | -- | Opaque cursor token from the previous response's `meta.next_cursor`. Omit for the first page. |
-
-### Paginating through results
-
-```bash
-# First page
-curl https://api.shortkit.dev/v1/feed?limit=10 \
-  -H "X-API-Key: pk_live_your_publishable_key"
-
-# Next page -- use the cursor from the previous response
-curl "https://api.shortkit.dev/v1/feed?limit=10&cursor=eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9" \
-  -H "X-API-Key: pk_live_your_publishable_key"
-```
-
-When `meta.next_cursor` is `null` or absent, you have reached the end of the result set.
-
-<Warning>
-  Cursor tokens are opaque and may change format between API versions. Do not parse, decode, or construct them manually. Always use the exact value returned by the API.
-</Warning>
-
 ## Rate limiting
 
-API requests are rate-limited per organization to ensure platform stability.
-
-| Plan | Requests per minute |
-|------|---------------------|
-| Standard | 1,000 |
-| Pro | 5,000 |
-| Enterprise | Custom |
-
-Every response includes rate limit headers:
-
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 947
-X-RateLimit-Reset: 1738785660
-```
-
-| Header | Description |
-|--------|-------------|
-| `X-RateLimit-Limit` | Maximum requests allowed per minute for your plan. |
-| `X-RateLimit-Remaining` | Requests remaining in the current window. |
-| `X-RateLimit-Reset` | Unix timestamp (seconds) when the rate limit window resets. |
+API requests are rate-limited per organization to ensure platform stability. The current limit is **120 requests per minute** per organization.
 
 When you exceed the limit, the API returns a `429 Too Many Requests` response with a `Retry-After` header indicating how many seconds to wait before retrying:
 
 ```
 HTTP/1.1 429 Too Many Requests
 Retry-After: 12
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1738785660
 ```
 
 ## Environments

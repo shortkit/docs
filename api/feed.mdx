@@ -1,16 +1,16 @@
 ---
 title: "Feed"
-description: "Retrieve ranked video feeds for your app."
-keywords: ["feed", "ranking", "pagination", "API"]
+description: "Retrieve a personalized video feed for your users."
+keywords: ["feed", "ranking", "personalization", "API"]
 ---
 
-The Feed API is the primary endpoint consumed by the ShortKit SDK. It returns a ranked, paginated list of video content ready for playback. The SDK calls this endpoint automatically, but you can also call it directly for server-side rendering or custom integrations.
+The Feed API is the primary endpoint consumed by the ShortKit SDK. It returns a ranked list of video content tailored to the requesting user. The SDK calls this endpoint automatically, but you can also call it directly for server-side rendering or custom integrations.
 
 ## Endpoint
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/feed` | Get the video feed |
+| `GET` | `/v1/feed` | Get a personalized video feed |
 
 ## Authentication
 
@@ -22,7 +22,7 @@ X-API-Key: pk_live_your_publishable_key
 
 ## Get feed
 
-Retrieves a paginated feed of video content for your organization.
+Retrieves a ranked feed of video content for a given user.
 
 ```bash
 GET /v1/feed
@@ -30,18 +30,14 @@ GET /v1/feed
 
 ### Query parameters
 
-<ParamField query="limit" type="integer" default={10}>
-  Number of items to return (1--50).
-</ParamField>
-
-<ParamField query="cursor" type="string">
-  Opaque pagination cursor from a previous response. Pass this to fetch the next page.
+<ParamField query="userId" type="string">
+  Identifier for the user requesting the feed. When provided, the ranking algorithm personalizes results based on the user's watch history and engagement signals. If omitted, the feed returns a default ranked order.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/feed?limit=10" \
+curl "https://api.shortkit.dev/v1/feed?userId=user_456" \
   -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
@@ -91,8 +87,7 @@ curl "https://api.shortkit.dev/v1/feed?limit=10" \
     }
   ],
   "meta": {
-    "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTE6MzA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9",
-    "requestId": "req_feed001"
+    "request_id": "req_feed001"
   }
 }
 ```
@@ -137,58 +132,38 @@ Each item in the `data` array contains:
   through to your app's UI layer.
 </ResponseField>
 
-## Pagination
+## Ranking
 
-The Feed API uses **cursor-based pagination**. This provides consistent performance regardless of how deep you paginate.
-
-1. Make an initial request without a `cursor`.
-2. If `meta.nextCursor` is present in the response, pass it as the `cursor` query parameter on the next request.
-3. When `meta.nextCursor` is `null`, you have reached the end of the feed.
-
-```bash
-# First page
-curl "https://api.shortkit.dev/v1/feed?limit=10" \
-  -H "X-API-Key: pk_live_your_publishable_key"
-
-# Next page (using cursor from previous response)
-curl "https://api.shortkit.dev/v1/feed?limit=10&cursor=eyJjYSI6IjIwMjYtMDItMDVUMTE6MzA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9" \
-  -H "X-API-Key: pk_live_your_publishable_key"
-```
-
-<Note>
-  Cursors are opaque strings. Do not parse, modify, or construct them. They may change format
-  between API versions.
-</Note>
-
-## Feed assembly
-
-The feed is assembled using the following rules, applied in order:
-
-| Rule | Behavior |
-|------|----------|
-| **Status filter** | Only content with status `ready` is included. |
-| **Suppression** | Content where `isSuppressed` is `true` is excluded. |
-| **Publish window** | Content with a `publishAt` timestamp in the future is excluded. |
-| **Expiration window** | Content with an `expiresAt` timestamp in the past is excluded. |
-| **Pinned items first** | Content with a `pinPosition` is placed at its specified position, ordered ascending. |
-| **Reverse chronological** | All remaining (unpinned) content is ordered newest first. |
+The feed ranking algorithm determines the order in which content is returned. It considers multiple signals to deliver the most relevant content to each user.
 
 ### Ranking signals
 
 | Signal | Description |
 |--------|-------------|
-| Recency | Newer content appears before older content |
-| Pin position | Pinned items override chronological ordering |
-| Editorial controls | Suppression, publish windows, and expiration are respected |
+| **Recency** | Newer content is favored over older content. |
+| **Editorial controls** | Pinned content appears at its designated position. Suppressed content, future-scheduled content, and expired content are excluded. |
+| **Watch history** | Content the user has already watched is deprioritized to avoid repetition. |
+| **Engagement** | Content with higher engagement rates (completions, likes, shares) is ranked higher. |
+| **Personalization** | The algorithm learns from a user's viewing patterns to surface content aligned with their interests. |
 
-<Note>
-  Advanced ranking signals (engagement-weighted scoring, topic affinity, personalization) will be
-  available in a future release.
-</Note>
+### Content eligibility
+
+Content must meet all of the following criteria to appear in the feed:
+
+| Rule | Behavior |
+|------|----------|
+| **Status** | Only content with status `ready` is included. |
+| **Suppression** | Content where `isSuppressed` is `true` is excluded. |
+| **Publish window** | Content with a `publishAt` timestamp in the future is excluded. |
+| **Expiration window** | Content with an `expiresAt` timestamp in the past is excluded. |
+
+### Pinned content
+
+Content with a `pinPosition` value is placed at its specified position in the feed, regardless of other ranking signals. Multiple pinned items are ordered by `pinPosition` ascending. All unpinned content follows, ordered by the ranking algorithm.
 
 ## SDK integration
 
-The ShortKit SDK handles feed fetching, pagination, and video playback automatically. You do not need to call the Feed API directly unless you are building a custom integration.
+The ShortKit SDK handles feed fetching and video playback automatically. You do not need to call the Feed API directly unless you are building a custom integration.
 
 <Tabs>
   <Tab title="iOS (Swift)">
@@ -203,21 +178,8 @@ The ShortKit SDK handles feed fetching, pagination, and video playback automatic
     let feedView = ShortKitFeedView()
     present(feedView, animated: true)
 
-    // Or fetch feed data manually
-    let feed = try await shortKit.fetchFeed(limit: 10)
-
-    for item in feed.items {
-        print(item.title)
-        print(item.streamingUrl)
-    }
-
-    // Load next page
-    if let cursor = feed.nextCursor {
-        let nextPage = try await shortKit.fetchFeed(
-            limit: 10,
-            cursor: cursor
-        )
-    }
+    // Identify the current user for personalized ranking
+    shortKit.identify(userId: "user_456")
     ```
   </Tab>
   <Tab title="Android (Kotlin)">
@@ -235,21 +197,8 @@ The ShortKit SDK handles feed fetching, pagination, and video playback automatic
         .replace(R.id.container, feedFragment)
         .commit()
 
-    // Or fetch feed data manually
-    val feed = shortKit.fetchFeed(limit = 10)
-
-    for (item in feed.items) {
-        println(item.title)
-        println(item.streamingUrl)
-    }
-
-    // Load next page
-    feed.nextCursor?.let { cursor ->
-        val nextPage = shortKit.fetchFeed(
-            limit = 10,
-            cursor = cursor
-        )
-    }
+    // Identify the current user for personalized ranking
+    shortKit.identify(userId = "user_456")
     ```
   </Tab>
   <Tab title="React Native">
@@ -264,21 +213,8 @@ The ShortKit SDK handles feed fetching, pagination, and video playback automatic
       return <ShortKitFeedView />;
     }
 
-    // Or fetch feed data manually
-    const feed = await shortKit.fetchFeed({ limit: 10 });
-
-    for (const item of feed.items) {
-      console.log(item.title);
-      console.log(item.streamingUrl);
-    }
-
-    // Load next page
-    if (feed.nextCursor) {
-      const nextPage = await shortKit.fetchFeed({
-        limit: 10,
-        cursor: feed.nextCursor,
-      });
-    }
+    // Identify the current user for personalized ranking
+    shortKit.identify({ userId: 'user_456' });
     ```
   </Tab>
 </Tabs>
@@ -297,7 +233,7 @@ All error responses follow the standard envelope format:
 {
   "data": null,
   "meta": {
-    "requestId": "req_err123"
+    "request_id": "req_err123"
   },
   "errors": [
     {

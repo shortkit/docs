@@ -160,7 +160,7 @@ GET /v1/content
 </ParamField>
 
 <ParamField query="cursor" type="string">
-  Pagination cursor from a previous response.
+  Opaque cursor token from a previous response's `meta.nextCursor`. Omit for the first page.
 </ParamField>
 
 <ParamField query="status" type="string">
@@ -214,12 +214,24 @@ curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=weather" \
   ],
   "meta": {
     "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2FiYzEyMyJ9",
-    "requestId": "req_list001"
+    "request_id": "req_list001"
   }
 }
 ```
 
-When there are more results, `meta.nextCursor` contains an opaque cursor string. Pass it as the `cursor` query parameter on the next request. When there are no more results, `nextCursor` is `null`.
+### Pagination
+
+This endpoint uses **cursor-based pagination**. When there are more results, `meta.nextCursor` contains an opaque cursor token. Pass it as the `cursor` query parameter on the next request to fetch the next page. When `meta.nextCursor` is `null`, you have reached the end of the result set.
+
+```bash
+# Next page -- use the cursor from the previous response
+curl "https://api.shortkit.dev/v1/content?limit=20&cursor=eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2FiYzEyMyJ9" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+<Warning>
+  Cursor tokens are opaque and may change format between API versions. Do not parse, decode, or construct them manually. Always use the exact value returned by the API.
+</Warning>
 
 ## Get content
 
@@ -275,7 +287,7 @@ curl https://api.shortkit.dev/v1/content/sk_content_abc123 \
     "updatedAt": "2026-02-05T12:03:45Z"
   },
   "meta": {
-    "requestId": "req_get001"
+    "request_id": "req_get001"
   }
 }
 ```
@@ -384,7 +396,7 @@ Returns the full updated content object:
     "updatedAt": "2026-02-05T14:30:00Z"
   },
   "meta": {
-    "requestId": "req_upd001"
+    "request_id": "req_upd001"
   }
 }
 ```
@@ -398,11 +410,11 @@ Use these fields to control how and when content appears in the feed:
 | **Pin** | `pinPosition` | Locks content to a specific position in the feed. Pinned items appear before unpinned items, ordered by `pinPosition` ascending. |
 | **Suppress** | `isSuppressed` | Immediately removes content from the feed without deleting it. Useful for temporary takedowns. |
 | **Schedule** | `publishAt` | Content is invisible in the feed until this timestamp passes. |
-| **Expire** | `expiresAt` | Content is automatically removed from the feed after this timestamp. The content is not deleted -- its status changes to `archived`. |
+| **Expire** | `expiresAt` | Content is automatically removed from the feed after this timestamp. The content is not deleted and can be made visible again by updating or clearing the `expiresAt` value. |
 
 ## Delete content
 
-Permanently deletes a content item and all associated data (video files, thumbnails, captions).
+Archives a content item. Archived content is immediately removed from the feed but its metadata is retained. The content status changes to `archived`.
 
 ```bash
 DELETE /v1/content/{id}
@@ -411,7 +423,7 @@ DELETE /v1/content/{id}
 ### Path parameters
 
 <ParamField path="id" type="string" required>
-  Content ID to delete.
+  Content ID to archive.
 </ParamField>
 
 ### Example request
@@ -430,15 +442,15 @@ curl -X DELETE https://api.shortkit.dev/v1/content/sk_content_abc123 \
     "deleted": true
   },
   "meta": {
-    "requestId": "req_del001"
+    "request_id": "req_del001"
   }
 }
 ```
 
-<Warning>
-  Deletion is permanent. All video files, thumbnails, captions, and associated engagement data
-  are removed within 24 hours. This action cannot be undone.
-</Warning>
+<Note>
+  Deleting content sets its status to `archived`. The content no longer appears in the feed
+  but can still be retrieved via `GET /v1/content/{id}`.
+</Note>
 
 ## Webhooks
 

@@ -141,6 +141,14 @@ The response indicates how many events were accepted and how many were rejected 
 | `share` | User shares content | `platform` |
 | `save` | User saves content | _(none)_ |
 
+### Feed navigation events
+
+| Event type | Trigger | Event-specific fields |
+|------------|---------|----------------------|
+| `feedEntry` | User enters the feed view | _(none)_ |
+| `feedExit` | User exits the feed view | `watchTime` |
+| `interaction` | Generic user interaction | `action` |
+
 ### Quality events
 
 | Event type | Trigger | Event-specific fields |
@@ -324,6 +332,65 @@ Sent when the user saves a content item.
 ```
 
 No event-specific fields.
+
+### feedEntry
+
+Sent when the user enters the feed view.
+
+```json
+{
+  "type": "feedEntry",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:00Z",
+  "data": {}
+}
+```
+
+No event-specific fields.
+
+### feedExit
+
+Sent when the user exits the feed view.
+
+```json
+{
+  "type": "feedExit",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:05:00Z",
+  "data": {
+    "watchTime": 300.0
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `watchTime` | number | Total seconds spent in the feed view |
+
+### interaction
+
+Sent for generic user interactions not covered by other event types.
+
+```json
+{
+  "type": "interaction",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:01:15Z",
+  "data": {
+    "action": "tap_metadata"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `action` | string | The interaction type (e.g., `tap_metadata`, `long_press`, `double_tap`) |
 
 ### rebuffer
 
