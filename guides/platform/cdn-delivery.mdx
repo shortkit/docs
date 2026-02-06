@@ -1,88 +1,85 @@
 ---
 title: "CDN delivery"
-description: "Global content delivery with edge caching, signed URLs, and branded domains."
-keywords: ["CDN", "delivery", "caching", "streaming", "edge"]
+description: "How ShortKit delivers video content globally with low latency."
+keywords: ["CDN", "delivery", "streaming", "latency", "signed URLs"]
 ---
 
-shortkit delivers video content through a global CDN network, ensuring fast playback and low latency for users worldwide.
+ShortKit uses a two-path networking model to deliver content to your users. API requests and video streams travel through separate, optimized paths.
 
-## Architecture
+## Two-path delivery model
 
-Content flows through three tiers: users request from edge nodes, which pull from the origin shield, which pulls from origin storage. Cache hits at any tier return content immediately without hitting the next tier.
+| Path | Domain | Purpose |
+|------|--------|---------|
+| **API** | `api.shortkit.dev` | Feed requests, configuration, event ingestion, identity resolution |
+| **Video and images** | Global CDN | HLS video streaming, thumbnails |
 
-### Edge caching
-
-Popular content is cached at 200+ edge locations closest to users:
-
-- **Cache duration**: Based on content popularity and freshness
-- **Purge on update**: Automatic invalidation when content changes
-- **Regional optimization**: Popular content stays at regional edges
-
-### Origin shield
-
-A mid-tier cache layer reduces origin load:
-
-- Aggregates requests from multiple edge nodes
-- Prevents origin overload during traffic spikes
-- Reduces egress costs
-
-## Branded domains
-
-Configure custom CNAME domains for CDN delivery:
-
-### Setup
-
-<Steps>
-  <Step title="Add domain in Admin Portal">
-    Go to **Settings → Branded CDN Domain** and enter your domain:
-
-    ```
-    video.yourcompany.com
-    ```
-  </Step>
-  <Step title="Create DNS CNAME record">
-    Create a CNAME record pointing to shortkit's CDN:
-
-    | Type | Name | Value |
-    |------|------|-------|
-    | CNAME | video | cdn.shortkit.dev |
-  </Step>
-  <Step title="Verify domain">
-    Click **Verify** in the Admin Portal. Verification typically completes within minutes.
-  </Step>
-  <Step title="Enable SSL">
-    SSL certificates are automatically provisioned via Let's Encrypt. This may take up to 24 hours.
-  </Step>
-</Steps>
-
-Once configured, all video URLs use your branded domain:
+When the SDK requests a feed, the API returns content metadata along with streaming and thumbnail URLs. The SDK's video player then fetches video segments directly from the CDN -- there is no round-trip back to the API for media delivery.
 
 ```
-https://video.yourcompany.com/v1/streams/cnt_abc123/manifest.m3u8
+SDK
+ |
+ |-- GET api.shortkit.dev/v1/feed  -->  ShortKit API
+ |       (returns content metadata + streaming URLs)
+ |
+ |-- GET {streamingUrl}  -->  Global CDN
+ |       (HLS manifest + video segments)
+ |
+ |-- GET {thumbnailUrl}  -->  Global CDN
+         (first-frame thumbnails)
 ```
 
-## Signed URLs
+This separation means that API latency and video delivery latency are independent. Feed requests resolve quickly from the API, while video segments are served from CDN edge locations closest to the viewer.
 
-All CDN URLs are signed with time-limited tokens to prevent unauthorized access.
+## Global CDN
+
+Video segments and thumbnails are served through a globally distributed CDN with edge locations across all major regions. Content is cached at edge nodes close to your users, ensuring low-latency playback regardless of geography.
 
 ### How it works
 
-1. Feed API returns content with signed streaming URLs
-2. URLs include expiry timestamp and signature
-3. CDN validates signature before serving content
-4. Expired tokens return 403; SDK automatically refreshes
+1. The SDK initiates playback using the HLS streaming URL from the feed response
+2. The CDN serves the HLS master playlist from the nearest edge location
+3. The SDK's player selects the appropriate quality rendition based on network conditions
+4. Video segments are fetched from the CDN as playback progresses
+5. The SDK pre-buffers the next video in the feed for near-instant transitions on swipe
 
-### URL format
+### Performance characteristics
+
+| Metric | Target |
+|--------|--------|
+| Edge cache hit ratio | > 95% for popular content |
+| Time to first byte (cache hit) | < 50ms |
+| Global availability | 99.99% |
+
+## Signed URLs
+
+All streaming and thumbnail URLs returned by the feed API are signed with time-limited tokens. This prevents unauthorized access to your video content.
+
+### How it works
+
+1. The feed API returns content items with signed streaming URLs
+2. Each URL includes an expiry timestamp and cryptographic signature
+3. The CDN validates the signature before serving content
+4. When a token expires, the SDK refreshes it automatically by requesting updated URLs from the API
+
+### URL structure
+
+Streaming URLs follow this pattern:
 
 ```
-https://video.yourcompany.com/v1/streams/cnt_abc123/manifest.m3u8
-  ?token=eyJhbGc...
-  &expires=1707048000
+https://{cdn-host}/{content-path}/manifest.m3u8?token=...&expires=1707048000
 ```
 
-### Token expiry
+Thumbnail URLs follow a similar pattern:
 
-Configure in Admin Portal (**Settings → CDN URL Expiry**) or via API:
+```
+https://{cdn-host}/{content-path}/thumbnail.jpg?token=...&expires=1707048000
+```
+
+The SDK handles token refresh transparently. If a viewer's session outlasts the token expiry window, the SDK fetches fresh URLs without interrupting playback.
+
+### Configurable expiry
+
+You can configure the token validity duration:
 
 ```bash
 curl -X PUT https://api.shortkit.dev/v1/config/cdn \
@@ -95,187 +92,25 @@ curl -X PUT https://api.shortkit.dev/v1/config/cdn \
 
 | Setting | Default | Range | Description |
 |---------|---------|-------|-------------|
-| `urlExpiry` | 6 hours | 1-24 hours | Token validity duration |
+| `urlExpiry` | 6 hours | 1 -- 24 hours | Token validity duration in seconds |
 
 <Tip>
-  Shorter expiry improves security but may cause issues for users with very long viewing sessions. The SDK handles token refresh automatically.
+  Shorter expiry values improve security but may increase the frequency of token refreshes for users with long viewing sessions. The SDK handles refresh automatically in either case.
 </Tip>
 
-### Key rotation
+## Thumbnails
 
-Signing keys rotate automatically every 90 days with overlap periods to prevent playback interruption.
+The feed API returns a thumbnail URL for every content item. Thumbnails are first-frame images generated during transcoding and served from the same CDN as video content.
 
-## Playback restrictions
-
-Restrict video playback to authorized domains.
-
-### Domain allowlist
-
-Only requests from allowed domains can play video content:
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "allowedDomains": [
-      "yourcompany.com",
-      "*.yourcompany.com",
-      "staging.yourcompany.com"
-    ],
-    "allowNoReferrer": false,
-    "allowHighRiskUserAgents": false
-  }'
-```
-
-### Configuration options
-
-<ResponseField name="allowedDomains" type="string[]" required>
-  List of allowed domains. Supports exact matches and wildcards (`*.example.com`).
-</ResponseField>
-
-<ResponseField name="allowNoReferrer" type="boolean" default="false">
-  Whether to allow requests with no referrer header. Some mobile apps and direct URL access don't send referrers.
-</ResponseField>
-
-<ResponseField name="allowHighRiskUserAgents" type="boolean" default="false">
-  Whether to allow requests from known scraping/bot user agents.
-</ResponseField>
-
-### Development environments
-
-`localhost` and `127.0.0.1` are automatically allowed in staging/development environments.
-
-### Admin Portal
-
-Configure in **Settings → Playback Restrictions**.
-
-## Streaming manifests
-
-The platform generates optimized manifests for each protocol:
-
-### HLS (HTTP Live Streaming)
-
-Master playlist with variant streams:
-
-```m3u8
-#EXTM3U
-#EXT-X-VERSION:7
-#EXT-X-INDEPENDENT-SEGMENTS
-
-#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,CODECS="avc1.64002a,mp4a.40.2"
-1080p/playlist.m3u8
-
-#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720,CODECS="avc1.64001f,mp4a.40.2"
-720p/playlist.m3u8
-
-#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=854x480,CODECS="avc1.640028,mp4a.40.2"
-480p/playlist.m3u8
-```
-
-### DASH (Dynamic Adaptive Streaming over HTTP)
-
-MPD manifest with adaptation sets:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<MPD type="static" mediaPresentationDuration="PT45.2S">
-  <Period>
-    <AdaptationSet mimeType="video/mp4" segmentAlignment="true">
-      <Representation id="1080p" bandwidth="5000000" width="1920" height="1080">
-        <SegmentTemplate media="1080p/segment_$Number$.m4s" />
-      </Representation>
-      <Representation id="720p" bandwidth="2800000" width="1280" height="720">
-        <SegmentTemplate media="720p/segment_$Number$.m4s" />
-      </Representation>
-    </AdaptationSet>
-  </Period>
-</MPD>
-```
-
-### Multi-codec manifests
-
-When AV1 is available, manifests include both codec options:
-
-```m3u8
-#EXT-X-STREAM-INF:BANDWIDTH=2800000,CODECS="av01.0.08M.08"
-720p_av1/playlist.m3u8
-
-#EXT-X-STREAM-INF:BANDWIDTH=4000000,CODECS="avc1.64001f"
-720p_h264/playlist.m3u8
-```
-
-The SDK selects the appropriate codec based on device capabilities.
-
-## Performance metrics
-
-### Target metrics
-
-| Metric | Target |
-|--------|--------|
-| Edge cache hit ratio | > 95% |
-| First byte (cache hit) | < 50ms |
-| First byte (cache miss) | < 200ms |
-| Global availability | 99.99% |
-
-### Monitoring
-
-View CDN performance in Admin Portal (**Analytics → Playback Quality**):
-
-- Cache hit ratio over time
-- Regional latency breakdown
-- Bandwidth usage by rendition
-- Error rates by region
-
-## Geographic distribution
-
-Content is served from the nearest edge location:
-
-| Region | Edge Locations |
-|--------|----------------|
-| North America | 50+ |
-| Europe | 40+ |
-| Asia Pacific | 35+ |
-| South America | 15+ |
-| Africa | 10+ |
-| Middle East | 10+ |
-
-## Delivery usage
-
-Track bandwidth and delivery metrics:
-
-```bash
-curl https://api.shortkit.dev/v1/analytics/delivery \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -G -d "startDate=2024-01-01" -d "endDate=2024-01-31"
-```
-
-Response:
-
-```json
-{
-  "data": {
-    "totalDeliveredSeconds": 15420000,
-    "totalBandwidthGB": 2450.5,
-    "byRendition": {
-      "1080p": { "seconds": 3200000, "bandwidthGB": 1200 },
-      "720p": { "seconds": 5800000, "bandwidthGB": 850 },
-      "480p": { "seconds": 4200000, "bandwidthGB": 300 },
-      "360p": { "seconds": 2220000, "bandwidthGB": 100 }
-    }
-  }
-}
-```
-
-View in Admin Portal: **Analytics → Delivery Usage**
+The SDK uses thumbnails to provide instant visual feedback: when a user scrolls through the feed, thumbnails display immediately while the video player buffers. The SDK pre-fetches thumbnails for upcoming items to ensure they are cached and ready before the user swipes.
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="Feed ranking" icon="ranking-star" href="/guides/platform/feed-ranking">
-    Learn how content is ranked and ordered.
+    Learn how content is ordered in the feed.
   </Card>
-  <Card title="Playback restrictions" icon="shield" href="/guides/integration/playback-security">
-    Configure domain restrictions and security.
+  <Card title="Transcoding" icon="film" href="/guides/platform/transcoding">
+    Understand the encoding pipeline that prepares content for delivery.
   </Card>
 </Columns>

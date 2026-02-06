@@ -1,23 +1,28 @@
 ---
 title: "Feed"
-description: "Retrieve personalized and ranked video feeds."
-keywords: ["feed", "ranking", "personalization", "API"]
+description: "Retrieve ranked video feeds for your app."
+keywords: ["feed", "ranking", "pagination", "API"]
 ---
 
-The Feed API delivers ranked, personalized video content to your users. It combines content filtering, ranking algorithms, and user preferences to serve optimal feeds.
+The Feed API is the primary endpoint consumed by the ShortKit SDK. It returns a ranked, paginated list of video content ready for playback. The SDK calls this endpoint automatically, but you can also call it directly for server-side rendering or custom integrations.
 
-## Endpoints
+## Endpoint
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/feed` | Get personalized feed |
-| `GET` | `/v1/feed/trending` | Get trending content |
-| `GET` | `/v1/feed/topic/{topic}` | Get topic-specific feed |
-| `POST` | `/v1/feed/refresh` | Force feed refresh |
+| `GET` | `/v1/feed` | Get the video feed |
+
+## Authentication
+
+The Feed API uses a **publishable key** passed via the `X-API-Key` header. Publishable keys are safe to embed in client-side code and mobile apps.
+
+```bash
+X-API-Key: pk_live_your_publishable_key
+```
 
 ## Get feed
 
-Retrieves a personalized feed for the requesting user/device.
+Retrieves a paginated feed of video content for your organization.
 
 ```bash
 GET /v1/feed
@@ -25,39 +30,19 @@ GET /v1/feed
 
 ### Query parameters
 
-<ParamField query="limit" type="integer" default={20}>
-  Number of items to return (1-50).
+<ParamField query="limit" type="integer" default={10}>
+  Number of items to return (1--50).
 </ParamField>
 
 <ParamField query="cursor" type="string">
-  Pagination cursor from previous response.
-</ParamField>
-
-<ParamField query="userId" type="string">
-  User ID for personalization (optional with SDK).
-</ParamField>
-
-<ParamField query="deviceId" type="string">
-  Device ID for anonymous users.
-</ParamField>
-
-<ParamField query="topics" type="string">
-  Comma-separated topic filters.
-</ParamField>
-
-<ParamField query="excludeIds" type="string">
-  Comma-separated content IDs to exclude.
-</ParamField>
-
-<ParamField query="geo" type="string">
-  ISO country code for geo-relevance.
+  Opaque pagination cursor from a previous response. Pass this to fetch the next page.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/feed?limit=20&userId=user_123" \
-  -H "Authorization: Bearer pk_live_your_publishable_key"
+curl "https://api.shortkit.dev/v1/feed?limit=10" \
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
 ### Response
@@ -66,356 +51,271 @@ curl "https://api.shortkit.dev/v1/feed?limit=20&userId=user_123" \
 {
   "data": [
     {
-      "id": "cnt_abc123",
-      "title": "Amazing Product Demo",
-      "duration": 45.2,
-      "aspectRatio": "9:16",
-      "thumbnails": {
-        "default": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/default.jpg",
-        "animated": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/preview.webp"
-      },
-      "streamingUrl": "https://video.shortkit.dev/v1/streams/cnt_abc123/manifest.m3u8?token=...",
-      "creator": {
-        "id": "creator_xyz",
-        "name": "Product Team",
-        "avatar": "https://cdn.shortkit.dev/avatars/creator_xyz.jpg"
-      },
-      "engagement": {
-        "views": 12500,
-        "likes": 850,
-        "shares": 120
-      },
-      "ranking": {
-        "score": 0.85,
-        "reasons": ["trending", "topic_match"]
+      "id": "sk_content_abc123",
+      "title": "Breaking: Weather Alert",
+      "description": "Severe thunderstorm warning for the metro area",
+      "duration": 32.5,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+      "captionTracks": [
+        {
+          "language": "en",
+          "label": "English",
+          "source": "embedded",
+          "url": null
+        }
+      ],
+      "customMetadata": {
+        "articleUrl": "https://example.com/weather-alert",
+        "category": "severe-weather"
+      }
+    },
+    {
+      "id": "sk_content_def456",
+      "title": "Product Launch Recap",
+      "description": "Highlights from today's launch event",
+      "duration": 58.0,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_def456/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_def456/thumbnail.jpg",
+      "captionTracks": [
+        {
+          "language": "en",
+          "label": "English",
+          "source": "embedded",
+          "url": null
+        }
+      ],
+      "customMetadata": {
+        "category": "product"
       }
     }
   ],
   "meta": {
-    "cursor": "eyJvZmZzZXQiOjIwfQ==",
-    "hasMore": true,
-    "feedId": "feed_abc123",
-    "experimentId": "exp_xyz789"
+    "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTE6MzA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9",
+    "requestId": "req_feed001"
   }
 }
 ```
 
 ### Feed item object
 
+Each item in the `data` array contains:
+
 <ResponseField name="id" type="string">
-  Content ID.
+  Content identifier (e.g., `sk_content_abc123`).
 </ResponseField>
 
 <ResponseField name="title" type="string">
-  Content title.
+  Display title.
+</ResponseField>
+
+<ResponseField name="description" type="string | null">
+  Optional description text.
 </ResponseField>
 
 <ResponseField name="duration" type="number">
-  Duration in seconds.
-</ResponseField>
-
-<ResponseField name="aspectRatio" type="string">
-  Aspect ratio (e.g., `9:16`).
-</ResponseField>
-
-<ResponseField name="thumbnails" type="object">
-  Thumbnail URLs by type.
+  Video duration in seconds.
 </ResponseField>
 
 <ResponseField name="streamingUrl" type="string">
-  Signed HLS streaming URL.
+  HLS streaming URL. Pass this directly to your video player.
 </ResponseField>
 
-<ResponseField name="creator" type="object">
-  Creator information (if available).
+<ResponseField name="thumbnailUrl" type="string">
+  Thumbnail image URL for the poster frame.
 </ResponseField>
 
-<ResponseField name="engagement" type="object">
-  Engagement metrics.
+<ResponseField name="captionTracks" type="array">
+  Available caption tracks. Each track has `language` (ISO 639-1 code), `label` (human-readable name),
+  `source` (`"embedded"` for captions in the HLS stream, `"external"` for sidecar files),
+  and `url` (`null` for embedded, a URL for external).
 </ResponseField>
 
-<ResponseField name="ranking" type="object">
-  Ranking score and contributing factors.
+<ResponseField name="customMetadata" type="object">
+  Arbitrary key-value pairs set when the content was created or updated.
+  Use this to pass application-specific data (article URLs, category tags, deep links)
+  through to your app's UI layer.
 </ResponseField>
 
-## Trending feed
+## Pagination
 
-Retrieves globally trending content.
+The Feed API uses **cursor-based pagination**. This provides consistent performance regardless of how deep you paginate.
 
-```bash
-GET /v1/feed/trending
-```
-
-### Query parameters
-
-<ParamField query="limit" type="integer" default={20}>
-  Number of items (1-50).
-</ParamField>
-
-<ParamField query="period" type="string" default="day">
-  Time period: `hour`, `day`, `week`.
-</ParamField>
-
-<ParamField query="geo" type="string">
-  ISO country code for regional trending.
-</ParamField>
-
-### Example request
+1. Make an initial request without a `cursor`.
+2. If `meta.nextCursor` is present in the response, pass it as the `cursor` query parameter on the next request.
+3. When `meta.nextCursor` is `null`, you have reached the end of the feed.
 
 ```bash
-curl "https://api.shortkit.dev/v1/feed/trending?period=day&geo=US&limit=10" \
-  -H "Authorization: Bearer pk_live_your_publishable_key"
+# First page
+curl "https://api.shortkit.dev/v1/feed?limit=10" \
+  -H "X-API-Key: pk_live_your_publishable_key"
+
+# Next page (using cursor from previous response)
+curl "https://api.shortkit.dev/v1/feed?limit=10&cursor=eyJjYSI6IjIwMjYtMDItMDVUMTE6MzA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9" \
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
-### Response
+<Note>
+  Cursors are opaque strings. Do not parse, modify, or construct them. They may change format
+  between API versions.
+</Note>
 
-```json
-{
-  "data": [
-    {
-      "id": "cnt_trend1",
-      "title": "Viral Video",
-      "duration": 30.0,
-      "trending": {
-        "rank": 1,
-        "velocity": 2.5,
-        "peakViews": 50000
-      }
-    }
-  ],
-  "meta": {
-    "period": "day",
-    "geo": "US",
-    "updatedAt": "2024-02-04T12:00:00Z"
-  }
-}
-```
+## Feed assembly
 
-## Topic feed
+The feed is assembled using the following rules, applied in order:
 
-Retrieves content for a specific topic.
+| Rule | Behavior |
+|------|----------|
+| **Status filter** | Only content with status `ready` is included. |
+| **Suppression** | Content where `isSuppressed` is `true` is excluded. |
+| **Publish window** | Content with a `publishAt` timestamp in the future is excluded. |
+| **Expiration window** | Content with an `expiresAt` timestamp in the past is excluded. |
+| **Pinned items first** | Content with a `pinPosition` is placed at its specified position, ordered ascending. |
+| **Reverse chronological** | All remaining (unpinned) content is ordered newest first. |
 
-```bash
-GET /v1/feed/topic/{topic}
-```
+### Ranking signals
 
-### Path parameters
+| Signal | Description |
+|--------|-------------|
+| Recency | Newer content appears before older content |
+| Pin position | Pinned items override chronological ordering |
+| Editorial controls | Suppression, publish windows, and expiration are respected |
 
-<ParamField path="topic" type="string" required>
-  Topic slug (e.g., `technology`, `sports`, `music`).
-</ParamField>
-
-### Query parameters
-
-<ParamField query="limit" type="integer" default={20}>
-  Number of items (1-50).
-</ParamField>
-
-<ParamField query="cursor" type="string">
-  Pagination cursor.
-</ParamField>
-
-<ParamField query="sort" type="string" default="ranked">
-  Sort order: `ranked`, `recent`, `popular`.
-</ParamField>
-
-### Example request
-
-```bash
-curl "https://api.shortkit.dev/v1/feed/topic/technology?limit=20&sort=ranked" \
-  -H "Authorization: Bearer pk_live_your_publishable_key"
-```
-
-## Refresh feed
-
-Force a feed refresh, bypassing cache.
-
-```bash
-POST /v1/feed/refresh
-```
-
-### Request body
-
-<ParamField body="userId" type="string">
-  User ID to refresh feed for.
-</ParamField>
-
-<ParamField body="deviceId" type="string">
-  Device ID to refresh feed for.
-</ParamField>
-
-<ParamField body="reason" type="string">
-  Reason for refresh (for analytics).
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/feed/refresh \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "user_123",
-    "reason": "pull_to_refresh"
-  }'
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "refreshed": true,
-    "feedId": "feed_new123"
-  }
-}
-```
-
-## Ranking signals
-
-The feed ranking algorithm considers these signals:
-
-| Signal | Weight | Description |
-|--------|--------|-------------|
-| Recency | 0.25 | Newer content scores higher |
-| Engagement | 0.20 | Completion rate, likes, shares |
-| Topic affinity | 0.20 | Match with user interests |
-| Geo-relevance | 0.15 | Location-based scoring |
-| Completion rate | 0.10 | Historical completion data |
-| Creator affinity | 0.10 | Previous engagement with creator |
-
-Weights are configurable via the [Ranking API](/api/ranking).
-
-## Personalization
-
-### Anonymous users
-
-For users without accounts, personalization uses:
-- Device ID for session continuity
-- Viewing history (last 7 days)
-- Implicit topic preferences
-- Geographic location
-
-### Identified users
-
-For logged-in users, additional signals:
-- Explicit topic preferences
-- Cross-device history
-- Account-level engagement
-- Social graph (if available)
-
-### User identification
-
-Link anonymous history to user accounts:
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/users/identify \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "deviceId": "device_abc123",
-    "userId": "user_123"
-  }'
-```
+<Note>
+  Advanced ranking signals (engagement-weighted scoring, topic affinity, personalization) will be
+  available in a future release.
+</Note>
 
 ## SDK integration
 
-SDKs handle feed fetching and pagination automatically:
+The ShortKit SDK handles feed fetching, pagination, and video playback automatically. You do not need to call the Feed API directly unless you are building a custom integration.
 
 <Tabs>
-  <Tab title="iOS">
+  <Tab title="iOS (Swift)">
     ```swift
-    // Fetch feed
-    let feed = try await shortKit.fetchFeed(limit: 20)
+    import ShortKit
 
-    // Paginate
-    if feed.hasMore {
-        let nextPage = try await shortKit.fetchFeed(
-            limit: 20,
-            cursor: feed.cursor
-        )
+    // Initialize with your publishable key
+    let config = ShortKitConfig(apiKey: "pk_live_your_publishable_key")
+    let shortKit = ShortKit(config: config)
+
+    // Present the feed as a full-screen view
+    let feedView = ShortKitFeedView()
+    present(feedView, animated: true)
+
+    // Or fetch feed data manually
+    let feed = try await shortKit.fetchFeed(limit: 10)
+
+    for item in feed.items {
+        print(item.title)
+        print(item.streamingUrl)
     }
 
-    // Topic feed
-    let techFeed = try await shortKit.fetchFeed(
-        topic: "technology",
-        limit: 20
-    )
+    // Load next page
+    if let cursor = feed.nextCursor {
+        let nextPage = try await shortKit.fetchFeed(
+            limit: 10,
+            cursor: cursor
+        )
+    }
     ```
   </Tab>
-  <Tab title="Android">
+  <Tab title="Android (Kotlin)">
     ```kotlin
-    // Fetch feed
-    val feed = shortKit.fetchFeed(limit = 20)
+    import dev.shortkit.sdk.ShortKit
+    import dev.shortkit.sdk.ShortKitConfig
 
-    // Paginate
-    if (feed.hasMore) {
-        val nextPage = shortKit.fetchFeed(
-            limit = 20,
-            cursor = feed.cursor
-        )
+    // Initialize with your publishable key
+    val config = ShortKitConfig(apiKey = "pk_live_your_publishable_key")
+    val shortKit = ShortKit(config)
+
+    // Present the feed as a full-screen view
+    val feedFragment = ShortKitFeedFragment()
+    supportFragmentManager.beginTransaction()
+        .replace(R.id.container, feedFragment)
+        .commit()
+
+    // Or fetch feed data manually
+    val feed = shortKit.fetchFeed(limit = 10)
+
+    for (item in feed.items) {
+        println(item.title)
+        println(item.streamingUrl)
     }
 
-    // Topic feed
-    val techFeed = shortKit.fetchFeed(
-        topic = "technology",
-        limit = 20
-    )
+    // Load next page
+    feed.nextCursor?.let { cursor ->
+        val nextPage = shortKit.fetchFeed(
+            limit = 10,
+            cursor = cursor
+        )
+    }
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
-    // Fetch feed
-    const { items, cursor, hasMore } = await shortkit.fetchFeed({ limit: 20 });
+    import { ShortKit, ShortKitFeedView } from '@shortkit/react-native';
 
-    // Paginate
-    if (hasMore) {
-      const nextPage = await shortkit.fetchFeed({ limit: 20, cursor });
+    // Initialize with your publishable key
+    const shortKit = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+    // Render the feed as a full-screen component
+    function App() {
+      return <ShortKitFeedView />;
     }
 
-    // Topic feed
-    const techFeed = await shortkit.fetchFeed({
-      topic: 'technology',
-      limit: 20
-    });
+    // Or fetch feed data manually
+    const feed = await shortKit.fetchFeed({ limit: 10 });
+
+    for (const item of feed.items) {
+      console.log(item.title);
+      console.log(item.streamingUrl);
+    }
+
+    // Load next page
+    if (feed.nextCursor) {
+      const nextPage = await shortKit.fetchFeed({
+        limit: 10,
+        cursor: feed.nextCursor,
+      });
+    }
     ```
   </Tab>
 </Tabs>
 
-## Caching
+## Error responses
 
-Feed responses are cached for performance:
+| HTTP Status | Error code | Description |
+|-------------|------------|-------------|
+| 401 | `invalid_api_key` | The `X-API-Key` header is missing or the key is not valid. |
+| 429 | `rate_limited` | Too many requests. Retry after the duration in the `Retry-After` header. |
+| 500 | `internal_error` | An unexpected error occurred. Contact support if it persists. |
 
-| Feed Type | Cache Duration |
-|-----------|----------------|
-| Personalized | 5 minutes |
-| Trending | 15 minutes |
-| Topic | 10 minutes |
-
-Use `POST /v1/feed/refresh` to bypass cache when needed.
-
-## A/B testing
-
-Feed requests may be assigned to experiments:
+All error responses follow the standard envelope format:
 
 ```json
 {
+  "data": null,
   "meta": {
-    "experimentId": "exp_xyz789",
-    "variant": "treatment_a"
-  }
+    "requestId": "req_err123"
+  },
+  "errors": [
+    {
+      "code": "invalid_api_key",
+      "message": "The provided API key is not valid.",
+      "status": 401
+    }
+  ]
 }
 ```
-
-Track experiment exposure when displaying feed items to ensure accurate analytics.
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Feed ranking" icon="sort" href="/guides/platform/feed-ranking">
-    Configure ranking algorithm.
+  <Card title="Content API" icon="video" href="/api/content">
+    Manage content metadata and editorial controls.
   </Card>
   <Card title="Events API" icon="chart-line" href="/api/events">
-    Send engagement events.
+    Send engagement events from your app.
   </Card>
 </Columns>

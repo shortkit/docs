@@ -1,44 +1,30 @@
 ---
 title: "Events"
-description: "Send engagement and analytics events."
-keywords: ["events", "analytics", "tracking", "engagement"]
+description: "Batch ingestion endpoint for engagement and quality events."
+keywords: ["events", "analytics", "tracking", "engagement", "batch"]
 ---
 
-The Events API receives engagement signals from your application. These events power analytics, personalization, and ranking algorithms.
+The Events API receives engagement and quality signals from your application. The SDK collects events locally and sends them in batches to a single endpoint. These events power analytics dashboards, feed ranking, and data exports.
 
-## Endpoints
+## Endpoint
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/events` | Send single event |
-| `POST` | `/v1/events/batch` | Send multiple events |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/events` | Publishable key | Ingest a batch of events |
 
-## Event types
+All events are sent as an array in a single `POST` request. There is no separate single-event endpoint -- even a single event is sent as a one-element array.
 
-### Engagement events
+## Authentication
 
-| Event | Trigger | Required Fields |
-|-------|---------|-----------------|
-| `impression` | Content appears in viewport | `contentId`, `position` |
-| `playStart` | Playback begins | `contentId`, `startupTime` |
-| `watchProgress` | Periodic progress update | `contentId`, `currentTime`, `duration` |
-| `completion` | Video completes | `contentId`, `watchTime`, `looped` |
-| `swipe` | User swipes to next | `fromContentId`, `toContentId`, `watchTime` |
-| `like` | User likes content | `contentId` |
-| `share` | User shares content | `contentId`, `platform` |
-| `save` | User saves content | `contentId` |
+Include your publishable key in the `X-API-Key` header. The publishable key is safe to embed in client-side code.
 
-### Quality events
+```
+X-API-Key: pk_live_your_publishable_key
+```
 
-| Event | Trigger | Required Fields |
-|-------|---------|-----------------|
-| `rebuffer` | Playback stalls | `contentId`, `duration`, `currentTime` |
-| `qualityChange` | Rendition changes | `contentId`, `fromQuality`, `toQuality` |
-| `error` | Playback error | `contentId`, `errorCode`, `errorMessage` |
+## Request format
 
-## Send event
-
-Send a single engagement event.
+Send an array of event objects in the request body. Each event follows a common schema with event-specific fields in the `data` object.
 
 ```bash
 POST /v1/events
@@ -46,171 +32,76 @@ POST /v1/events
 
 ### Request body
 
-<ParamField body="event" type="string" required>
-  Event type (e.g., `impression`, `playStart`).
-</ParamField>
-
-<ParamField body="contentId" type="string" required>
-  Content ID the event relates to.
-</ParamField>
-
-<ParamField body="userId" type="string">
-  Identified user ID (if available).
-</ParamField>
-
-<ParamField body="deviceId" type="string">
-  Device identifier.
-</ParamField>
-
-<ParamField body="sessionId" type="string">
-  Session identifier for grouping events.
-</ParamField>
-
-<ParamField body="timestamp" type="string">
-  Event timestamp (ISO 8601). Defaults to server time.
-</ParamField>
-
-<ParamField body="data" type="object">
-  Event-specific data.
-</ParamField>
-
-### Example: Impression event
-
 ```bash
 curl -X POST https://api.shortkit.dev/v1/events \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event": "impression",
-    "contentId": "cnt_abc123",
-    "userId": "user_123",
-    "sessionId": "sess_xyz789",
-    "data": {
-      "position": 0,
-      "entryPoint": "feed",
-      "feedId": "feed_abc123"
-    }
-  }'
-```
-
-### Example: Play start event
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/events \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event": "playStart",
-    "contentId": "cnt_abc123",
-    "userId": "user_123",
-    "sessionId": "sess_xyz789",
-    "data": {
-      "startupTime": 250,
-      "rendition": "720p",
-      "codec": "h264",
-      "autoplay": true
-    }
-  }'
-```
-
-### Example: Completion event
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/events \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event": "completion",
-    "contentId": "cnt_abc123",
-    "userId": "user_123",
-    "sessionId": "sess_xyz789",
-    "data": {
-      "watchTime": 45.2,
-      "looped": false,
-      "loopCount": 0
-    }
-  }'
-```
-
-### Example: Swipe event
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/events \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event": "swipe",
-    "contentId": "cnt_def456",
-    "userId": "user_123",
-    "sessionId": "sess_xyz789",
-    "data": {
-      "fromContentId": "cnt_abc123",
-      "watchTimeOnFrom": 12.5,
-      "direction": "next"
-    }
-  }'
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "received": true,
-    "eventId": "evt_abc123"
-  },
-  "meta": {
-    "requestId": "req_xyz789"
-  }
-}
-```
-
-## Batch events
-
-Send multiple events in a single request for efficiency.
-
-```bash
-POST /v1/events/batch
-```
-
-### Request body
-
-<ParamField body="events" type="array" required>
-  Array of events (max 100 per request).
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/events/batch \
-  -H "Authorization: Bearer pk_live_your_publishable_key" \
+  -H "X-API-Key: pk_live_your_publishable_key" \
   -H "Content-Type: application/json" \
   -d '{
     "events": [
       {
-        "event": "impression",
-        "contentId": "cnt_abc123",
-        "userId": "user_123",
-        "timestamp": "2024-02-04T12:00:00Z",
-        "data": { "position": 0 }
+        "type": "impression",
+        "contentId": "sk_content_abc123",
+        "userId": "user_456",
+        "sessionId": "sess_xyz789",
+        "timestamp": "2026-02-05T12:00:00Z",
+        "data": {
+          "position": 0,
+          "entryPoint": "feed"
+        }
       },
       {
-        "event": "playStart",
-        "contentId": "cnt_abc123",
-        "userId": "user_123",
-        "timestamp": "2024-02-04T12:00:01Z",
-        "data": { "startupTime": 200 }
+        "type": "playStart",
+        "contentId": "sk_content_abc123",
+        "userId": "user_456",
+        "sessionId": "sess_xyz789",
+        "timestamp": "2026-02-05T12:00:01Z",
+        "data": {
+          "startupTimeMs": 245,
+          "initialRendition": "720p"
+        }
       },
       {
-        "event": "completion",
-        "contentId": "cnt_abc123",
-        "userId": "user_123",
-        "timestamp": "2024-02-04T12:00:46Z",
-        "data": { "watchTime": 45.2 }
+        "type": "completion",
+        "contentId": "sk_content_abc123",
+        "userId": "user_456",
+        "sessionId": "sess_xyz789",
+        "timestamp": "2026-02-05T12:00:34Z",
+        "data": {
+          "watchTime": 32.5,
+          "looped": false
+        }
       }
     ]
   }'
 ```
+
+### Common event fields
+
+Every event in the array includes these fields:
+
+<ParamField body="type" type="string" required>
+  Event type. One of the types listed in the event types table below.
+</ParamField>
+
+<ParamField body="contentId" type="string" required>
+  The ShortKit content ID this event relates to.
+</ParamField>
+
+<ParamField body="userId" type="string">
+  Identified user ID from your application (if available). If omitted, the event is attributed to the anonymous device.
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Session identifier that groups events from a single viewing session. Generated by the SDK.
+</ParamField>
+
+<ParamField body="timestamp" type="string" required>
+  ISO 8601 timestamp of when the event occurred on the client. Example: `2026-02-05T12:00:00Z`.
+</ParamField>
+
+<ParamField body="data" type="object">
+  Event-specific fields. The schema depends on the event `type`. See the sections below for each type.
+</ParamField>
 
 ### Response
 
@@ -221,199 +112,319 @@ curl -X POST https://api.shortkit.dev/v1/events/batch \
     "failed": 0
   },
   "meta": {
-    "requestId": "req_xyz789"
+    "request_id": "req_xyz789"
   }
 }
 ```
+
+The response indicates how many events were accepted and how many were rejected due to validation errors. Failed events in a batch do not affect other events.
+
+### Limits
+
+| Limit | Value |
+|-------|-------|
+| Max events per request | 100 |
+| Max timestamp age | 24 hours |
+
+## Event types
+
+### Engagement events
+
+| Event type | Trigger | Event-specific fields |
+|------------|---------|----------------------|
+| `impression` | Content appears in viewport | `position`, `entryPoint` |
+| `playStart` | Playback begins | `startupTimeMs`, `initialRendition` |
+| `watchProgress` | Periodic progress update (every ~1s) | `currentTime`, `totalDuration`, `percentComplete` |
+| `completion` | Video reaches end | `watchTime`, `looped` |
+| `swipe` | User swipes to next content | `fromContentId`, `toContentId`, `watchTimeOnPrevious` |
+| `like` | User likes content | _(none)_ |
+| `share` | User shares content | `platform` |
+| `save` | User saves content | _(none)_ |
+
+### Quality events
+
+| Event type | Trigger | Event-specific fields |
+|------------|---------|----------------------|
+| `rebuffer` | Playback stalls for buffering | `durationMs`, `currentTime` |
+| `qualityChange` | Rendition changes | `fromRendition`, `toRendition` |
+| `error` | Playback error | `errorCode`, `errorMessage` |
 
 ## Event data schemas
 
-### Impression data
+### impression
+
+Sent when a content item becomes visible in the feed viewport.
 
 ```json
 {
-  "position": 0,
-  "entryPoint": "feed",
-  "feedId": "feed_abc123"
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `position` | integer | Position in feed (0-indexed) |
-| `entryPoint` | string | Entry point: `feed`, `search`, `direct`, `share` |
-| `feedId` | string | Feed session ID |
-
-### PlayStart data
-
-```json
-{
-  "startupTime": 250,
-  "rendition": "720p",
-  "codec": "h264",
-  "autoplay": true
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `startupTime` | integer | Time to first frame (ms) |
-| `rendition` | string | Initial quality |
-| `codec` | string | Video codec used |
-| `autoplay` | boolean | Whether autoplay triggered |
-
-### WatchProgress data
-
-```json
-{
-  "currentTime": 15.5,
-  "duration": 45.2,
-  "percentComplete": 34.3,
-  "rendition": "720p"
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `currentTime` | number | Current playback position |
-| `duration` | number | Total duration |
-| `percentComplete` | number | Percentage watched |
-| `rendition` | string | Current quality |
-
-### Completion data
-
-```json
-{
-  "watchTime": 45.2,
-  "looped": false,
-  "loopCount": 0
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `watchTime` | number | Total watch time |
-| `looped` | boolean | Whether video looped |
-| `loopCount` | integer | Number of loops |
-
-### Rebuffer data
-
-```json
-{
-  "duration": 1200,
-  "currentTime": 12.5,
-  "rendition": "720p"
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `duration` | integer | Rebuffer duration (ms) |
-| `currentTime` | number | Playback position when stall occurred |
-| `rendition` | string | Quality when stall occurred |
-
-## SDK integration
-
-SDKs automatically send events. You can also send custom events:
-
-<Tabs>
-  <Tab title="iOS">
-    ```swift
-    // Events are sent automatically by the SDK
-
-    // Send custom event
-    shortKit.trackEvent(
-        type: "custom_action",
-        contentId: "cnt_abc123",
-        data: ["action": "bookmark"]
-    )
-    ```
-  </Tab>
-  <Tab title="Android">
-    ```kotlin
-    // Events are sent automatically by the SDK
-
-    // Send custom event
-    shortKit.trackEvent(
-        type = "custom_action",
-        contentId = "cnt_abc123",
-        data = mapOf("action" to "bookmark")
-    )
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    // Events are sent automatically by the SDK
-
-    // Send custom event
-    shortkit.trackEvent({
-      type: 'custom_action',
-      contentId: 'cnt_abc123',
-      data: { action: 'bookmark' }
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## Event batching
-
-The SDK batches events for efficiency:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `batchSize` | 10 | Events before flush |
-| `batchInterval` | 5000ms | Max time before flush |
-| `flushOnBackground` | true | Flush when app backgrounds |
-
-Configure batching:
-
-```typescript
-shortkit.initialize({
-  apiKey: 'pk_live_...',
-  events: {
-    batchSize: 20,
-    batchInterval: 10000
+  "type": "impression",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:00Z",
+  "data": {
+    "position": 0,
+    "entryPoint": "feed"
   }
-});
+}
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `position` | integer | Zero-indexed position in the feed |
+| `entryPoint` | string | How the user reached this content: `feed`, `direct`, `share` |
+
+### playStart
+
+Sent when video playback begins (first frame rendered).
+
+```json
+{
+  "type": "playStart",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:01Z",
+  "data": {
+    "startupTimeMs": 245,
+    "initialRendition": "720p"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `startupTimeMs` | integer | Milliseconds from play intent to first frame |
+| `initialRendition` | string | Initial quality rendition (e.g., `720p`, `1080p`) |
+
+### watchProgress
+
+Sent periodically during playback (approximately every 1 second).
+
+```json
+{
+  "type": "watchProgress",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:10Z",
+  "data": {
+    "currentTime": 9.0,
+    "totalDuration": 32.5,
+    "percentComplete": 0.277
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currentTime` | number | Current playback position in seconds |
+| `totalDuration` | number | Total video duration in seconds |
+| `percentComplete` | number | Fraction of video watched (0.0 to 1.0) |
+
+### completion
+
+Sent when the video reaches the end of playback.
+
+```json
+{
+  "type": "completion",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:34Z",
+  "data": {
+    "watchTime": 32.5,
+    "looped": false
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `watchTime` | number | Total seconds of video watched |
+| `looped` | boolean | Whether the video looped back to the beginning |
+
+### swipe
+
+Sent when the user swipes from one content item to the next.
+
+```json
+{
+  "type": "swipe",
+  "contentId": "sk_content_def456",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:15Z",
+  "data": {
+    "fromContentId": "sk_content_abc123",
+    "toContentId": "sk_content_def456",
+    "watchTimeOnPrevious": 14.2
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fromContentId` | string | Content ID the user swiped away from |
+| `toContentId` | string | Content ID the user swiped to |
+| `watchTimeOnPrevious` | number | Seconds spent on the previous content before swiping |
+
+### like
+
+Sent when the user likes a content item.
+
+```json
+{
+  "type": "like",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:01:00Z",
+  "data": {}
+}
+```
+
+No event-specific fields.
+
+### share
+
+Sent when the user shares a content item.
+
+```json
+{
+  "type": "share",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:01:05Z",
+  "data": {
+    "platform": "messages"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `platform` | string | Share target: `messages`, `twitter`, `copy_link`, `other` |
+
+### save
+
+Sent when the user saves a content item.
+
+```json
+{
+  "type": "save",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:01:10Z",
+  "data": {}
+}
+```
+
+No event-specific fields.
+
+### rebuffer
+
+Sent when playback stalls due to buffering.
+
+```json
+{
+  "type": "rebuffer",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:12Z",
+  "data": {
+    "durationMs": 1200,
+    "currentTime": 11.0
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `durationMs` | integer | Duration of the stall in milliseconds |
+| `currentTime` | number | Playback position when the stall occurred |
+
+### qualityChange
+
+Sent when the player switches between renditions.
+
+```json
+{
+  "type": "qualityChange",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:08Z",
+  "data": {
+    "fromRendition": "480p",
+    "toRendition": "720p"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fromRendition` | string | Previous rendition |
+| `toRendition` | string | New rendition |
+
+### error
+
+Sent when a playback error occurs.
+
+```json
+{
+  "type": "error",
+  "contentId": "sk_content_abc123",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:05Z",
+  "data": {
+    "errorCode": "MEDIA_ERR_NETWORK",
+    "errorMessage": "A network error caused the media download to fail."
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `errorCode` | string | Machine-readable error code |
+| `errorMessage` | string | Human-readable error description |
+
+## SDK batching behavior
+
+The SDK collects events locally and flushes them in batches to reduce network overhead. You do not need to call this endpoint directly unless you are building a custom integration.
+
+| Behavior | Default |
+|----------|---------|
+| Events per flush | 10 |
+| Max interval between flushes | 5 seconds |
+| Flush on app background | Yes |
+| Offline queueing | Yes (events are queued and sent when connectivity returns) |
 
 ## Validation
 
-Events are validated server-side:
+Events are validated server-side before ingestion:
 
-| Validation | Behavior |
-|------------|----------|
-| Missing required fields | Event rejected |
-| Invalid contentId | Event rejected |
-| Future timestamp (>5 min) | Timestamp adjusted |
-| Duplicate eventId | Event deduplicated |
+| Rule | Behavior |
+|------|----------|
+| Missing required fields (`type`, `contentId`, `timestamp`) | Event rejected |
+| Unknown event `type` | Event rejected |
+| Timestamp older than 24 hours | Event rejected |
+| Timestamp more than 5 minutes in the future | Timestamp adjusted to server time |
 
-Failed events in batch requests don't affect other events.
-
-## Best practices
-
-<AccordionGroup>
-  <Accordion title="Use batch endpoint for high-volume apps">
-    Reduce API calls by batching events. The SDK handles this automatically.
-  </Accordion>
-  <Accordion title="Include sessionId for accurate analytics">
-    Session IDs group events from a single viewing session, enabling accurate session-level analytics.
-  </Accordion>
-  <Accordion title="Send events promptly">
-    Events older than 24 hours may not be processed. The SDK flushes on app background.
-  </Accordion>
-  <Accordion title="Handle offline gracefully">
-    The SDK queues events when offline and retries when connectivity returns.
-  </Accordion>
-</AccordionGroup>
+Failed events do not affect other events in the same batch.
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="Analytics API" icon="chart-bar" href="/api/analytics">
-    Query aggregated analytics.
+    Query aggregated metrics derived from events.
   </Card>
-  <Card title="Data export" icon="download" href="/guides/integration/data-export">
-    Export raw event data.
+  <Card title="Data export" icon="download" href="/api/export">
+    Export raw event data for custom analysis.
   </Card>
 </Columns>

@@ -1,27 +1,49 @@
 ---
 title: "Playback security"
-description: "Configure domain restrictions, signed URLs, and security settings for video playback."
-keywords: ["security", "playback", "domain", "restrictions", "signed URLs", "tokens"]
+description: "Configure domain restrictions, signed URLs, and playback security settings for your video content."
+keywords: ["security", "playback", "domain", "restrictions", "signed URLs", "tokens", "CDN"]
 ---
 
-Playback restrictions prevent unauthorized access to your video content by limiting which domains can embed and play your videos.
+Playback security controls prevent unauthorized access to your video content. ShortKit provides domain allowlisting, signed streaming URLs with time-limited tokens, and referrer validation.
 
 ## Overview
 
-All video playback is restricted by default:
-- Only requests from allowed domains can play content
-- URLs are signed with time-limited tokens
-- Referrer headers are validated
+ShortKit secures video playback at multiple layers:
+
+- **API authentication** -- All SDK requests require a valid publishable API key (`pk_live_...` or `pk_test_...`) in the `X-API-Key` header
+- **Domain restrictions** -- Only requests from allowed domains can play content
+- **Signed URLs** -- Streaming URLs include time-limited tokens validated by the CDN
+- **Referrer validation** -- Referrer headers are checked against your allowlist
+
+## API authentication
+
+The SDK authenticates with your publishable key on every request. ShortKit uses two key types:
+
+| Key type | Format | Usage |
+|----------|--------|-------|
+| **Publishable key** | `pk_live_...` / `pk_test_...` | Embedded in the SDK, included in `X-API-Key` header. Read-only access to feed, config, events, and identity endpoints. |
+| **Secret key** | `sk_live_...` / `sk_test_...` | Server-side only, used as `Authorization: Bearer` token. Full access to content management, configuration, analytics, and webhooks. |
+
+<Warning>
+  Never embed your secret key in client-side code or SDK configuration. Secret keys grant full administrative access and must remain on your server.
+</Warning>
+
+### Environment isolation
+
+Keys include an environment prefix to prevent accidental cross-environment usage:
+
+- `pk_live_...` and `sk_live_...` access production content and configuration
+- `pk_test_...` and `sk_test_...` access test/staging content and configuration
 
 ## Domain allowlist
 
 ### Configuration
 
-Add allowed domains via Admin Portal or API:
+Add allowed domains via the Admin Portal or API:
 
 <Tabs>
   <Tab title="Admin Portal">
-    1. Go to **Settings → Playback Restrictions**
+    1. Go to **Settings** then **Playback Restrictions**
     2. Add domains to the allowlist
     3. Save changes
   </Tab>
@@ -49,15 +71,14 @@ Add allowed domains via Admin Portal or API:
 | Wildcard subdomain | `*.yourcompany.com` | Any subdomain (e.g., `www.`, `app.`, `staging.`) |
 | Specific subdomain | `app.yourcompany.com` | Only `app.yourcompany.com` |
 
-### Examples
+### Example configuration
 
 ```json
 {
   "allowedDomains": [
-    "yourcompany.com",         // Main domain
-    "*.yourcompany.com",       // All subdomains
-    "partner-site.com",        // Specific partner
-    "192.168.1.100"           // Local IP for development
+    "yourcompany.com",
+    "*.yourcompany.com",
+    "partner-site.com"
   ]
 }
 ```
@@ -66,44 +87,46 @@ Add allowed domains via Admin Portal or API:
 
 ### Automatic localhost access
 
-In staging and development environments, these are automatically allowed:
+In test environments (when using `pk_test_...` keys), the following origins are automatically allowed:
+
 - `localhost`
 - `127.0.0.1`
 - `*.localhost`
 
 Production environments require explicit domain configuration.
 
-### Environment-specific settings
+### Environment-specific restrictions
 
 Configure different restrictions per environment:
 
 ```bash
-# Development - more permissive
+# Test environment -- more permissive
 curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
   -H "Authorization: Bearer sk_test_your_key" \
-  -d '{ "allowedDomains": ["*"] }'  # Allow all (dev only!)
+  -d '{ "allowedDomains": ["*"] }'
 
-# Production - strict
+# Production environment -- strict
 curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
   -H "Authorization: Bearer sk_live_your_key" \
   -d '{ "allowedDomains": ["yourcompany.com", "*.yourcompany.com"] }'
 ```
 
 <Warning>
-  Never use wildcard (`*`) in production. This disables domain restrictions entirely.
+  Never use a wildcard (`*`) domain allowlist in production. This disables domain restrictions entirely.
 </Warning>
 
 ## Referrer handling
 
 ### No-referrer requests
 
-Some scenarios don't send referrer headers:
-- Direct URL access in browser address bar
-- Some mobile app WebViews
-- Privacy browser extensions
-- HTTPS → HTTP transitions
+Some scenarios do not send referrer headers:
 
-Configure how to handle these:
+- Direct URL access in browser address bars
+- Certain mobile app WebView implementations
+- Privacy-focused browser extensions
+- HTTPS to HTTP transitions
+
+Configure how to handle requests with no referrer:
 
 ```bash
 curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
@@ -117,10 +140,10 @@ curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `allowNoReferrer` | `false` | Allow requests with no referrer header |
+| `allowNoReferrer` | `false` | Allow requests that do not include a referrer header |
 
 <Tip>
-  If your mobile app has playback issues, try enabling `allowNoReferrer`. Some WebView implementations don't send referrers.
+  If your native mobile app experiences playback issues, try enabling `allowNoReferrer`. Some WebView implementations do not send referrer headers.
 </Tip>
 
 ## User agent filtering
@@ -142,28 +165,32 @@ When `allowHighRiskUserAgents` is `false`:
 - Bot traffic is rejected
 - Headless browser signatures are blocked
 
-## Signed URLs
+## Signed streaming URLs
 
 ### How signing works
 
-1. Feed API returns content with signed streaming URLs
-2. Signature includes:
-   - Content ID
+1. The SDK requests the feed from the ShortKit API
+2. The API returns content items with signed streaming URLs
+3. Each signed URL includes:
+   - Content identifier
    - Expiration timestamp
-   - Organization identifier
-3. CDN validates signature before serving
+   - Organization scope
+   - Cryptographic signature
+4. The CDN validates the signature before serving video segments
 
-### URL format
+### URL structure
+
+Streaming URLs returned by the feed API include a signed token:
 
 ```
-https://video.yourcompany.com/v1/streams/cnt_abc123/manifest.m3u8
+https://video.shortkit.dev/v1/streams/{contentId}/manifest.m3u8
   ?token=eyJhbGciOiJIUzI1NiIs...
   &expires=1707048000
 ```
 
 ### Token expiry
 
-Configure how long tokens are valid:
+Configure how long streaming tokens remain valid:
 
 ```bash
 curl -X PUT https://api.shortkit.dev/v1/config/cdn \
@@ -176,24 +203,24 @@ curl -X PUT https://api.shortkit.dev/v1/config/cdn \
 
 | Setting | Default | Range | Description |
 |---------|---------|-------|-------------|
-| `urlExpiry` | 6 hours | 1-24 hours | Token validity in seconds |
+| `urlExpiry` | 21600 (6 hours) | 3600-86400 (1-24 hours) | Token validity period in seconds |
 
 Trade-offs:
-- **Shorter expiry**: More secure, but may cause issues during long viewing sessions
-- **Longer expiry**: Better user experience, but tokens remain valid longer if leaked
+- **Shorter expiry** -- More secure, but may cause issues during extended viewing sessions
+- **Longer expiry** -- Better user experience, but tokens remain valid longer if intercepted
 
 ### Automatic refresh
 
 The SDK automatically handles token refresh:
-- Monitors token expiry
-- Refreshes before expiration
-- Seamless to users
+- Monitors token expiry timestamps
+- Requests fresh tokens before expiration
+- Refresh is seamless and invisible to users
 
 ## Error responses
 
 ### Blocked requests
 
-When a request is blocked, the CDN returns:
+When a playback request is blocked, the response includes a structured error:
 
 ```
 HTTP/1.1 403 Forbidden
@@ -210,37 +237,33 @@ Content-Type: application/json
 
 | Code | Description |
 |------|-------------|
-| `DOMAIN_NOT_ALLOWED` | Request domain not in allowlist |
+| `DOMAIN_NOT_ALLOWED` | Requesting domain is not in the allowlist |
 | `TOKEN_EXPIRED` | Signed URL token has expired |
 | `TOKEN_INVALID` | Token signature verification failed |
-| `REFERRER_BLOCKED` | Referrer header blocked |
-| `USER_AGENT_BLOCKED` | User agent blocked |
+| `REFERRER_BLOCKED` | Referrer header does not match any allowed domain |
+| `USER_AGENT_BLOCKED` | User agent matched a blocked pattern |
 
 ## Monitoring
 
 ### View blocked requests
 
 In the Admin Portal:
-1. Go to **Analytics → Playback Quality → Errors**
+
+1. Go to **Analytics** then **Playback Quality** then **Errors**
 2. Filter by error type
-3. View blocked request details:
-   - Requesting domain
-   - User agent
-   - Timestamp
-   - Content requested
+3. View blocked request details including requesting domain, user agent, timestamp, and content requested
 
 ### Alerts
 
 Set up alerts for unusual block patterns:
-1. Go to **Settings → Alerts**
-2. Create rule for blocked request rate
-3. Get notified of potential issues or attacks
+
+1. Go to **Settings** then **Alerts**
+2. Create a rule for blocked request rate thresholds
+3. Receive notifications when potential unauthorized access or misconfigurations occur
 
 ## Testing restrictions
 
-### Verify configuration
-
-Check current settings:
+### Verify current configuration
 
 ```bash
 curl https://api.shortkit.dev/v1/config/playback-restrictions \
@@ -249,56 +272,58 @@ curl https://api.shortkit.dev/v1/config/playback-restrictions \
 
 ### Test from different domains
 
-Use browser developer tools:
-1. Open your site in a browser
-2. Try to play a video
-3. Check Network tab for request/response
+Using browser developer tools:
 
-Test from unauthorized domain:
-1. Create a test HTML page on a different domain
-2. Embed your video player
-3. Verify playback is blocked
+1. Open your site in a browser
+2. Attempt to play a video
+3. Check the Network tab for request and response details
+
+To verify that unauthorized domains are blocked:
+
+1. Create a test HTML page hosted on a different domain
+2. Attempt to embed and play your content
+3. Confirm that playback is denied with a `DOMAIN_NOT_ALLOWED` error
 
 ## Troubleshooting
 
 ### Legitimate traffic being blocked
 
-**Symptom**: Users report videos not playing
+**Symptom**: Users report that videos do not play.
 
-**Check**:
-1. Verify domain is in allowlist
+**Steps**:
+1. Verify the domain is in your allowlist
 2. Check for typos in domain configuration
-3. Verify referrer handling settings
+3. Review referrer handling settings
+4. Check the blocked requests log in the Admin Portal
 
-### Mobile app issues
+### Mobile app playback issues
 
-**Symptom**: Videos don't play in mobile app
+**Symptom**: Videos do not play in a native mobile app.
 
 **Possible causes**:
-- WebView not sending referrer
-- App domain not configured
+- WebView not sending referrer headers
+- App domain not configured in the allowlist
 
 **Solutions**:
-- Enable `allowNoReferrer`
-- Add app's WebView domain to allowlist
-- Check SDK initialization
+- Enable `allowNoReferrer` for mobile scenarios
+- Verify SDK initialization with the correct publishable key
 
-### Partner/embed issues
+### Partner or embed issues
 
-**Symptom**: Videos don't play on partner sites
+**Symptom**: Videos do not play on partner sites.
 
-**Solution**:
-- Add partner domain to allowlist
-- Use wildcard if multiple subdomains
-- Consider separate API keys for partners
+**Solutions**:
+- Add the partner domain to your allowlist
+- Use a wildcard entry if the partner has multiple subdomains
+- Consider issuing separate publishable keys for partners
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="CDN delivery" icon="globe" href="/guides/platform/cdn-delivery">
-    Learn about content delivery architecture.
+  <Card title="Webhooks" icon="bell" href="/guides/integration/webhooks">
+    Receive notifications for content lifecycle events.
   </Card>
-  <Card title="Settings" icon="gear" href="/portal/settings">
-    Configure all security settings.
+  <Card title="Identity management" icon="user" href="/guides/integration/identity-management">
+    Configure user identity and cross-device tracking.
   </Card>
 </Columns>

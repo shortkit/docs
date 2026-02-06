@@ -54,12 +54,11 @@
             ]
           },
           {
-            "group": "Platform Guides",
+            "group": "Platforms & SDKs",
             "pages": [
               "sdk/ios",
               "sdk/android",
-              "sdk/react-native",
-              "sdk/web"
+              "sdk/react-native"
             ]
           },
           {
@@ -67,7 +66,7 @@
             "pages": [
               "sdk/configuration",
               "sdk/theming",
-              "sdk/deep-linking",
+
               "sdk/engagement-signals"
             ]
           }

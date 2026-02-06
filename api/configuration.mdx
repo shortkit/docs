@@ -1,413 +1,285 @@
 ---
 title: "Configuration"
-description: "Manage platform configuration settings via API."
-keywords: ["configuration", "settings", "API", "remote config"]
+description: "Retrieve and update the remote config overlay that controls SDK behavior."
+keywords: ["configuration", "settings", "API", "remote config", "overlay"]
 ---
 
-The Configuration API allows you to manage platform settings programmatically. These settings override SDK defaults and take effect without app updates.
+The Configuration API delivers a sparse config overlay to the SDK at runtime. The overlay contains only the fields you have explicitly changed -- the SDK merges it on top of its compiled-in defaults. This means you can change player behavior, theming, and feed settings without shipping an app update.
 
 ## Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/v1/config` | Get all configuration |
-| `GET` | `/v1/config/{key}` | Get specific config |
-| `PUT` | `/v1/config/{key}` | Update configuration |
-| `DELETE` | `/v1/config/{key}` | Reset to default |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/v1/config` | Publishable key | Retrieve the active config overlay |
+| `PUT` | `/v1/config` | Secret key | Update the config overlay |
 
-## Configuration categories
+## How the overlay works
 
-| Category | Key | Description |
-|----------|-----|-------------|
-| Playback | `playback` | Player behavior settings |
-| Feed | `feed` | Feed ranking and display |
-| CDN | `cdn` | Content delivery settings |
-| Ads | `ads` | Advertising configuration |
-| Playback Restrictions | `playback-restrictions` | Domain and security settings |
-| Theme | `theme` | UI theming (remote override) |
+The SDK ships with sensible defaults for every configurable property. When the SDK initializes, it calls `GET /v1/config` to fetch any overrides you have set. The response is **sparse** -- it only includes fields that differ from defaults. The SDK deep-merges the overlay on top of its defaults.
 
-## Get all configuration
+```
+SDK defaults (compiled-in)
+    + config overlay (from GET /v1/config)
+    ─────────────────────────────────────
+    = effective configuration
+```
 
-Retrieve the complete configuration for your organization.
+For example, if the SDK default for `controls.scrubber` is `true` and you set it to `false` via the overlay, the overlay response contains only that field. Every other setting keeps its default value.
+
+## Get config overlay
+
+Retrieve the current config overlay for your organization. The SDK calls this endpoint automatically on initialization.
 
 ```bash
 GET /v1/config
 ```
 
+### Authentication
+
+Include your publishable key in the `X-API-Key` header.
+
+### Headers
+
+| Header | Description |
+|--------|-------------|
+| `X-API-Key` | Your publishable key (`pk_live_...` or `pk_test_...`) |
+| `X-User-Id` | Optional. User identifier for future per-user experiment assignments. |
+
 ### Example request
 
 ```bash
 curl https://api.shortkit.dev/v1/config \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
-### Response
+### Example response
+
+The response contains only the fields that differ from SDK defaults:
 
 ```json
 {
   "data": {
-    "playback": {
-      "autoplay": true,
-      "muted": true,
-      "loop": true,
-      "preloadCount": 3,
-      "maxBitrate": null,
-      "preferredCodec": "auto"
+    "controls": {
+      "scrubber": false
     },
-    "feed": {
-      "pageSize": 20,
-      "prefetchCount": 5,
-      "refreshInterval": 300
-    },
-    "cdn": {
-      "urlExpiry": 21600,
-      "preferredEdge": "auto"
-    },
-    "ads": {
-      "enabled": true,
-      "frequency": {
-        "mode": "count",
-        "interval": 5,
-        "firstAdAfter": 3
-      }
-    },
-    "playback-restrictions": {
-      "allowedDomains": ["yourcompany.com", "*.yourcompany.com"],
-      "allowNoReferrer": false,
-      "allowHighRiskUserAgents": false
+    "theme": {
+      "primaryColor": "#FF5733"
     }
   },
   "meta": {
-    "version": 12,
-    "updatedAt": "2024-02-04T12:00:00Z"
+    "request_id": "req_abc123"
   }
 }
 ```
 
-## Get specific configuration
-
-Retrieve a single configuration category.
-
-```bash
-GET /v1/config/{key}
-```
-
-### Path parameters
-
-<ParamField path="key" type="string" required>
-  Configuration category key.
-</ParamField>
-
-### Example request
-
-```bash
-curl https://api.shortkit.dev/v1/config/playback \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response
+If no overrides have been set, the response is an empty object:
 
 ```json
 {
-  "data": {
-    "autoplay": true,
-    "muted": true,
-    "loop": true,
-    "preloadCount": 3,
-    "maxBitrate": null,
-    "preferredCodec": "auto"
-  },
+  "data": {},
   "meta": {
-    "version": 5,
-    "updatedAt": "2024-02-01T10:00:00Z"
+    "request_id": "req_def456"
   }
 }
 ```
 
-## Update configuration
+### Response fields
 
-Update settings for a configuration category.
-
-```bash
-PUT /v1/config/{key}
-```
-
-### Playback configuration
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/playback \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "autoplay": true,
-    "muted": true,
-    "loop": true,
-    "preloadCount": 5,
-    "maxBitrate": 4000000,
-    "preferredCodec": "av1"
-  }'
-```
-
-<ResponseField name="autoplay" type="boolean" default={true}>
-  Auto-start playback when content is visible.
+<ResponseField name="data" type="object">
+  Sparse config overlay. Contains only fields that differ from SDK defaults. Any category or property not present should be left at its default value.
 </ResponseField>
 
-<ResponseField name="muted" type="boolean" default={true}>
-  Start playback muted.
-</ResponseField>
-
-<ResponseField name="loop" type="boolean" default={true}>
-  Loop video on completion.
-</ResponseField>
-
-<ResponseField name="preloadCount" type="integer" default={3}>
-  Number of videos to preload (1-10).
-</ResponseField>
-
-<ResponseField name="maxBitrate" type="integer">
-  Maximum bitrate in bps. `null` for unlimited.
-</ResponseField>
-
-<ResponseField name="preferredCodec" type="string" default="auto">
-  Preferred codec: `auto`, `h264`, `av1`.
-</ResponseField>
-
-### Feed configuration
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/feed \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pageSize": 20,
-    "prefetchCount": 5,
-    "refreshInterval": 300
-  }'
-```
-
-<ResponseField name="pageSize" type="integer" default={20}>
-  Items per feed request (10-50).
-</ResponseField>
-
-<ResponseField name="prefetchCount" type="integer" default={5}>
-  Items to prefetch ahead (1-10).
-</ResponseField>
-
-<ResponseField name="refreshInterval" type="integer" default={300}>
-  Auto-refresh interval in seconds (60-3600).
-</ResponseField>
-
-### CDN configuration
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/cdn \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urlExpiry": 21600,
-    "preferredEdge": "auto"
-  }'
-```
-
-<ResponseField name="urlExpiry" type="integer" default={21600}>
-  Signed URL expiry in seconds (3600-86400).
-</ResponseField>
-
-<ResponseField name="preferredEdge" type="string" default="auto">
-  Preferred edge location: `auto`, `us`, `eu`, `asia`.
-</ResponseField>
-
-### Ads configuration
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/ads \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "enabled": true,
-    "frequency": {
-      "mode": "count",
-      "interval": 5,
-      "firstAdAfter": 3
-    },
-    "testMode": false
-  }'
-```
-
-<ResponseField name="enabled" type="boolean" default={false}>
-  Enable in-feed advertising.
-</ResponseField>
-
-<ResponseField name="frequency" type="object">
-  Ad frequency settings.
+<ResponseField name="data.controls" type="object">
+  Player control overrides.
   <Expandable title="properties">
-    <ResponseField name="mode" type="string" default="count">
-      Frequency mode: `count`, `time`, `platform-optimized`.
+    <ResponseField name="scrubber" type="boolean">
+      Show the scrubber (seek bar) in the player. SDK default: `true`.
     </ResponseField>
-    <ResponseField name="interval" type="integer" default={5}>
-      Videos between ads (count mode).
+    <ResponseField name="muteButton" type="boolean">
+      Show the mute/unmute button. SDK default: `true`.
     </ResponseField>
-    <ResponseField name="firstAdAfter" type="integer" default={3}>
-      Minimum videos before first ad.
-    </ResponseField>
-    <ResponseField name="intervalMinutes" type="number">
-      Minutes between ads (time mode).
+    <ResponseField name="shareButton" type="boolean">
+      Show the share button. SDK default: `true`.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="testMode" type="boolean" default={false}>
-  Show test ads only.
+<ResponseField name="data.playback" type="object">
+  Playback behavior overrides.
+  <Expandable title="properties">
+    <ResponseField name="autoplay" type="boolean">
+      Auto-start playback when content is visible. SDK default: `true`.
+    </ResponseField>
+    <ResponseField name="muted" type="boolean">
+      Start playback muted. SDK default: `true`.
+    </ResponseField>
+    <ResponseField name="loop" type="boolean">
+      Loop video on completion. SDK default: `true`.
+    </ResponseField>
+    <ResponseField name="preloadCount" type="integer">
+      Number of videos to preload ahead (1-10). SDK default: `3`.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-### Playback restrictions
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/playback-restrictions \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "allowedDomains": ["yourcompany.com", "*.yourcompany.com"],
-    "allowNoReferrer": true,
-    "allowHighRiskUserAgents": false
-  }'
-```
-
-<ResponseField name="allowedDomains" type="string[]" required>
-  Domains allowed to play content.
+<ResponseField name="data.captions" type="object">
+  Caption display overrides.
+  <Expandable title="properties">
+    <ResponseField name="defaultOn" type="boolean">
+      Show captions by default. SDK default: `false`.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-<ResponseField name="allowNoReferrer" type="boolean" default={false}>
-  Allow requests without referrer header.
+<ResponseField name="data.theme" type="object">
+  UI theming overrides.
+  <Expandable title="properties">
+    <ResponseField name="primaryColor" type="string">
+      Primary accent color (hex). SDK default: `"#FFFFFF"`.
+    </ResponseField>
+    <ResponseField name="backgroundColor" type="string">
+      Background color (hex). SDK default: `"#000000"`.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-<ResponseField name="allowHighRiskUserAgents" type="boolean" default={false}>
-  Allow known bot/scraper user agents.
+<ResponseField name="data.feed" type="object">
+  Feed behavior overrides.
+  <Expandable title="properties">
+    <ResponseField name="pageSize" type="integer">
+      Items per feed request (10-50). SDK default: `10`.
+    </ResponseField>
+    <ResponseField name="refreshInterval" type="integer">
+      Auto-refresh interval in seconds. SDK default: `300`.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
-### Response
+### Merge example
+
+Given these SDK defaults:
 
 ```json
 {
-  "data": {
-    "autoplay": true,
-    "muted": true,
-    "loop": true,
-    "preloadCount": 5,
-    "maxBitrate": 4000000,
-    "preferredCodec": "av1"
-  },
-  "meta": {
-    "version": 6,
-    "updatedAt": "2024-02-04T12:00:00Z",
-    "previousVersion": 5
-  }
+  "controls": { "scrubber": true, "muteButton": true, "shareButton": true },
+  "playback": { "autoplay": true, "muted": true, "loop": true, "preloadCount": 3 },
+  "captions": { "defaultOn": false },
+  "theme": { "primaryColor": "#FFFFFF", "backgroundColor": "#000000" },
+  "feed": { "pageSize": 10, "refreshInterval": 300 }
 }
 ```
 
-## Reset configuration
+And this overlay from `GET /v1/config`:
 
-Reset a configuration category to defaults.
+```json
+{
+  "controls": { "scrubber": false },
+  "theme": { "primaryColor": "#FF5733" }
+}
+```
+
+The SDK resolves the effective configuration as:
+
+```json
+{
+  "controls": { "scrubber": false, "muteButton": true, "shareButton": true },
+  "playback": { "autoplay": true, "muted": true, "loop": true, "preloadCount": 3 },
+  "captions": { "defaultOn": false },
+  "theme": { "primaryColor": "#FF5733", "backgroundColor": "#000000" },
+  "feed": { "pageSize": 10, "refreshInterval": 300 }
+}
+```
+
+Only `controls.scrubber` and `theme.primaryColor` changed. Everything else kept its default.
+
+## Update config overlay
+
+Set or update the config overlay for your organization. Only include the fields you want to override -- omitted fields are removed from the overlay (reverting to SDK defaults).
 
 ```bash
-DELETE /v1/config/{key}
+PUT /v1/config
 ```
+
+### Authentication
+
+Requires your **secret key** as a Bearer token.
 
 ### Example request
 
 ```bash
-curl -X DELETE https://api.shortkit.dev/v1/config/playback \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+curl -X PUT https://api.shortkit.dev/v1/config \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "controls": {
+      "scrubber": false,
+      "shareButton": false
+    },
+    "playback": {
+      "preloadCount": 5
+    },
+    "captions": {
+      "defaultOn": true
+    },
+    "theme": {
+      "primaryColor": "#FF5733"
+    }
+  }'
 ```
 
 ### Response
 
+Returns the full overlay as saved:
+
 ```json
 {
   "data": {
-    "reset": true,
-    "defaults": {
-      "autoplay": true,
-      "muted": true,
-      "loop": true,
-      "preloadCount": 3,
-      "maxBitrate": null,
-      "preferredCodec": "auto"
+    "controls": {
+      "scrubber": false,
+      "shareButton": false
+    },
+    "playback": {
+      "preloadCount": 5
+    },
+    "captions": {
+      "defaultOn": true
+    },
+    "theme": {
+      "primaryColor": "#FF5733"
     }
+  },
+  "meta": {
+    "request_id": "req_xyz789"
   }
 }
 ```
 
-## Configuration versioning
+### Reset to defaults
 
-Each configuration update creates a new version:
-
-```bash
-curl https://api.shortkit.dev/v1/config/playback/versions \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-```json
-{
-  "data": [
-    {
-      "version": 6,
-      "updatedAt": "2024-02-04T12:00:00Z",
-      "updatedBy": "user@company.com"
-    },
-    {
-      "version": 5,
-      "updatedAt": "2024-02-01T10:00:00Z",
-      "updatedBy": "admin@company.com"
-    }
-  ]
-}
-```
-
-### Rollback to previous version
+To reset all overrides and revert entirely to SDK defaults, send an empty object:
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/config/playback/rollback \
+curl -X PUT https://api.shortkit.dev/v1/config \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
-  -d '{ "version": 5 }'
+  -d '{}'
 ```
 
 ## SDK sync
 
-SDKs fetch configuration on initialization and periodically refresh:
-
-```typescript
-shortkit.initialize({
-  apiKey: 'pk_live_...',
-  config: {
-    refreshInterval: 300000  // Check every 5 minutes
-  }
-});
-
-// Force refresh
-await shortkit.refreshConfig();
-
-// Get current config
-const config = shortkit.getConfig();
-```
-
-Configuration changes take effect on next SDK refresh (typically within 5 minutes).
+The SDK fetches the config overlay automatically on initialization and refreshes it periodically (default: every 5 minutes). Configuration changes take effect on the next SDK refresh without requiring an app update.
 
 ## Best practices
 
 <AccordionGroup>
+  <Accordion title="Keep overlays small">
+    Only override what you need. A smaller overlay means faster config resolution and less risk of unintended side effects.
+  </Accordion>
   <Accordion title="Test in staging first">
-    Always validate configuration changes in staging before applying to production.
+    Use your `pk_test_...` key to verify configuration changes before applying them in production.
   </Accordion>
-  <Accordion title="Use gradual rollouts">
-    For significant changes, use A/B testing to roll out to a subset of users first.
-  </Accordion>
-  <Accordion title="Monitor after changes">
-    Watch analytics after configuration changes to detect any negative impact.
-  </Accordion>
-  <Accordion title="Document changes">
-    Keep a changelog of configuration updates for troubleshooting.
+  <Accordion title="Use A/B testing for significant changes">
+    For changes that may affect engagement (hiding controls, changing preload behavior), use experiments to roll out to a subset of users first.
   </Accordion>
 </AccordionGroup>
 
@@ -415,9 +287,9 @@ Configuration changes take effect on next SDK refresh (typically within 5 minute
 
 <Columns cols={2}>
   <Card title="SDK configuration" icon="gear" href="/sdk/configuration">
-    Configure SDK defaults.
+    Configure SDK defaults in code.
   </Card>
-  <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
-    Test configuration variants.
+  <Card title="A/B testing" icon="flask" href="/api/experiments">
+    Test configuration variants with experiments.
   </Card>
 </Columns>

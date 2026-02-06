@@ -1,82 +1,77 @@
 ---
 title: "SDK overview"
-description: "Introduction to the shortkit Client SDK and its capabilities across platforms."
-keywords: ["SDK", "client SDK", "video player", "mobile SDK", "web SDK"]
+description: "What the ShortKit Client SDK handles so you don't have to — playback, feed UI, engagement, configuration, identity, and theming."
+keywords: ["SDK", "client SDK", "video player", "mobile SDK", "web SDK", "short-form video"]
 ---
 
-The shortkit Client SDK delivers production-grade short-form video feeds to your mobile and web applications. It handles video playback, adaptive streaming, engagement tracking, and ad integration while providing extensive customization options.
+The ShortKit Client SDK gives your app a production-grade short-form video feed with a single view and a few lines of configuration. It handles video playback, adaptive streaming, feed rendering, engagement tracking, remote configuration, user identity, and UI theming — all communicating with one backend API. Your app never touches the underlying video infrastructure directly.
 
-## Capabilities
+Initialize with an API key and a `FeedConfig`, present one view, and the SDK takes care of the rest.
+
+## What the SDK handles
 
 <Columns cols={2}>
   <Card title="Video playback" icon="play">
-    Custom media pipelines with adaptive bitrate streaming, intelligent prefetch, and near-instant playback on swipe.
+    Adaptive bitrate streaming with pre-buffering for near-instant playback on swipe. Automatic looping, quality selection, and buffer management are handled internally.
   </Card>
   <Card title="Feed UI" icon="rectangle-vertical-history">
-    Configurable vertical or horizontal scrolling feeds with smooth transitions and gesture handling.
+    Full-screen vertical swipeable feed with snap-to-page scrolling, thumbnail prefetch, smooth crossfade transitions from thumbnail to live video, and graceful loading, empty, and error states.
   </Card>
   <Card title="Engagement tracking" icon="chart-line">
-    Automatic collection of impressions, watch time, completions, and interactions for analytics and personalization.
+    Automatic collection of impressions, play starts, watch progress, completions, swipes, rebuffers, interactions, and errors. Events are batched every 30 seconds, persisted to disk, and delivered reliably even across app restarts.
   </Card>
-  <Card title="Ad integration" icon="rectangle-ad">
-    Native in-feed advertising via Google IMA SDK with configurable frequency and styling.
+  <Card title="Remote configuration" icon="sliders">
+    Layered config system where code-level defaults are the baseline, remote overrides are fetched in the background, and cached values bridge connectivity gaps. The feed never blocks waiting for configuration.
   </Card>
   <Card title="Theming" icon="palette">
-    Full control over colors, fonts, and control styling to match your brand.
+    Full control over accent colors, background colors, control tints, scrubber styling, caption appearance, and font family. Every visual element rendered by the SDK respects your `ThemeConfig`.
   </Card>
-  <Card title="Extensibility" icon="puzzle-piece">
-    Custom overlay components, interaction hooks, and metadata pass-through for deep integration.
+  <Card title="User identity" icon="user">
+    Anonymous-first identity model with optional user identification. The SDK generates a device ID automatically, and you can associate it with a logged-in user via `setUserId()` to enable cross-device personalization.
   </Card>
 </Columns>
 
 ## Supported platforms
 
-| Platform | Language | Distribution | Minimum Version |
+| Platform | Language | Distribution | Minimum version |
 |----------|----------|--------------|-----------------|
-| iOS | Swift | Swift Package Manager | iOS 14.0+ |
+| iOS | Swift | Swift Package Manager | iOS 16.0+ |
 | Android | Kotlin | Maven | Android 7.0+ (API 24) |
-| React Native | TypeScript | npm | RN 0.70+ |
-| Expo | TypeScript | npm | Expo SDK 49+ |
+| React Native | TypeScript | npm | RN 0.72+ |
 | Web | TypeScript | npm, CDN | Modern browsers |
+
+<Note>
+  iOS is the primary SDK and ships first. Android, React Native, and Web SDKs follow the same API patterns and configuration model. Platform-specific guides are linked at the bottom of this page.
+</Note>
 
 ## Player architecture
 
-shortkit uses custom media pipelines optimized for short-form video performance:
+The SDK uses platform-native media pipelines optimized for short-form video. No third-party playback dependencies are required on any platform.
 
 <Tabs>
   <Tab title="iOS">
-    Built on low-level AVFoundation APIs (`AVSampleBufferDisplayLayer`, `AudioToolbox`) rather than `AVPlayer`. This enables:
+    Built on AVPlayer with HLS adaptive bitrate streaming. Both UIKit and SwiftUI are supported with native-feeling APIs. Zero external dependencies — only Foundation, UIKit, AVFoundation, and SwiftUI.
 
-    - **DASH protocol support** - Not available with standard AVPlayer
-    - **Multi-codec ABR** - AV1 + H.264 quality selection
-    - **Granular buffer control** - Precise prefetch and read-ahead management
-    - **Frame-accurate seeking** - Instant scrubber response
-
-    This architecture matches what companies like YouTube and Netflix use for their iOS players.
+    - Adaptive bitrate streaming (H.264/HLS) with automatic quality selection
+    - Pre-buffering for near-instant playback on swipe
+    - Automatic video looping
+    - App lifecycle-aware (pauses on background, resumes on foreground, manages memory under pressure)
   </Tab>
   <Tab title="Android">
-    Built on Media3/ExoPlayer with custom extensions:
+    Built on Media3/ExoPlayer with optimizations for short-form content:
 
-    - **Optimized buffer management** - Tuned for short-form content patterns
-    - **Signal collection hooks** - Deep integration with engagement tracking
-    - **Multi-codec support** - Hardware-accelerated AV1 on supported devices
-    - **Background playback** - Picture-in-Picture support
+    - Adaptive bitrate streaming with pre-buffering for instant swipe transitions
+    - Hardware-accelerated playback
+    - Full lifecycle management including Picture-in-Picture support
+    - Jetpack Compose and View system support
   </Tab>
   <Tab title="React Native">
-    Native bridge architecture:
+    Native bridge architecture that delegates to the platform-native SDK on each OS:
 
     - Single npm package for both platforms
-    - Platform detection delegates to iOS or Android native implementation
+    - Platform detection routes to the iOS or Android native implementation
     - Full feature parity with native SDKs
-    - TypeScript types for configuration and callbacks
-  </Tab>
-  <Tab title="Web">
-    Built on industry-standard libraries:
-
-    - **hls.js** for HLS playback
-    - **dash.js** for DASH playback
-    - Unified API surface across protocols
-    - React component bindings included
+    - TypeScript types for configuration, callbacks, and event handling
   </Tab>
 </Tabs>
 
@@ -85,89 +80,137 @@ shortkit uses custom media pipelines optimized for short-form video performance:
 | Protocol | iOS | Android | Web |
 |----------|-----|---------|-----|
 | HLS | Yes | Yes | Yes |
-| DASH | Yes | Yes | Yes |
-| Progressive MP4 | Yes | Yes | Yes |
+| DASH | Planned | Yes | Planned |
 
 <Tip>
-  For very short content (under 15 seconds), the SDK may use progressive MP4 instead of segmented streaming. The overhead of HLS/DASH segment negotiation can exceed the cost of downloading a small file outright.
+  HLS is the primary streaming protocol across all platforms. The backend automatically transcodes uploaded content into an HLS adaptive bitrate ladder so you do not need to manage encoding yourself.
 </Tip>
 
 ## Initialization
 
-The SDK follows a consistent initialization pattern across platforms:
+The SDK follows a consistent pattern across platforms: create an instance with your publishable API key and a configuration object, then present a feed view.
 
-```typescript
-shortkit.initialize({
-  apiKey: 'pk_live_your_publishable_key',
-  config: FeedConfig,
-  environment: 'production' | 'staging' | 'development',
-  remoteConfigTTL: 300,      // Cache TTL in seconds (default: 5 min)
-  remoteConfigTimeout: 2000  // Fetch timeout in ms (default: 2s)
-});
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    import ShortKit
+
+    let shortKit = ShortKit(
+        apiKey: "pk_live_your_publishable_key",
+        config: FeedConfig(
+            feedHeight: .fullscreen,
+            controls: ControlsConfig(),
+            theme: ThemeConfig(primaryColor: .red)
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="Android (Kotlin)">
+    ```kotlin
+    import dev.shortkit.ShortKit
+    import dev.shortkit.FeedConfig
+
+    val shortKit = ShortKit(
+        apiKey = "pk_live_your_publishable_key",
+        config = FeedConfig(
+            feedHeight = FeedHeight.Fullscreen,
+            controls = ControlsConfig(),
+            theme = ThemeConfig(primaryColor = Color.Red)
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    import { ShortKit } from '@shortkit/react-native';
+
+    const shortKit = ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key',
+      config: {
+        feedHeight: 'fullscreen',
+        controls: {},
+        theme: { primaryColor: '#FF0000' }
+      }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+Initialization is **non-blocking**. The feed renders immediately with your code-level defaults while remote configuration loads in the background. If the remote config fetch fails or times out (default: 2 seconds), the SDK falls back to cached config or your code-level defaults — the feed is never delayed.
+
+### User identity
+
+After initialization, optionally associate a user identity for personalized feeds and cross-device analytics:
+
+```swift
+// After your app's login flow completes
+shortKit.setUserId("user_12345")
+
+// On logout — reverts to a new anonymous identity
+shortKit.clearUserId()
 ```
 
-Initialization is **non-blocking**. The feed begins rendering immediately with code-level defaults while remote configuration is fetched in the background.
-
-### Post-initialization methods
-
-```typescript
-// Associate user identity for personalization
-shortkit.setUserId('user_12345');
-
-// Clear identity on logout (generates new anonymous ID)
-shortkit.clearUserId();
-```
+The SDK works fully in anonymous mode if you never call `setUserId()`. An anonymous device ID is generated automatically and used for engagement tracking and feed requests.
 
 ## Configuration hierarchy
 
-The SDK uses a layered configuration model where each layer overrides the previous:
+The SDK uses a layered configuration model. Each layer overrides the previous, and only changed fields are overridden — everything else keeps your code-level defaults:
 
-1. **Code-level config** - Passed at initialization, serves as baseline and fallback
-2. **Remote config overlay** - Fetched from server, contains only overridden fields
-3. **A/B variants** - Experiment-specific overrides included in remote config
+1. **Code-level config** — passed at initialization. Always available, even offline.
+2. **Remote config overlay** — fetched from the server in the background. Contains only the fields your team has overridden in the Admin Portal.
+3. **Cached config** — the last successfully fetched remote overlay, stored on disk. Used when the server is unreachable.
 
-If remote config fetch fails, the SDK gracefully falls back to cached config (if available) or code-level defaults. The feed never blocks waiting for configuration.
+This means you can update feed controls, theming, and behavior from the Admin Portal without shipping an app update.
 
 ## Feed rendering
 
-Display the feed using platform-appropriate components:
+Display the feed using a single platform-appropriate component:
 
 <Tabs>
   <Tab title="iOS (SwiftUI)">
     ```swift
-    import shortkit
     import SwiftUI
+    import ShortKit
 
     struct VideoTab: View {
+        let shortKit: ShortKit
+
         var body: some View {
-            ShortkitFeedView()
-                .edgesIgnoringSafeArea(.all)
+            ShortKitFeedView(shortKit: shortKit)
+                .ignoresSafeArea()
         }
     }
     ```
   </Tab>
   <Tab title="iOS (UIKit)">
     ```swift
-    import shortkit
     import UIKit
+    import ShortKit
 
     class VideoViewController: UIViewController {
+        let shortKit: ShortKit
+
         override func viewDidLoad() {
             super.viewDidLoad()
-            let feedView = shortkit.createFeedView()
-            feedView.frame = view.bounds
-            view.addSubview(feedView)
+
+            let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+            addChild(feedVC)
+            feedVC.view.frame = view.bounds
+            feedVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(feedVC.view)
+            feedVC.didMove(toParent: self)
         }
     }
     ```
   </Tab>
   <Tab title="Android (Compose)">
     ```kotlin
-    import dev.shortkit.compose.ShortkitFeed
+    import dev.shortkit.compose.ShortKitFeed
 
     @Composable
-    fun VideoTab() {
-        ShortkitFeed(
+    fun VideoTab(shortKit: ShortKit) {
+        ShortKitFeed(
+            shortKit = shortKit,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -175,12 +218,13 @@ Display the feed using platform-appropriate components:
   </Tab>
   <Tab title="Android (View)">
     ```kotlin
-    import dev.shortkit.shortkit
+    import dev.shortkit.ShortKitFeedView
 
     class VideoActivity : AppCompatActivity() {
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-            val feedView = shortkit.createFeedView(this)
+
+            val feedView = ShortKitFeedView(this, shortKit)
             setContentView(feedView)
         }
     }
@@ -188,38 +232,52 @@ Display the feed using platform-appropriate components:
   </Tab>
   <Tab title="React Native">
     ```tsx
-    import { ShortkitFeed } from '@shortkit/react-native';
+    import { ShortKitFeed } from '@shortkit/react-native';
 
     export function VideoTab() {
-      return <ShortkitFeed style={{ flex: 1 }} />;
-    }
-    ```
-  </Tab>
-  <Tab title="Web">
-    ```tsx
-    import { ShortkitFeed } from '@shortkit/web/react';
-
-    export function VideoTab() {
-      return <ShortkitFeed />;
+      return <ShortKitFeed style={{ flex: 1 }} />;
     }
     ```
   </Tab>
 </Tabs>
 
+## Engagement events
+
+The SDK automatically collects the following engagement events with no additional code required:
+
+| Event | Trigger |
+|-------|---------|
+| `feedEntry` | Feed view appears on screen |
+| `feedExit` | Feed view disappears or app backgrounds |
+| `impression` | Video cell snaps into view |
+| `playStart` | First frame of video renders |
+| `watchProgress` | Every 1 second of continuous playback |
+| `completion` | Video reaches its end (fires on each loop) |
+| `swipe` | User swipes to the next or previous video |
+| `rebuffer` | Playback stalls waiting for data |
+| `interaction` | User taps a control (play/pause, mute, share, captions) |
+| `error` | A playback error occurs |
+
+Events are batched every 30 seconds, persisted to disk between batches, and retried on failure. If the app is killed or crashes, unsent events are delivered on the next launch.
+
+<Note>
+  The SDK does not collect IDFA, perform device fingerprinting, or gather any personally identifiable information. Events are keyed to the anonymous device ID or the user ID you provide via `setUserId()`.
+</Note>
+
 ## Platform guides
 
 <Columns cols={2}>
   <Card title="iOS SDK" icon="apple" href="/sdk/ios">
-    Swift integration with UIKit and SwiftUI support.
+    Swift integration with UIKit and SwiftUI support. Full configuration reference.
   </Card>
   <Card title="Android SDK" icon="android" href="/sdk/android">
-    Kotlin integration with View and Compose support.
+    Kotlin integration with View system and Jetpack Compose. Media3 pipeline and lifecycle management.
   </Card>
   <Card title="React Native SDK" icon="react" href="/sdk/react-native">
-    Cross-platform integration for React Native and Expo.
+    Cross-platform integration for React Native apps with native performance on both iOS and Android.
   </Card>
   <Card title="Web SDK" icon="globe" href="/sdk/web">
-    Browser integration with React bindings.
+    Browser integration with React bindings and CDN distribution for non-bundler environments.
   </Card>
 </Columns>
 
@@ -227,15 +285,15 @@ Display the feed using platform-appropriate components:
 
 <Columns cols={2}>
   <Card title="Feed configuration" icon="sliders" href="/sdk/configuration">
-    Layout, controls, and behavior options.
+    Layout, controls, playback behavior, and feed height options.
   </Card>
   <Card title="Theming" icon="palette" href="/sdk/theming">
-    Colors, fonts, and visual customization.
+    Colors, fonts, scrubber styling, caption appearance, and control tints.
   </Card>
-  <Card title="Deep linking" icon="link" href="/sdk/deep-linking">
-    Shareable links and content navigation.
+  <Card title="User identity" icon="user" href="/guides/integration/identity-management">
+    Anonymous and identified user modes, cross-device personalization, and logout handling.
   </Card>
   <Card title="Engagement signals" icon="signal" href="/sdk/engagement-signals">
-    Event collection and analytics integration.
+    Event types, batching behavior, privacy model, and analytics integration.
   </Card>
 </Columns>

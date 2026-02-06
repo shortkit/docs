@@ -1,263 +1,350 @@
 ---
 title: "Identity management"
-description: "Set up user identity for personalized feeds and cross-device engagement."
-keywords: ["identity", "user", "personalization", "authentication"]
+description: "Set up user identity for personalized feeds and cross-device engagement tracking."
+keywords: ["identity", "user", "personalization", "authentication", "anonymous", "cross-device"]
 ---
 
-shortkit uses a two-phase identity model that enables personalization from the first session while supporting cross-device engagement for authenticated users.
+ShortKit uses a two-phase identity model that enables personalization from the very first session while supporting cross-device engagement for authenticated users. No setup is required for anonymous mode -- it works automatically on SDK initialization.
 
 ## How identity works
 
 ### Phase 1: Anonymous
 
-On first SDK initialization:
-1. SDK generates a unique device ID (UUID v4)
-2. All engagement events are keyed to this anonymous ID
-3. Feed personalization begins immediately based on device-level signals
+On first SDK initialization, the SDK generates a UUID v4 device identifier and persists it locally. All engagement events and feed requests are keyed to this anonymous ID. Feed personalization begins immediately based on device-level engagement signals.
+
+The anonymous ID persists across app launches until `clearUserId()` is called or the app is uninstalled.
 
 ### Phase 2: Identified
 
-When your app authenticates a user:
-1. You call `setUserId()` with your app's user identifier
-2. SDK sends an identity resolution event to the backend
-3. Anonymous device engagement merges with the identified profile
-4. Future events are keyed to the identified user
+When your app authenticates a user, you call `setUserId()` with your application's user identifier. The SDK sends an identity resolution request to the ShortKit backend, which merges the anonymous device profile into the identified user profile. All subsequent events and feed requests use the identified user ID.
 
-## Implementation
+```
+First launch             User logs in              Ongoing
++-----------------+      +------------------+      +------------------+
+| Anonymous UUID  | ---> | setUserId()      | ---> | Identified user  |
+| generated       |      | merge anonymous  |      | cross-device     |
+| device-level    |      | data into user   |      | personalization  |
+| personalization |      | profile          |      |                  |
++-----------------+      +------------------+      +------------------+
+```
 
-### Setting user identity
+## Setting user identity
 
-Call `setUserId()` when your user authenticates:
+Call `setUserId()` after your app completes its own authentication flow.
 
 <Tabs>
-  <Tab title="iOS">
+  <Tab title="iOS (SwiftUI)">
     ```swift
-    // When user logs in
+    // Initialize the SDK (e.g., in your App entry point)
+    let shortKit = ShortKit(
+        apiKey: "pk_live_abc123",
+        config: FeedConfig()
+    )
+
+    // After your authentication completes
     func handleLogin(user: User) {
-        // Your authentication logic
         authenticateUser(user)
 
-        // Associate identity with shortkit
-        shortkit.setUserId(user.id)
+        // Associate identity with ShortKit
+        shortKit.setUserId(user.id)
+    }
+    ```
+  </Tab>
+  <Tab title="iOS (UIKit)">
+    ```swift
+    // Initialize the SDK (e.g., in AppDelegate)
+    let shortKit = ShortKit(
+        apiKey: "pk_live_abc123",
+        config: FeedConfig()
+    )
+
+    // After your authentication completes
+    func handleLogin(user: User) {
+        authenticateUser(user)
+
+        // Associate identity with ShortKit
+        shortKit.setUserId(user.id)
     }
     ```
   </Tab>
   <Tab title="Android">
     ```kotlin
-    // When user logs in
+    // Initialize the SDK
+    val shortKit = ShortKit(
+        apiKey = "pk_live_abc123",
+        config = FeedConfig()
+    )
+
+    // After your authentication completes
     fun handleLogin(user: User) {
-        // Your authentication logic
         authenticateUser(user)
 
-        // Associate identity with shortkit
-        shortkit.setUserId(user.id)
+        // Associate identity with ShortKit
+        shortKit.setUserId(user.id)
     }
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
-    // When user logs in
+    // Initialize the SDK
+    const shortKit = new ShortKit({
+      apiKey: "pk_live_abc123",
+      config: {}
+    });
+
+    // After your authentication completes
     async function handleLogin(user: User) {
-      // Your authentication logic
       await authenticateUser(user);
 
-      // Associate identity with shortkit
-      shortkit.setUserId(user.id);
+      // Associate identity with ShortKit
+      shortKit.setUserId(user.id);
     }
     ```
   </Tab>
   <Tab title="Web">
     ```typescript
-    // When user logs in
+    // Initialize the SDK
+    const shortKit = new ShortKit({
+      apiKey: "pk_live_abc123",
+      config: {}
+    });
+
+    // After your authentication completes
     async function handleLogin(user: User) {
-      // Your authentication logic
       await authenticateUser(user);
 
-      // Associate identity with shortkit
-      shortkit.setUserId(user.id);
+      // Associate identity with ShortKit
+      shortKit.setUserId(user.id);
     }
     ```
   </Tab>
 </Tabs>
 
-### Clearing identity
+<Info>
+  Call `setUserId()` on every app launch when the user is already authenticated. The SDK handles deduplication -- calling it with the same ID multiple times is safe and does not trigger redundant merges.
+</Info>
 
-Call `clearUserId()` when the user logs out:
+## Clearing identity on logout
+
+Call `clearUserId()` when the user logs out of your app.
 
 <Tabs>
   <Tab title="iOS">
     ```swift
     func handleLogout() {
-        // Your logout logic
         clearSession()
 
-        // Clear shortkit identity
-        shortkit.clearUserId()
+        // Clear ShortKit identity
+        shortKit.clearUserId()
     }
     ```
   </Tab>
   <Tab title="Android">
     ```kotlin
     fun handleLogout() {
-        // Your logout logic
         clearSession()
 
-        // Clear shortkit identity
-        shortkit.clearUserId()
+        // Clear ShortKit identity
+        shortKit.clearUserId()
     }
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
     function handleLogout() {
-      // Your logout logic
       clearSession();
 
-      // Clear shortkit identity
-      shortkit.clearUserId();
+      // Clear ShortKit identity
+      shortKit.clearUserId();
     }
     ```
   </Tab>
   <Tab title="Web">
     ```typescript
     function handleLogout() {
-      // Your logout logic
       clearSession();
 
-      // Clear shortkit identity
-      shortkit.clearUserId();
+      // Clear ShortKit identity
+      shortKit.clearUserId();
     }
     ```
   </Tab>
 </Tabs>
 
 When `clearUserId()` is called:
-- A new anonymous device ID is generated
-- The identified profile remains intact for future logins
-- New engagement starts fresh on the anonymous profile
+
+1. A **new** anonymous UUID is generated for the device
+2. The previously identified user profile remains intact (it is not deleted)
+3. New engagement data accumulates on the fresh anonymous profile
+4. If the same user logs back in, `setUserId()` links the new anonymous data to their existing profile
+
+## What happens on merge
+
+When `setUserId()` is called, the ShortKit backend performs identity resolution:
+
+1. **Lookup** -- Check whether the identified user ID already exists
+2. **Create or retrieve** -- Create a new identified profile, or retrieve the existing one
+3. **Merge** -- All anonymous engagement data (watch history, interaction patterns, topic affinities) is attributed to the identified user
+4. **Link** -- The anonymous device ID is linked to the identified profile for future reference
+
+After the merge:
+- The user does not "start over" -- their anonymous session engagement carries forward
+- Personalization is continuous across the transition
+- The anonymous profile is retired and will not receive new events
+
+## Cross-device identity
+
+When the same `userId` is set on multiple devices, all engagement data unifies into a single profile:
+
+- Device A's anonymous session merges on login
+- Device B's anonymous session merges on login
+- Feed personalization reflects combined engagement from all devices
+- Watch history, topic affinities, and interaction patterns combine
+
+This means a user who watches sports content on their phone and news content on their tablet will see a feed that reflects both interests on either device.
+
+## User switching
+
+If one user logs out and a different user logs in on the same device:
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    // User A logs out
+    shortKit.clearUserId()
+
+    // User B logs in
+    shortKit.setUserId("user_b_id")
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    // User A logs out
+    shortKit.clearUserId()
+
+    // User B logs in
+    shortKit.setUserId("user_b_id")
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    // User A logs out
+    shortKit.clearUserId();
+
+    // User B logs in
+    shortKit.setUserId("user_b_id");
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    // User A logs out
+    shortKit.clearUserId();
+
+    // User B logs in
+    shortKit.setUserId("user_b_id");
+    ```
+  </Tab>
+</Tabs>
+
+What happens:
+
+1. `clearUserId()` generates a new anonymous UUID -- User A's profile is preserved
+2. Any engagement between logout and User B's login accumulates on the new anonymous profile
+3. `setUserId("user_b_id")` triggers identity resolution for User B
+4. The feed now reflects User B's preferences
+
+## Anonymous-only mode
+
+If your app does not have user authentication, ShortKit works entirely in anonymous mode:
+
+- Each device gets a persistent unique identifier
+- Personalization operates at the device level
+- No cross-device engagement tracking
+- No identity methods need to be called -- anonymous mode is the default
 
 ## Choosing a user ID
 
 ### Requirements
 
-The user ID must be:
-- **Unique**: One ID per user within your organization
-- **Persistent**: Same ID across sessions and devices
-- **Stable**: Doesn't change over user lifecycle
+The user ID you pass to `setUserId()` must be:
 
-### Recommendations
+- **Unique** -- One ID per user within your organization
+- **Persistent** -- The same ID across sessions and devices
+- **Stable** -- Does not change over the user's lifecycle
+
+### Good and bad patterns
 
 <Columns cols={2}>
   <Card title="Good identifiers" icon="check">
     - Database primary key (`user_12345`)
     - UUID (`550e8400-e29b-41d4-a716-446655440000`)
-    - Hashed email (`sha256:abc123...`)
+    - Prefixed internal ID (`usr_a8b3c9d2`)
   </Card>
   <Card title="Avoid" icon="xmark">
-    - Raw email addresses (PII)
-    - Phone numbers (PII)
+    - Raw email addresses (PII, may change)
+    - Phone numbers (PII, may change)
     - Session tokens (not persistent)
-    - Sequential IDs (guessable)
+    - Sequential integers (guessable)
+    - Usernames (may change)
   </Card>
 </Columns>
 
 <Warning>
-  Never pass personally identifiable information (PII) as the user ID. Use an opaque identifier from your system.
+  Never pass personally identifiable information (PII) as the user ID. Use an opaque, stable identifier from your system. If you must derive an ID from an email, hash it first.
 </Warning>
 
-### Example user IDs
+### Examples
 
-```typescript
-// Good: Database ID
-shortkit.setUserId("user_12345");
+```swift
+// Good: Database primary key
+shortKit.setUserId("user_12345")
 
 // Good: UUID
-shortkit.setUserId("550e8400-e29b-41d4-a716-446655440000");
+shortKit.setUserId("550e8400-e29b-41d4-a716-446655440000")
 
-// Good: Hashed email (if you must use email)
-const hashedEmail = await sha256(user.email.toLowerCase());
-shortkit.setUserId(`email:${hashedEmail}`);
+// Good: Prefixed internal ID
+shortKit.setUserId("usr_a8b3c9d2")
 
-// Bad: Raw email
-shortkit.setUserId("user@example.com"); // Don't do this
+// Bad: Raw email (PII, may change)
+shortKit.setUserId("user@example.com")
+
+// Bad: Session token (not persistent)
+shortKit.setUserId("sess_temporary_token")
 ```
 
-## Identity resolution
+## Identity persistence
 
-When `setUserId()` is called, the backend performs identity resolution:
+| Data | Storage | Lifetime |
+|------|---------|----------|
+| Anonymous device ID | Device local storage | Until `clearUserId()` is called or app is uninstalled |
+| Identified user ID | In-memory | Until `clearUserId()` is called or SDK is re-initialized |
+| Identity resolution status | In-memory | Per session |
 
-### What happens
+## Privacy and data collection
 
-1. **Lookup**: Check if the user ID exists in the system
-2. **Merge**: Link the anonymous device profile to the identified user
-3. **Consolidate**: Merge engagement history from anonymous session
+### What the SDK collects
 
-### Engagement merging
+ShortKit collects engagement data to power feed personalization. The following data is associated with each user profile (anonymous or identified):
 
-Anonymous session data is merged into the identified profile:
-- Watch history
-- Topic affinities
-- Interaction patterns
+| Data | Purpose |
+|------|---------|
+| Device-generated anonymous UUID | Identity and session continuity |
+| Your provided user ID (if set) | Cross-device identity resolution |
+| Engagement events (11 types) | Feed personalization and analytics |
+| Device metadata (model, OS version, screen size) | Playback optimization and analytics |
+| Session identifiers | Session-level analytics |
 
-This means:
-- Users don't "start over" when they log in
-- Personalization is continuous
-- Cross-device engagement combines
+### What the SDK does not collect
 
-### Multiple devices
+- No IDFA or advertising identifiers
+- No device fingerprinting
+- No contacts, location, or sensor data
+- No PII unless you pass it as the user ID (which you should not do)
+- No authentication credentials from your app
 
-When the same user logs in on multiple devices:
-- Each device's anonymous session merges on login
-- Engagement history combines across devices
-- Feed personalization reflects all device activity
+### GDPR and CCPA compliance
 
-## User switching
-
-If a user logs out and a different user logs in:
-
-```typescript
-// User A logs out
-shortkit.clearUserId();
-
-// User B logs in
-shortkit.setUserId("user_b_id");
-```
-
-What happens:
-1. `clearUserId()` generates a new anonymous ID
-2. User A's profile is preserved (not deleted)
-3. User B's `setUserId()` triggers identity resolution
-4. Feed now reflects User B's preferences
-
-## Anonymous-only mode
-
-If your app doesn't have user authentication, shortkit works entirely in anonymous mode:
-
-- Each device gets a unique identifier
-- Personalization is device-level only
-- No cross-device engagement tracking
-- Still provides meaningful personalization
-
-You don't need to call any identity methods; anonymous mode is the default.
-
-## Privacy considerations
-
-### Data stored
-
-For each user profile, shortkit stores:
-- User ID (your identifier)
-- Linked device IDs
-- Topic affinities (computed from engagement)
-- Engagement statistics (aggregate metrics)
-
-shortkit does **not** store:
-- Personally identifiable information (unless you pass it as user ID)
-- Authentication credentials
-- Raw engagement event logs (beyond retention period)
-
-### Data subject requests
-
-For GDPR/CCPA compliance:
+For data subject requests under GDPR or CCPA:
 
 **Export user data:**
 ```bash
@@ -265,57 +352,64 @@ curl -X POST https://api.shortkit.dev/v1/users/{userId}/export \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
-**Delete user data:**
+**Delete user data (right to erasure):**
 ```bash
 curl -X DELETE https://api.shortkit.dev/v1/users/{userId} \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
-See [Data export guide](/guides/data-export) for details.
+Deletion permanently removes the user profile, all engagement events, topic affinity data, and device linkages. This action is irreversible.
+
+See the [Data export guide](/guides/integration/data-export) for full details.
 
 ## Troubleshooting
 
-### Identity not persisting
+### Identity not persisting across app launches
 
-**Symptom**: User preferences reset on app restart
+**Symptom**: User preferences reset on app restart.
 
-**Causes**:
-- `setUserId()` not called after app restart
-- User ID changing between sessions
+**Cause**: `setUserId()` is not called after app restart.
 
-**Solution**: Call `setUserId()` on every app launch when user is authenticated:
+**Solution**: Call `setUserId()` on every app launch when the user is already authenticated:
 
-```typescript
+```swift
 // On app startup
-if (isUserLoggedIn()) {
-  shortkit.setUserId(currentUser.id);
+if isUserLoggedIn() {
+    shortKit.setUserId(currentUser.id)
 }
 ```
 
 ### Anonymous engagement not merging
 
-**Symptom**: User's pre-login engagement doesn't affect personalization
+**Symptom**: Pre-login engagement does not affect personalization after login.
 
-**Causes**:
-- `setUserId()` called before SDK initialization
-- Multiple SDK instances
+**Cause**: `setUserId()` was called before the SDK finished initializing, or multiple SDK instances exist.
 
-**Solution**: Ensure SDK is initialized before calling `setUserId()`:
+**Solution**: Initialize the SDK first, then call `setUserId()` after your authentication flow completes:
 
-```typescript
-// Correct order
-shortkit.initialize({ apiKey: '...', config: {...} });
-// Later, when user logs in
-shortkit.setUserId(user.id);
+```swift
+// 1. Initialize the SDK
+let shortKit = ShortKit(apiKey: "pk_live_abc123", config: FeedConfig())
+
+// 2. Later, when user logs in
+shortKit.setUserId(user.id)
 ```
+
+### Feed not reflecting cross-device engagement
+
+**Symptom**: User sees different feed content on different devices despite being logged in.
+
+**Cause**: Different user IDs are being passed on different devices.
+
+**Solution**: Ensure the same stable user ID is used across all platforms and devices. Verify that your backend returns a consistent identifier regardless of the authentication method.
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Feed ranking" icon="ranking-star" href="/guides/platform/feed-ranking">
-    How identity affects personalization.
+  <Card title="Feed configuration" icon="sliders" href="/guides/platform/feed-ranking">
+    How identity affects content personalization.
   </Card>
-  <Card title="Engagement signals" icon="signal" href="/sdk/engagement-signals">
-    Events tracked for personalization.
+  <Card title="Engagement events" icon="signal" href="/sdk/engagement-signals">
+    The 11 event types tracked by the SDK.
   </Card>
 </Columns>

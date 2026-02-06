@@ -1,10 +1,10 @@
 ---
-title: "API introduction"
-description: "Overview of the shortkit REST API for content management, feed delivery, and analytics."
+title: "API Introduction"
+description: "Overview of the ShortKit REST API for content management, feed delivery, and analytics."
 keywords: ["API", "REST", "endpoints", "reference"]
 ---
 
-The shortkit API provides programmatic access to all platform capabilities, from content management to feed delivery to analytics.
+The ShortKit API provides programmatic access to all platform capabilities -- content ingestion, feed delivery, remote configuration, engagement analytics, and identity resolution.
 
 ## Base URL
 
@@ -14,45 +14,68 @@ All API requests use the following base URL:
 https://api.shortkit.dev/v1
 ```
 
-## API design
+All endpoints are served over HTTPS. Requests made over plain HTTP will be rejected.
 
-The API follows REST conventions:
+## Content type
 
-- **Resource-oriented URLs**: `/v1/content`, `/v1/feed`, `/v1/analytics`
-- **Standard HTTP methods**: GET, POST, PATCH, DELETE
-- **JSON request/response bodies**
-- **Consistent response envelope**
+All request and response bodies use JSON. Include the `Content-Type` header on requests that contain a body:
 
-## Response format
+```
+Content-Type: application/json
+```
 
-All responses use a consistent envelope:
+## API versioning
 
-### Success response
+The API version is included in the URL path (`/v1/`). Breaking changes are only introduced in new major versions.
+
+Non-breaking additions -- such as new response fields, new optional parameters, and new endpoints -- are added to the current version without a version bump. Your integration should gracefully ignore unrecognized fields.
+
+## Response envelope
+
+All responses use a consistent envelope structure with `data`, `meta`, and `errors` fields.
+
+### Success response (single resource)
 
 ```json
 {
   "data": {
-    "id": "cnt_abc123",
-    "title": "My Video",
-    "status": "ready"
+    "id": "sk_content_abc123",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "status": "ready",
+    "duration": 32.5,
+    "streamingUrl": "https://video.shortkit.dev/d7f2a9b1c3e4.m3u8",
+    "thumbnailUrl": "https://images.shortkit.dev/d7f2a9b1c3e4/thumbnail.jpg",
+    "customMetadata": {
+      "articleUrl": "https://weather.com/severe-storm",
+      "category": "severe-weather"
+    }
   },
   "meta": {
-    "requestId": "req_xyz789"
+    "request_id": "req_8f3a2b1c"
   }
 }
 ```
 
-### List response
+### Success response (list)
 
 ```json
 {
   "data": [
-    { "id": "cnt_abc123", "title": "Video 1" },
-    { "id": "cnt_def456", "title": "Video 2" }
+    {
+      "id": "sk_content_abc123",
+      "title": "Breaking: Weather Alert",
+      "duration": 32.5
+    },
+    {
+      "id": "sk_content_def456",
+      "title": "Game Highlights: Final Four",
+      "duration": 45.0
+    }
   ],
   "meta": {
-    "total": 150,
-    "nextCursor": "eyJvZmZzZXQiOjIwfQ=="
+    "next_cursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9",
+    "request_id": "req_9d4e3f2a"
   }
 }
 ```
@@ -61,131 +84,122 @@ All responses use a consistent envelope:
 
 ```json
 {
-  "error": {
-    "code": "INVALID_REQUEST",
-    "message": "Title is required",
-    "details": {
-      "field": "title",
-      "reason": "required"
-    }
-  },
+  "data": null,
   "meta": {
-    "requestId": "req_xyz789"
-  }
+    "request_id": "req_7c1b4a5d"
+  },
+  "errors": [
+    {
+      "code": "invalid_request",
+      "message": "The 'limit' parameter must be an integer between 1 and 50.",
+      "field": "limit"
+    }
+  ]
 }
 ```
 
+<Note>
+  Every response -- success or error -- includes a `meta.request_id` field. Include this value when contacting support to enable fast debugging.
+</Note>
+
 ## Pagination
 
-List endpoints use cursor-based pagination:
+List endpoints use **cursor-based pagination** with opaque cursor tokens. This provides consistent performance regardless of how deep into the result set you paginate.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | `10` | Number of items to return per page. Maximum: `50`. |
+| `cursor` | string | -- | Opaque cursor token from the previous response's `meta.next_cursor`. Omit for the first page. |
+
+### Paginating through results
 
 ```bash
 # First page
-curl https://api.shortkit.dev/v1/content?limit=20
+curl https://api.shortkit.dev/v1/feed?limit=10 \
+  -H "X-API-Key: pk_live_your_publishable_key"
 
-# Next page
-curl https://api.shortkit.dev/v1/content?limit=20&cursor=eyJvZmZzZXQiOjIwfQ==
+# Next page -- use the cursor from the previous response
+curl "https://api.shortkit.dev/v1/feed?limit=10&cursor=eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2RlZjQ1NiJ9" \
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
-Parameters:
-- `limit` - Items per page (default: 20, max: 100)
-- `cursor` - Cursor from previous response's `meta.nextCursor`
+When `meta.next_cursor` is `null` or absent, you have reached the end of the result set.
+
+<Warning>
+  Cursor tokens are opaque and may change format between API versions. Do not parse, decode, or construct them manually. Always use the exact value returned by the API.
+</Warning>
 
 ## Rate limiting
 
-API requests are rate-limited per organization:
+API requests are rate-limited per organization to ensure platform stability.
 
-| Tier | Requests/minute |
-|------|----------------|
+| Plan | Requests per minute |
+|------|---------------------|
 | Standard | 1,000 |
 | Pro | 5,000 |
 | Enterprise | Custom |
 
-Rate limit headers are included in all responses:
+Every response includes rate limit headers:
 
 ```
 X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 950
-X-RateLimit-Reset: 1707048060
+X-RateLimit-Remaining: 947
+X-RateLimit-Reset: 1738785660
 ```
 
-When rate limited, you receive a `429 Too Many Requests` response.
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed per minute for your plan. |
+| `X-RateLimit-Remaining` | Requests remaining in the current window. |
+| `X-RateLimit-Reset` | Unix timestamp (seconds) when the rate limit window resets. |
 
-## Idempotency
+When you exceed the limit, the API returns a `429 Too Many Requests` response with a `Retry-After` header indicating how many seconds to wait before retrying:
 
-For safe retries, include an `Idempotency-Key` header on POST requests:
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/upload \
-  -H "Authorization: Bearer sk_live_..." \
-  -H "Idempotency-Key: unique-request-id-123" \
-  -F "file=@video.mp4"
 ```
-
-If a request with the same idempotency key is repeated within 24 hours, the original response is returned without re-executing the operation.
-
-## Versioning
-
-The API version is included in the URL path (`/v1/`). Breaking changes are only introduced in new versions.
-
-Non-breaking additions (new fields, new endpoints) are added to the current version.
+HTTP/1.1 429 Too Many Requests
+Retry-After: 12
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1738785660
+```
 
 ## Environments
 
-| Environment | Base URL | Purpose |
-|-------------|----------|---------|
-| Production | `https://api.shortkit.dev/v1` | Live traffic |
-| Staging | `https://api.staging.shortkit.dev/v1` | Testing |
+ShortKit provides two fully isolated environments. Data created with `live` keys is completely separate from data created with `test` keys.
 
-Use environment-specific API keys.
+| Environment | Key prefixes | Purpose |
+|-------------|--------------|---------|
+| **Live** | `pk_live_`, `sk_live_` | Production traffic, real content |
+| **Test** | `pk_test_`, `sk_test_` | Development and testing |
 
-## SDKs
-
-While you can use the API directly, we provide official SDKs:
-
-- **Node.js**: `npm install @shortkit/node`
-- **Python**: `pip install shortkit`
-- **Go**: `go get github.com/shortkit/shortkit-go`
-
-SDK example:
-
-```typescript
-import { ShortkitAdmin } from '@shortkit/node';
-
-const shortkit = new ShortkitAdmin({
-  apiKey: 'sk_live_your_secret_key'
-});
-
-const content = await shortkit.content.create({
-  title: 'My Video',
-  sourceUrl: 'https://storage.example.com/video.mp4'
-});
-```
+Use environment-specific API keys. A `test` key cannot access `live` data and vice versa.
 
 ## Endpoint categories
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Content" icon="video" href="/api/content">
-    Upload, manage, and query video content.
+    Upload and manage video content.
   </Card>
   <Card title="Feed" icon="list" href="/api/feed">
-    Retrieve ranked feeds for users.
+    Retrieve ranked video feeds for your users.
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/api/configuration">
+    Remote configuration for SDK behavior and theming.
   </Card>
   <Card title="Analytics" icon="chart-bar" href="/api/analytics">
-    Query engagement and quality metrics.
+    Engagement event ingestion and tracking.
   </Card>
-  <Card title="Configuration" icon="sliders" href="/api/ranking">
-    Manage ranking, experiments, and settings.
-  </Card>
-</Columns>
+</CardGroup>
 
 ## Next steps
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Authentication" icon="key" href="/api/authentication">
-    Learn how to authenticate API requests.
+    Learn how to authenticate API requests with publishable and secret keys.
   </Card>
   <Card title="Error handling" icon="triangle-exclamation" href="/api/errors">
-    Understand error codes and handling.
+    Understand error codes and implement robust error handling.
   </Card>
-</Columns>
+</CardGroup>

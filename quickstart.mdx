@@ -1,52 +1,56 @@
 ---
 title: "Quickstart"
-description: "Get your first short-form video feed running in under 10 minutes."
+description: "Get a short-form video feed running in your app in under 10 minutes."
 keywords: ["quickstart", "getting started", "installation", "setup", "tutorial"]
 ---
 
-This guide walks you through integrating shortkit into your application. By the end, you'll have a working vertical video feed displaying content from your organization.
+Get your API keys, install the SDK, and display a video feed. By the end of this guide you will have a working vertical feed and your first piece of uploaded content.
 
 ## Before you begin
 
 You need:
-- A shortkit account with API keys ([contact us](https://calendly.com/michael-shortkit/20-min-meeting) to get started)
-- An existing mobile or web application to integrate with
+- A ShortKit account with API keys ([sign up](https://portal.shortkit.dev) or [contact us](https://calendly.com/michael-shortkit/20-min-meeting))
+- An existing iOS application (SwiftUI or UIKit)
 
 ## Step 1: Get your API keys
 
 <Steps>
   <Step title="Log in to the Admin Portal">
-    Navigate to [dashboard.shortkit.dev](https://dashboard.shortkit.dev) and sign in with your organization credentials.
+    Navigate to [portal.shortkit.dev](https://portal.shortkit.dev) and sign in with your organization credentials.
   </Step>
-  <Step title="Navigate to API keys">
+  <Step title="Navigate to API Keys">
     Go to **Settings → API Keys** in the sidebar.
   </Step>
-  <Step title="Copy your publishable key">
-    You'll see two keys:
-    - **Publishable key**: Used in your client SDK (safe to include in client-side code)
-    - **Secret key**: Used for server-to-server API calls (keep this secure)
+  <Step title="Copy your keys">
+    You will see two keys:
+    - **Publishable key** (`pk_live_...`): Used in the client SDK. Safe to ship in your app binary.
+    - **Secret key** (`sk_live_...`): Used for server-side API calls only.
 
-    Copy the publishable key for SDK initialization.
+    Copy the publishable key for SDK initialization, and the secret key for uploading content in Step 5.
   </Step>
 </Steps>
 
 <Warning>
-  Never expose your secret key in client-side code. The secret key should only be used in server-side applications.
+  Never expose your secret key (`sk_live_...` or `sk_test_...`) in client-side code, source control, or your app binary. Use it only from your server or a secure CI environment.
 </Warning>
 
 ## Step 2: Install the SDK
 
 <Tabs>
-  <Tab title="iOS">
-    Add shortkit to your project using Swift Package Manager:
+  <Tab title="iOS (SPM)">
+    In Xcode, go to **File → Add Package Dependencies** and enter the repository URL:
+
+    ```
+    https://github.com/AudienceKit/shortkit-ios
+    ```
+
+    Or add it to your `Package.swift`:
 
     ```swift Package.swift
     dependencies: [
-        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "1.0.0")
+        .package(url: "https://github.com/AudienceKit/shortkit-ios.git", from: "1.0.0")
     ]
     ```
-
-    Or in Xcode: **File → Add Package Dependencies** and enter the repository URL.
   </Tab>
   <Tab title="Android">
     Add the dependency to your `build.gradle.kts`:
@@ -57,7 +61,7 @@ You need:
     }
     ```
 
-    Make sure you have the shortkit Maven repository in your `settings.gradle.kts`:
+    Add the ShortKit Maven repository in your `settings.gradle.kts`:
 
     ```kotlin settings.gradle.kts
     dependencyResolutionManagement {
@@ -70,8 +74,6 @@ You need:
     ```
   </Tab>
   <Tab title="React Native">
-    Install via npm or yarn:
-
     <CodeGroup>
 
     ```bash npm
@@ -84,78 +86,64 @@ You need:
 
     </CodeGroup>
 
-    For iOS, run pod install:
+    Then install iOS pods:
 
     ```bash
     cd ios && pod install
     ```
   </Tab>
-  <Tab title="Expo">
-    Install the Expo-compatible package:
+</Tabs>
 
-    ```bash
-    npx expo install @shortkit/expo
-    ```
+## Step 3: Initialize ShortKit
 
-    Add the plugin to your `app.json`:
+Create a `ShortKit` instance with your publishable key and a `FeedConfig`. Do this once, early in your app lifecycle.
 
-    ```json app.json
-    {
-      "expo": {
-        "plugins": ["@shortkit/expo"]
-      }
+<Tabs>
+  <Tab title="SwiftUI">
+    ```swift App.swift
+    import SwiftUI
+    import ShortKit
+
+    @main
+    struct MyApp: App {
+        let shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig(
+                feedHeight: .fullscreen,
+                controls: ControlsConfig(),
+                theme: ThemeConfig()
+            )
+        )
+
+        var body: some Scene {
+            WindowGroup {
+                ContentView(shortKit: shortKit)
+            }
+        }
     }
     ```
   </Tab>
-  <Tab title="Web">
-    Install via npm:
-
-    ```bash
-    npm install @shortkit/web
-    ```
-
-    Or include via CDN:
-
-    ```html
-    <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
-    ```
-  </Tab>
-</Tabs>
-
-## Step 3: Initialize the SDK
-
-<Tabs>
-  <Tab title="iOS">
-    Initialize the SDK in your `AppDelegate` or app entry point:
-
+  <Tab title="UIKit">
     ```swift AppDelegate.swift
-    import shortkit
+    import UIKit
+    import ShortKit
 
     @main
     class AppDelegate: UIResponder, UIApplicationDelegate {
+        var shortKit: ShortKit!
+
         func application(
             _ application: UIApplication,
             didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
         ) -> Bool {
 
-            let config = ShortkitConfig(
-                feedOrientation: .vertical,
-                feedHeight: .fullscreen,
-                controls: ControlsConfig(
-                    playPause: true,
-                    scrubber: true,
-                    captions: CaptionConfig(enabled: true, defaultOn: false),
-                    share: ShareConfig(enabled: true)
-                ),
-                theme: ThemeConfig(
-                    primaryColor: "#FF6600",
-                    controlsTint: "#FFFFFF"
-                )
-            )
-
-            shortkit.initialize(
+            shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
-                config: config
+                config: FeedConfig(
+                    feedHeight: .fullscreen,
+                    controls: ControlsConfig(),
+                    theme: ThemeConfig()
+                )
             )
 
             return true
@@ -163,304 +151,126 @@ You need:
     }
     ```
   </Tab>
-  <Tab title="Android">
-    Initialize in your `Application` class:
-
-    ```kotlin MyApplication.kt
-    import dev.shortkit.shortkit
-    import dev.shortkit.ShortkitConfig
-    import dev.shortkit.FeedOrientation
-    import dev.shortkit.FeedHeight
-
-    class MyApplication : Application() {
-        override fun onCreate() {
-            super.onCreate()
-
-            val config = ShortkitConfig(
-                feedOrientation = FeedOrientation.VERTICAL,
-                feedHeight = FeedHeight.FULLSCREEN,
-                controls = ControlsConfig(
-                    playPause = true,
-                    scrubber = true,
-                    captions = CaptionConfig(enabled = true, defaultOn = false),
-                    share = ShareConfig(enabled = true)
-                ),
-                theme = ThemeConfig(
-                    primaryColor = "#FF6600",
-                    controlsTint = "#FFFFFF"
-                )
-            )
-
-            shortkit.initialize(
-                apiKey = "pk_live_your_publishable_key",
-                config = config
-            )
-        }
-    }
-    ```
-  </Tab>
-  <Tab title="React Native">
-    Initialize at your app's entry point:
-
-    ```tsx App.tsx
-    import { shortkit } from '@shortkit/react-native';
-
-    // Initialize before rendering
-    shortkit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-      config: {
-        feedOrientation: 'vertical',
-        feedHeight: 'fullscreen',
-        controls: {
-          playPause: true,
-          scrubber: true,
-          captions: { enabled: true, defaultOn: false },
-          share: { enabled: true }
-        },
-        theme: {
-          primaryColor: '#FF6600',
-          controlsTint: '#FFFFFF'
-        }
-      }
-    });
-
-    export default function App() {
-      return (
-        // Your app components
-      );
-    }
-    ```
-  </Tab>
-  <Tab title="Web">
-    Initialize in your application:
-
-    ```typescript main.ts
-    import { shortkit } from '@shortkit/web';
-
-    shortkit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-      config: {
-        feedOrientation: 'vertical',
-        feedHeight: 'fullscreen',
-        controls: {
-          playPause: true,
-          scrubber: true,
-          captions: { enabled: true, defaultOn: false },
-          share: { enabled: true }
-        },
-        theme: {
-          primaryColor: '#FF6600',
-          controlsTint: '#FFFFFF'
-        }
-      }
-    });
-    ```
-  </Tab>
 </Tabs>
+
+**Optional:** If you have logged-in users, set a user ID so ShortKit can personalize the feed:
+
+```swift
+shortKit.setUserId("user_12345")
+```
+
+Call `shortKit.clearUserId()` on logout.
 
 ## Step 4: Display the feed
 
 <Tabs>
-  <Tab title="iOS">
-    Present the feed view controller:
-
-    ```swift VideoFeedViewController.swift
-    import shortkit
-    import UIKit
-
-    class VideoFeedViewController: UIViewController {
-        override func viewDidLoad() {
-            super.viewDidLoad()
-
-            let feedView = shortkit.createFeedView()
-            feedView.frame = view.bounds
-            feedView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            view.addSubview(feedView)
-        }
-    }
-    ```
-
-    Or use SwiftUI:
+  <Tab title="SwiftUI">
+    Drop `ShortKitFeedView` into any SwiftUI view. It handles its own layout and playback.
 
     ```swift ContentView.swift
     import SwiftUI
-    import shortkit
+    import ShortKit
 
     struct ContentView: View {
+        let shortKit: ShortKit
+
         var body: some View {
-            ShortkitFeedView()
-                .edgesIgnoringSafeArea(.all)
+            ShortKitFeedView(shortKit: shortKit)
+                .ignoresSafeArea()
         }
     }
     ```
   </Tab>
-  <Tab title="Android">
-    Add the feed view to your layout:
+  <Tab title="UIKit">
+    Present `ShortKitFeedViewController` or embed it as a child view controller.
 
-    ```xml activity_main.xml
-    <?xml version="1.0" encoding="utf-8"?>
-    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+    ```swift ViewController.swift
+    import UIKit
+    import ShortKit
 
-        <dev.shortkit.ui.ShortkitFeedView
-            android:id="@+id/feedView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+    class ViewController: UIViewController {
+        override func viewDidLoad() {
+            super.viewDidLoad()
 
-    </FrameLayout>
-    ```
-
-    Or programmatically:
-
-    ```kotlin MainActivity.kt
-    import dev.shortkit.shortkit
-
-    class MainActivity : AppCompatActivity() {
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
-
-            val feedView = shortkit.createFeedView(this)
-            setContentView(feedView)
+            let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+            addChild(feedVC)
+            feedVC.view.frame = view.bounds
+            feedVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(feedVC.view)
+            feedVC.didMove(toParent: self)
         }
-    }
-    ```
-
-    With Jetpack Compose:
-
-    ```kotlin MainScreen.kt
-    import dev.shortkit.compose.ShortkitFeed
-
-    @Composable
-    fun MainScreen() {
-        ShortkitFeed(
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-    ```
-  </Tab>
-  <Tab title="React Native">
-    Use the `ShortkitFeed` component:
-
-    ```tsx VideoScreen.tsx
-    import { ShortkitFeed } from '@shortkit/react-native';
-    import { StyleSheet, View } from 'react-native';
-
-    export function VideoScreen() {
-      return (
-        <View style={styles.container}>
-          <ShortkitFeed style={styles.feed} />
-        </View>
-      );
-    }
-
-    const styles = StyleSheet.create({
-      container: {
-        flex: 1,
-      },
-      feed: {
-        flex: 1,
-      },
-    });
-    ```
-  </Tab>
-  <Tab title="Web">
-    Mount the feed to a container element:
-
-    ```typescript
-    import { shortkit } from '@shortkit/web';
-
-    // Mount to a container
-    const container = document.getElementById('video-feed');
-    shortkit.mountFeed(container);
-    ```
-
-    With React:
-
-    ```tsx VideoFeed.tsx
-    import { ShortkitFeed } from '@shortkit/web/react';
-
-    export function VideoFeed() {
-      return (
-        <div style={{ width: '100%', height: '100vh' }}>
-          <ShortkitFeed />
-        </div>
-      );
     }
     ```
   </Tab>
 </Tabs>
 
+Build and run. You will see an empty feed until you upload content in the next step.
+
 ## Step 5: Upload test content
 
-Before your feed displays content, you need to upload some videos. You can do this via the Admin Portal or API.
+Use the Upload API from your terminal to push a video into your feed. This requires your **secret key**.
 
-<Tabs>
-  <Tab title="Admin Portal">
-    1. Go to [dashboard.shortkit.dev](https://dashboard.shortkit.dev)
-    2. Navigate to **Content → Upload**
-    3. Drag and drop your video files
-    4. Add metadata (title, description, tags)
-    5. Click **Publish**
-
-    Content typically takes 1-2 minutes to process before appearing in feeds.
-  </Tab>
-  <Tab title="API">
-    Use the direct upload flow for client-side uploads:
-
+<Steps>
+  <Step title="Create an upload">
     ```bash
-    # Step 1: Create upload session
     curl -X POST https://api.shortkit.dev/v1/uploads \
-      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "X-API-Key: sk_live_your_secret_key" \
       -H "Content-Type: application/json" \
       -d '{
         "title": "My First Video",
-        "description": "Testing shortkit integration",
-        "tags": ["test", "demo"]
+        "description": "Testing ShortKit integration",
+        "tags": ["test", "demo"],
+        "customMetadata": {
+          "articleUrl": "https://example.com/article"
+        }
       }'
     ```
 
     Response:
+
     ```json
     {
       "data": {
-        "uploadId": "upl_abc123",
-        "uploadUrl": "https://upload.shortkit.dev/...",
-        "expiresAt": "2024-02-05T12:00:00Z"
+        "id": "sk_content_abc123",
+        "uploadUrl": "https://uploads.shortkit.dev/...",
+        "status": "waiting_for_upload"
       }
     }
     ```
+  </Step>
+  <Step title="Upload the file to the signed URL">
+    Use the `uploadUrl` from the response to PUT your video file:
 
     ```bash
-    # Step 2: Upload file to signed URL
-    curl -X PUT "https://upload.shortkit.dev/..." \
+    curl -X PUT "UPLOAD_URL_FROM_RESPONSE" \
       -H "Content-Type: video/mp4" \
-      --data-binary @video.mp4
+      --data-binary @your-video.mp4
     ```
-  </Tab>
-</Tabs>
 
-## Step 6: Verify it works
+    Processing typically takes 1-2 minutes. Once complete, the video appears in your feed automatically.
+  </Step>
+  <Step title="Verify in your app">
+    Relaunch your app (or wait for the feed to refresh). Your uploaded video should appear in the feed. Swipe up to scroll through content.
+  </Step>
+</Steps>
 
-Run your application. You should see your uploaded videos in a vertical scrolling feed. Swipe up to navigate between videos.
-
-<Check>
-  Your shortkit integration is complete. Users can now watch videos in your app.
-</Check>
+<Note>
+  You can also upload content through the Admin Portal at [portal.shortkit.dev](https://portal.shortkit.dev) under **Content → Upload**.
+</Note>
 
 ## Next steps
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Configure the SDK" icon="sliders" href="/sdk/configuration">
-    Customize feed layout, controls, and behavior.
+    Customize FeedConfig options: feed height, controls, and playback behavior.
   </Card>
   <Card title="Theme your feed" icon="palette" href="/sdk/theming">
-    Match the video player to your brand.
+    Use ThemeConfig to match the player to your brand.
   </Card>
-  <Card title="Set up user identity" icon="user" href="/guides/integration/identity-management">
-    Enable personalized feeds and cross-device engagement.
+  <Card title="User identity" icon="user" href="/guides/integration/identity-management">
+    Set up setUserId for personalized feeds and analytics.
   </Card>
-  <Card title="Integrate ads" icon="rectangle-ad" href="/guides/integration/ad-integration">
-    Monetize your video feed with native ads.
+  <Card title="Upload API reference" icon="cloud-arrow-up" href="/api-reference/uploads">
+    Full reference for the /v1/uploads endpoint and content management.
   </Card>
-</Columns>
+</CardGroup>

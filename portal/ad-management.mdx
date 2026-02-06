@@ -1,10 +1,10 @@
 ---
 title: "Ad management"
-description: "Configure ad integration and monitor ad performance in the Admin Portal."
-keywords: ["ads", "advertising", "monetization", "Google Ad Manager", "IMA"]
+description: "Configure ad integration, frequency rules, and monitor ad performance in the Admin Portal."
+keywords: ["ads", "advertising", "monetization", "ad management"]
 ---
 
-The Ads section lets you configure ad integration, set frequency rules, and monitor ad performance.
+The Ads section lets you configure ad integration, set frequency rules, and monitor ad performance and revenue.
 
 ## Ad account setup
 
@@ -15,13 +15,13 @@ Choose how to manage your ad inventory:
 <Columns cols={2}>
   <Card title="Self-managed" icon="user">
     **You control everything**
-    - Connect your own Google Ad Manager account
+    - Connect your own ad account
     - Manage demand partners directly
     - Full control over ad units and settings
   </Card>
   <Card title="Platform-managed" icon="robot">
     **We optimize for you**
-    - shortkit manages your ad operations
+    - ShortKit manages your ad operations
     - Optimized fill rates and CPMs
     - Revenue share model
   </Card>
@@ -29,20 +29,20 @@ Choose how to manage your ad inventory:
 
 ### Self-managed setup
 
-1. Go to **Ads → Configuration**
+1. Go to **Ads > Configuration**
 2. Select **Self-managed**
-3. Enter your Google Ad Manager credentials:
+3. Enter your ad account credentials:
    - Network code
    - Ad unit ID
 4. Click **Verify** to test the connection
 
 ### Platform-managed setup
 
-1. Go to **Ads → Configuration**
+1. Go to **Ads > Configuration**
 2. Select **Platform-managed**
 3. Complete the enrollment form
 4. Our team will set up your ad inventory
-5. You'll receive access to revenue dashboard
+5. You will receive access to the revenue dashboard
 
 ## Ad frequency
 
@@ -78,28 +78,30 @@ Control how often ads appear in the feed.
 
     - No ad in first 3 videos
     - Intervals adjust based on session length
-    - Optimizes for long-term retention + revenue
+    - Optimizes for long-term retention plus revenue
 
-    Uses aggregate data across platform to find optimal balance.
+    Uses aggregate data across the platform to find the optimal balance.
   </Tab>
 </Tabs>
 
 ### Configuration
 
-1. Go to **Ads → Configuration → Frequency**
+1. Go to **Ads > Configuration > Frequency**
 2. Select mode
 3. Configure settings
-4. Preview impact on sample feed
+4. Preview impact on a sample feed
 5. Save changes
 
 ### A/B test frequency
 
-Test different ad frequencies:
+Test different ad frequencies with experiments:
 
-1. Go to **Experiments → Create New**
+1. Go to **Experiments > Create New**
 2. Select **Ad Frequency** type
 3. Define variants (e.g., every 4 vs. every 6 videos)
 4. Monitor metrics: ad revenue, watch time, retention
+
+See [A/B testing](/portal/ab-testing) for details.
 
 ## Native ad styling
 
@@ -109,7 +111,7 @@ Customize how ads appear in your feed.
 
 | Setting | Description |
 |---------|-------------|
-| **Sponsored label text** | "Sponsored", "Ad", "Advertisement" |
+| **Sponsored label text** | "Sponsored", "Ad", "Advertisement", or custom text |
 | **Label position** | Top-left, top-right, bottom-left, bottom-right |
 | **Label styling** | Colors, font size, background |
 | **Border/divider** | Visual separation from content |
@@ -117,33 +119,33 @@ Customize how ads appear in your feed.
 ### Preview
 
 See how ads will appear:
-1. Go to **Ads → Configuration → Styling**
+1. Go to **Ads > Configuration > Styling**
 2. Adjust settings
-3. Preview on simulated feed
+3. Preview on a simulated feed
 4. Save when satisfied
 
 ## Ad performance
 
-Monitor ad metrics at **Ads → Performance**.
+Monitor ad metrics at **Ads > Performance**.
 
 ### Key metrics
 
 | Metric | Description |
 |--------|-------------|
 | **Impressions** | Ad views |
-| **Fill rate** | % of ad requests filled |
+| **Fill rate** | Percentage of ad requests filled |
 | **CPM** | Revenue per 1,000 impressions |
 | **Revenue** | Total earnings |
-| **Completion rate** | % of ads watched to end |
-| **Click-through rate** | % of ads clicked |
+| **Completion rate** | Percentage of ads watched to end |
+| **Click-through rate** | Percentage of ads clicked |
 
 ### Dashboard views
 
 - **Overview**: Summary metrics and trends
 - **By date**: Daily breakdown
-- **By content**: Which content generates most ad revenue
+- **By content**: Which content generates the most ad revenue
 - **By geography**: Revenue by region
-- **By device**: iOS vs. Android vs. Web
+- **By device**: Breakdown by device type
 
 ### Filters
 
@@ -158,14 +160,14 @@ Filter performance data by:
 
 ### Revenue dashboard
 
-View earnings at **Ads → Revenue**:
+View earnings at **Ads > Revenue**:
 
-- Daily/weekly/monthly revenue
+- Daily, weekly, and monthly revenue
 - Revenue trends
-- Top-performing content
+- Top-performing content by ad revenue
 - Revenue by geography
 
-### Payout information (Platform-managed)
+### Payout information (platform-managed)
 
 For platform-managed accounts:
 - Monthly payout schedule
@@ -193,22 +195,22 @@ If fill rate is below expected:
 1. Check ad unit configuration
 2. Verify geographic targeting matches your audience
 3. Review content categories for brand safety
-4. Contact your ad ops team (self-managed) or shortkit support (platform-managed)
+4. Contact your ad ops team (self-managed) or ShortKit support (platform-managed)
 
 ### Ads not appearing
 
-If ads aren't showing:
+If ads are not showing:
 
-1. Verify SDK has ad controls enabled
-2. Check frequency settings (might be too infrequent)
+1. Verify the SDK has ad controls enabled in your config overlay
+2. Check frequency settings (they might be set too infrequently)
 3. Verify ad network connection
-4. Check for ad blockers in test environment
+4. Check for ad blockers in your test environment
 
 ### View ad requests
 
 Debug ad delivery:
 
-1. Go to **Ads → Debug**
+1. Go to **Ads > Debug**
 2. Select date/time range
 3. View ad requests:
    - Request time
@@ -222,7 +224,7 @@ Debug ad delivery:
 
 Map your content tags to ad categories:
 
-1. Go to **Ads → Configuration → Categories**
+1. Go to **Ads > Configuration > Categories**
 2. Map content tags to IAB categories
 3. Set exclusions (e.g., no alcohol ads on family content)
 
@@ -237,13 +239,13 @@ Block specific advertisers:
 
 <AccordionGroup>
   <Accordion title="Start conservative">
-    Begin with lower ad frequency (every 6-8 videos) and increase gradually while monitoring retention.
+    Begin with lower ad frequency (every 6-8 videos) and increase gradually while monitoring retention metrics.
   </Accordion>
   <Accordion title="Monitor retention">
     Watch session length and return rates. If they drop after increasing ad frequency, pull back.
   </Accordion>
   <Accordion title="Test with experiments">
-    Use A/B testing to find optimal ad frequency for your audience.
+    Use A/B testing to find the optimal ad frequency for your audience before committing to a change.
   </Accordion>
   <Accordion title="Consider user experience">
     Native-styled ads that match your feed perform better than disruptive formats.
@@ -253,10 +255,10 @@ Block specific advertisers:
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Ad integration guide" icon="rectangle-ad" href="/guides/integration/ad-integration">
-    Technical setup for ad integration.
-  </Card>
   <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
-    Test ad frequency configurations.
+    Test ad frequency configurations with experiments.
+  </Card>
+  <Card title="Analytics" icon="chart-bar" href="/portal/analytics">
+    View engagement metrics alongside ad performance.
   </Card>
 </Columns>

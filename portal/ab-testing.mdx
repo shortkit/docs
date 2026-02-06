@@ -1,68 +1,60 @@
 ---
 title: "A/B testing"
-description: "Create and manage experiments to optimize your video feed."
-keywords: ["A/B testing", "experiments", "optimization", "variants"]
+description: "Run experiments with config overlay variants to optimize your video feed."
+keywords: ["A/B testing", "experiments", "optimization", "variants", "config overlay"]
 ---
 
-The Experiments section lets you run controlled tests to optimize feed layout, ranking, ad frequency, and other parameters.
+The Experiments section lets you run controlled tests to optimize your feed. Each experiment defines two or more config overlay variants and splits traffic between them, so you can measure the impact of configuration changes on engagement before rolling them out to all users.
 
 ## How experiments work
 
-1. **Define variants**: Different configurations to test
-2. **Assign users**: Deterministic assignment based on user ID hash
-3. **Collect metrics**: Track engagement per variant
-4. **Analyze results**: Statistical significance testing
-5. **Promote winner**: Apply winning config to all users
+1. **Define variants**: Each variant is a config overlay (or partial overlay) delivered to its assigned user segment
+2. **Assign users**: Deterministic assignment based on user ID hash ensures consistent experience per user
+3. **Collect metrics**: The platform tracks engagement events per variant automatically
+4. **Analyze results**: View statistical significance testing in the results dashboard
+5. **Promote winner**: Apply the winning overlay to all users
 
 ## Creating an experiment
 
 ### Step 1: Basic info
 
-Go to **Experiments → Create New**:
+Go to **Experiments > Create New**:
 
-1. **Name**: Descriptive name (e.g., "Recency vs Engagement Weight Test")
+1. **Name**: Descriptive name (e.g., "Scrubber On vs. Off")
 2. **Description**: Hypothesis and goals
-3. **Type**: What you're testing
+3. **Type**: What you are testing
 
 ### Experiment types
 
-| Type | What You Can Test |
+| Type | What you can test |
 |------|-------------------|
-| **Ranking** | Signal weights, decay rates, thresholds |
-| **Layout** | Feed orientation, height, adjacent feeds |
-| **Controls** | Enabled controls, auto-hide settings |
+| **Layout** | Feed height (fullscreen vs. partial), orientation |
+| **Controls** | Which controls are visible, auto-hide settings |
 | **Theme** | Colors, fonts, control styling |
-| **Ad frequency** | Ad placement intervals, modes |
-| **Custom** | Any SDK config parameter |
+| **Captions** | Default caption state, caption styling |
+| **Ad frequency** | Ad placement intervals, frequency modes |
+| **Custom** | Any config overlay parameter |
 
 ### Step 2: Define variants
 
-Add 2-4 variants:
+Add 2-4 variants. Each variant is a config overlay fragment:
 
 <Tabs>
-  <Tab title="Ranking example">
-    **Variant A (Control)**: Current weights
+  <Tab title="Controls example">
+    **Variant A (Control)**: Scrubber enabled
     ```json
     {
-      "weights": {
-        "recency": 0.25,
-        "engagement": 0.25,
-        "geoRelevance": 0.15,
-        "topicAffinity": 0.20,
-        "completionRate": 0.15
+      "controls": {
+        "scrubber": true
       }
     }
     ```
 
-    **Variant B (Test)**: More recency
+    **Variant B (Test)**: Scrubber disabled
     ```json
     {
-      "weights": {
-        "recency": 0.40,
-        "engagement": 0.15,
-        "geoRelevance": 0.15,
-        "topicAffinity": 0.15,
-        "completionRate": 0.15
+      "controls": {
+        "scrubber": false
       }
     }
     ```
@@ -106,13 +98,13 @@ Add 2-4 variants:
 
 ### Step 3: Traffic allocation
 
-Set percentage of users for each variant:
+Set the percentage of users for each variant:
 
-- **Equal split**: Automatically divide traffic
+- **Equal split**: Automatically divide traffic evenly between variants
 - **Custom split**: Set specific percentages (must sum to 100%)
 
 <Tip>
-  For high-traffic apps, start with a small test population (e.g., 10%) before scaling to full traffic.
+  For high-traffic apps, consider starting with a small test population (e.g., 10%) before scaling to full traffic.
 </Tip>
 
 ### Step 4: Success metrics
@@ -135,8 +127,8 @@ Select primary and secondary metrics:
 ### Step 5: Launch
 
 Review and launch:
-1. Preview how variants will look
-2. Set experiment duration (recommended: 2+ weeks)
+1. Preview how each variant's overlay will look
+2. Set experiment duration (recommended: 2 or more weeks)
 3. Click **Launch**
 
 ## Managing experiments
@@ -145,33 +137,33 @@ Review and launch:
 
 | State | Description |
 |-------|-------------|
-| **Draft** | Not yet launched, can edit |
+| **Draft** | Not yet launched, can be edited freely |
 | **Running** | Actively collecting data |
-| **Paused** | Temporarily stopped |
-| **Completed** | Reached end date or stopped |
+| **Paused** | Temporarily stopped, can be resumed |
+| **Completed** | Reached end date or manually stopped |
 | **Archived** | Historical record |
 
 ### Monitoring
 
-While running, view:
+While an experiment is running, view:
 - Users per variant
-- Real-time metrics
+- Real-time metrics per variant
 - Statistical significance progress
 
 ### Pausing
 
 Pause an experiment to:
 - Investigate unexpected results
-- Fix a bug in one variant
-- Temporarily stop traffic split
+- Fix an issue in one variant
+- Temporarily stop the traffic split
 
-Paused experiments can be resumed.
+Paused experiments can be resumed. Users retain their variant assignment.
 
 ## Analyzing results
 
 ### Results dashboard
 
-View at **Experiments → [Experiment] → Results**:
+View at **Experiments > [Experiment] > Results**:
 
 | Metric | Control | Test | Lift | Confidence |
 |--------|---------|------|------|------------|
@@ -184,45 +176,43 @@ View at **Experiments → [Experiment] → Results**:
 Results show:
 - **Lift**: Percentage change vs. control
 - **Confidence**: Probability that the difference is real (not random)
-- **Status**: Significant (>95%), trending, or inconclusive
+- **Status**: Significant (95%+), trending, or inconclusive
 
 <Warning>
-  Wait for at least 95% confidence before making decisions. Early results often change as more data is collected.
+  Wait for at least 95% confidence before making decisions. Early results often shift as more data is collected.
 </Warning>
 
 ### Segmented analysis
 
 Break down results by:
-- Platform (iOS/Android/Web)
+- Platform (iOS)
 - Region
 - User tenure (new vs. returning)
 - Device type
 
 ## Promoting a winner
 
-When you have significant results:
+When you have statistically significant results:
 
 1. Go to experiment results
 2. Click **Promote Variant** on the winning variant
 3. Choose:
-   - **Apply to 100%**: Immediately apply to all users
-   - **Gradual rollout**: Slowly increase from test percentage
+   - **Apply to 100%**: Immediately apply the winning overlay to all users
+   - **Gradual rollout**: Slowly increase from the test percentage
 
-The winning configuration becomes the new default.
+The winning variant's overlay values become part of your organization's production config overlay.
 
 ## Best practices
 
-### Experiment design
-
 <AccordionGroup>
   <Accordion title="Test one thing at a time">
-    Changing multiple variables makes it hard to attribute results. If testing both ranking weights and ad frequency, run separate experiments.
+    Changing multiple overlay values across variants makes it difficult to attribute results. If you want to test both controls and theme, run separate experiments.
   </Accordion>
   <Accordion title="Run long enough">
-    Short experiments may show false positives. Run for at least 2 weeks to capture different usage patterns (weekdays vs. weekends, etc.).
+    Short experiments may produce false positives. Run for at least 2 weeks to capture different usage patterns across weekdays and weekends.
   </Accordion>
   <Accordion title="Consider sample size">
-    More users = faster significant results. For smaller apps, plan for longer experiment duration.
+    More users means faster statistical significance. For smaller apps, plan for a longer experiment duration.
   </Accordion>
   <Accordion title="Document hypotheses">
     Write down what you expect to happen and why. This helps interpret results and plan follow-up tests.
@@ -231,17 +221,17 @@ The winning configuration becomes the new default.
 
 ### Common experiments
 
-| Goal | What to Test |
+| Goal | What to test |
 |------|--------------|
-| Increase watch time | Ranking weights, content diversity |
-| Improve retention | Session start experience, personalization depth |
-| Boost completion | Content length filters, quality thresholds |
+| Increase watch time | Controls visibility, feed layout |
+| Improve retention | Session start experience, caption defaults |
+| Boost completion rate | Scrubber on/off, content length filters |
 | Increase ad revenue | Ad frequency, placement timing |
-| Reduce rebuffering | ABR settings, prefetch depth |
+| Reduce rebuffering | Prefetch depth settings |
 
 ## Experiment history
 
-View all past experiments at **Experiments → Completed**:
+View all past experiments at **Experiments > Completed**:
 
 - Search by name, type, or date
 - Filter by outcome (positive lift, no change, negative)
@@ -254,6 +244,6 @@ View all past experiments at **Experiments → Completed**:
     Deep dive into engagement metrics.
   </Card>
   <Card title="Feed configuration" icon="sliders" href="/portal/feed-configuration">
-    Apply learnings to feed settings.
+    Apply experiment learnings to your feed overlay.
   </Card>
 </Columns>

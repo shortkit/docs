@@ -1,64 +1,79 @@
 ---
 title: "Uploads"
-description: "Direct file upload API for video content."
-keywords: ["upload", "files", "videos", "multipart"]
+description: "Create upload sessions and ingest video content into ShortKit."
+keywords: ["upload", "video", "ingestion", "direct upload"]
 ---
 
-The Uploads API provides direct file upload capabilities for video content. Use this when you have video files to upload directly rather than from a URL.
+The Uploads API lets you ingest video content into ShortKit. You create an upload session, receive a signed upload URL, and PUT your file directly to it. ShortKit handles transcoding, thumbnail generation, and subtitle extraction automatically.
+
+## Upload flow
+
+```
+1. POST /v1/uploads          -- Create upload session (returns signed URL + content ID)
+2. PUT  {uploadUrl}           -- Upload file directly to the signed URL
+3. Processing                 -- ShortKit transcodes, generates thumbnails and captions
+4. Ready                      -- Content appears in your feed (or poll status / receive webhook)
+```
 
 ## Upload methods
 
-| Method | Best For | Max Size |
+| Method | Best for | Max size |
 |--------|----------|----------|
-| [Direct upload](#direct-upload) | Small files (< 100MB) | 100MB |
-| [Resumable upload](#resumable-upload) | Large files, unreliable networks | 5GB |
-| [URL-based](#url-based-upload) | Files already hosted elsewhere | N/A |
+| [Direct upload](#create-upload) | Most use cases | 5 GB |
+| [Server-side SDK](#upload-sdk-helpers) | Automated pipelines with progress tracking | 5 GB |
 
-## Direct upload
+## Create upload
 
-Simple multipart upload for smaller files.
+Creates a new upload session and returns a signed upload URL. The upload URL is valid for 60 minutes.
 
 ```bash
-POST /v1/content/upload
+POST /v1/uploads
 ```
 
-### Request
+### Authentication
 
-Send as `multipart/form-data`:
+Requires a **secret key** via the `Authorization` header.
 
-<ParamField body="file" type="file" required>
-  Video file to upload.
-</ParamField>
+### Request body
 
 <ParamField body="title" type="string" required>
-  Display title.
+  Display title for the content (max 200 characters).
 </ParamField>
 
 <ParamField body="description" type="string">
-  Optional description.
+  Optional description (max 2000 characters).
 </ParamField>
 
-<ParamField body="tags" type="string">
-  Comma-separated tags.
+<ParamField body="tags" type="string[]">
+  Tags for categorization and filtering.
 </ParamField>
 
-<ParamField body="metadata" type="string">
-  JSON-encoded metadata object.
+<ParamField body="customMetadata" type="object">
+  Arbitrary key-value pairs attached to the content. Use this for your own application data
+  such as article URLs, campaign IDs, or internal references.
 </ParamField>
 
-<ParamField body="visibility" type="string" default="private">
-  Initial visibility.
+<ParamField body="generateSubtitles" type="boolean" default={true}>
+  When `true`, ShortKit automatically generates English captions from the audio track
+  using speech-to-text. Captions are embedded in the HLS stream once processing completes.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/content/upload \
+curl -X POST https://api.shortkit.dev/v1/uploads \
   -H "Authorization: Bearer sk_live_your_secret_key" \
-  -F "file=@video.mp4" \
-  -F "title=My Video" \
-  -F "tags=demo,tutorial" \
-  -F 'metadata={"creator": "team-a"}'
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "generateSubtitles": true
+  }'
 ```
 
 ### Response
@@ -66,11 +81,17 @@ curl -X POST https://api.shortkit.dev/v1/content/upload \
 ```json
 {
   "data": {
-    "id": "cnt_abc123",
-    "title": "My Video",
-    "status": "processing",
-    "uploadedBytes": 15728640,
-    "createdAt": "2024-02-04T12:00:00Z"
+    "id": "sk_content_abc123",
+    "uploadUrl": "https://uploads.shortkit.dev/direct/sk_content_abc123?token=eyJ...",
+    "status": "waiting_for_upload",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "createdAt": "2026-02-05T12:00:00Z"
   },
   "meta": {
     "requestId": "req_xyz789"
@@ -78,215 +99,153 @@ curl -X POST https://api.shortkit.dev/v1/content/upload \
 }
 ```
 
-### Idempotency
+The `uploadUrl` is a signed URL for direct file upload. It expires after 60 minutes.
 
-Use the `Idempotency-Key` header to safely retry uploads:
+## Upload the file
 
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/upload \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Idempotency-Key: unique-upload-id-123" \
-  -F "file=@video.mp4" \
-  -F "title=My Video"
-```
-
-## Resumable upload
-
-For large files or unreliable networks, use resumable uploads.
-
-### Step 1: Initialize upload
+Once you have the signed `uploadUrl`, upload your video file with an HTTP `PUT` request:
 
 ```bash
-POST /v1/uploads
+curl -X PUT "${uploadUrl}" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4
 ```
 
-<ParamField body="filename" type="string" required>
-  Original filename.
+<Note>
+  The `PUT` request goes directly to the signed upload URL, not to `api.shortkit.dev`.
+  No `Authorization` header is needed -- the URL itself contains the upload credentials.
+</Note>
+
+After the PUT completes successfully, ShortKit begins processing the video automatically.
+The content status transitions from `waiting_for_upload` to `processing`.
+
+## Check processing status
+
+Poll the upload status to determine when your content is ready.
+
+```bash
+GET /v1/uploads/{id}
+```
+
+### Authentication
+
+Requires a **secret key** via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The content ID returned from the create upload call (e.g., `sk_content_abc123`).
 </ParamField>
 
-<ParamField body="fileSize" type="integer" required>
-  Total file size in bytes.
-</ParamField>
-
-<ParamField body="mimeType" type="string" required>
-  MIME type (e.g., `video/mp4`).
-</ParamField>
-
-<ParamField body="title" type="string" required>
-  Content title.
-</ParamField>
-
-<ParamField body="metadata" type="object">
-  Content metadata.
-</ParamField>
+### Example request
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/uploads \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "filename": "large-video.mp4",
-    "fileSize": 524288000,
-    "mimeType": "video/mp4",
-    "title": "Large Video Upload"
-  }'
-```
-
-Response:
-
-```json
-{
-  "data": {
-    "uploadId": "upl_abc123",
-    "uploadUrl": "https://upload.shortkit.dev/v1/uploads/upl_abc123",
-    "expiresAt": "2024-02-05T12:00:00Z",
-    "partSize": 10485760
-  }
-}
-```
-
-### Step 2: Upload parts
-
-Upload file in chunks using the provided `uploadUrl`:
-
-```bash
-# Upload part 1
-curl -X PUT "https://upload.shortkit.dev/v1/uploads/upl_abc123?partNumber=1" \
-  -H "Content-Type: application/octet-stream" \
-  -H "Content-Length: 10485760" \
-  --data-binary @part1.bin
-
-# Upload part 2
-curl -X PUT "https://upload.shortkit.dev/v1/uploads/upl_abc123?partNumber=2" \
-  -H "Content-Type: application/octet-stream" \
-  -H "Content-Length: 10485760" \
-  --data-binary @part2.bin
-```
-
-Part response:
-
-```json
-{
-  "data": {
-    "partNumber": 1,
-    "etag": "\"abc123def456\"",
-    "size": 10485760
-  }
-}
-```
-
-### Step 3: Check upload status
-
-```bash
-GET /v1/uploads/{uploadId}
-```
-
-```bash
-curl https://api.shortkit.dev/v1/uploads/upl_abc123 \
+curl https://api.shortkit.dev/v1/uploads/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
-Response:
+### Response (processing)
 
 ```json
 {
   "data": {
-    "uploadId": "upl_abc123",
-    "status": "in_progress",
-    "uploadedBytes": 104857600,
-    "totalBytes": 524288000,
-    "parts": [
-      { "partNumber": 1, "etag": "\"abc123\"", "size": 10485760 },
-      { "partNumber": 2, "etag": "\"def456\"", "size": 10485760 }
-    ]
+    "id": "sk_content_abc123",
+    "status": "processing",
+    "title": "Breaking: Weather Alert",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:00:15Z"
+  },
+  "meta": {
+    "requestId": "req_abc456"
   }
 }
 ```
 
-### Step 4: Complete upload
-
-```bash
-POST /v1/uploads/{uploadId}/complete
-```
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/uploads/upl_abc123/complete \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "parts": [
-      { "partNumber": 1, "etag": "\"abc123\"" },
-      { "partNumber": 2, "etag": "\"def456\"" }
-    ]
-  }'
-```
-
-Response:
+### Response (ready)
 
 ```json
 {
   "data": {
-    "contentId": "cnt_xyz789",
-    "status": "processing"
+    "id": "sk_content_abc123",
+    "status": "ready",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "duration": 32.5,
+    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+    "captionTracks": [
+      {
+        "language": "en",
+        "label": "English",
+        "source": "embedded",
+        "url": null
+      }
+    ],
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:03:45Z"
+  },
+  "meta": {
+    "requestId": "req_def789"
   }
 }
 ```
 
-### Resuming interrupted uploads
+### Response (error)
 
-If an upload is interrupted, query the upload status and resume from the last successful part:
-
-```javascript
-async function resumeUpload(uploadId, file) {
-  // Get current status
-  const status = await getUploadStatus(uploadId);
-  const uploadedParts = status.parts.map(p => p.partNumber);
-
-  // Find missing parts
-  const totalParts = Math.ceil(file.size / PART_SIZE);
-  for (let i = 1; i <= totalParts; i++) {
-    if (!uploadedParts.includes(i)) {
-      await uploadPart(uploadId, file, i);
-    }
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "error",
+    "title": "Breaking: Weather Alert",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:02:30Z"
+  },
+  "meta": {
+    "requestId": "req_err001"
   }
-
-  // Complete upload
-  await completeUpload(uploadId);
 }
 ```
 
-### Abort upload
+### Status lifecycle
 
-Cancel an incomplete upload:
+| Status | Meaning |
+|--------|---------|
+| `waiting_for_upload` | Upload session created. File has not been received yet. |
+| `processing` | File received. Video is being transcoded and thumbnails are being generated. |
+| `ready` | Processing complete. Content is available for playback and will appear in the feed. |
+| `error` | Processing failed. Check the file format and re-upload if needed. |
 
-```bash
-DELETE /v1/uploads/{uploadId}
-```
+### Expected processing times
 
-```bash
-curl -X DELETE https://api.shortkit.dev/v1/uploads/upl_abc123 \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
+| Step | Duration |
+|------|----------|
+| Upload (30s video, ~50 MB) | 5--30 seconds depending on network speed |
+| Transcoding and thumbnail generation | 1--5 minutes for a 1-minute video |
+| Subtitle generation (if enabled) | Additional 1--3 minutes |
+| **Total: upload to ready** | **~2--8 minutes** |
 
-## URL-based upload
+## Webhooks
 
-Create content from an existing URL (see [Content API](/api/content)):
+When content finishes processing, ShortKit can notify your server via webhook so you do not need to poll:
 
-```bash
-curl -X POST https://api.shortkit.dev/v1/content \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceUrl": "https://storage.example.com/video.mp4",
-    "title": "My Video"
-  }'
-```
+| Event | Trigger |
+|-------|---------|
+| `content.ready` | Processing completed successfully |
+| `content.errored` | Processing failed |
+
+See [Webhooks](/guides/webhooks) for setup instructions.
 
 ## Supported formats
 
 ### Video formats
 
-| Format | Extensions | MIME Types |
+| Format | Extensions | MIME types |
 |--------|------------|------------|
 | MP4 | `.mp4`, `.m4v` | `video/mp4` |
 | QuickTime | `.mov` | `video/quicktime` |
@@ -297,19 +256,33 @@ curl -X POST https://api.shortkit.dev/v1/content \
 
 | Property | Requirement |
 |----------|-------------|
-| Duration | 1-180 seconds |
-| Resolution | 480p - 4K |
-| Frame rate | 24-60 fps |
-| Bitrate | Up to 50 Mbps |
+| Duration | 1--180 seconds |
+| Resolution | 480p -- 4K |
+| Frame rate | 24--60 fps |
+| Max bitrate | 50 Mbps |
+| Max file size | 5 GB |
 | Codec | H.264, H.265, VP9, AV1 |
 
+### Encoding recommendations
+
+For the fastest processing and best playback quality:
+
+- **Container:** MP4 (`.mp4`)
+- **Video codec:** H.264 High profile
+- **Audio codec:** AAC-LC, stereo, 128 kbps or higher
+- **Orientation:** Vertical (9:16) for short-form feeds
+- **Resolution:** 1080 x 1920 (1080p vertical)
+- **Frame rate:** 30 fps
+- **Bitrate:** 6--10 Mbps for 1080p
+
 <Warning>
-  Files not meeting these requirements may fail processing. Check content status after upload.
+  Files that do not meet the requirements above may fail during processing.
+  Check content status after upload to detect failures early.
 </Warning>
 
 ## Upload SDK helpers
 
-SDKs provide upload helpers with progress tracking:
+Server-side SDKs provide upload helpers with progress tracking and automatic retries:
 
 <Tabs>
   <Tab title="JavaScript">
@@ -318,56 +291,58 @@ SDKs provide upload helpers with progress tracking:
 
     const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
 
-    // Simple upload
-    const content = await shortkit.content.upload({
+    // Create upload and send file in one call
+    const content = await shortkit.uploads.create({
       file: fs.createReadStream('video.mp4'),
-      title: 'My Video',
+      title: 'Weather Alert',
+      tags: ['weather', 'breaking'],
+      customMetadata: { articleUrl: 'https://example.com/alert' },
       onProgress: (progress) => {
         console.log(`${progress.percent}% uploaded`);
       }
     });
 
-    // Resumable upload
-    const upload = shortkit.content.createResumableUpload({
-      file: fs.createReadStream('large-video.mp4'),
-      title: 'Large Video'
+    console.log(content.id);     // sk_content_abc123
+    console.log(content.status); // waiting_for_upload | processing
+
+    // Poll until ready
+    const ready = await shortkit.uploads.waitForReady(content.id, {
+      pollInterval: 5000, // ms
+      timeout: 600000     // 10 minutes
     });
 
-    upload.on('progress', (progress) => {
-      console.log(`${progress.uploadedBytes} / ${progress.totalBytes}`);
-    });
-
-    upload.on('complete', (content) => {
-      console.log(`Created: ${content.id}`);
-    });
-
-    await upload.start();
+    console.log(ready.status);       // ready
+    console.log(ready.streamingUrl); // https://video.shortkit.dev/...
     ```
   </Tab>
   <Tab title="Python">
     ```python
     from shortkit import ShortkitAdmin
 
-    shortkit = ShortkitAdmin(api_key='sk_live_...')
+    shortkit = ShortkitAdmin(api_key="sk_live_...")
 
-    # Simple upload
-    with open('video.mp4', 'rb') as f:
-        content = shortkit.content.upload(
+    # Create upload and send file in one call
+    with open("video.mp4", "rb") as f:
+        content = shortkit.uploads.create(
             file=f,
-            title='My Video',
-            on_progress=lambda p: print(f"{p.percent}% uploaded")
+            title="Weather Alert",
+            tags=["weather", "breaking"],
+            custom_metadata={"article_url": "https://example.com/alert"},
+            on_progress=lambda p: print(f"{p.percent}% uploaded"),
         )
 
-    # Resumable upload
-    upload = shortkit.content.create_resumable_upload(
-        file_path='large-video.mp4',
-        title='Large Video'
+    print(content.id)      # sk_content_abc123
+    print(content.status)  # waiting_for_upload | processing
+
+    # Poll until ready
+    ready = shortkit.uploads.wait_for_ready(
+        content.id,
+        poll_interval=5,  # seconds
+        timeout=600,      # 10 minutes
     )
 
-    for progress in upload:
-        print(f"{progress.uploaded_bytes} / {progress.total_bytes}")
-
-    content = upload.result()
+    print(ready.status)         # ready
+    print(ready.streaming_url)  # https://video.shortkit.dev/...
     ```
   </Tab>
 </Tabs>
@@ -376,29 +351,29 @@ SDKs provide upload helpers with progress tracking:
 
 ### Common upload errors
 
-| Error Code | Description | Solution |
+| Error code | Description | Solution |
 |------------|-------------|----------|
-| `FILE_TOO_LARGE` | File exceeds size limit | Use resumable upload |
-| `INVALID_MEDIA_TYPE` | Unsupported format | Check supported formats |
-| `DURATION_EXCEEDED` | Video too long | Trim to under 180 seconds |
-| `UPLOAD_EXPIRED` | Resumable upload expired | Start new upload |
-| `PART_SIZE_MISMATCH` | Part size incorrect | Use specified part size |
+| `invalid_request` | Missing required fields (e.g., `title`) | Include all required fields in the request body |
+| `file_too_large` | File exceeds 5 GB limit | Compress or trim the video |
+| `invalid_media_type` | Unsupported video format | Use a supported format (MP4, MOV, WebM, MKV) |
+| `duration_exceeded` | Video longer than 180 seconds | Trim to 180 seconds or less |
+| `upload_expired` | Signed upload URL has expired | Create a new upload session |
 
 ### Handling failures
 
 ```javascript
 try {
-  const content = await shortkit.content.upload({ file, title });
+  const content = await shortkit.uploads.create({ file, title: 'My Video' });
 } catch (error) {
   switch (error.code) {
-    case 'FILE_TOO_LARGE':
-      // Switch to resumable upload
+    case 'file_too_large':
+      // Compress or trim the video before re-uploading
       break;
-    case 'INVALID_MEDIA_TYPE':
-      // Show format error to user
+    case 'invalid_media_type':
+      // Convert to a supported format
       break;
-    case 'UPLOAD_EXPIRED':
-      // Restart upload
+    case 'upload_expired':
+      // Create a new upload session
       break;
   }
 }
@@ -408,9 +383,9 @@ try {
 
 <Columns cols={2}>
   <Card title="Content API" icon="video" href="/api/content">
-    Manage content after upload.
+    Manage content metadata and editorial controls after upload.
   </Card>
-  <Card title="Transcoding" icon="film" href="/guides/platform/transcoding">
-    Understand video processing.
+  <Card title="Feed API" icon="rss" href="/api/feed">
+    Understand how uploaded content appears in the feed.
   </Card>
 </Columns>

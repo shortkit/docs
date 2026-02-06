@@ -1,95 +1,117 @@
 ---
 title: "Settings"
-description: "Configure API keys, webhooks, team access, and platform settings."
+description: "Manage API keys, webhooks, team access, and organization settings in the ShortKit Admin Portal."
 keywords: ["settings", "API keys", "webhooks", "team", "configuration"]
 ---
 
-The Settings section lets you manage API credentials, webhooks, team members, and platform configuration.
+The Settings section lets you manage API credentials, configure webhooks, invite team members, and update organization settings.
 
 ## API keys
 
-Manage API credentials at **Settings → API Keys**.
+Manage API credentials at **Settings > API Keys**.
 
 ### Key types
 
+ShortKit uses two types of API keys, each with a distinct prefix that identifies the key type and environment:
+
 | Type | Prefix | Usage | Security |
 |------|--------|-------|----------|
-| **Publishable** | `pk_` | SDK initialization | Safe for client code |
-| **Secret** | `sk_` | Server API, Admin Portal | Never expose publicly |
+| **Publishable key** | `pk_live_` or `pk_test_` | SDK initialization, included in client-side code | Safe to embed in your app |
+| **Secret key** | `sk_live_` or `sk_test_` | Server-side API calls, content management, analytics export | Never expose publicly |
 
 ### Environments
 
-Separate keys for each environment:
+Keys are scoped to an environment. The prefix makes the environment explicit:
 
-- **Production**: Live keys for your production app
-- **Staging**: Test keys for staging environment
-- **Development**: Keys for local development
+| Environment | Publishable key | Secret key |
+|-------------|----------------|------------|
+| **Live** | `pk_live_...` | `sk_live_...` |
+| **Test** | `pk_test_...` | `sk_test_...` |
+
+Live keys access your production content and configuration. Test keys access a separate test environment, so you can develop and test without affecting your production feed.
 
 ### Creating keys
 
-1. Go to **Settings → API Keys**
+1. Go to **Settings > API Keys**
 2. Click **Create Key Pair**
-3. Select environment
-4. Optionally add a description
-5. Copy and securely store the secret key
+3. Select environment (live or test)
+4. Optionally add a description (e.g., "iOS production" or "staging server")
+5. Copy both keys
 
 <Warning>
-  Secret keys are shown only once. Store them securely in your environment variables or secrets manager.
+  Secret keys are shown only once at creation time. Store them securely in your environment variables or secrets manager. If you lose a secret key, you will need to create a new key pair and rotate the old one.
 </Warning>
 
 ### Rotating keys
 
-To rotate a compromised key:
+To rotate a compromised or expired key:
 
-1. Create a new key pair
+1. Create a new key pair for the same environment
 2. Update your applications with the new keys
-3. Delete the old key pair
+3. Verify your applications are working with the new keys
+4. Delete the old key pair
 
-### Key permissions
+### Key management
 
-Coming soon: Fine-grained permissions for API keys.
+View all active keys at **Settings > API Keys**:
+
+| Column | Description |
+|--------|-------------|
+| **Description** | Label you assigned at creation |
+| **Type** | Publishable or Secret |
+| **Environment** | Live or Test |
+| **Prefix** | First characters of the key (e.g., `pk_live_abc...`) |
+| **Created** | When the key was created |
+| **Last used** | Most recent API request using this key |
+
+You can delete any key pair. Deleting a key immediately revokes access for any application using it.
 
 ## Webhooks
 
-Configure event notifications at **Settings → Webhooks**.
+Configure event notifications at **Settings > Webhooks**. Webhooks let your server receive real-time notifications when events occur in ShortKit.
 
 ### Creating a webhook
 
 1. Click **Add Webhook**
-2. Enter endpoint URL (must be HTTPS)
-3. Select events to receive:
-   - `content.ready`
-   - `content.errored`
-   - `export.ready`
+2. Enter your endpoint URL (must be HTTPS)
+3. Select the events you want to receive
 4. Save
 
-### Webhook format
+### Available events
 
-Events are sent as POST requests:
+| Event | Description |
+|-------|-------------|
+| `content.ready` | Content has finished processing and is available for playback |
+| `content.errored` | Content processing failed |
+| `content.archived` | Content was archived (manually or via `expires_at`) |
+
+### Webhook payload format
+
+Events are sent as POST requests to your endpoint:
 
 ```json
 {
   "event": "content.ready",
   "data": {
-    "contentId": "cnt_abc123",
+    "contentId": "sk_content_abc123",
     "title": "My Video",
     "duration": 45.2,
     "status": "ready"
   },
-  "timestamp": "2024-02-04T12:00:00Z",
+  "timestamp": "2026-02-04T12:00:00Z",
   "webhookId": "whk_xyz789"
 }
 ```
 
 ### Signature verification
 
-Verify webhook authenticity using the signature header:
+Every webhook request includes a signature header so you can verify it came from ShortKit:
 
 ```
-X-Shortform-Signature: sha256=abc123...
+X-ShortKit-Signature: sha256=abc123...
 ```
 
-Verify in your code:
+Verify the signature in your code:
 
 ```javascript
 const crypto = require('crypto');
@@ -104,74 +126,75 @@ function verifyWebhook(payload, signature, secret) {
 }
 ```
 
-### Webhook secret
+### Webhook signing secret
 
-Find your signing secret:
-1. Go to **Settings → Webhooks**
+Each webhook endpoint has a unique signing secret:
+
+1. Go to **Settings > Webhooks**
 2. Click on a webhook
 3. Copy the **Signing Secret**
 
+Store this secret securely on your server. Use it to verify incoming webhook signatures.
+
 ### Testing webhooks
 
-Send a test event:
+Send a test event to verify your endpoint:
+
 1. Go to webhook detail
 2. Click **Send Test**
-3. Select event type
-4. Check your endpoint received it
+3. Select the event type to simulate
+4. Check that your endpoint received the request
 
 ### Retry policy
 
-Failed webhooks are retried:
-- 5 attempts with exponential backoff
-- 1 min, 5 min, 30 min, 2 hours, 24 hours
-- After all retries, event is logged as failed
+Failed webhook deliveries are retried with exponential backoff:
+
+- Attempt 1: Immediate
+- Attempt 2: 1 minute
+- Attempt 3: 5 minutes
+- Attempt 4: 30 minutes
+- Attempt 5: 2 hours
+
+After all retries fail, the event is logged as undelivered. You can view failed deliveries in the webhook logs and manually retry them.
 
 ### Webhook logs
 
-View delivery attempts:
+View delivery history for each webhook:
+
 1. Go to webhook detail
 2. See **Recent Deliveries**
-3. View request/response for each attempt
+3. View request payload and response for each attempt
+4. Filter by status (success, failed, pending)
 
 ## Team management
 
-Manage team access at **Settings → Team**.
+Manage team access at **Settings > Team**.
 
 ### Inviting members
 
 1. Click **Invite Member**
 2. Enter email address
-3. Select role (currently all members have full access)
-4. Click **Send Invite**
+3. Click **Send Invite**
 
-Invitee receives email with login link.
+The invitee receives an email with a link to join your organization.
 
 ### Managing members
 
-- View all team members
-- See last active time
-- Remove members
+- View all team members and their last active time
+- Remove members to revoke their access
 
-### Role-based access (coming soon)
-
-| Role | Permissions |
-|------|-------------|
-| **Admin** | Full access, team management |
-| **Developer** | API keys, webhooks, SDK config |
-| **Product Manager** | Experiments, analytics, feed config |
-| **Editor** | Content management, editorial |
-| **Ad Ops** | Ad configuration, revenue |
-| **Viewer** | Read-only analytics |
+<Note>
+  Role-based access control is coming soon. Currently, all team members have full access to the portal.
+</Note>
 
 ## Organization profile
 
-Update organization info at **Settings → Profile**.
+Update organization info at **Settings > Profile**.
 
 ### Basic info
 
-- **Organization name**: Displayed in Admin Portal
-- **Logo**: Used in portal branding
-- **Billing contact**: For invoices
+- **Organization name**: Displayed in the Admin Portal header
+- **Billing contact**: For invoices and account communications
 
 ### Billing
 
@@ -180,139 +203,32 @@ Update organization info at **Settings → Profile**.
 - Invoice history
 - Update payment method
 
-## Branded CDN domain
-
-Configure custom domain at **Settings → Branding → CDN Domain**.
-
-### Setup
-
-1. Enter your domain (e.g., `video.yourcompany.com`)
-2. Create DNS CNAME record pointing to `cdn.shortkit.dev`
-3. Click **Verify**
-4. SSL is automatically provisioned
-
-### DNS configuration
-
-| Type | Name | Value |
-|------|------|-------|
-| CNAME | video | cdn.shortkit.dev |
-
-## Deep link domain
-
-Configure sharing URLs at **Settings → Branding → Deep Links**.
-
-### Configuration
-
-- **Domain**: Your app's deep link domain
-- **Path template**: URL pattern (e.g., `/watch/{contentId}`)
-- **Fallback URL**: Where to send users without the app
-
-## Playback restrictions
-
-Configure security at **Settings → Playback Restrictions**.
-
-### Domain allowlist
-
-Only allow playback from specified domains:
-
-1. Add allowed domains
-2. Support wildcards (e.g., `*.yourcompany.com`)
-3. Save
-
-### Additional settings
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Allow no referrer** | Allow requests without referrer header | Off |
-| **Allow high-risk user agents** | Allow known scraper user agents | Off |
-
-### CDN URL expiry
-
-Configure signed URL validity:
-- Range: 1-24 hours
-- Default: 6 hours
-- Shorter = more secure, longer = better for long sessions
-
-## Auto-captioning
-
-Configure at **Settings → Auto-captioning**.
-
-### Settings
-
-- **Enable auto-captions**: Generate captions automatically
-- **Default languages**: Languages to generate
-- **Apply to**: New content only, or all content
-
-### Transcription vocabulary
-
-Add custom words for better accuracy:
-
-1. Go to **Settings → Transcription Vocabulary**
-2. Add words/phrases (brand names, technical terms)
-3. Up to 1,000 phrases
-
-## Watermarking
-
-Configure at **Settings → Watermarking**.
-
-### Visible watermark
-
-- **Text**: Watermark text (e.g., "© Your Company")
-- **Position**: Corner placement
-- **Opacity**: Transparency level
-- **Font size**: Text size
-
-### Forensic watermark
-
-Enable invisible watermarking for tracking unauthorized distribution.
-
-## Data export
-
-Configure scheduled exports at **Settings → Data Export**.
-
-### Scheduled exports
-
-1. Enable scheduled exports
-2. Set frequency (daily, weekly)
-3. Select data types
-4. Configure delivery:
-   - Webhook URL
-   - Email notification
-
-## Integrations
-
-Connect third-party services at **Settings → Integrations**.
-
-### Available integrations
-
-- **Slack**: Notifications for content ready, errors
-- **Analytics**: Send data to your analytics platform
-- **CMS**: Connect to content management systems
-
 ## Audit log
 
-View all changes at **Settings → Audit Log**.
+View all changes at **Settings > Audit Log**.
 
 ### Logged events
 
-- Configuration changes
-- Team member changes
-- API key operations
-- Content actions
+- Configuration changes (feed overlay updates, ad settings)
+- Team member changes (invitations, removals)
+- API key operations (creation, deletion)
+- Content actions (uploads, archives, deletions)
+- Webhook changes (creation, updates, deletions)
 
 ### Filtering
 
-- By user
-- By action type
-- By date range
+Filter the audit log by:
+- Team member
+- Action type
+- Date range
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Webhooks guide" icon="webhook" href="/guides/integration/webhooks">
-    Detailed webhook integration guide.
+  <Card title="Content management" icon="folder" href="/portal/content-management">
+    Upload and manage your video library.
   </Card>
-  <Card title="Playback restrictions" icon="shield" href="/guides/integration/playback-security">
-    Configure security settings.
+  <Card title="Feed configuration" icon="sliders" href="/portal/feed-configuration">
+    Configure your remote config overlay.
   </Card>
 </Columns>

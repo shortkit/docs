@@ -1,109 +1,153 @@
 ---
 title: "Content"
-description: "Create, retrieve, update, and delete video content."
-keywords: ["content", "videos", "API", "CRUD"]
+description: "Manage your video content library -- list, retrieve, update, and delete content."
+keywords: ["content", "videos", "API", "CRUD", "metadata"]
 ---
 
-The Content API manages your video library. Use it to create content records, update metadata, and control availability.
+The Content API manages your video library. Use it to list content, retrieve details, update metadata and editorial controls, and delete content. Content is created via the [Uploads API](/api/uploads) and delivered to end users via the [Feed API](/api/feed).
 
 ## Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/content` | Create content from URL |
 | `GET` | `/v1/content` | List all content |
 | `GET` | `/v1/content/{id}` | Get content by ID |
 | `PATCH` | `/v1/content/{id}` | Update content |
 | `DELETE` | `/v1/content/{id}` | Delete content |
 
-## Create content
+All Content API endpoints require a **secret key** via the `Authorization` header.
 
-Creates a new content record and starts processing.
+## Content object
 
-```bash
-POST /v1/content
-```
-
-### Request body
-
-<ParamField body="sourceUrl" type="string" required>
-  URL to the source video file. Must be publicly accessible or a signed URL.
-</ParamField>
-
-<ParamField body="title" type="string" required>
-  Display title (max 200 characters).
-</ParamField>
-
-<ParamField body="description" type="string">
-  Optional description (max 2000 characters).
-</ParamField>
-
-<ParamField body="tags" type="string[]">
-  Tags for categorization and filtering.
-</ParamField>
-
-<ParamField body="metadata" type="object">
-  Custom metadata key-value pairs.
-</ParamField>
-
-<ParamField body="visibility" type="string" default="private">
-  Initial visibility: `private`, `unlisted`, or `public`.
-</ParamField>
-
-<ParamField body="publishAt" type="string">
-  ISO 8601 timestamp for scheduled publishing.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceUrl": "https://storage.example.com/videos/my-video.mp4",
-    "title": "Product Launch Announcement",
-    "description": "Exciting news about our latest product",
-    "tags": ["announcement", "product"],
-    "metadata": {
-      "campaign": "spring-2024",
-      "creator": "marketing-team"
-    },
-    "visibility": "private"
-  }'
-```
-
-### Response
+Every content item has the following shape:
 
 ```json
 {
-  "data": {
-    "id": "cnt_abc123",
-    "title": "Product Launch Announcement",
-    "description": "Exciting news about our latest product",
-    "status": "processing",
-    "visibility": "private",
-    "duration": null,
-    "aspectRatio": null,
-    "tags": ["announcement", "product"],
-    "metadata": {
-      "campaign": "spring-2024",
-      "creator": "marketing-team"
-    },
-    "thumbnails": null,
-    "createdAt": "2024-02-04T12:00:00Z",
-    "updatedAt": "2024-02-04T12:00:00Z",
-    "publishedAt": null
+  "id": "sk_content_abc123",
+  "title": "Breaking: Weather Alert",
+  "description": "Severe thunderstorm warning for the metro area",
+  "status": "ready",
+  "duration": 32.5,
+  "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+  "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+  "captionTracks": [
+    {
+      "language": "en",
+      "label": "English",
+      "source": "embedded",
+      "url": null
+    }
+  ],
+  "tags": ["weather", "severe", "breaking"],
+  "customMetadata": {
+    "articleUrl": "https://example.com/weather-alert",
+    "category": "severe-weather"
   },
-  "meta": {
-    "requestId": "req_xyz789"
-  }
+  "pinPosition": null,
+  "isSuppressed": false,
+  "publishAt": null,
+  "expiresAt": null,
+  "createdAt": "2026-02-05T12:00:00Z",
+  "updatedAt": "2026-02-05T12:03:45Z"
 }
 ```
 
+### Field reference
+
+<ResponseField name="id" type="string">
+  Unique content identifier (e.g., `sk_content_abc123`).
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title.
+</ResponseField>
+
+<ResponseField name="description" type="string | null">
+  Optional description text.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current lifecycle status. One of: `waiting_for_upload`, `processing`, `ready`, `error`, `archived`.
+</ResponseField>
+
+<ResponseField name="duration" type="number | null">
+  Video duration in seconds. Available once status is `ready`.
+</ResponseField>
+
+<ResponseField name="streamingUrl" type="string | null">
+  HLS streaming URL. Available once status is `ready`.
+</ResponseField>
+
+<ResponseField name="thumbnailUrl" type="string | null">
+  Thumbnail image URL. Available once status is `ready`.
+</ResponseField>
+
+<ResponseField name="captionTracks" type="array | null">
+  Available caption tracks. Each track includes `language`, `label`, `source` (`"embedded"` or `"external"`), and `url` (null for embedded captions).
+</ResponseField>
+
+<ResponseField name="tags" type="string[]">
+  Content tags for categorization and filtering.
+</ResponseField>
+
+<ResponseField name="customMetadata" type="object">
+  Arbitrary key-value pairs set during upload or update. Passed through to the feed response.
+</ResponseField>
+
+<ResponseField name="pinPosition" type="integer | null">
+  When set, pins this content to a specific position in the feed (1 = top). `null` means unpinned.
+</ResponseField>
+
+<ResponseField name="isSuppressed" type="boolean">
+  When `true`, this content is excluded from the feed regardless of status or scheduling.
+</ResponseField>
+
+<ResponseField name="publishAt" type="string | null">
+  ISO 8601 timestamp. Content will not appear in the feed before this time. `null` means immediately available.
+</ResponseField>
+
+<ResponseField name="expiresAt" type="string | null">
+  ISO 8601 timestamp. Content is automatically excluded from the feed after this time. `null` means no expiration.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  Creation timestamp (ISO 8601).
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  Last modification timestamp (ISO 8601).
+</ResponseField>
+
+## Status lifecycle
+
+Content moves through these statuses:
+
+```
+POST /v1/uploads
+      |
+      v
+waiting_for_upload  -->  processing  -->  ready  -->  archived
+                              |
+                              v
+                            error
+```
+
+| Status | Description | Visible in feed? |
+|--------|-------------|------------------|
+| `waiting_for_upload` | Upload session created; file not yet received | No |
+| `processing` | Video is being transcoded; thumbnails and captions are being generated | No |
+| `ready` | Processing complete; content is available for playback | Yes (subject to editorial controls) |
+| `error` | Processing failed | No |
+| `archived` | Manually archived or expired | No |
+
+Content with status `ready` appears in the feed only when all of these conditions are met:
+- `isSuppressed` is `false`
+- `publishAt` is `null` or in the past
+- `expiresAt` is `null` or in the future
+
 ## List content
 
-Retrieves a paginated list of content.
+Retrieves a paginated list of all content in your organization.
 
 ```bash
 GET /v1/content
@@ -112,41 +156,25 @@ GET /v1/content
 ### Query parameters
 
 <ParamField query="limit" type="integer" default={20}>
-  Items per page (1-100).
+  Items per page (1--100).
 </ParamField>
 
 <ParamField query="cursor" type="string">
-  Pagination cursor from previous response.
+  Pagination cursor from a previous response.
 </ParamField>
 
 <ParamField query="status" type="string">
-  Filter by status: `processing`, `ready`, `failed`.
-</ParamField>
-
-<ParamField query="visibility" type="string">
-  Filter by visibility: `private`, `unlisted`, `public`.
+  Filter by status: `waiting_for_upload`, `processing`, `ready`, `error`, `archived`.
 </ParamField>
 
 <ParamField query="tags" type="string">
   Comma-separated tags to filter by.
 </ParamField>
 
-<ParamField query="createdAfter" type="string">
-  Filter by creation date (ISO 8601).
-</ParamField>
-
-<ParamField query="createdBefore" type="string">
-  Filter by creation date (ISO 8601).
-</ParamField>
-
-<ParamField query="search" type="string">
-  Search titles and descriptions.
-</ParamField>
-
 ### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=product" \
+curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=weather" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
@@ -156,26 +184,42 @@ curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=product" \
 {
   "data": [
     {
-      "id": "cnt_abc123",
-      "title": "Product Launch Announcement",
+      "id": "sk_content_abc123",
+      "title": "Breaking: Weather Alert",
+      "description": "Severe thunderstorm warning for the metro area",
       "status": "ready",
-      "visibility": "public",
-      "duration": 45.2,
-      "aspectRatio": "9:16",
-      "thumbnails": {
-        "default": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/default.jpg",
-        "small": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/small.jpg"
+      "duration": 32.5,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+      "captionTracks": [
+        {
+          "language": "en",
+          "label": "English",
+          "source": "embedded",
+          "url": null
+        }
+      ],
+      "tags": ["weather", "severe", "breaking"],
+      "customMetadata": {
+        "articleUrl": "https://example.com/weather-alert",
+        "category": "severe-weather"
       },
-      "createdAt": "2024-02-04T12:00:00Z",
-      "publishedAt": "2024-02-04T14:00:00Z"
+      "pinPosition": 1,
+      "isSuppressed": false,
+      "publishAt": null,
+      "expiresAt": "2026-02-06T12:00:00Z",
+      "createdAt": "2026-02-05T12:00:00Z",
+      "updatedAt": "2026-02-05T12:03:45Z"
     }
   ],
   "meta": {
-    "total": 150,
-    "nextCursor": "eyJvZmZzZXQiOjIwfQ=="
+    "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2FiYzEyMyJ9",
+    "requestId": "req_list001"
   }
 }
 ```
+
+When there are more results, `meta.nextCursor` contains an opaque cursor string. Pass it as the `cursor` query parameter on the next request. When there are no more results, `nextCursor` is `null`.
 
 ## Get content
 
@@ -188,13 +232,13 @@ GET /v1/content/{id}
 ### Path parameters
 
 <ParamField path="id" type="string" required>
-  Content ID (e.g., `cnt_abc123`).
+  Content ID (e.g., `sk_content_abc123`).
 </ParamField>
 
 ### Example request
 
 ```bash
-curl https://api.shortkit.dev/v1/content/cnt_abc123 \
+curl https://api.shortkit.dev/v1/content/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
@@ -203,114 +247,162 @@ curl https://api.shortkit.dev/v1/content/cnt_abc123 \
 ```json
 {
   "data": {
-    "id": "cnt_abc123",
-    "title": "Product Launch Announcement",
-    "description": "Exciting news about our latest product",
+    "id": "sk_content_abc123",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
     "status": "ready",
-    "visibility": "public",
-    "duration": 45.2,
-    "aspectRatio": "9:16",
-    "resolution": {
-      "width": 1080,
-      "height": 1920
+    "duration": 32.5,
+    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+    "captionTracks": [
+      {
+        "language": "en",
+        "label": "English",
+        "source": "embedded",
+        "url": null
+      }
+    ],
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
     },
-    "codecs": ["h264", "av1"],
-    "tags": ["announcement", "product"],
-    "metadata": {
-      "campaign": "spring-2024",
-      "creator": "marketing-team"
-    },
-    "thumbnails": {
-      "default": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/default.jpg",
-      "small": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/small.jpg",
-      "animated": "https://cdn.shortkit.dev/thumbnails/cnt_abc123/preview.webp"
-    },
-    "streamingUrls": {
-      "hls": "https://video.shortkit.dev/v1/streams/cnt_abc123/manifest.m3u8",
-      "dash": "https://video.shortkit.dev/v1/streams/cnt_abc123/manifest.mpd"
-    },
-    "analytics": {
-      "impressions": 12500,
-      "plays": 8200,
-      "completions": 4100,
-      "averageWatchTime": 32.5
-    },
-    "createdAt": "2024-02-04T12:00:00Z",
-    "updatedAt": "2024-02-04T14:30:00Z",
-    "publishedAt": "2024-02-04T14:00:00Z"
+    "pinPosition": null,
+    "isSuppressed": false,
+    "publishAt": null,
+    "expiresAt": null,
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:03:45Z"
   },
   "meta": {
-    "requestId": "req_xyz789"
+    "requestId": "req_get001"
   }
 }
 ```
 
-### Content status
-
-| Status | Description |
-|--------|-------------|
-| `processing` | Video is being transcoded |
-| `ready` | Video is ready for playback |
-| `failed` | Processing failed |
-
 ## Update content
 
-Updates content metadata. Cannot update source video after creation.
+Updates content metadata and editorial controls. You cannot replace the source video file after upload -- create a new upload instead.
 
 ```bash
 PATCH /v1/content/{id}
 ```
 
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content ID to update.
+</ParamField>
+
 ### Request body
 
+All fields are optional. Only include the fields you want to change.
+
 <ParamField body="title" type="string">
-  Updated title.
+  Updated display title (max 200 characters).
 </ParamField>
 
 <ParamField body="description" type="string">
-  Updated description.
+  Updated description (max 2000 characters). Pass `null` to clear.
 </ParamField>
 
 <ParamField body="tags" type="string[]">
-  Replace all tags.
+  Replaces all existing tags.
 </ParamField>
 
-<ParamField body="metadata" type="object">
-  Merge with existing metadata (use `null` to remove keys).
+<ParamField body="customMetadata" type="object">
+  Merged with existing metadata. Set a key to `null` to remove it.
 </ParamField>
 
-<ParamField body="visibility" type="string">
-  Update visibility: `private`, `unlisted`, `public`.
+<ParamField body="pinPosition" type="integer | null">
+  Pin this content to a specific feed position (1 = top of feed). Set to `null` to unpin.
+  Multiple items can be pinned; they are ordered by `pinPosition` ascending before unpinned content.
 </ParamField>
 
-<ParamField body="publishAt" type="string">
-  Schedule publishing (ISO 8601) or `null` to cancel.
+<ParamField body="isSuppressed" type="boolean">
+  Set to `true` to immediately hide this content from the feed. Set to `false` to restore it.
+</ParamField>
+
+<ParamField body="publishAt" type="string | null">
+  ISO 8601 timestamp. Content will not appear in the feed before this time. Set to `null` for immediate availability.
+</ParamField>
+
+<ParamField body="expiresAt" type="string | null">
+  ISO 8601 timestamp. Content is excluded from the feed after this time. Set to `null` to remove expiration.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Updated Title",
-    "visibility": "public",
-    "tags": ["featured", "product"],
-    "metadata": {
+    "title": "Updated: Severe Weather Warning",
+    "pinPosition": 1,
+    "expiresAt": "2026-02-06T00:00:00Z",
+    "tags": ["weather", "severe", "featured"],
+    "customMetadata": {
       "featured": true,
-      "campaign": null
+      "category": null
     }
   }'
 ```
 
 ### Response
 
-Returns the updated content object.
+Returns the full updated content object:
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "title": "Updated: Severe Weather Warning",
+    "description": "Severe thunderstorm warning for the metro area",
+    "status": "ready",
+    "duration": 32.5,
+    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+    "captionTracks": [
+      {
+        "language": "en",
+        "label": "English",
+        "source": "embedded",
+        "url": null
+      }
+    ],
+    "tags": ["weather", "severe", "featured"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "featured": true
+    },
+    "pinPosition": 1,
+    "isSuppressed": false,
+    "publishAt": null,
+    "expiresAt": "2026-02-06T00:00:00Z",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T14:30:00Z"
+  },
+  "meta": {
+    "requestId": "req_upd001"
+  }
+}
+```
+
+### Editorial controls
+
+Use these fields to control how and when content appears in the feed:
+
+| Control | Field | Effect |
+|---------|-------|--------|
+| **Pin** | `pinPosition` | Locks content to a specific position in the feed. Pinned items appear before unpinned items, ordered by `pinPosition` ascending. |
+| **Suppress** | `isSuppressed` | Immediately removes content from the feed without deleting it. Useful for temporary takedowns. |
+| **Schedule** | `publishAt` | Content is invisible in the feed until this timestamp passes. |
+| **Expire** | `expiresAt` | Content is automatically removed from the feed after this timestamp. The content is not deleted -- its status changes to `archived`. |
 
 ## Delete content
 
-Permanently deletes content and all associated data.
+Permanently deletes a content item and all associated data (video files, thumbnails, captions).
 
 ```bash
 DELETE /v1/content/{id}
@@ -325,7 +417,7 @@ DELETE /v1/content/{id}
 ### Example request
 
 ```bash
-curl -X DELETE https://api.shortkit.dev/v1/content/cnt_abc123 \
+curl -X DELETE https://api.shortkit.dev/v1/content/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
@@ -334,88 +426,19 @@ curl -X DELETE https://api.shortkit.dev/v1/content/cnt_abc123 \
 ```json
 {
   "data": {
-    "id": "cnt_abc123",
+    "id": "sk_content_abc123",
     "deleted": true
   },
   "meta": {
-    "requestId": "req_xyz789"
+    "requestId": "req_del001"
   }
 }
 ```
 
 <Warning>
-  Deletion is permanent. All video files, thumbnails, and analytics data are removed within 24 hours.
+  Deletion is permanent. All video files, thumbnails, captions, and associated engagement data
+  are removed within 24 hours. This action cannot be undone.
 </Warning>
-
-## Content object
-
-<ResponseField name="id" type="string">
-  Unique identifier (prefix: `cnt_`).
-</ResponseField>
-
-<ResponseField name="title" type="string">
-  Display title.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  Optional description.
-</ResponseField>
-
-<ResponseField name="status" type="string">
-  Processing status: `processing`, `ready`, `failed`.
-</ResponseField>
-
-<ResponseField name="visibility" type="string">
-  Visibility: `private`, `unlisted`, `public`.
-</ResponseField>
-
-<ResponseField name="duration" type="number">
-  Video duration in seconds (available when ready).
-</ResponseField>
-
-<ResponseField name="aspectRatio" type="string">
-  Aspect ratio (e.g., `9:16`, `16:9`).
-</ResponseField>
-
-<ResponseField name="resolution" type="object">
-  Source resolution with `width` and `height`.
-</ResponseField>
-
-<ResponseField name="codecs" type="string[]">
-  Available codecs (e.g., `["h264", "av1"]`).
-</ResponseField>
-
-<ResponseField name="tags" type="string[]">
-  Content tags.
-</ResponseField>
-
-<ResponseField name="metadata" type="object">
-  Custom metadata.
-</ResponseField>
-
-<ResponseField name="thumbnails" type="object">
-  Thumbnail URLs by size.
-</ResponseField>
-
-<ResponseField name="streamingUrls" type="object">
-  HLS and DASH streaming URLs (signed, time-limited).
-</ResponseField>
-
-<ResponseField name="analytics" type="object">
-  Engagement metrics summary.
-</ResponseField>
-
-<ResponseField name="createdAt" type="string">
-  Creation timestamp (ISO 8601).
-</ResponseField>
-
-<ResponseField name="updatedAt" type="string">
-  Last update timestamp (ISO 8601).
-</ResponseField>
-
-<ResponseField name="publishedAt" type="string">
-  Publication timestamp (ISO 8601).
-</ResponseField>
 
 ## Webhooks
 
@@ -423,7 +446,7 @@ Subscribe to content lifecycle events:
 
 | Event | Trigger |
 |-------|---------|
-| `content.ready` | Processing completed |
+| `content.ready` | Processing completed successfully |
 | `content.errored` | Processing failed |
 
 See [Webhooks](/guides/webhooks) for setup instructions.
@@ -431,10 +454,10 @@ See [Webhooks](/guides/webhooks) for setup instructions.
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Uploads" icon="upload" href="/api/uploads">
-    Direct file upload endpoint.
+  <Card title="Uploads API" icon="upload" href="/api/uploads">
+    Create new content via direct upload.
   </Card>
-  <Card title="Bulk operations" icon="layer-group" href="/api/bulk-operations">
-    Batch content operations.
+  <Card title="Feed API" icon="rss" href="/api/feed">
+    See how content is delivered to end users.
   </Card>
 </Columns>

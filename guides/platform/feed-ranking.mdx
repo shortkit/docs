@@ -1,329 +1,187 @@
 ---
 title: "Feed ranking"
-description: "How shortkit ranks and orders content in the feed using signals and editorial controls."
-keywords: ["ranking", "algorithm", "personalization", "feed", "signals"]
+description: "How ShortKit ranks and orders content in the feed, including editorial controls and pagination."
+keywords: ["ranking", "feed", "editorial", "pagination", "scheduling"]
 ---
 
-shortkit's Feed Service computes personalized, ranked feeds for each user request. The ranking combines engagement signals, content freshness, user preferences, and editorial controls.
+ShortKit's Feed Service determines the order in which content appears for each user. The feed combines a default ranking strategy with editorial controls that give your team precise control over what users see.
 
-## How ranking works
+## Default ranking: reverse-chronological
 
-For each feed request, the ranking system retrieves candidate content matching any filters, computes scores using signal weights, applies editorial overrides (pins, boosts, suppressions), and returns the feed ordered by final score.
-
-## Signal-weighted ranking
-
-The score for each content item is computed as:
+Content in the feed is ordered by creation time, newest first. This provides a predictable, transparent baseline: the most recently published content always appears at the top.
 
 ```
-score = w_recency × recency
-      + w_engagement × engagement
-      + w_geo × geo_relevance
-      + w_topic × topic_affinity
-      + w_completion × completion_rate
-      + editorial_boost
+score = created_at DESC
 ```
 
-### Ranking signals
+Only content that meets all of the following criteria is eligible for the feed:
 
-| Signal | Description | Example |
-|--------|-------------|---------|
-| **Recency** | Exponential decay based on publish time | Content from 1 hour ago scores higher than 1 day ago |
-| **Engagement** | Aggregate engagement across all users | High view count and watch time = higher score |
-| **Geo-relevance** | Match between user location and content geo-targeting | Minnesota user sees Minnesota content boosted |
-| **Topic affinity** | Match between user preferences and content tags | User who watches sports content sees sports boosted |
-| **Completion rate** | How often users finish watching | Content with 80% completion rate ranks higher |
-
-### Signal weights
-
-Default weights (configurable):
-
-| Signal | Default Weight |
-|--------|---------------|
-| Recency | 0.25 |
-| Engagement | 0.25 |
-| Geo-relevance | 0.15 |
-| Topic affinity | 0.20 |
-| Completion rate | 0.15 |
-
-## Configuring ranking
-
-### Admin Portal
-
-Adjust weights in **Feed Configuration → Ranking**:
-
-- Use sliders to adjust relative importance
-- Preview changes on sample feeds
-- A/B test different weight configurations
-
-### API
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config/ranking \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "weights": {
-      "recency": 0.30,
-      "engagement": 0.20,
-      "geoRelevance": 0.20,
-      "topicAffinity": 0.15,
-      "completionRate": 0.15
-    },
-    "recencyDecayHours": 48,
-    "minCompletionRate": 0.1
-  }'
-```
-
-### Configuration options
-
-<ResponseField name="weights" type="object">
-  Signal weights. Must sum to 1.0.
-</ResponseField>
-
-<ResponseField name="recencyDecayHours" type="number" default="72">
-  Half-life for recency decay in hours. Content older than this has 50% recency score.
-</ResponseField>
-
-<ResponseField name="minCompletionRate" type="number" default="0.1">
-  Minimum completion rate to include content. Filters out content with very low engagement.
-</ResponseField>
-
-<ResponseField name="maxContentAgeDays" type="number">
-  Hard cutoff for content age. Content older than this is excluded regardless of score.
-</ResponseField>
+- Status is `ready`
+- Not suppressed (`is_suppressed` is false)
+- Current time is past `publish_at` (if set)
+- Current time is before `expires_at` (if set)
 
 ## Editorial controls
 
-Editorial teams can override algorithmic ranking with three controls:
+Editorial controls let your team override the default ranking for specific content items. Three controls are available:
 
-### Pin
+### Pin to position
 
-Force content to a specific position regardless of ranking score:
+Lock a content item to a specific position in the feed. Pinned items appear at their designated position for all users regardless of creation time.
 
 ```bash
-curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "editorialOverrides": {
-      "pin": {
-        "position": 1,
-        "expiresAt": "2024-02-05T00:00:00Z"
-      }
-    }
+    "pinPosition": 1
   }'
 ```
 
-- **Deterministic**: All users see pinned content at the same position
-- **Expiry**: Optional expiration time
-- **Conflicts**: If two items are pinned to the same position, the more recently pinned takes precedence
+<ResponseField name="pinPosition" type="integer">
+  The 1-indexed position in the feed where this content should appear. Set to `null` to unpin.
 
-### Boost
-
-Add a positive modifier to ranking score:
-
-```bash
-curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "editorialOverrides": {
-      "boost": {
-        "factor": 2.0,
-        "expiresAt": "2024-02-05T00:00:00Z"
-      }
-    }
-  }'
-```
-
-- **Factor range**: 1.1x to 10x score multiplier
-- **Competitive**: Boosted content still competes with other signals
-- **Personalized**: Final position varies by user
+  - Pinned items are served before unpinned items.
+  - When multiple items are pinned, they are ordered by their `pinPosition` value (ascending).
+  - If two items share the same `pinPosition`, the more recently updated item takes precedence.
+</ResponseField>
 
 ### Suppress
 
-Reduce visibility or exclude entirely:
+Hide a content item from the feed entirely. The content remains in the system and can be restored at any time.
 
 ```bash
-curl -X PATCH https://api.shortkit.dev/v1/content/cnt_abc123 \
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "editorialOverrides": {
-      "suppress": {
-        "level": "exclude"
-      }
-    }
+    "isSuppressed": true
   }'
 ```
 
-Suppression levels:
-- `reduce` - Apply 0.5x score modifier
-- `minimize` - Apply 0.1x score modifier
-- `exclude` - Remove from feed entirely
+<ResponseField name="isSuppressed" type="boolean" default="false">
+  When `true`, the content is excluded from all feed responses. Set back to `false` to restore it.
+</ResponseField>
 
-### Admin Portal
+### Schedule with publish and expiry windows
 
-Manage editorial controls in **Content → [Content Item] → Editorial**:
-
-- One-click pin, boost, suppress
-- Set expiration times
-- View active overrides across all content
-
-## Heuristic rules
-
-Define hard rules evaluated before scoring:
+Control when content appears in and disappears from the feed using time-based scheduling.
 
 ```bash
-curl -X PUT https://api.shortkit.dev/v1/config/ranking/rules \
+curl -X POST https://api.shortkit.dev/v1/uploads \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "rules": [
-      {
-        "name": "No old content",
-        "condition": "content.ageInDays > 30",
-        "action": "exclude"
-      },
-      {
-        "name": "Boost Minnesota for MN users",
-        "condition": "user.region == \"MN\" && content.tags.includes(\"minnesota\")",
-        "action": "boost",
-        "factor": 2.0
-      },
-      {
-        "name": "Exclude crime from default feed",
-        "condition": "content.tags.includes(\"crime\") && !feed.filter.includes(\"crime\")",
-        "action": "exclude"
-      }
-    ]
+    "title": "Game Day Highlights",
+    "publishAt": "2026-02-05T18:00:00Z",
+    "expiresAt": "2026-02-06T06:00:00Z"
   }'
 ```
 
-### Rule conditions
+<ResponseField name="publishAt" type="datetime">
+  ISO 8601 timestamp. Content is hidden from feeds until this time, even if its status is `ready`. Omit to publish immediately when processing completes.
+</ResponseField>
 
-Available variables:
-- `content.*` - Content metadata (tags, ageInDays, duration, etc.)
-- `user.*` - User context (region, topicAffinities, etc.)
-- `feed.*` - Feed context (filter, name, etc.)
+<ResponseField name="expiresAt" type="datetime">
+  ISO 8601 timestamp. Content is automatically removed from feeds and archived after this time. Omit for content that does not expire.
+</ResponseField>
 
-### Rule actions
+### Combined example
 
-- `exclude` - Remove from feed
-- `include` - Force include (override other exclusions)
-- `boost` - Apply score multiplier
-- `suppress` - Apply negative modifier
-
-## Content filters
-
-Define named filters for content subsets:
+Pin a breaking-news video to the top of the feed and set it to expire after 24 hours:
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/config/filters \
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Sports",
-    "slug": "sports",
-    "conditions": {
-      "tags": ["sports", "athletics", "nfl", "nba", "mlb"]
-    }
+    "pinPosition": 1,
+    "expiresAt": "2026-02-06T12:00:00Z"
   }'
 ```
 
-Filters power:
-- **Adjacent feeds**: Swipe between filtered feeds
-- **SDK filter parameter**: Request filtered content
-- **User-facing filter UI**: Let users select categories
+## Feed ordering logic
 
-## Topic affinity
+The feed applies editorial controls on top of the default ranking in a deterministic order:
 
-The User Signal Service builds topic affinity profiles based on engagement:
-
-### How it's calculated
+1. **Filter** -- exclude content that is not `ready`, is suppressed, or is outside its publish/expiry window
+2. **Pin** -- place pinned items at their designated positions
+3. **Rank** -- order remaining (unpinned) items by `created_at` descending
+4. **Paginate** -- return the requested page of results
 
 ```
-affinity[topic] = Σ (engagement_score × recency_weight) / total_engagement
+Feed response:
+
+  Position 1:  [Pinned]     sk_content_breaking    (pinPosition: 1)
+  Position 2:  [Pinned]     sk_content_promo        (pinPosition: 2)
+  Position 3:  [Ranked]     sk_content_newest        (created 5 min ago)
+  Position 4:  [Ranked]     sk_content_recent        (created 1 hour ago)
+  Position 5:  [Ranked]     sk_content_older          (created 3 hours ago)
+  ...
 ```
 
-Where engagement score considers:
-- Watch time (weighted highest)
-- Completion rate
-- Interactions (shares, likes)
-- Return views
+## Cursor-based pagination
 
-### Profile example
+The feed API uses cursor-based pagination to deliver content in pages. This approach provides consistent performance regardless of how deep into the feed the user has scrolled.
+
+### How it works
+
+Each feed response includes a `next_cursor` value in the `meta` object. Pass it back on the next request to fetch the next page.
+
+**First page:**
+
+```bash
+curl "https://api.shortkit.dev/v1/feed?limit=10" \
+  -H "X-API-Key: pk_live_your_publishable_key"
+```
 
 ```json
 {
-  "userId": "user_123",
-  "topicAffinities": {
-    "politics": 0.72,
-    "sports": 0.45,
-    "entertainment": 0.23,
-    "weather": 0.15
+  "data": [ ... ],
+  "meta": {
+    "next_cursor": "eyJjYSI6IjIwMjYtMDItMDUiLCJpZCI6InNrX2NvbnRlbnRfYWJjMTIzIn0="
   }
 }
 ```
 
-### Cold start
-
-For new users with no engagement history:
-- Topic affinity defaults to neutral (0.5 for all topics)
-- Recency and engagement signals drive initial ranking
-- Personalization improves with each interaction
-
-## A/B testing ranking
-
-Test different ranking configurations:
+**Next page:**
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/experiments \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Recency vs Engagement",
-    "type": "ranking",
-    "variants": [
-      {
-        "name": "control",
-        "weight": 0.5,
-        "config": {
-          "weights": { "recency": 0.25, "engagement": 0.25 }
-        }
-      },
-      {
-        "name": "recency-heavy",
-        "weight": 0.5,
-        "config": {
-          "weights": { "recency": 0.40, "engagement": 0.15 }
-        }
-      }
-    ],
-    "metrics": ["watchTime", "sessionLength", "completionRate"]
-  }'
+curl "https://api.shortkit.dev/v1/feed?limit=10&cursor=eyJjYSI6IjIwMjYtMDItMDUiLCJpZCI6InNrX2NvbnRlbnRfYWJjMTIzIn0=" \
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
-View results in Admin Portal: **Experiments → [Experiment] → Results**
+When `next_cursor` is `null`, there is no more content available. The SDK handles pagination automatically -- it pre-fetches the next page as the user approaches the end of the currently loaded content.
 
-## Future: ML-based ranking
+### Parameters
 
-The current signal-weighted model will be augmented with ML-based ranking:
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 10 | Number of items per page (max 50) |
+| `cursor` | string | -- | Opaque cursor from a previous response |
 
-- **Content embeddings**: Multimodal representations (visual + text + audio)
-- **User embeddings**: Dense vectors capturing engagement patterns
-- **Two-tower retrieval**: Candidate generation via embedding similarity
-- **Ranking model**: Listwise re-ranking optimizing for engagement and retention
+## Future: signal-weighted ranking
 
-Editorial overrides (pin, boost, suppress) continue to work with ML ranking.
+The current reverse-chronological ranking provides a predictable baseline. A future release will introduce signal-weighted ranking that factors in engagement data (watch time, completion rate), content freshness, and user preferences.
+
+The ranking formula will follow this structure:
+
+```
+score = w_recency    * recency
+      + w_engagement * engagement
+      + w_affinity   * topic_affinity
+      + w_completion * completion_rate
+```
+
+Editorial controls (pin, suppress, schedule) will continue to take precedence over algorithmic ranking.
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
-    Run experiments on ranking configurations.
+  <Card title="Content pipeline" icon="upload" href="/guides/platform/content-pipeline">
+    Learn how content is uploaded and processed.
   </Card>
-  <Card title="Analytics" icon="chart-bar" href="/portal/analytics">
-    Measure ranking effectiveness.
+  <Card title="CDN delivery" icon="globe" href="/guides/platform/cdn-delivery">
+    Understand how video reaches your users globally.
   </Card>
 </Columns>

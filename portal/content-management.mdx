@@ -1,14 +1,14 @@
 ---
 title: "Content management"
-description: "Upload, organize, and manage your video content in the Admin Portal."
-keywords: ["content", "upload", "library", "management", "metadata"]
+description: "Upload, organize, and manage your video content in the ShortKit Admin Portal."
+keywords: ["content", "upload", "library", "management", "metadata", "editorial"]
 ---
 
-The Content section of the Admin Portal provides tools for uploading, organizing, and managing your video library.
+The Content section of the Admin Portal provides tools for uploading, organizing, and managing your video library. You can track content through its entire lifecycle, apply editorial controls, and schedule when content appears in your feed.
 
 ## Content library
 
-Access your content library at **Content → Library**.
+Access your content library at **Content > Library**. The library displays all content in your organization with its current status, metadata, and editorial settings.
 
 ### Views
 
@@ -19,25 +19,24 @@ Switch between display modes:
 
 ### Filtering
 
-Filter content by:
+Filter content by any combination of the following:
 
 | Filter | Options |
 |--------|---------|
-| **Status** | Processing, Ready, Scheduled, Live, Archived, Error |
+| **Status** | `waiting_for_upload`, `processing`, `ready`, `error`, `archived` |
 | **Tags** | Select one or more tags |
-| **Date range** | Publish date or upload date |
-| **Duration** | Short (<30s), Medium (30s-2m), Long (>2m) |
-| **Custom metadata** | Filter by custom field values |
+| **Date range** | Upload date or publish date |
+| **Duration** | Short (less than 30s), Medium (30s-2m), Long (more than 2m) |
+| **Editorial** | Pinned, suppressed, scheduled |
 
 ### Sorting
 
-Sort by:
+Sort content by:
 - Upload date (newest/oldest)
 - Publish date
-- Views
-- Watch time
-- Completion rate
-- Title (A-Z)
+- Title (A-Z / Z-A)
+- Duration
+- Status
 
 ### Search
 
@@ -47,13 +46,34 @@ Full-text search across:
 - Tags
 - Custom metadata values
 
+## Content statuses
+
+Every piece of content moves through a defined lifecycle:
+
+| Status | Meaning | Visible in feed? |
+|--------|---------|-------------------|
+| `waiting_for_upload` | Upload session created, video file not yet received | No |
+| `processing` | Video is being transcoded into streaming formats | No |
+| `ready` | Processing complete, available for playback | Yes (if not suppressed, not expired, and past `publish_at`) |
+| `error` | Processing failed | No |
+| `archived` | Manually archived or expired via `expires_at` | No |
+
+Content only appears in the feed when its status is `ready`, it is not suppressed, the current time is past `publish_at` (if set), and the current time is before `expires_at` (if set).
+
 ## Uploading content
 
 ### Drag and drop
 
-1. Go to **Content → Upload**
-2. Drag video files onto the upload zone (or click to browse)
-3. Multiple files supported for bulk upload
+1. Go to **Content > Upload**
+2. Drag video files onto the upload zone, or click to browse your file system
+3. Multiple files are supported for bulk upload
+
+### Upload via URL
+
+1. Go to **Content > Upload**
+2. Select the **URL** tab
+3. Paste the URL of a publicly accessible video file
+4. ShortKit downloads and processes the file
 
 ### Supported formats
 
@@ -62,7 +82,7 @@ Full-text search across:
 | **Containers** | MP4, MOV, MKV, WebM, AVI |
 | **Video codecs** | H.264, H.265, VP9, AV1, ProRes |
 | **Audio codecs** | AAC, MP3, Opus, PCM |
-| **Max resolution** | 4K (3840×2160) |
+| **Max resolution** | 4K (3840x2160) |
 | **Max file size** | 5 GB |
 
 ### Upload progress
@@ -85,120 +105,98 @@ During upload you see:
    - **Title** (required)
    - **Description**
    - **Tags** (add/remove)
-   - **Custom metadata** (key-value pairs)
-   - **Geo-targeting**
-   - **Scheduling**
-
+   - **Custom metadata** (key-value pairs passed through to the SDK)
 3. Click **Save**
 
 ### Bulk editing
 
-1. Select multiple items (checkbox or Shift+click)
+1. Select multiple items using checkboxes or Shift+click
 2. Click **Bulk Edit** in the toolbar
 3. Choose action:
-   - Add tags
-   - Remove tags
-   - Change status
-   - Set geo-targeting
+   - Add or remove tags
    - Set expiry date
+   - Archive selected items
 
-## Content scheduling
+## Editorial controls
 
-### Schedule publish
+Editorial controls let you override the default feed ordering for specific content items.
 
-1. Open content detail
-2. Set **Publish Date** to a future time
-3. Content status changes to "Scheduled"
-4. Automatically goes "Live" at scheduled time
+### Pin
 
-### Schedule expiry
+Force content to a specific position in the feed:
 
 1. Open content detail
-2. Set **Expiry Date**
-3. Content automatically archives after this time
+2. Go to the **Editorial** tab
+3. Enable **Pin**
+4. Set position (1 = top of feed)
 
-### Calendar view
+Pinned items always appear at their assigned position regardless of the default feed ordering. Multiple items can be pinned to different positions.
 
-View scheduled content on a calendar:
-1. Go to **Content → Library**
-2. Click **Calendar** tab
-3. See content scheduled across days/weeks
+### Suppress
+
+Remove content from the feed without archiving it:
+
+1. Open content detail
+2. Go to the **Editorial** tab
+3. Enable **Suppress**
+
+Suppressed content is excluded from the feed entirely. It remains in your library and can be un-suppressed at any time.
+
+### Schedule
+
+Control when content appears in and disappears from the feed:
+
+1. Open content detail
+2. Set **Publish at** (`publish_at`) to a future date and time -- content will not appear in the feed until this time
+3. Optionally set **Expires at** (`expires_at`) -- content will be automatically archived after this time
+
+| Field | Effect |
+|-------|--------|
+| `publish_at` | Content is held back from the feed until this date/time passes |
+| `expires_at` | Content is automatically archived after this date/time |
+
+Both fields are optional. If neither is set, content appears in the feed as soon as it reaches `ready` status and remains there until manually archived.
 
 ## Captions
+
+### Auto-generated captions
+
+If auto-captioning is enabled for your organization:
+1. Captions are generated automatically during processing
+2. Review generated captions in the **Captions** tab of the content detail
+3. Download VTT files to edit and re-upload if needed
 
 ### Upload captions
 
 1. Open content detail
-2. Go to **Captions** tab
+2. Go to the **Captions** tab
 3. Click **Upload Caption Track**
-4. Select SRT or VTT file
+4. Select an SRT or VTT file
 5. Set language and label
-
-### Auto-generated captions
-
-If enabled for your organization:
-1. Captions generate automatically during processing
-2. Review in the **Captions** tab
-3. Download VTT to edit and re-upload
 
 ### Managing tracks
 
 - Add multiple language tracks
-- Set default track for playback
+- Set the default track for playback
 - Delete tracks
 
 ## Thumbnails
 
 ### Auto-generated
 
-The platform generates multiple thumbnail options:
+The platform generates thumbnail options automatically:
 - First frame
-- Several frames from throughout the video
+- Several frames sampled from throughout the video
 
 ### Custom thumbnail
 
 1. Open content detail
-2. Go to **Thumbnail** tab
-3. Select from auto-generated options or upload custom image
+2. Go to the **Thumbnail** tab
+3. Select from auto-generated options, or upload a custom image
 
 Requirements for custom thumbnails:
 - JPEG or PNG format
-- Minimum 1280×720 resolution
-- Aspect ratio matches video
-
-## Editorial controls
-
-### Pin
-
-Force content to a specific feed position:
-
-1. Open content detail
-2. Go to **Editorial** tab
-3. Enable **Pin**
-4. Set position (1 = top of feed)
-5. Optionally set expiry time
-
-### Boost
-
-Increase content's ranking score:
-
-1. Open content detail
-2. Go to **Editorial** tab
-3. Enable **Boost**
-4. Set factor (1.5x - 10x)
-5. Optionally set expiry time
-
-### Suppress
-
-Reduce visibility or exclude from feed:
-
-1. Open content detail
-2. Go to **Editorial** tab
-3. Enable **Suppress**
-4. Choose level:
-   - Reduce (0.5x score)
-   - Minimize (0.1x score)
-   - Exclude (remove from feed)
+- Minimum 1280x720 resolution
 
 ## Asset preview
 
@@ -210,57 +208,38 @@ Reduce visibility or exclude from feed:
 
 ### Preview assets
 
-View generated assets:
-- First-frame thumbnail
+View all generated assets for a content item:
+- Thumbnails
 - Preview GIF
-- Storyboard sprites
+- Caption tracks
 
-## Processing queue
+## Content with errors
 
-View content being processed at **Content → Processing Queue**:
+When content fails processing:
 
-| Column | Description |
-|--------|-------------|
-| **Title** | Content title |
-| **Status** | Current processing stage |
-| **Progress** | Percentage complete |
-| **Started** | Processing start time |
-| **ETA** | Estimated completion |
-
-### Processing stages
-
-1. **Uploading** - Receiving file
-2. **Analyzing** - Detecting format and metadata
-3. **Transcoding** - Generating ABR ladder
-4. **Generating assets** - Thumbnails, preview, sprites
-5. **Captioning** - Auto-generating captions (if enabled)
-6. **Finalizing** - Preparing for delivery
-
-### Failed processing
-
-For content with errors:
-1. Click the item
-2. View error details
-3. Click **Retry** to reprocess
+1. The status changes to `error`
+2. Click the item in the library to view error details
+3. Click **Retry** to reprocess the content
 
 Common errors:
 - Unsupported codec
 - Corrupt file
 - Missing audio track
 
-## Archiving content
+## Archiving and deleting content
 
-Archive content to remove from feeds while keeping it accessible:
+### Archiving
+
+Archive content to remove it from the feed while keeping it in your library:
 
 1. Select content
-2. Click **Archive** (or set status to Archived)
-3. Content is removed from feeds
-4. Direct links still work
-5. Can be restored by setting status to Live
+2. Click **Archive**
+3. Content is removed from the feed
+4. Can be restored by changing status back to `ready`
 
-## Deleting content
+### Deleting
 
-Permanently delete content and all assets:
+Permanently delete content and all associated assets:
 
 1. Select content
 2. Click **Delete**
@@ -270,29 +249,11 @@ Permanently delete content and all assets:
   Deletion is permanent. The video file, all renditions, thumbnails, and analytics data are removed and cannot be recovered.
 </Warning>
 
-## Automated ingestion
-
-Configure automatic content import:
-
-### Webhook ingestion
-
-1. Go to **Content → Ingestion → Webhooks**
-2. Create a new webhook endpoint
-3. Copy the URL and secret
-4. Configure your CMS/DAM to send events
-
-### Bucket polling
-
-1. Go to **Content → Ingestion → Buckets**
-2. Add cloud storage bucket (S3, GCS, Azure)
-3. Configure credentials and path prefix
-4. Set polling interval
-
 ## Next steps
 
 <Columns cols={2}>
   <Card title="Feed configuration" icon="sliders" href="/portal/feed-configuration">
-    Configure how content is ranked and displayed.
+    Configure how content is ordered and displayed in the feed.
   </Card>
   <Card title="Analytics" icon="chart-bar" href="/portal/analytics">
     View content performance metrics.

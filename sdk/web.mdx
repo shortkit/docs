@@ -1,15 +1,26 @@
 ---
 title: "Web SDK"
-description: "Integrate shortkit into your web application with TypeScript or JavaScript."
-keywords: ["Web", "JavaScript", "TypeScript", "React", "browser"]
+description: "Add a short-form video feed to your web application with TypeScript or JavaScript."
+keywords: ["Web", "JavaScript", "TypeScript", "React", "browser", "video feed"]
 ---
 
-The shortkit Web SDK provides a video feed experience for browsers using hls.js and dash.js under a unified API.
+The ShortKit Web SDK gives your web app a full-screen, vertically swipeable short-form video feed. It works as a React component or mounts directly to any DOM element, with HLS streaming handled internally.
 
 ## Requirements
 
-- Modern browser (Chrome 80+, Firefox 75+, Safari 14+, Edge 80+)
-- For React integration: React 17 or later
+| Parameter | Value |
+|---|---|
+| Chrome | 80+ |
+| Firefox | 75+ |
+| Safari | 14+ |
+| Edge | 80+ |
+| iOS Safari | 14+ |
+| Chrome Android | 80+ |
+| React (optional) | 18+ |
+
+<Note>
+  Internet Explorer is not supported.
+</Note>
 
 ## Installation
 
@@ -33,350 +44,137 @@ The shortkit Web SDK provides a video feed experience for browsers using hls.js 
 
 ## Initialization
 
-Initialize the SDK before mounting any feed components:
+Create a `ShortKit` instance with your publishable key and config. Do this once, before mounting any feed.
 
-```typescript main.ts
-import { shortkit } from '@shortkit/web';
+<Tabs>
+  <Tab title="ES Module">
+    ```typescript main.ts
+    import { ShortKit } from '@shortkit/web';
 
-shortkit.initialize({
-  apiKey: 'pk_live_your_publishable_key',
-  config: {
-    feedOrientation: 'vertical',
-    feedHeight: 'fullscreen',
-    controls: {
-      playPause: true,
-      scrubber: true,
-      playbackSpeed: {
-        enabled: true,
-        options: [1.0, 1.25, 1.5, 2.0]
+    const shortKit = ShortKit.init({
+      apiKey: 'pk_live_your_publishable_key',
+      config: {
+        feedHeight: 'fullscreen',
+        controls: {
+          playPause: true,
+          scrubber: true,
+          captions: { enabled: true, defaultOn: false },
+          volume: true,
+          muteOnStart: true,
+          share: { enabled: true },
+        },
+        theme: {
+          primaryColor: '#FFFFFF',
+          controlsTint: '#FFFFFF',
+          backgroundColor: '#000000',
+        },
       },
-      captions: {
-        enabled: true,
-        defaultOn: false
-      },
-      volume: true,
-      share: { enabled: true }
-    },
-    theme: {
-      primaryColor: '#FF6600',
-      controlsTint: '#FFFFFF',
-      backgroundColor: '#000000'
-    }
-  },
-  environment: 'production'
-});
-```
+      environment: 'production',
+    });
+    ```
+  </Tab>
+  <Tab title="CDN">
+    ```html
+    <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
+    <script>
+      const shortKit = ShortKit.init({
+        apiKey: 'pk_live_your_publishable_key',
+        config: {
+          feedHeight: 'fullscreen',
+          controls: {
+            playPause: true,
+            scrubber: true,
+            volume: true,
+            muteOnStart: true,
+          },
+          theme: {
+            primaryColor: '#FFFFFF',
+            backgroundColor: '#000000',
+          },
+        },
+      });
+    </script>
+    ```
+  </Tab>
+</Tabs>
 
-With CDN, access the global `shortkit` object:
-
-```html
-<script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
-<script>
-  shortkit.initialize({
-    apiKey: 'pk_live_your_publishable_key',
-    config: {
-      feedOrientation: 'vertical',
-      feedHeight: 'fullscreen'
-    }
-  });
-</script>
-```
+<Warning>
+  Never expose your secret key (`sk_live_...` or `sk_test_...`) in client-side code, source control, or your app bundle. Use only your publishable key (`pk_live_...`) for SDK initialization.
+</Warning>
 
 ## Displaying the feed
 
-### React
+<Tabs>
+  <Tab title="React">
+    Use the `ShortKitFeed` React component:
 
-Use the `ShortkitFeed` component:
+    ```tsx VideoFeed.tsx
+    import React from 'react';
+    import { ShortKitFeed } from '@shortkit/web/react';
 
-```tsx VideoFeed.tsx
-import React from 'react';
-import { ShortkitFeed } from '@shortkit/web/react';
-
-export function VideoFeed() {
-  return (
-    <div style={{ width: '100%', height: '100vh' }}>
-      <ShortkitFeed />
-    </div>
-  );
-}
-```
-
-With filters:
-
-```tsx SportsFeed.tsx
-import React from 'react';
-import { ShortkitFeed } from '@shortkit/web/react';
-
-export function SportsFeed() {
-  return (
-    <div style={{ width: '100%', height: '100vh' }}>
-      <ShortkitFeed
-        filter={{
-          tags: ['sports', 'highlights']
-        }}
-      />
-    </div>
-  );
-}
-```
-
-### Vanilla JavaScript
-
-Mount the feed to a container element:
-
-```typescript
-import { shortkit } from '@shortkit/web';
-
-const container = document.getElementById('video-feed');
-const feed = shortkit.mountFeed(container);
-
-// Later, to unmount:
-feed.unmount();
-```
-
-```html
-<div id="video-feed" style="width: 100%; height: 100vh;"></div>
-
-<script type="module">
-  import { shortkit } from '@shortkit/web';
-
-  shortkit.initialize({ /* config */ });
-
-  const container = document.getElementById('video-feed');
-  shortkit.mountFeed(container);
-</script>
-```
-
-### Partial-height feed
-
-For feeds that don't occupy the full viewport:
-
-```tsx PartialFeed.tsx
-import React from 'react';
-import { ShortkitFeed } from '@shortkit/web/react';
-
-export function PartialFeed() {
-  return (
-    <div className="feed-container">
-      <ShortkitFeed
-        height={{ percentage: 0.7 }}  // 70% of container
-      />
-    </div>
-  );
-}
-```
-
-```css
-.feed-container {
-  width: 400px;
-  height: 80vh;
-  margin: 0 auto;
-}
-```
-
-## User identity
-
-Associate user identity for personalized feeds:
-
-```typescript
-import { shortkit } from '@shortkit/web';
-
-// When user logs in
-function handleLogin(userId: string) {
-  shortkit.setUserId(userId);
-}
-
-// When user logs out
-function handleLogout() {
-  shortkit.clearUserId();
-}
-```
-
-## Event callbacks
-
-### React
-
-```tsx VideoFeed.tsx
-import React from 'react';
-import { ShortkitFeed, Content, ShortkitError } from '@shortkit/web/react';
-
-export function VideoFeed() {
-  const handleShare = async (content: Content) => {
-    if (navigator.share) {
-      await navigator.share({
-        title: content.title,
-        url: content.shareUrl
-      });
-    } else {
-      // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(content.shareUrl);
-      alert('Link copied to clipboard!');
+    // Pass the initialized instance
+    export function VideoFeed({ shortKit }) {
+      return (
+        <div style={{ width: '100%', height: '100vh' }}>
+          <ShortKitFeed shortKit={shortKit} />
+        </div>
+      );
     }
-  };
+    ```
 
-  const handleAction = (action: string, content: Content) => {
-    switch (action) {
-      case 'bookmark':
-        // Save to bookmarks
-        break;
-      case 'readMore':
-        window.location.href = content.metadata?.articleUrl;
-        break;
+    Partial-height feed:
+
+    ```tsx PartialFeed.tsx
+    import React from 'react';
+    import { ShortKitFeed } from '@shortkit/web/react';
+
+    export function PartialFeed({ shortKit }) {
+      return (
+        <div className="feed-container">
+          <ShortKitFeed
+            shortKit={shortKit}
+            feedHeight={{ percentage: 0.7 }}
+          />
+        </div>
+      );
     }
-  };
+    ```
 
-  const handleError = (error: ShortkitError) => {
-    console.error('shortkit error:', error.message);
-  };
+    ```css
+    .feed-container {
+      width: 400px;
+      height: 80vh;
+      margin: 0 auto;
+    }
+    ```
+  </Tab>
+  <Tab title="Vanilla JS">
+    Mount the feed to any DOM element:
 
-  return (
-    <div style={{ width: '100%', height: '100vh' }}>
-      <ShortkitFeed
-        onShareRequested={handleShare}
-        onActionTapped={handleAction}
-        onError={handleError}
-      />
-    </div>
-  );
-}
-```
+    ```typescript
+    import { ShortKit } from '@shortkit/web';
 
-### Vanilla JavaScript
-
-```typescript
-import { shortkit } from '@shortkit/web';
-
-const feed = shortkit.mountFeed(container, {
-  onShareRequested: (content) => {
-    navigator.share({
-      title: content.title,
-      url: content.shareUrl
+    const shortKit = ShortKit.init({
+      apiKey: 'pk_live_your_publishable_key',
+      config: { feedHeight: 'fullscreen' },
     });
-  },
-  onActionTapped: (action, content) => {
-    console.log('Action:', action, 'Content:', content.id);
-  },
-  onError: (error) => {
-    console.error('Error:', error);
-  },
-  onMetadataLoaded: (content, metadata) => {
-    console.log('Metadata:', metadata);
-  }
-});
-```
 
-## Deep linking
+    const container = document.getElementById('video-feed');
+    const feed = shortKit.mount(container);
 
-Handle deep links to open specific content:
+    // Later, to unmount:
+    feed.unmount();
+    ```
 
-```typescript router.ts
-import { shortkit } from '@shortkit/web';
+    ```html
+    <div id="video-feed" style="width: 100%; height: 100vh;"></div>
+    ```
+  </Tab>
+</Tabs>
 
-// Check URL on page load
-function handleRouteChange() {
-  const path = window.location.pathname;
-  const match = path.match(/\/watch\/(\w+)/);
+### Responsive layout
 
-  if (match) {
-    const contentId = match[1];
-    shortkit.openContent(contentId);
-  }
-}
-
-// Initial check
-handleRouteChange();
-
-// Listen for navigation (with your router)
-window.addEventListener('popstate', handleRouteChange);
-```
-
-With React Router:
-
-```tsx App.tsx
-import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { shortkit } from '@shortkit/web';
-
-function WatchPage() {
-  const { contentId } = useParams<{ contentId: string }>();
-
-  useEffect(() => {
-    if (contentId) {
-      shortkit.openContent(contentId);
-    }
-  }, [contentId]);
-
-  return <ShortkitFeed />;
-}
-```
-
-## Entry widget
-
-Create a mini-player widget for other pages:
-
-### React
-
-```tsx HomePage.tsx
-import React from 'react';
-import { ShortkitEntryWidget, Content } from '@shortkit/web/react';
-import { useNavigate } from 'react-router-dom';
-
-export function HomePage() {
-  const navigate = useNavigate();
-
-  const handleContentSelected = (content: Content) => {
-    navigate(`/videos?start=${content.id}`);
-  };
-
-  return (
-    <div>
-      <h2>Latest Videos</h2>
-
-      <ShortkitEntryWidget
-        style={{ height: 200 }}
-        itemCount={5}
-        autoPlay={true}
-        onContentSelected={handleContentSelected}
-      />
-
-      {/* Other content */}
-    </div>
-  );
-}
-```
-
-### Vanilla JavaScript
-
-```typescript
-import { shortkit } from '@shortkit/web';
-
-const widgetContainer = document.getElementById('video-widget');
-
-shortkit.mountEntryWidget(widgetContainer, {
-  itemCount: 5,
-  autoPlay: true,
-  onContentSelected: (content) => {
-    window.location.href = `/videos?start=${content.id}`;
-  }
-});
-```
-
-## Responsive behavior
-
-The feed automatically adapts to container size. For mobile-like experiences on desktop:
-
-```tsx MobileFeed.tsx
-import React from 'react';
-import { ShortkitFeed } from '@shortkit/web/react';
-
-export function MobileFeed() {
-  return (
-    <div className="mobile-container">
-      <ShortkitFeed />
-    </div>
-  );
-}
-```
+The feed automatically adapts to its container size. For a mobile-like experience on desktop, constrain the container:
 
 ```css
 .mobile-container {
@@ -392,50 +190,156 @@ export function MobileFeed() {
 }
 ```
 
+## Configuration
+
+### FeedConfig
+
+```typescript
+interface FeedConfig {
+  feedHeight?: 'fullscreen' | { percentage: number };
+  controls?: ControlsConfig;
+  theme?: ThemeConfig;
+}
+```
+
+### ControlsConfig
+
+```typescript
+interface ControlsConfig {
+  playPause?: boolean;        // default: true
+  scrubber?: boolean;         // default: true
+  captions?: CaptionConfig;   // default: { enabled: true, defaultOn: false }
+  volume?: boolean;           // default: true
+  muteOnStart?: boolean;      // default: true
+  share?: ShareConfig;        // default: { enabled: true }
+  autoHideControls?: AutoHideConfig; // default: { enabled: true, delayMs: 3000 }
+}
+
+interface CaptionConfig {
+  enabled?: boolean;          // default: true
+  defaultOn?: boolean;        // default: false
+  style?: CaptionStyle;
+}
+
+interface ShareConfig {
+  enabled?: boolean;          // default: true
+}
+
+interface AutoHideConfig {
+  enabled?: boolean;          // default: true
+  delayMs?: number;           // default: 3000
+}
+```
+
+### ThemeConfig
+
+```typescript
+interface ThemeConfig {
+  primaryColor?: string;              // default: '#FFFFFF'
+  backgroundColor?: string;           // default: '#000000'
+  controlsTint?: string;              // default: '#FFFFFF'
+  controlsBackgroundOpacity?: number;  // default: 0.4
+  fontFamily?: string;                 // default: 'system-ui'
+  scrubberStyle?: ScrubberStyle;
+  captionStyle?: CaptionStyle;
+}
+
+interface ScrubberStyle {
+  height?: number;             // default: 3
+  knobSize?: number;           // default: 12
+  playedColor?: string;        // default: '#FFFFFF'
+  bufferedColor?: string;      // default: 'rgba(255,255,255,0.5)'
+  unplayedColor?: string;      // default: 'rgba(255,255,255,0.3)'
+}
+
+interface CaptionStyle {
+  fontSize?: number;           // default: 16
+  textColor?: string;          // default: '#FFFFFF'
+  backgroundColor?: string;    // default: '#000000'
+  backgroundOpacity?: number;  // default: 0.7
+  position?: 'top' | 'bottom'; // default: 'bottom'
+}
+```
+
+<Tip>
+  All config fields are optional. `ShortKit.init({ apiKey })` with just an API key and empty config produces a working feed with sensible defaults.
+</Tip>
+
+### Remote configuration
+
+The SDK fetches a remote configuration overlay on initialization. Server-side overrides merge on top of your code-level defaults, enabling A/B testing and remote control without redeployment.
+
+Configuration resolves in this order:
+
+1. Your code-level config renders the feed immediately.
+2. A remote overlay loads in the background (2-second timeout, non-blocking).
+3. Server-provided fields override your defaults. Fields not included in the overlay keep your values.
+4. The overlay is cached in localStorage with a configurable TTL (default 5 minutes).
+
+## User identity
+
+ShortKit generates an anonymous ID on first initialization (stored in localStorage). All engagement tracking and feed personalization work immediately without requiring a user ID.
+
+When your user logs in, associate their identity for cross-device personalization:
+
+<Tabs>
+  <Tab title="React">
+    ```tsx
+    import { ShortKit } from '@shortkit/web';
+
+    // After your authentication completes
+    shortKit.setUserId('user_12345');
+
+    // On logout -- generates a new anonymous ID
+    shortKit.clearUserId();
+    ```
+  </Tab>
+  <Tab title="Vanilla JS">
+    ```typescript
+    // After your authentication completes
+    shortKit.setUserId('user_12345');
+
+    // On logout -- generates a new anonymous ID
+    shortKit.clearUserId();
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Calling `setUserId` triggers backend identity resolution, merging the anonymous session's engagement data with the identified user profile. Call `clearUserId` when the user logs out.
+</Note>
+
 ## Keyboard shortcuts
 
 The feed supports keyboard navigation when focused:
 
 | Key | Action |
 |-----|--------|
-| `Space` | Play/Pause |
-| `↑` / `↓` | Previous/Next video |
-| `←` / `→` | Seek backward/forward 5s |
-| `M` | Mute/Unmute |
+| `Space` | Play / Pause |
+| `Up` / `Down` | Previous / Next video |
+| `Left` / `Right` | Seek backward / forward 5 seconds |
+| `M` | Mute / Unmute |
 | `F` | Toggle fullscreen |
 | `C` | Toggle captions |
 
-Disable keyboard handling if needed:
+Disable keyboard handling if it conflicts with your app:
 
-```tsx
-<ShortkitFeed keyboardEnabled={false} />
-```
-
-## TypeScript types
-
-Full TypeScript definitions are included:
-
-```typescript
-import type {
-  ShortkitConfig,
-  FeedConfig,
-  Content,
-  ShortkitError,
-  FeedFilter,
-} from '@shortkit/web';
-
-const config: ShortkitConfig = {
-  apiKey: 'pk_live_...',
-  config: {
-    feedOrientation: 'vertical',
-    feedHeight: 'fullscreen',
-  },
-};
-```
+<Tabs>
+  <Tab title="React">
+    ```tsx
+    <ShortKitFeed shortKit={shortKit} keyboardEnabled={false} />
+    ```
+  </Tab>
+  <Tab title="Vanilla JS">
+    ```typescript
+    shortKit.mount(container, { keyboardEnabled: false });
+    ```
+  </Tab>
+</Tabs>
 
 ## Server-side rendering
 
-The SDK is client-side only. For SSR frameworks (Next.js, Remix), use dynamic imports:
+The SDK is client-side only. For SSR frameworks, use dynamic imports to prevent the SDK from loading on the server.
 
 ### Next.js
 
@@ -444,13 +348,13 @@ The SDK is client-side only. For SSR frameworks (Next.js, Remix), use dynamic im
 
 import dynamic from 'next/dynamic';
 
-const ShortkitFeed = dynamic(
-  () => import('@shortkit/web/react').then(mod => mod.ShortkitFeed),
+const ShortKitFeed = dynamic(
+  () => import('@shortkit/web/react').then(mod => mod.ShortKitFeed),
   { ssr: false }
 );
 
-export function VideoFeed() {
-  return <ShortkitFeed />;
+export function VideoFeed({ shortKit }) {
+  return <ShortKitFeed shortKit={shortKit} />;
 }
 ```
 
@@ -459,24 +363,81 @@ Initialize in a client component:
 ```tsx providers.tsx
 'use client';
 
-import { useEffect } from 'react';
-import { shortkit } from '@shortkit/web';
+import { useEffect, useRef } from 'react';
+import { ShortKit } from '@shortkit/web';
 
-export function ShortkitProvider({ children }) {
+export function ShortKitClientProvider({ children }: { children: React.ReactNode }) {
+  const shortKitRef = useRef<ReturnType<typeof ShortKit.init> | null>(null);
+
   useEffect(() => {
-    shortkit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-      config: { /* ... */ }
-    });
+    if (!shortKitRef.current) {
+      shortKitRef.current = ShortKit.init({
+        apiKey: 'pk_live_your_publishable_key',
+        config: {
+          feedHeight: 'fullscreen',
+          theme: {
+            primaryColor: '#FFFFFF',
+            backgroundColor: '#000000',
+          },
+        },
+      });
+    }
   }, []);
 
   return children;
 }
 ```
 
+### Remix / Other SSR frameworks
+
+Use a similar pattern -- guard initialization behind a `useEffect` or `typeof window !== 'undefined'` check:
+
+```typescript
+if (typeof window !== 'undefined') {
+  const shortKit = ShortKit.init({ apiKey: '...', config: { /* ... */ } });
+}
+```
+
+## Environment
+
+Control which ShortKit environment the SDK connects to:
+
+```typescript
+const shortKit = ShortKit.init({
+  apiKey: 'pk_live_your_publishable_key',
+  config: { /* ... */ },
+  environment: 'production', // default
+});
+```
+
+| Environment | Description |
+|---|---|
+| `'production'` | Live environment. Use in production builds. |
+| `'staging'` | Pre-release testing environment. |
+| `'development'` | Local development. Enables debug logging in the browser console. |
+
+## TypeScript types
+
+The SDK ships with full TypeScript definitions. All config interfaces, components, and methods are fully typed.
+
+```typescript
+import type {
+  FeedConfig,
+  ControlsConfig,
+  ThemeConfig,
+  CaptionConfig,
+  ShareConfig,
+  AutoHideConfig,
+  ScrubberStyle,
+  CaptionStyle,
+  ShortKitInstance,
+  FeedInstance,
+} from '@shortkit/web';
+```
+
 ## Content Security Policy
 
-If using CSP headers, allow these sources:
+If your site uses CSP headers, allow these sources:
 
 ```
 script-src 'self' https://cdn.shortkit.dev;
@@ -485,45 +446,19 @@ media-src 'self' blob: https://*.shortkit.dev;
 img-src 'self' data: https://*.shortkit.dev;
 ```
 
-## Browser support
-
-| Browser | Minimum Version |
-|---------|-----------------|
-| Chrome | 80+ |
-| Firefox | 75+ |
-| Safari | 14+ |
-| Edge | 80+ |
-| iOS Safari | 14+ |
-| Chrome Android | 80+ |
-
-<Note>
-  Internet Explorer is not supported.
-</Note>
-
-## Debugging
-
-Enable debug mode:
-
-```typescript
-shortkit.initialize({
-  apiKey: 'pk_live_your_publishable_key',
-  config: { /* ... */ },
-  environment: 'development'
-});
-
-// Or set log level explicitly
-shortkit.setLogLevel('verbose');
-```
-
-View logs in the browser developer console.
-
 ## Next steps
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Configuration" icon="sliders" href="/sdk/configuration">
-    Explore all configuration options.
+    Full reference for all FeedConfig, ControlsConfig, and ThemeConfig options.
   </Card>
   <Card title="Theming" icon="palette" href="/sdk/theming">
-    Customize the visual appearance.
+    Match the feed to your brand with ThemeConfig.
   </Card>
-</Columns>
+  <Card title="User identity" icon="user" href="/guides/integration/identity-management">
+    Set up setUserId for personalized feeds and cross-device analytics.
+  </Card>
+  <Card title="Upload content" icon="cloud-arrow-up" href="/api-reference/uploads">
+    Push videos into your feed with the Upload API.
+  </Card>
+</CardGroup>

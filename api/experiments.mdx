@@ -1,33 +1,45 @@
 ---
 title: "Experiments"
-description: "Create and manage A/B tests for ranking and configuration."
+description: "Create and manage A/B tests for configuration and ranking."
 keywords: ["experiments", "A/B testing", "variants", "API"]
 ---
 
-The Experiments API allows you to create and manage A/B tests for feed ranking, configuration settings, and feature flags.
+The Experiments API allows you to run A/B tests by assigning users to different configuration variants. Experiments are delivered through the [config overlay system](/api/configuration) -- each variant specifies a config overlay that is merged on top of the organization-level overlay for users in that variant group.
 
 ## Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/v1/experiments` | List experiments |
-| `POST` | `/v1/experiments` | Create experiment |
-| `GET` | `/v1/experiments/{id}` | Get experiment details |
-| `PATCH` | `/v1/experiments/{id}` | Update experiment |
-| `POST` | `/v1/experiments/{id}/start` | Start experiment |
-| `POST` | `/v1/experiments/{id}/stop` | Stop experiment |
-| `GET` | `/v1/experiments/{id}/results` | Get experiment results |
-| `DELETE` | `/v1/experiments/{id}` | Delete experiment |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/v1/experiments` | Secret key | List experiments |
+| `POST` | `/v1/experiments` | Secret key | Create experiment |
+| `GET` | `/v1/experiments/{id}` | Secret key | Get experiment details |
+| `PATCH` | `/v1/experiments/{id}` | Secret key | Update experiment (draft only) |
+| `POST` | `/v1/experiments/{id}/start` | Secret key | Start experiment |
+| `POST` | `/v1/experiments/{id}/stop` | Secret key | Stop experiment |
+| `GET` | `/v1/experiments/{id}/results` | Secret key | Get experiment results |
+| `DELETE` | `/v1/experiments/{id}` | Secret key | Delete experiment (draft only) |
+
+## Experiment types
+
+| Type | Description | What the variant controls |
+|------|-------------|--------------------------|
+| `config` | Test different SDK configuration values | Config overlay fields (controls, playback, theme, etc.) |
+| `ranking` | Test different feed ranking strategies | Ranking parameters (when signal-weighted ranking is available) |
+
+## How experiments work
+
+1. You create an experiment with two or more variants, each specifying a config overlay
+2. You allocate a percentage of total traffic to the experiment
+3. Within the experiment, traffic is split across variants
+4. When a user in the experiment group calls `GET /v1/config`, the response merges the variant's overlay on top of the organization overlay
+5. The SDK applies the merged config, and the user experiences the variant without any app-side changes
+6. ShortKit tracks metrics for each variant automatically based on event data
 
 ## List experiments
-
-Retrieve all experiments.
 
 ```bash
 GET /v1/experiments
 ```
-
-### Query parameters
 
 <ParamField query="status" type="string">
   Filter by status: `draft`, `running`, `completed`, `stopped`.
@@ -51,28 +63,29 @@ curl "https://api.shortkit.dev/v1/experiments?status=running" \
   "data": [
     {
       "id": "exp_abc123",
-      "name": "Recency weight test",
-      "description": "Testing higher recency weight",
+      "name": "Preload count test",
+      "description": "Testing whether preloading more videos improves watch time",
       "status": "running",
-      "type": "ranking",
+      "type": "config",
       "traffic": 0.20,
       "variants": [
-        { "id": "control", "name": "Control", "traffic": 0.5 },
-        { "id": "treatment", "name": "Higher recency", "traffic": 0.5 }
+        { "id": "control", "name": "Control (3 preload)", "traffic": 0.5 },
+        { "id": "treatment", "name": "5 preload", "traffic": 0.5 }
       ],
-      "startedAt": "2024-02-01T12:00:00Z",
-      "createdAt": "2024-01-28T10:00:00Z"
+      "startedAt": "2026-02-01T12:00:00Z",
+      "createdAt": "2026-01-28T10:00:00Z"
     }
   ],
   "meta": {
-    "total": 5
+    "total": 3,
+    "request_id": "req_abc123"
   }
 }
 ```
 
 ## Create experiment
 
-Create a new A/B test.
+Create a new A/B test. Experiments start in `draft` status and must be explicitly started.
 
 ```bash
 POST /v1/experiments
@@ -89,135 +102,114 @@ POST /v1/experiments
 </ParamField>
 
 <ParamField body="type" type="string" required>
-  Experiment type: `ranking`, `config`, `feature`.
+  Experiment type: `config` or `ranking`.
 </ParamField>
 
 <ParamField body="traffic" type="number" required>
-  Percentage of users in experiment (0.0-1.0).
+  Fraction of total users enrolled in the experiment (0.0 to 1.0). Users not in the experiment receive the standard config overlay.
 </ParamField>
 
 <ParamField body="variants" type="array" required>
-  Experiment variants.
+  Two or more experiment variants. Traffic allocations within variants must sum to 1.0.
   <Expandable title="variant properties">
     <ParamField body="id" type="string" required>
-      Variant identifier.
+      Variant identifier (e.g., `control`, `treatment`).
     </ParamField>
     <ParamField body="name" type="string" required>
-      Variant display name.
+      Human-readable variant name.
     </ParamField>
     <ParamField body="traffic" type="number" required>
-      Traffic allocation within experiment (must sum to 1.0).
+      Traffic allocation within the experiment (must sum to 1.0 across all variants).
     </ParamField>
-    <ParamField body="config" type="object">
-      Variant configuration override.
+    <ParamField body="config" type="object" required>
+      Config overlay for this variant. Uses the same structure as `PUT /v1/config`.
     </ParamField>
   </Expandable>
 </ParamField>
 
 <ParamField body="metrics" type="string[]">
-  Metrics to track: `completionRate`, `watchTime`, `sessionsPerUser`, `retention`.
+  Metrics to track for the experiment: `completionRate`, `watchTime`, `sessionsPerUser`.
 </ParamField>
 
-<ParamField body="targetingRules" type="object">
-  Optional user targeting.
-  <Expandable title="properties">
-    <ParamField body="countries" type="string[]">
-      Target specific countries.
-    </ParamField>
-    <ParamField body="devices" type="string[]">
-      Target specific devices: `ios`, `android`, `web`.
-    </ParamField>
-    <ParamField body="userSegments" type="string[]">
-      Target user segments.
-    </ParamField>
-  </Expandable>
-</ParamField>
+### Example: Config experiment
 
-### Example: Ranking experiment
+Test whether hiding the scrubber increases completion rate:
 
 ```bash
 curl -X POST https://api.shortkit.dev/v1/experiments \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Engagement weight test",
-    "description": "Testing higher engagement weight in ranking",
-    "type": "ranking",
+    "name": "Scrubber visibility test",
+    "description": "Testing whether hiding the scrubber increases completion rate",
+    "type": "config",
     "traffic": 0.20,
     "variants": [
       {
         "id": "control",
-        "name": "Control",
+        "name": "Scrubber visible",
         "traffic": 0.5,
         "config": {
-          "weights": {
-            "recency": 0.25,
-            "engagement": 0.20,
-            "topicAffinity": 0.20,
-            "geoRelevance": 0.15,
-            "completionRate": 0.10,
-            "creatorAffinity": 0.10
+          "controls": {
+            "scrubber": true
           }
         }
       },
       {
-        "id": "high_engagement",
-        "name": "High engagement",
+        "id": "no_scrubber",
+        "name": "Scrubber hidden",
         "traffic": 0.5,
         "config": {
-          "weights": {
-            "recency": 0.20,
-            "engagement": 0.35,
-            "topicAffinity": 0.15,
-            "geoRelevance": 0.15,
-            "completionRate": 0.10,
-            "creatorAffinity": 0.05
+          "controls": {
+            "scrubber": false
           }
         }
       }
     ],
-    "metrics": ["completionRate", "watchTime", "sessionsPerUser"]
+    "metrics": ["completionRate", "watchTime"]
   }'
 ```
 
-### Example: Config experiment
+### Example: Preload count experiment
+
+Test whether preloading more videos improves the experience:
 
 ```bash
 curl -X POST https://api.shortkit.dev/v1/experiments \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Ad frequency test",
-    "description": "Testing different ad frequencies",
+    "name": "Preload count test",
+    "description": "Testing preload count impact on watch time and rebuffer rate",
     "type": "config",
     "traffic": 0.30,
     "variants": [
       {
         "id": "control",
-        "name": "Every 5 videos",
+        "name": "3 preload (default)",
         "traffic": 0.33,
         "config": {
-          "ads.frequency.interval": 5
+          "playback": { "preloadCount": 3 }
         }
       },
       {
-        "id": "frequent",
-        "name": "Every 4 videos",
+        "id": "preload_5",
+        "name": "5 preload",
         "traffic": 0.33,
         "config": {
-          "ads.frequency.interval": 4
+          "playback": { "preloadCount": 5 }
         }
       },
       {
-        "id": "sparse",
-        "name": "Every 7 videos",
+        "id": "preload_1",
+        "name": "1 preload",
         "traffic": 0.34,
         "config": {
-          "ads.frequency.interval": 7
+          "playback": { "preloadCount": 1 }
         }
       }
     ],
-    "metrics": ["completionRate", "sessionsPerUser", "retention"]
+    "metrics": ["watchTime", "sessionsPerUser"]
   }'
 ```
 
@@ -227,128 +219,79 @@ curl -X POST https://api.shortkit.dev/v1/experiments \
 {
   "data": {
     "id": "exp_xyz789",
-    "name": "Engagement weight test",
+    "name": "Scrubber visibility test",
     "status": "draft",
-    "type": "ranking",
+    "type": "config",
     "traffic": 0.20,
     "variants": [
-      { "id": "control", "name": "Control", "traffic": 0.5 },
-      { "id": "high_engagement", "name": "High engagement", "traffic": 0.5 }
-    ],
-    "metrics": ["completionRate", "watchTime", "sessionsPerUser"],
-    "createdAt": "2024-02-04T12:00:00Z"
-  }
-}
-```
-
-## Get experiment
-
-Retrieve experiment details.
-
-```bash
-GET /v1/experiments/{id}
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "id": "exp_abc123",
-    "name": "Recency weight test",
-    "description": "Testing higher recency weight",
-    "status": "running",
-    "type": "ranking",
-    "traffic": 0.20,
-    "variants": [
-      {
-        "id": "control",
-        "name": "Control",
-        "traffic": 0.5,
-        "config": { "weights": { "recency": 0.25 } },
-        "participants": 12500
-      },
-      {
-        "id": "treatment",
-        "name": "Higher recency",
-        "traffic": 0.5,
-        "config": { "weights": { "recency": 0.40 } },
-        "participants": 12480
-      }
+      { "id": "control", "name": "Scrubber visible", "traffic": 0.5 },
+      { "id": "no_scrubber", "name": "Scrubber hidden", "traffic": 0.5 }
     ],
     "metrics": ["completionRate", "watchTime"],
-    "startedAt": "2024-02-01T12:00:00Z",
-    "createdAt": "2024-01-28T10:00:00Z"
+    "createdAt": "2026-02-05T12:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_exp123"
   }
 }
 ```
 
 ## Start experiment
 
-Begin running an experiment.
+Begin running an experiment. Users will start being assigned to variants.
 
 ```bash
 POST /v1/experiments/{id}/start
 ```
 
-### Example request
-
 ```bash
-curl -X POST https://api.shortkit.dev/v1/experiments/exp_abc123/start \
+curl -X POST https://api.shortkit.dev/v1/experiments/exp_xyz789/start \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
-
-### Response
 
 ```json
 {
   "data": {
-    "id": "exp_abc123",
+    "id": "exp_xyz789",
     "status": "running",
-    "startedAt": "2024-02-04T12:00:00Z"
+    "startedAt": "2026-02-05T12:00:00Z"
   }
 }
 ```
 
 ## Stop experiment
 
-End an experiment early.
+End an experiment. Optionally declare a winning variant to roll out its config overlay to all users.
 
 ```bash
 POST /v1/experiments/{id}/stop
 ```
 
-### Request body
-
 <ParamField body="winner" type="string">
-  Variant ID to roll out (optional).
+  Variant ID to roll out as the new organization config overlay.
 </ParamField>
 
 <ParamField body="reason" type="string">
-  Reason for stopping.
+  Reason for stopping the experiment.
 </ParamField>
 
-### Example request
-
 ```bash
-curl -X POST https://api.shortkit.dev/v1/experiments/exp_abc123/stop \
+curl -X POST https://api.shortkit.dev/v1/experiments/exp_xyz789/stop \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "winner": "high_engagement",
-    "reason": "Statistical significance reached"
+    "winner": "no_scrubber",
+    "reason": "Statistical significance reached -- 12% lift in completion rate"
   }'
 ```
 
 ## Get results
 
-Retrieve experiment results and statistics.
+Retrieve experiment results and statistical analysis.
 
 ```bash
 GET /v1/experiments/{id}/results
 ```
-
-### Example request
 
 ```bash
 curl https://api.shortkit.dev/v1/experiments/exp_abc123/results \
@@ -364,12 +307,12 @@ curl https://api.shortkit.dev/v1/experiments/exp_abc123/results \
     "status": "running",
     "duration": {
       "days": 7,
-      "startedAt": "2024-01-28T12:00:00Z"
+      "startedAt": "2026-01-28T12:00:00Z"
     },
     "variants": [
       {
         "id": "control",
-        "name": "Control",
+        "name": "Scrubber visible",
         "participants": 12500,
         "metrics": {
           "completionRate": {
@@ -379,22 +322,18 @@ curl https://api.shortkit.dev/v1/experiments/exp_abc123/results \
           "watchTime": {
             "value": 28.5,
             "confidence": 0.95
-          },
-          "sessionsPerUser": {
-            "value": 2.3,
-            "confidence": 0.95
           }
         }
       },
       {
-        "id": "high_engagement",
-        "name": "High engagement",
+        "id": "no_scrubber",
+        "name": "Scrubber hidden",
         "participants": 12480,
         "metrics": {
           "completionRate": {
-            "value": 0.46,
+            "value": 0.47,
             "confidence": 0.95,
-            "lift": 0.095,
+            "lift": 0.119,
             "significant": true
           },
           "watchTime": {
@@ -402,34 +341,28 @@ curl https://api.shortkit.dev/v1/experiments/exp_abc123/results \
             "confidence": 0.95,
             "lift": 0.095,
             "significant": true
-          },
-          "sessionsPerUser": {
-            "value": 2.4,
-            "confidence": 0.95,
-            "lift": 0.043,
-            "significant": false
           }
         }
       }
     ],
     "recommendation": {
-      "winner": "high_engagement",
-      "confidence": 0.97,
-      "minimumDetectableEffect": 0.05
+      "winner": "no_scrubber",
+      "confidence": 0.97
     }
+  },
+  "meta": {
+    "request_id": "req_res456"
   }
 }
 ```
 
 ## Update experiment
 
-Modify experiment settings (only in draft status).
+Modify experiment settings. Only experiments in `draft` status can be updated.
 
 ```bash
 PATCH /v1/experiments/{id}
 ```
-
-### Request body
 
 <ParamField body="name" type="string">
   Updated name.
@@ -443,10 +376,8 @@ PATCH /v1/experiments/{id}
   Updated traffic allocation.
 </ParamField>
 
-### Example request
-
 ```bash
-curl -X PATCH https://api.shortkit.dev/v1/experiments/exp_abc123 \
+curl -X PATCH https://api.shortkit.dev/v1/experiments/exp_xyz789 \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -460,16 +391,14 @@ curl -X PATCH https://api.shortkit.dev/v1/experiments/exp_abc123 \
 
 ## Delete experiment
 
-Delete an experiment.
+Delete an experiment. Only experiments in `draft` or `stopped` status can be deleted.
 
 ```bash
 DELETE /v1/experiments/{id}
 ```
 
-### Example request
-
 ```bash
-curl -X DELETE https://api.shortkit.dev/v1/experiments/exp_abc123 \
+curl -X DELETE https://api.shortkit.dev/v1/experiments/exp_xyz789 \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
@@ -477,47 +406,30 @@ curl -X DELETE https://api.shortkit.dev/v1/experiments/exp_abc123 \
   Running experiments cannot be deleted. Stop the experiment first.
 </Warning>
 
-## SDK integration
-
-Track experiment exposure in your app:
-
-```typescript
-// Experiment assignment is included in feed responses
-const feed = await shortkit.fetchFeed();
-
-if (feed.meta.experimentId) {
-  // Track exposure for accurate results
-  analytics.track('experiment_exposure', {
-    experimentId: feed.meta.experimentId,
-    variant: feed.meta.variant
-  });
-}
-```
-
 ## Best practices
 
 <AccordionGroup>
   <Accordion title="Run experiments for sufficient duration">
-    Wait for statistical significance before concluding. Typically 1-2 weeks minimum.
+    Wait for statistical significance before drawing conclusions. Typically 1-2 weeks minimum depending on traffic volume.
   </Accordion>
   <Accordion title="Start with small traffic allocation">
-    Begin with 10-20% traffic and increase if no negative impact is detected.
+    Begin with 10-20% of traffic and increase if no negative impact is detected.
+  </Accordion>
+  <Accordion title="Test one variable at a time">
+    Isolate the effect of a single config change per experiment. Testing multiple changes simultaneously makes it difficult to attribute results.
   </Accordion>
   <Accordion title="Monitor guardrail metrics">
-    Watch for negative impacts on key metrics even if your primary metric improves.
-  </Accordion>
-  <Accordion title="Document experiment learnings">
-    Record conclusions and apply insights to future experiments.
+    Even if your primary metric improves, watch for negative impacts on other metrics (e.g., improving completion rate but increasing rebuffer rate).
   </Accordion>
 </AccordionGroup>
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="A/B testing guide" icon="flask" href="/portal/ab-testing">
-    Manage experiments in Admin Portal.
+  <Card title="Configuration API" icon="gear" href="/api/configuration">
+    Manage the config overlay that experiments extend.
   </Card>
-  <Card title="Ranking API" icon="sort" href="/api/ranking">
-    Configure ranking settings.
+  <Card title="Ranking" icon="sort" href="/api/ranking">
+    Feed ranking and editorial controls.
   </Card>
 </Columns>

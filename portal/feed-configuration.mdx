@@ -1,257 +1,174 @@
 ---
 title: "Feed configuration"
-description: "Configure feed ranking, filters, and editorial controls in the Admin Portal."
-keywords: ["feed", "ranking", "configuration", "filters", "editorial"]
+description: "Manage remote config overlays, feed ordering, and editorial controls in the Admin Portal."
+keywords: ["feed", "configuration", "remote config", "overlay", "editorial", "pin", "suppress"]
 ---
 
-The Feed Configuration section lets you control how content is ranked, filtered, and displayed to users.
+The Feed Configuration section lets you manage the remote config overlay for your organization. The overlay is a server-side configuration that overrides the SDK's local defaults, giving you control over feed behavior, appearance, and controls without requiring an app update.
 
-## Ranking weights
+## Remote config overlays
 
-Configure the relative importance of each ranking signal at **Feed → Ranking**.
+When the SDK initializes, it fetches a config overlay from the ShortKit API. The overlay is a sparse JSON object -- it only contains the fields you want to override. Any field not present in the overlay keeps its SDK default value.
 
-### Weight sliders
+### How overlays work
 
-Adjust weights for each signal (must sum to 100%):
+1. The SDK ships with built-in default values for all configuration options
+2. On launch, the SDK requests the config overlay from the API (`GET /v1/config`)
+3. The server returns the overlay set for your organization
+4. The SDK merges the overlay on top of its defaults -- overlay values win
 
-| Signal | Description | Default |
-|--------|-------------|---------|
-| **Recency** | Favor newer content | 25% |
-| **Engagement** | Favor popular content | 25% |
-| **Geo-relevance** | Match user location | 15% |
-| **Topic affinity** | Match user interests | 20% |
-| **Completion rate** | Favor content users finish | 15% |
+This means you can change feed behavior for all your users from the portal without shipping an app update.
 
-### Advanced settings
+### Editing the overlay
 
-<AccordionGroup>
-  <Accordion title="Recency decay">
-    Configure how quickly recency score decays:
+1. Go to **Feed > Configuration**
+2. Edit any configuration section (controls, theme, layout, captions, ads, etc.)
+3. Changes are reflected in the overlay
+4. Click **Save** to publish the overlay
+5. The SDK picks up the new overlay on its next config fetch
 
-    - **Half-life**: Hours until 50% decay (default: 72 hours)
-    - **Max age**: Hard cutoff for content age
+### Configuration sections
 
-    Example: With 48-hour half-life, content from 2 days ago has 50% recency score.
-  </Accordion>
-  <Accordion title="Minimum thresholds">
-    Set minimum engagement levels:
+The overlay can include settings for any section of the SDK configuration:
 
-    - **Min views**: Exclude content with fewer views
-    - **Min completion rate**: Exclude poorly-performing content
+| Section | What it controls |
+|---------|-----------------|
+| **Controls** | Which playback controls are visible (scrubber, captions toggle, share button, mute button) |
+| **Theme** | Colors, fonts, and visual styling of the feed UI |
+| **Layout** | Feed height (fullscreen vs. partial), orientation |
+| **Captions** | Default caption state (on/off), styling |
+| **Playback** | Autoplay, looping, mute-on-start behavior |
+| **Prefetch** | How many videos to buffer ahead |
 
-    Useful for filtering out content that's not resonating with users.
-  </Accordion>
-  <Accordion title="Diversity settings">
-    Prevent feed repetition:
+<Tip>
+  Only set the values you want to override. Omitting a field from the overlay means the SDK uses its built-in default, which keeps your configuration clean and easy to manage.
+</Tip>
 
-    - **Topic diversity**: Avoid consecutive items with same tag
-    - **Source diversity**: Spread content from different sources
-  </Accordion>
-</AccordionGroup>
+### Example overlay
 
-### Preview changes
-
-Before applying weight changes:
-
-1. Click **Preview**
-2. Select a sample user profile (or use anonymous)
-3. See how the feed would look with new weights
-4. Compare side-by-side with current weights
-
-## Content filters
-
-Create named filters at **Feed → Filters**.
-
-### Creating a filter
-
-1. Click **Create Filter**
-2. Enter filter name and slug (e.g., "Sports", "sports")
-3. Define conditions:
-
-```
-Tags: ANY OF ["sports", "athletics", "nfl", "nba"]
-AND
-Duration: GREATER THAN 15 seconds
-AND
-Age: LESS THAN 7 days
-```
-
-### Filter conditions
-
-| Condition | Description |
-|-----------|-------------|
-| **Tags (ANY OF)** | Content has at least one matching tag |
-| **Tags (ALL OF)** | Content has all specified tags |
-| **Tags (NONE OF)** | Content has none of specified tags |
-| **Duration** | Video length range |
-| **Age** | Days since publish |
-| **Geo** | Content geo-targeting |
-| **Custom metadata** | Match custom field values |
-
-### Using filters
-
-Filters power:
-- **Adjacent feeds**: User swipes left/right to filtered content
-- **SDK filter parameter**: Request specific content subset
-- **API requests**: Filter feed endpoint results
-
-## Heuristic rules
-
-Define hard rules at **Feed → Ranking → Rules**.
-
-### Creating rules
-
-Rules are evaluated before scoring:
+A minimal overlay that hides the scrubber and sets a custom primary color:
 
 ```json
 {
-  "name": "Exclude old content",
-  "condition": "content.ageInDays > 30",
-  "action": "exclude",
-  "priority": 1
+  "controls": {
+    "scrubber": false
+  },
+  "theme": {
+    "primaryColor": "#FF5733"
+  }
 }
 ```
 
-### Rule builder
+## Feed ordering controls
 
-Use the visual rule builder:
+The default feed ordering is reverse-chronological -- newest content appears first. You can override this ordering per content item using editorial controls.
 
-1. Click **Add Rule**
-2. Set condition using dropdowns:
-   - **If** [content.tags] **contains** ["opinion"]
-   - **AND** [feed.name] **equals** ["main"]
-   - **Then** [exclude]
-3. Set priority (lower = evaluated first)
-4. Save rule
+### Pin positions
 
-### Common rules
+Pin content to a specific position in the feed:
 
-<AccordionGroup>
-  <Accordion title="Age-based exclusion">
-    ```
-    IF content.ageInDays > 30
-    THEN exclude
-    ```
-  </Accordion>
-  <Accordion title="Geo-boosting">
-    ```
-    IF user.region == "MN"
-    AND content.tags CONTAINS "minnesota"
-    THEN boost 2.0x
-    ```
-  </Accordion>
-  <Accordion title="Category exclusion">
-    ```
-    IF content.tags CONTAINS "crime"
-    AND feed.filter NOT CONTAINS "crime"
-    THEN exclude
-    ```
-  </Accordion>
-  <Accordion title="Breaking news boost">
-    ```
-    IF content.tags CONTAINS "breaking"
-    AND content.ageInHours < 4
-    THEN boost 3.0x
-    ```
-  </Accordion>
-</AccordionGroup>
+1. Go to **Content > Library** and select a content item, or use **Feed > Configuration > Pinned Content**
+2. Enable **Pin**
+3. Set position (1 = top of feed, 2 = second position, etc.)
 
-## Editorial dashboard
+Pinned items always appear at their assigned position. Unpinned content fills the remaining positions in reverse-chronological order.
 
-Manage editorial overrides at **Feed → Editorial**.
+### Suppression
+
+Suppress content to exclude it from the feed without archiving:
+
+1. Select a content item
+2. Enable **Suppress** in the **Editorial** tab
+3. Content is excluded from feed responses
+
+Suppressed content remains in your library and can be un-suppressed at any time. See [Content management > Editorial controls](/portal/content-management#editorial-controls) for details.
 
 ### Active overrides
 
-View all content with active pins, boosts, or suppressions:
+View all content with active editorial overrides at **Feed > Configuration > Active Overrides**:
 
 | Column | Description |
 |--------|-------------|
 | **Content** | Title and thumbnail |
-| **Type** | Pin, Boost, or Suppress |
-| **Value** | Position or factor |
-| **Expires** | When override ends |
+| **Type** | Pin or Suppress |
+| **Value** | Pin position (for pinned items) |
 | **Set by** | Who created the override |
 
-### Quick actions
+## Advanced settings
 
-- Click content to edit override
-- Bulk remove expired overrides
-- Export override history
+<AccordionGroup>
+  <Accordion title="Content scheduling">
+    Control when content enters and leaves the feed using `publish_at` and `expires_at` fields on individual content items.
 
-### Editorial calendar
+    - **publish_at**: Content is held back from the feed until this date/time
+    - **expires_at**: Content is automatically archived after this date/time
 
-View scheduled overrides:
-- Pins scheduled for specific dates
-- Time-limited boosts
-- Automatic expirations
+    Both fields are set per content item in the Content Library. See [Content management > Schedule](/portal/content-management#schedule) for details.
+  </Accordion>
+  <Accordion title="Overlay versioning">
+    Every change to the remote config overlay is versioned. You can view previous versions at **Feed > Configuration > History** and restore a previous version if needed.
+
+    | Column | Description |
+    |--------|-------------|
+    | **Version** | Auto-incremented version number |
+    | **Changed** | What was modified |
+    | **By** | Who made the change |
+    | **When** | Timestamp |
+
+    To restore a previous version:
+    1. Find the version to restore
+    2. Click **Preview** to review the configuration
+    3. Click **Restore** to apply it
+  </Accordion>
+  <Accordion title="Per-environment overlays">
+    You can maintain separate overlays for your live and test environments. The overlay served depends on which API key the SDK uses:
+
+    - `pk_live_` keys receive the production overlay
+    - `pk_test_` keys receive the test overlay
+
+    This lets you test configuration changes in your test environment before applying them to production.
+  </Accordion>
+</AccordionGroup>
 
 ## Feed preview
 
-Test your configuration at **Feed → Preview**.
+Test your configuration before publishing at **Feed > Preview**.
 
 ### Preview options
 
-1. **User segment**: Select from:
+1. **User type**: Select from:
    - Anonymous (new user)
-   - Sample users with different affinities
    - Specific user ID
 
-2. **Location**: Simulate different geos
-
-3. **Filter**: Apply content filter
-
-4. **Config**: Test different weight configurations
+2. **Config version**: Compare current production overlay vs. draft changes
 
 ### Compare mode
 
 Compare two configurations side-by-side:
 
-1. Left: Current production config
-2. Right: New configuration
+1. Left: Current production overlay
+2. Right: Draft or modified overlay
 
-See how changes affect feed ordering for the same user.
-
-## Configuration history
-
-View and restore previous configurations at **Feed → History**.
-
-### Version history
-
-Every configuration change is tracked:
-
-| Column | Description |
-|--------|-------------|
-| **Version** | Auto-incremented version number |
-| **Changed** | What was modified |
-| **By** | Who made the change |
-| **When** | Timestamp |
-
-### Restore version
-
-1. Find the version to restore
-2. Click **Preview** to see the configuration
-3. Click **Restore** to apply
-4. Current config becomes new version
+See how changes affect feed content and ordering for the same user.
 
 ## A/B testing configurations
 
-Test ranking changes with experiments:
+Test overlay changes with controlled experiments:
 
-1. Go to **Experiments → Create New**
-2. Select **Ranking** as experiment type
-3. Define variants with different weight configurations
-4. Set traffic allocation
-5. Run experiment and compare metrics
+1. Go to **Experiments > Create New**
+2. Define variants with different overlay values
+3. Set traffic allocation
+4. Run the experiment and compare engagement metrics
 
-See [A/B testing](/portal/ab-testing) for details.
+Each variant is a separate config overlay delivered to its assigned user segment. See [A/B testing](/portal/ab-testing) for details.
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
-    Test feed configurations with experiments.
+    Test feed configurations with controlled experiments.
   </Card>
-  <Card title="Feed ranking" icon="ranking-star" href="/guides/platform/feed-ranking">
-    Technical details on ranking algorithm.
+  <Card title="Content management" icon="folder" href="/portal/content-management">
+    Manage content, editorial controls, and scheduling.
   </Card>
 </Columns>

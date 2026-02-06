@@ -1,25 +1,45 @@
 ---
 title: "Analytics"
-description: "View engagement metrics, playback quality, and audience insights in the Admin Portal."
-keywords: ["analytics", "metrics", "engagement", "dashboard", "reporting"]
+description: "View engagement metrics, playback quality, and content performance in the ShortKit Admin Portal."
+keywords: ["analytics", "metrics", "engagement", "dashboard", "reporting", "events"]
 ---
 
-The Analytics section provides comprehensive insights into how users engage with your video content.
+The Analytics section provides insights into how users engage with your video content. All analytics are powered by the engagement events that the SDK collects and sends to the ShortKit API automatically.
+
+## Engagement event types
+
+The SDK tracks 11 event types that drive all analytics in the portal:
+
+| Event | Trigger | Key data |
+|-------|---------|----------|
+| `feedEntry` | Feed view appears on screen | Entry point, timestamp |
+| `feedExit` | Feed view disappears or app backgrounds | Total session time, videos watched |
+| `impression` | Video cell snaps into view | Content ID, position in feed |
+| `playStart` | First frame of video renders | Content ID, startup time (ms), initial rendition |
+| `watchProgress` | Every 1 second of continuous playback | Content ID, current time, percent complete, current bitrate |
+| `completion` | Video reaches end | Content ID, total watch time, loop count |
+| `swipe` | User swipes to next or previous video | From/to content ID, watch time on previous, direction |
+| `rebuffer` | Playback stalls waiting for data | Content ID, rebuffer duration (ms), network type |
+| `qualityChange` | Adaptive bitrate switches rendition | Content ID, from/to rendition |
+| `error` | Playback error occurs | Content ID, error code, error type, device info |
+| `interaction` | User taps a control (share, mute, captions, etc.) | Content ID, interaction type |
+
+These events are collected by the SDK, batched every 30 seconds, and sent to the API. The analytics dashboard aggregates them into the metrics described below.
 
 ## Overview dashboard
 
-Access at **Analytics → Overview** for high-level metrics:
+Access at **Analytics > Overview** for high-level metrics across a configurable time range:
 
-### Key metrics (configurable time range)
+### Key metrics
 
-| Metric | Description |
-|--------|-------------|
-| **Total views** | Number of video impressions |
-| **Unique viewers** | Distinct users who watched |
-| **Total watch time** | Cumulative seconds watched |
-| **Avg. session duration** | Average time in feed per visit |
-| **Feed depth** | Average videos watched per session |
-| **Completion rate** | Percentage of videos watched to end |
+| Metric | Description | Derived from |
+|--------|-------------|--------------|
+| **Total views** | Number of video impressions | `impression` events |
+| **Unique viewers** | Distinct users who watched content | User IDs across all events |
+| **Total watch time** | Cumulative seconds of video watched | `watchProgress` events |
+| **Avg. session duration** | Average time spent in the feed per visit | `feedEntry` / `feedExit` pairs |
+| **Feed depth** | Average videos watched per session | `swipe` and `impression` events per session |
+| **Completion rate** | Percentage of videos watched to end | `completion` events / `playStart` events |
 
 ### Trends
 
@@ -37,7 +57,7 @@ Most-viewed content in the selected period:
 
 ## Content performance
 
-Detailed per-content analytics at **Analytics → Content Performance**.
+Detailed per-content analytics at **Analytics > Content Performance**.
 
 ### Content table
 
@@ -48,8 +68,8 @@ Detailed per-content analytics at **Analytics → Content Performance**.
 | **Unique viewers** | Distinct viewers |
 | **Watch time** | Total seconds watched |
 | **Avg. watch time** | Seconds per view |
-| **Completion rate** | % watched to end |
-| **Shares** | Share button taps |
+| **Completion rate** | Percentage watched to end |
+| **Shares** | Share button taps (from `interaction` events) |
 
 ### Sorting and filtering
 
@@ -59,78 +79,66 @@ Detailed per-content analytics at **Analytics → Content Performance**.
 
 ### Content detail
 
-Click any content for deep metrics:
+Click any content item for deeper metrics:
 
 - **Engagement over time**: Views and watch time by day/hour
-- **Retention curve**: Drop-off points in the video
-- **Audience breakdown**: Demographics, device, geo
-- **Discovery**: How users found this content (feed position, deep link, etc.)
+- **Retention curve**: Drop-off points within the video (derived from `watchProgress` events)
+- **Audience breakdown**: Device type, geography
+- **Discovery**: How users found this content (feed position from `impression` events)
 
 ## Playback quality
 
-Monitor technical performance at **Analytics → Playback Quality**.
+Monitor technical performance at **Analytics > Playback Quality**. These metrics are derived from `playStart`, `rebuffer`, `qualityChange`, and `error` events.
 
 ### Quality metrics
 
 | Metric | Description | Target |
 |--------|-------------|--------|
-| **Video startup time (p50)** | Median time to first frame | < 500ms |
-| **Video startup time (p95)** | 95th percentile startup | < 2s |
-| **Rebuffer rate** | % of views with rebuffering | < 2% |
-| **Avg. rebuffer duration** | Seconds spent buffering | < 1s |
-| **Avg. bitrate** | Weighted average kbps delivered | - |
-| **Quality downgrades** | ABR switches to lower quality | - |
+| **Video startup time (p50)** | Median time to first frame | Less than 500ms |
+| **Video startup time (p95)** | 95th percentile startup time | Less than 2s |
+| **Rebuffer rate** | Percentage of views with rebuffering | Less than 2% |
+| **Avg. rebuffer duration** | Average seconds spent buffering per rebuffer event | Less than 1s |
+| **Avg. bitrate** | Weighted average kbps delivered | -- |
+| **Quality downgrades** | Adaptive bitrate switches to lower quality | -- |
 
 ### Breakdown views
 
 Filter quality metrics by:
-- **Device type**: iOS, Android, Web
-- **Network type**: WiFi, cellular, etc.
-- **Geography**: By country/region
+- **Device type**: iPhone model, iOS version
+- **Network type**: WiFi, cellular
+- **Geography**: By country or region
 - **Content**: Specific videos or tags
 
 ### Error tracking
 
-View playback errors:
+View playback errors (from `error` events):
 
-| Error Type | Description |
+| Error type | Description |
 |------------|-------------|
 | **Network** | Connection failures, timeouts |
 | **Decode** | Codec issues, corrupt segments |
 | **Player** | Internal player errors |
 
 For each error type:
-- Error rate trend
+- Error rate trend over time
 - Top affected content
-- Device/geo breakdown
-- Individual error details
-
-### Alerts
-
-Set up alerts for quality degradation:
-
-1. Go to **Alerts** tab
-2. Create alert rule:
-   - Metric: Rebuffer rate
-   - Threshold: > 5%
-   - Duration: 15 minutes
-   - Notification: Email, Slack, or webhook
+- Device and geography breakdown
 
 ## Audience insights
 
-Understand your viewers at **Analytics → Audience**.
+Understand your viewers at **Analytics > Audience**.
 
 ### Demographics
 
 - **Geography**: Map showing viewer distribution
-- **Device**: iOS vs. Android vs. Web
-- **Platform version**: SDK versions in use
+- **Device**: Device models and OS versions
+- **SDK version**: SDK versions in use across your user base
 
 ### Behavior patterns
 
-- **Peak usage**: Hours with most activity
+- **Peak usage**: Hours with the most activity
 - **Session frequency**: How often users return
-- **Viewing patterns**: Content preferences by time
+- **Viewing patterns**: Content preferences by time of day
 
 ### Cohort analysis
 
@@ -139,48 +147,8 @@ Track retention by first-use date:
 | Cohort | Week 1 | Week 2 | Week 3 | Week 4 |
 |--------|--------|--------|--------|--------|
 | Jan 1-7 | 100% | 45% | 32% | 28% |
-| Jan 8-14 | 100% | 48% | 35% | - |
-| Jan 15-21 | 100% | 52% | - | - |
-
-## Real-time dashboard
-
-Live metrics at **Analytics → Real-time**.
-
-### Current activity
-
-- Active viewers right now
-- Videos being watched
-- Geographic distribution map
-
-### Live event stream
-
-Scrolling feed of events:
-- New sessions starting
-- Videos being watched
-- Completions and shares
-
-Useful for monitoring during:
-- Breaking news events
-- Marketing campaigns
-- Feature releases
-
-## Delivery usage
-
-Track bandwidth at **Analytics → Delivery Usage**.
-
-### Usage metrics
-
-| Metric | Description |
-|--------|-------------|
-| **Delivered seconds** | Total video seconds served |
-| **Bandwidth (GB)** | Total data transferred |
-| **By rendition** | Breakdown by quality level |
-
-### Trends
-
-- Daily/weekly usage patterns
-- Identify bandwidth-heavy content
-- Plan for capacity
+| Jan 8-14 | 100% | 48% | 35% | -- |
+| Jan 15-21 | 100% | 52% | -- | -- |
 
 ## Data export
 
@@ -188,60 +156,33 @@ Export analytics data for custom analysis.
 
 ### Quick export
 
-1. Configure filters and date range
+1. Configure filters and date range on any analytics view
 2. Click **Export**
 3. Choose format (CSV or JSON)
 4. Download file
 
-### Scheduled exports
-
-Set up automatic exports:
-
-1. Go to **Settings → Data Export**
-2. Configure:
-   - Frequency (daily, weekly)
-   - Data types to include
-   - Format
-   - Delivery (webhook URL or email)
-
 ### API export
 
-Use the Analytics API for programmatic access:
+Use the API for programmatic access to analytics data:
 
 ```bash
 curl -X POST https://api.shortkit.dev/v1/analytics/export \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "startDate": "2024-01-01",
-    "endDate": "2024-01-31",
+    "startDate": "2026-01-01",
+    "endDate": "2026-01-31",
     "format": "jsonl"
   }'
 ```
 
-See [Data export guide](/guides/data-export) for details.
-
-## Custom dashboards
-
-Build custom views:
-
-1. Click **Customize Dashboard**
-2. Add/remove/rearrange widgets
-3. Configure each widget's metrics and filters
-4. Save as named dashboard
-
-Create multiple dashboards for different teams:
-- Executive summary
-- Content team view
-- Technical monitoring
-
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Data export" icon="download" href="/guides/integration/data-export">
-    Export raw data for custom analysis.
-  </Card>
   <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
-    Test changes and measure impact.
+    Test changes and measure their impact on engagement.
+  </Card>
+  <Card title="Content management" icon="folder" href="/portal/content-management">
+    Manage your content library and editorial controls.
   </Card>
 </Columns>

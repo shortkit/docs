@@ -1,101 +1,113 @@
 ---
 title: "Content pipeline"
-description: "Understand how content flows through Shortkit from upload to playback."
-keywords: ["upload", "ingestion", "content", "pipeline", "processing"]
+description: "Understand how content flows through ShortKit from upload to playback-ready."
+keywords: ["upload", "ingestion", "content", "pipeline", "processing", "lifecycle"]
 ---
 
-shortkit provides multiple methods to ingest content, from simple drag-and-drop uploads to automated pipelines integrating with your existing systems.
+ShortKit uses a direct-upload model. Your server creates an upload session, receives a signed URL, and your client uploads the file directly to ShortKit's storage -- no need to proxy video bytes through your own infrastructure.
 
-## Upload methods
-
-| Method | Best For | Auth Required |
-|--------|----------|---------------|
-| [Direct upload](#direct-upload) | Client-side uploads from browsers/apps | Secret key (to create session) |
-| [Server-side upload](#server-side-upload) | Server-to-server uploads | Secret key |
-| [URL-based ingest](#url-based-ingest) | Content from cloud storage or URLs | Secret key |
-| [Admin Portal](#admin-portal-upload) | Manual uploads by team members | Portal login |
-| [Automated pipeline](#automated-ingestion) | Integration with DAM/CMS systems | Secret key |
-
-## Direct upload
-
-Direct upload is the recommended method for client-side uploads (web browsers, mobile apps). It allows clients to upload directly to cloud storage without routing through your servers.
+## Upload flow
 
 <Steps>
-  <Step title="Create upload session">
-    Your server creates an upload session and receives a signed URL:
+  <Step title="Create an upload session">
+    Your server calls `POST /v1/uploads` with the content metadata and receives a signed upload URL.
 
-    ```bash
-    curl -X POST https://api.shortkit.dev/v1/uploads \
-      -H "Authorization: Bearer sk_live_your_secret_key" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "title": "My Video",
-        "description": "A great video",
-        "tags": ["news", "breaking"],
-        "customMetadata": {
-          "articleUrl": "https://example.com/article/123",
-          "authorId": "author_456"
-        }
-      }'
-    ```
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X POST https://api.shortkit.dev/v1/uploads \
+          -H "Authorization: Bearer sk_live_your_secret_key" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "title": "Breaking: Major Weather Event",
+            "description": "Live coverage of the approaching storm system",
+            "tags": ["weather", "breaking"],
+            "generateSubtitles": true,
+            "customMetadata": {
+              "articleUrl": "https://example.com/weather/storm",
+              "authorId": "author_456"
+            }
+          }'
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```javascript
+        const response = await fetch("https://api.shortkit.dev/v1/uploads", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            title: "Breaking: Major Weather Event",
+            description: "Live coverage of the approaching storm system",
+            tags: ["weather", "breaking"],
+            generateSubtitles: true,
+            customMetadata: {
+              articleUrl: "https://example.com/weather/storm",
+              authorId: "author_456"
+            }
+          })
+        });
+
+        const { data } = await response.json();
+        ```
+      </Tab>
+    </Tabs>
 
     Response:
 
     ```json
     {
       "data": {
-        "uploadId": "upl_abc123xyz",
+        "id": "sk_content_abc123",
         "uploadUrl": "https://upload.shortkit.dev/direct/abc123...",
-        "expiresAt": "2024-02-04T13:00:00Z"
+        "status": "waiting_for_upload"
       }
     }
     ```
   </Step>
-  <Step title="Upload file to signed URL">
-    The client uploads directly to the signed URL. Supports resumable uploads via the [tus protocol](https://tus.io).
+  <Step title="Upload the file to the signed URL">
+    The client uploads the video file directly to the signed URL using an HTTP PUT request. The URL is time-limited and single-use.
 
-    ```javascript
-    // Browser example
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'video/mp4'
-      },
-      body: videoFile
-    });
-    ```
-
-    For large files, use a tus client:
-
-    ```javascript
-    import * as tus from 'tus-js-client';
-
-    const upload = new tus.Upload(file, {
-      endpoint: uploadUrl,
-      retryDelays: [0, 1000, 3000, 5000],
-      onProgress: (bytesUploaded, bytesTotal) => {
-        const percentage = (bytesUploaded / bytesTotal * 100).toFixed(2);
-        console.log(`${percentage}%`);
-      },
-      onSuccess: () => {
-        console.log('Upload complete');
-      }
-    });
-
-    upload.start();
-    ```
+    <Tabs>
+      <Tab title="cURL">
+        ```bash
+        curl -X PUT "${uploadUrl}" \
+          -H "Content-Type: video/mp4" \
+          --data-binary @video.mp4
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```javascript
+        await fetch(data.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "video/mp4" },
+          body: videoFile
+        });
+        ```
+      </Tab>
+    </Tabs>
   </Step>
-  <Step title="Receive webhook notification">
-    When processing completes, you receive a webhook:
+  <Step title="Processing begins automatically">
+    Once the file is received, ShortKit's transcoding pipeline begins processing. The content status transitions from `waiting_for_upload` to `processing`. During this stage, ShortKit generates:
+
+    - HLS adaptive bitrate renditions
+    - First-frame thumbnails
+    - Caption tracks (if `generateSubtitles` was enabled)
+
+    Processing typically takes **1 -- 2 minutes** for a 30-second video.
+  </Step>
+  <Step title="Content becomes ready">
+    When processing completes, the content status transitions to `ready` and becomes eligible to appear in feeds. You are notified via webhook.
 
     ```json
     {
       "event": "content.ready",
       "data": {
-        "contentId": "cnt_def456",
-        "uploadId": "upl_abc123xyz",
-        "title": "My Video",
-        "duration": 45.2,
+        "id": "sk_content_abc123",
+        "title": "Breaking: Major Weather Event",
+        "duration": 32.5,
         "status": "ready"
       }
     }
@@ -103,216 +115,134 @@ Direct upload is the recommended method for client-side uploads (web browsers, m
   </Step>
 </Steps>
 
-## Server-side upload
+## Content lifecycle
 
-For uploads from your server (e.g., from a processing pipeline):
+Every piece of content moves through a well-defined state machine:
 
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/upload \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -F "file=@video.mp4" \
-  -F "title=My Video" \
-  -F "description=A great video" \
-  -F "tags=news,breaking"
+```
+POST /v1/uploads
+      |
+      v
+waiting_for_upload
+      |
+      |  (file uploaded to signed URL)
+      v
+  processing
+      |
+   +--+--+
+   |     |
+   v     v
+ ready  error
+   |
+   |  (manual archive or expiry)
+   v
+ archived
 ```
 
-Response:
+| Status | Meaning | Visible in feed? |
+|--------|---------|------------------|
+| `waiting_for_upload` | Upload session created; file not yet received | No |
+| `processing` | Video is being transcoded and prepared for delivery | No |
+| `ready` | Processing complete; playback is available | Yes (subject to scheduling and editorial controls) |
+| `error` | Processing failed | No |
+| `archived` | Manually archived or expired via `expires_at` | No |
+
+### Polling for status
+
+You can check the current status of an upload at any time:
+
+```bash
+curl https://api.shortkit.dev/v1/uploads/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
 
 ```json
 {
   "data": {
-    "contentId": "cnt_abc123",
-    "status": "processing",
-    "title": "My Video"
+    "id": "sk_content_abc123",
+    "status": "ready",
+    "title": "Breaking: Major Weather Event",
+    "duration": 32.5
   }
 }
 ```
 
-For large files, use chunked upload:
+## Webhook notifications
 
-```bash
-# Create chunked upload session
-curl -X POST https://api.shortkit.dev/v1/content/upload/chunked \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "filename": "video.mp4",
-    "fileSize": 524288000,
-    "title": "My Video"
-  }'
+ShortKit sends webhook events when content transitions to a terminal processing state.
 
-# Upload chunks
-curl -X PUT "https://api.shortkit.dev/v1/content/upload/chunked/{uploadId}/part/1" \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  --data-binary @chunk1.bin
+### content.ready
 
-# Complete upload
-curl -X POST "https://api.shortkit.dev/v1/content/upload/chunked/{uploadId}/complete" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
+Fired when transcoding completes successfully and the content is available for playback.
 
-## URL-based ingest
-
-Ingest content from a URL (cloud storage, CDN, or any accessible endpoint):
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/ingest \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceUrl": "https://storage.example.com/videos/my-video.mp4",
-    "title": "My Video",
-    "description": "A great video",
-    "tags": ["news"]
-  }'
-```
-
-For protected sources, include authentication:
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/ingest \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceUrl": "https://storage.example.com/videos/my-video.mp4",
-    "sourceAuth": {
-      "type": "bearer",
-      "token": "source_access_token"
-    },
-    "title": "My Video"
-  }'
-```
-
-Supported source auth types:
-- `bearer` - Bearer token in Authorization header
-- `basic` - Basic authentication
-- `header` - Custom header (e.g., API key)
-- `query` - Query parameter authentication
-
-## Admin Portal upload
-
-For manual uploads by team members:
-
-1. Go to **Content → Upload** in the Admin Portal
-2. Drag and drop video files (or click to browse)
-3. Fill in metadata (title, description, tags)
-4. Set scheduling if needed
-5. Click **Publish** or **Schedule**
-
-Features:
-- Bulk upload (multiple files at once)
-- Inline metadata editing
-- Progress indicator with resumable support
-- Preview before publishing
-
-## Automated ingestion
-
-### Webhook-based
-
-Configure your DAM or CMS to send webhooks when new content is available:
-
-```bash
-# Register ingestion webhook endpoint
-curl -X POST https://api.shortkit.dev/v1/ingestion/webhooks \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "CMS Ingestion",
-    "secret": "webhook_secret_for_verification"
-  }'
-```
-
-When your system has new content, POST to:
-
-```bash
-POST https://api.shortkit.dev/v1/ingestion/webhooks/{webhookId}/ingest
-X-Webhook-Signature: sha256=...
-
+```json
 {
-  "sourceUrl": "https://your-dam.com/assets/video123.mp4",
-  "title": "New Video from CMS",
-  "metadata": {
-    "cmsId": "12345"
+  "event": "content.ready",
+  "data": {
+    "id": "sk_content_abc123",
+    "title": "Breaking: Major Weather Event",
+    "duration": 32.5,
+    "status": "ready"
   }
 }
 ```
 
-### Bucket polling
+### content.errored
 
-Configure automatic ingestion from cloud storage:
+Fired when transcoding fails.
 
-```bash
-curl -X POST https://api.shortkit.dev/v1/ingestion/buckets \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "s3",
-    "bucket": "your-video-bucket",
-    "prefix": "uploads/",
-    "credentials": {
-      "accessKeyId": "AKIA...",
-      "secretAccessKey": "..."
-    },
-    "pollInterval": 300,
-    "deleteAfterIngest": false
-  }'
+```json
+{
+  "event": "content.errored",
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "error",
+    "error": {
+      "code": "TRANSCODE_FAILED",
+      "message": "Video codec not supported"
+    }
+  }
+}
 ```
-
-Supported storage:
-- Amazon S3
-- Google Cloud Storage
-- Azure Blob Storage
 
 ## Metadata
 
 ### Required fields
 
 <ResponseField name="title" type="string" required>
-  Content title. Used in Admin Portal, analytics, and optionally in SDK overlays.
+  Content title. Displayed in the Admin Portal and available to the SDK via `customMetadata`.
 </ResponseField>
 
 ### Optional fields
 
 <ResponseField name="description" type="string">
-  Content description.
+  Content description. Available to the SDK for display or accessibility.
 </ResponseField>
 
 <ResponseField name="tags" type="string[]">
-  Tags for filtering and categorization (e.g., "politics", "sports").
+  Tags for categorization and filtering (e.g., `"sports"`, `"breaking"`).
 </ResponseField>
 
-<ResponseField name="locale" type="string">
-  Content language (ISO 639-1). Used for geo-targeting and caption selection.
-</ResponseField>
-
-<ResponseField name="geoTargeting" type="object">
-  Geographic targeting rules.
-
-  <Expandable title="properties">
-    <ResponseField name="include" type="string[]">
-      Country/region codes to include.
-    </ResponseField>
-    <ResponseField name="exclude" type="string[]">
-      Country/region codes to exclude.
-    </ResponseField>
-  </Expandable>
+<ResponseField name="generateSubtitles" type="boolean" default="false">
+  When `true`, ShortKit automatically generates caption tracks via speech-to-text during processing. See [Transcoding](/guides/platform/transcoding) for details.
 </ResponseField>
 
 <ResponseField name="publishAt" type="datetime">
-  Scheduled publish time (ISO 8601). Content remains "scheduled" until this time.
+  Scheduled publish time (ISO 8601). Content remains hidden from feeds until this time.
 </ResponseField>
 
 <ResponseField name="expiresAt" type="datetime">
-  Expiry time (ISO 8601). Content is automatically archived after this time.
+  Expiry time (ISO 8601). Content is automatically archived after this time and removed from feeds.
 </ResponseField>
 
 <ResponseField name="customMetadata" type="object">
-  Arbitrary key-value pairs passed through to the SDK.
+  Arbitrary key-value pairs passed through to the SDK in feed responses. Use this to attach application-specific data to content items.
 
-  Examples:
-  - `articleUrl`: Link to related article
-  - `productId`: Associated product for shoppable video
-  - `authorName`: Content creator name
+  Common examples:
+  - `articleUrl` -- link to a related article
+  - `productId` -- associated product for shoppable video
+  - `authorName` -- content creator name
+  - `category` -- application-level category identifier
 </ResponseField>
 
 ### Example with full metadata
@@ -324,51 +254,37 @@ curl -X POST https://api.shortkit.dev/v1/uploads \
   -d '{
     "title": "Breaking: Major Weather Event",
     "description": "Live coverage of the approaching storm system",
-    "tags": ["weather", "breaking", "live"],
-    "locale": "en-US",
-    "geoTargeting": {
-      "include": ["US"],
-      "exclude": []
-    },
-    "publishAt": "2024-02-05T08:00:00Z",
-    "expiresAt": "2024-02-12T00:00:00Z",
+    "tags": ["weather", "breaking"],
+    "generateSubtitles": true,
+    "publishAt": "2026-02-05T08:00:00Z",
+    "expiresAt": "2026-02-12T00:00:00Z",
     "customMetadata": {
-      "articleUrl": "https://example.com/weather/storm-2024",
+      "articleUrl": "https://example.com/weather/storm",
       "severity": "high",
       "region": "midwest"
     }
   }'
 ```
 
-## Caption upload
+## Auto-generated assets
 
-Upload caption tracks alongside content:
+When content reaches `ready` status, ShortKit has automatically generated the following assets:
 
-```bash
-# Upload SRT file
-curl -X POST https://api.shortkit.dev/v1/content/{contentId}/captions \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -F "file=@captions.srt" \
-  -F "language=en" \
-  -F "label=English"
+| Asset | Description |
+|-------|-------------|
+| **HLS renditions** | Multiple quality levels for adaptive bitrate streaming (see [Transcoding](/guides/platform/transcoding)) |
+| **First-frame thumbnail** | Static image of the first frame, used by the SDK for instant display before video loads |
+| **Caption tracks** | Auto-generated subtitle track embedded in the HLS manifest (when `generateSubtitles: true`) |
 
-# Upload VTT file
-curl -X POST https://api.shortkit.dev/v1/content/{contentId}/captions \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -F "file=@captions.vtt" \
-  -F "language=es" \
-  -F "label=Spanish"
-```
-
-Supported formats: SRT, VTT
+Thumbnails and caption tracks are delivered alongside video content in the feed response. The SDK handles them automatically -- no additional integration is required.
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="Transcoding" icon="film" href="/guides/platform/transcoding">
-    Learn about the encoding pipeline.
+    Learn how ShortKit encodes video for adaptive streaming.
   </Card>
-  <Card title="Content API" icon="code" href="/api/content">
-    Full content API reference.
+  <Card title="CDN delivery" icon="globe" href="/guides/platform/cdn-delivery">
+    Understand how video reaches your users globally.
   </Card>
 </Columns>

@@ -1,23 +1,22 @@
 ---
 title: "Bulk operations"
-description: "Batch operations for managing multiple content items."
+description: "Update or archive multiple content items in a single request."
 keywords: ["bulk", "batch", "content", "operations"]
 ---
 
-Bulk operations allow you to update or delete multiple content items in a single request, reducing API calls and improving efficiency.
+Bulk operations allow you to update or archive multiple content items in a single request, reducing API calls and improving efficiency for managing large content libraries.
 
 ## Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/content/bulk/update` | Update multiple content items |
-| `POST` | `/v1/content/bulk/delete` | Delete multiple content items |
-| `POST` | `/v1/content/bulk/tag` | Add/remove tags from multiple items |
-| `POST` | `/v1/content/bulk/visibility` | Change visibility for multiple items |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/content/bulk/update` | Secret key | Update multiple content items |
+| `POST` | `/v1/content/bulk/archive` | Secret key | Archive multiple content items |
+| `POST` | `/v1/content/bulk/tag` | Secret key | Add or remove tags from multiple items |
 
 ## Bulk update
 
-Update metadata for multiple content items.
+Update metadata, editorial controls, or scheduling for multiple content items.
 
 ```bash
 POST /v1/content/bulk/update
@@ -41,17 +40,26 @@ POST /v1/content/bulk/update
     <ParamField body="tags" type="string[]">
       Replace tags.
     </ParamField>
-    <ParamField body="metadata" type="object">
-      Merge metadata.
+    <ParamField body="customMetadata" type="object">
+      Merge custom metadata.
     </ParamField>
-    <ParamField body="visibility" type="string">
-      New visibility.
+    <ParamField body="pinPosition" type="integer">
+      Pin to a specific feed position (1-indexed). Set to `null` to unpin.
+    </ParamField>
+    <ParamField body="isSuppressed" type="boolean">
+      Suppress content from appearing in the feed.
+    </ParamField>
+    <ParamField body="publishAt" type="string">
+      Scheduled publish time (ISO 8601). Content appears in the feed after this time.
+    </ParamField>
+    <ParamField body="expiresAt" type="string">
+      Expiration time (ISO 8601). Content is removed from the feed after this time.
     </ParamField>
   </Expandable>
 </ParamField>
 
 <ParamField body="continueOnError" type="boolean" default={false}>
-  Continue processing if individual items fail.
+  Continue processing remaining items if individual items fail.
 </ParamField>
 
 ### Example request
@@ -63,14 +71,14 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
   -d '{
     "items": [
       {
-        "id": "cnt_abc123",
-        "title": "Updated Title 1",
-        "visibility": "public"
+        "id": "sk_content_abc123",
+        "title": "Updated Weather Alert",
+        "pinPosition": 1
       },
       {
-        "id": "cnt_def456",
-        "title": "Updated Title 2",
-        "tags": ["featured"]
+        "id": "sk_content_def456",
+        "tags": ["featured", "breaking"],
+        "isSuppressed": false
       }
     ],
     "continueOnError": true
@@ -83,8 +91,8 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
 {
   "data": {
     "successful": [
-      { "id": "cnt_abc123", "status": "updated" },
-      { "id": "cnt_def456", "status": "updated" }
+      { "id": "sk_content_abc123", "status": "updated" },
+      { "id": "sk_content_def456", "status": "updated" }
     ],
     "failed": [],
     "totalProcessed": 2,
@@ -92,26 +100,26 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
     "totalFailed": 0
   },
   "meta": {
-    "requestId": "req_xyz789"
+    "request_id": "req_xyz789"
   }
 }
 ```
 
 ### Partial failure response
 
-When `continueOnError` is true and some items fail:
+When `continueOnError` is `true` and some items fail:
 
 ```json
 {
   "data": {
     "successful": [
-      { "id": "cnt_abc123", "status": "updated" }
+      { "id": "sk_content_abc123", "status": "updated" }
     ],
     "failed": [
       {
-        "id": "cnt_invalid",
+        "id": "sk_content_invalid",
         "error": {
-          "code": "NOT_FOUND",
+          "code": "not_found",
           "message": "Content not found"
         }
       }
@@ -119,36 +127,39 @@ When `continueOnError` is true and some items fail:
     "totalProcessed": 2,
     "totalSuccessful": 1,
     "totalFailed": 1
+  },
+  "meta": {
+    "request_id": "req_xyz789"
   }
 }
 ```
 
-## Bulk delete
+## Bulk archive
 
-Delete multiple content items.
+Archive multiple content items. Archived content is removed from the feed but its metadata and analytics are preserved.
 
 ```bash
-POST /v1/content/bulk/delete
+POST /v1/content/bulk/archive
 ```
 
 ### Request body
 
 <ParamField body="ids" type="string[]" required>
-  Content IDs to delete (max 100).
+  Content IDs to archive (max 100).
 </ParamField>
 
 <ParamField body="continueOnError" type="boolean" default={false}>
-  Continue if individual deletions fail.
+  Continue if individual archival operations fail.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/content/bulk/delete \
+curl -X POST https://api.shortkit.dev/v1/content/bulk/archive \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "ids": ["cnt_abc123", "cnt_def456", "cnt_ghi789"],
+    "ids": ["sk_content_abc123", "sk_content_def456", "sk_content_ghi789"],
     "continueOnError": true
   }'
 ```
@@ -159,25 +170,24 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/delete \
 {
   "data": {
     "successful": [
-      { "id": "cnt_abc123", "status": "deleted" },
-      { "id": "cnt_def456", "status": "deleted" },
-      { "id": "cnt_ghi789", "status": "deleted" }
+      { "id": "sk_content_abc123", "status": "archived" },
+      { "id": "sk_content_def456", "status": "archived" },
+      { "id": "sk_content_ghi789", "status": "archived" }
     ],
     "failed": [],
     "totalProcessed": 3,
     "totalSuccessful": 3,
     "totalFailed": 0
+  },
+  "meta": {
+    "request_id": "req_abc456"
   }
 }
 ```
 
-<Warning>
-  Bulk deletion is permanent and cannot be undone. All associated data (thumbnails, analytics) is removed within 24 hours.
-</Warning>
-
 ## Bulk tag
 
-Add or remove tags from multiple content items.
+Add or remove tags from multiple content items at once.
 
 ```bash
 POST /v1/content/bulk/tag
@@ -204,7 +214,7 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/tag \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "ids": ["cnt_abc123", "cnt_def456"],
+    "ids": ["sk_content_abc123", "sk_content_def456"],
     "addTags": ["featured", "homepage"],
     "removeTags": ["draft"]
   }'
@@ -217,11 +227,11 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/tag \
   "data": {
     "successful": [
       {
-        "id": "cnt_abc123",
-        "tags": ["featured", "homepage", "product"]
+        "id": "sk_content_abc123",
+        "tags": ["featured", "homepage", "weather"]
       },
       {
-        "id": "cnt_def456",
+        "id": "sk_content_def456",
         "tags": ["featured", "homepage"]
       }
     ],
@@ -229,54 +239,9 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/tag \
     "totalProcessed": 2,
     "totalSuccessful": 2,
     "totalFailed": 0
-  }
-}
-```
-
-## Bulk visibility
-
-Change visibility for multiple content items.
-
-```bash
-POST /v1/content/bulk/visibility
-```
-
-### Request body
-
-<ParamField body="ids" type="string[]" required>
-  Content IDs to modify (max 100).
-</ParamField>
-
-<ParamField body="visibility" type="string" required>
-  New visibility: `private`, `unlisted`, or `public`.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/bulk/visibility \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ids": ["cnt_abc123", "cnt_def456", "cnt_ghi789"],
-    "visibility": "public"
-  }'
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "successful": [
-      { "id": "cnt_abc123", "visibility": "public" },
-      { "id": "cnt_def456", "visibility": "public" },
-      { "id": "cnt_ghi789", "visibility": "public" }
-    ],
-    "failed": [],
-    "totalProcessed": 3,
-    "totalSuccessful": 3,
-    "totalFailed": 0
+  },
+  "meta": {
+    "request_id": "req_tag789"
   }
 }
 ```
@@ -285,151 +250,25 @@ curl -X POST https://api.shortkit.dev/v1/content/bulk/visibility \
 
 Bulk operations have specific rate limits:
 
-| Operation | Limit |
-|-----------|-------|
+| Limit | Value |
+|-------|-------|
 | Items per request | 100 |
 | Requests per minute | 60 |
 | Items per minute | 1,000 |
 
-For larger batch jobs, consider spacing requests or using async processing.
-
-## Async bulk operations
-
-For very large operations (1000+ items), use async bulk jobs:
-
-### Create bulk job
-
-```bash
-POST /v1/content/bulk/jobs
-```
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/bulk/jobs \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "operation": "update",
-    "filter": {
-      "tags": ["old-campaign"]
-    },
-    "update": {
-      "addTags": ["archived"],
-      "removeTags": ["old-campaign"]
-    }
-  }'
-```
-
-Response:
-
-```json
-{
-  "data": {
-    "jobId": "job_abc123",
-    "status": "processing",
-    "totalItems": 5420,
-    "processedItems": 0,
-    "createdAt": "2024-02-04T12:00:00Z"
-  }
-}
-```
-
-### Check job status
-
-```bash
-curl https://api.shortkit.dev/v1/content/bulk/jobs/job_abc123 \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-Response:
-
-```json
-{
-  "data": {
-    "jobId": "job_abc123",
-    "status": "complete",
-    "totalItems": 5420,
-    "processedItems": 5420,
-    "successfulItems": 5418,
-    "failedItems": 2,
-    "createdAt": "2024-02-04T12:00:00Z",
-    "completedAt": "2024-02-04T12:05:00Z"
-  }
-}
-```
-
-## SDK examples
-
-<Tabs>
-  <Tab title="JavaScript">
-    ```javascript
-    import { ShortkitAdmin } from '@shortkit/node';
-
-    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
-
-    // Bulk update
-    const result = await shortkit.content.bulkUpdate([
-      { id: 'cnt_abc123', visibility: 'public' },
-      { id: 'cnt_def456', visibility: 'public' }
-    ]);
-
-    console.log(`Updated: ${result.totalSuccessful}`);
-
-    // Bulk delete
-    await shortkit.content.bulkDelete([
-      'cnt_old1', 'cnt_old2', 'cnt_old3'
-    ]);
-
-    // Bulk tag
-    await shortkit.content.bulkTag({
-      ids: ['cnt_abc123', 'cnt_def456'],
-      addTags: ['featured'],
-      removeTags: ['draft']
-    });
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    from shortkit import ShortkitAdmin
-
-    shortkit = ShortkitAdmin(api_key='sk_live_...')
-
-    # Bulk update
-    result = shortkit.content.bulk_update([
-        {'id': 'cnt_abc123', 'visibility': 'public'},
-        {'id': 'cnt_def456', 'visibility': 'public'}
-    ])
-
-    print(f"Updated: {result.total_successful}")
-
-    # Bulk delete
-    shortkit.content.bulk_delete([
-        'cnt_old1', 'cnt_old2', 'cnt_old3'
-    ])
-
-    # Bulk tag
-    shortkit.content.bulk_tag(
-        ids=['cnt_abc123', 'cnt_def456'],
-        add_tags=['featured'],
-        remove_tags=['draft']
-    )
-    ```
-  </Tab>
-</Tabs>
+For larger operations, space your requests accordingly.
 
 ## Best practices
 
 <AccordionGroup>
   <Accordion title="Use continueOnError for resilience">
-    When processing large batches, enable `continueOnError` to ensure one failure doesn't stop the entire operation.
-  </Accordion>
-  <Accordion title="Batch by logical groups">
-    Group related content together. If one group fails, other groups remain unaffected.
+    When processing large batches, enable `continueOnError` to ensure one failure does not stop the entire operation.
   </Accordion>
   <Accordion title="Handle partial failures">
     Always check the `failed` array in responses and implement retry logic for failed items.
   </Accordion>
-  <Accordion title="Use async jobs for large operations">
-    For operations affecting 1000+ items, use async bulk jobs to avoid timeouts.
+  <Accordion title="Batch by logical groups">
+    Group related content together. If one group fails, other groups remain unaffected.
   </Accordion>
 </AccordionGroup>
 
@@ -439,7 +278,7 @@ Response:
   <Card title="Content API" icon="video" href="/api/content">
     Single content operations.
   </Card>
-  <Card title="Webhooks" icon="bell" href="/guides/integration/webhooks">
-    Get notified when operations complete.
+  <Card title="Webhooks" icon="bell" href="/api/webhooks">
+    Get notified when content processing completes.
   </Card>
 </Columns>

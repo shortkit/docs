@@ -1,32 +1,28 @@
 ---
 title: "Installation"
-description: "Install the Shortkit SDK for your platform."
-keywords: ["installation", "setup", "npm", "cocoapods", "gradle"]
+description: "Install the ShortKit SDK for your platform and verify the integration."
+keywords: ["installation", "setup", "swift package manager", "spm", "gradle", "npm", "cdn"]
 ---
 
-Get Shortkit running in your app in under 5 minutes. Choose your platform below.
+Get ShortKit installed and verified in your app. Choose your platform below.
 
 ## Requirements
 
 <Tabs>
   <Tab title="iOS">
-    - iOS 14.0+
-    - Xcode 14+
-    - Swift 5.7+
+    - iOS 16.0+
+    - Xcode 15+
+    - Swift 5.9+
   </Tab>
   <Tab title="Android">
-    - Android API 21+ (Android 5.0)
-    - Kotlin 1.8+
-    - Android Studio Flamingo+
+    - Android API 24+ (Android 7.0)
+    - Kotlin 1.9+
+    - Android Studio Hedgehog+
   </Tab>
   <Tab title="React Native">
-    - React Native 0.70+
-    - iOS 14.0+ / Android API 21+
-    - Expo SDK 48+ (if using Expo)
-  </Tab>
-  <Tab title="Web">
-    - Modern browser (Chrome 80+, Safari 14+, Firefox 78+, Edge 80+)
-    - Node.js 16+ (for build tools)
+    - React Native 0.72+
+    - iOS 16.0+ / Android API 24+
+    - Expo SDK 50+ (if using Expo)
   </Tab>
 </Tabs>
 
@@ -34,245 +30,296 @@ Get Shortkit running in your app in under 5 minutes. Choose your platform below.
 
 <Tabs>
   <Tab title="iOS">
-    ### Swift Package Manager (Recommended)
+    ShortKit for iOS is distributed exclusively via Swift Package Manager. The SDK has zero external dependencies — it uses only Foundation, UIKit, AVFoundation, and SwiftUI.
 
-    1. In Xcode, go to **File → Add Package Dependencies**
-    2. Enter the repository URL:
+    ### Option A: Xcode UI
+
+    <Steps>
+      <Step title="Open your project in Xcode">
+        Go to **File** then **Add Package Dependencies**.
+      </Step>
+      <Step title="Enter the repository URL">
+        Paste the following URL into the search field:
+
+        ```
+        https://github.com/AudienceKit/shortkit-ios
+        ```
+      </Step>
+      <Step title="Select your version rule">
+        Choose **Up to Next Major Version** and set the minimum to `1.0.0`. Click **Add Package**.
+      </Step>
+      <Step title="Add to your target">
+        Select the `ShortKit` library product and add it to your app target.
+      </Step>
+    </Steps>
+
+    ### Option B: Package.swift
+
+    If you manage dependencies in a `Package.swift` file, add ShortKit to your dependencies array:
+
+    ```swift Package.swift
+    dependencies: [
+        .package(url: "https://github.com/AudienceKit/shortkit-ios.git", from: "1.0.0")
+    ]
     ```
-    https://github.com/AirTVapp/shortkit-ios
-    ```
-    3. Select version and click **Add Package**
 
-    ### CocoaPods
+    Then add `ShortKit` to the target that needs it:
 
-    Add to your `Podfile`:
-
-    ```ruby
-    pod 'ShortKit', '~> 1.0'
-    ```
-
-    Then run:
-
-    ```bash
-    pod install
+    ```swift Package.swift
+    targets: [
+        .target(
+            name: "YourApp",
+            dependencies: [
+                .product(name: "ShortKit", package: "shortkit-ios")
+            ]
+        )
+    ]
     ```
   </Tab>
   <Tab title="Android">
     ### Gradle
 
-    Add the repository to your project's `settings.gradle.kts`:
+    **Step 1:** Add the ShortKit Maven repository to your project-level `settings.gradle.kts`:
 
-    ```kotlin
+    ```kotlin settings.gradle.kts
     dependencyResolutionManagement {
         repositories {
-            maven { url = uri("https://maven.shortkit.dev/releases") }
+            google()
+            mavenCentral()
+            maven { url = uri("https://maven.shortkit.dev") }
         }
     }
     ```
 
-    Add the dependency to your app's `build.gradle.kts`:
+    **Step 2:** Add the dependency to your app-level `build.gradle.kts`:
 
-    ```kotlin
+    ```kotlin build.gradle.kts
     dependencies {
         implementation("dev.shortkit:shortkit-android:1.0.0")
     }
     ```
 
-    Sync your project.
+    **Step 3:** Sync your project. In Android Studio, click **Sync Now** when prompted, or go to **File** then **Sync Project with Gradle Files**.
   </Tab>
   <Tab title="React Native">
-    ### npm
+    Install the package with your preferred package manager:
 
-    ```bash
+    <CodeGroup>
+
+    ```bash npm
     npm install @shortkit/react-native
     ```
 
-    ### Yarn
-
-    ```bash
+    ```bash yarn
     yarn add @shortkit/react-native
     ```
 
-    ### Expo
-
-    ```bash
+    ```bash expo
     npx expo install @shortkit/react-native
     ```
 
-    ### iOS Setup (React Native CLI only)
+    </CodeGroup>
+
+    ### iOS pod install (React Native CLI only)
+
+    If you are using the React Native CLI (not Expo), install the iOS native dependencies:
 
     ```bash
     cd ios && pod install
     ```
-  </Tab>
-  <Tab title="Web">
-    ### npm
 
-    ```bash
-    npm install @shortkit/web
-    ```
-
-    ### Yarn
-
-    ```bash
-    yarn add @shortkit/web
-    ```
-
-    ### CDN
-
-    ```html
-    <script src="https://cdn.shortkit.dev/web/v1/shortkit.min.js"></script>
-    ```
+    <Note>
+      Expo managed workflow projects do not need to run `pod install`. The native modules are linked automatically during the Expo prebuild step.
+    </Note>
   </Tab>
 </Tabs>
 
-## Quick initialization
+## Import the module
 
-After installation, initialize the SDK with your publishable key:
+After installation, import the ShortKit module in the file where you will initialize the SDK:
 
 <Tabs>
   <Tab title="iOS">
     ```swift
     import ShortKit
-
-    // In your AppDelegate or App init
-    ShortKit.initialize(apiKey: "pk_live_your_publishable_key")
     ```
   </Tab>
   <Tab title="Android">
     ```kotlin
     import dev.shortkit.ShortKit
-
-    // In your Application class
-    class MyApp : Application() {
-        override fun onCreate() {
-            super.onCreate()
-            ShortKit.initialize(this, "pk_live_your_publishable_key")
-        }
-    }
+    import dev.shortkit.FeedConfig
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
     import { ShortKit } from '@shortkit/react-native';
-
-    // In your app entry point
-    ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key'
-    });
-    ```
-  </Tab>
-  <Tab title="Web">
-    ```typescript
-    import { ShortKit } from '@shortkit/web';
-
-    ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key'
-    });
     ```
   </Tab>
 </Tabs>
 
-<Tip>
-  Get your API keys from the [Admin Portal](https://admin.shortkit.dev) under **Settings → API Keys**.
-</Tip>
-
 ## Verify installation
 
-Test that everything is working:
+Initialize ShortKit with your publishable key and display a feed to confirm the SDK is working. This requires a ShortKit account with at least one uploaded video.
 
 <Tabs>
-  <Tab title="iOS">
-    ```swift
-    // Check SDK is initialized
-    print("Shortkit version:", ShortKit.version)
+  <Tab title="iOS (SwiftUI)">
+    ```swift App.swift
+    import SwiftUI
+    import ShortKit
 
-    // Fetch a test feed
-    Task {
-        do {
-            let feed = try await ShortKit.shared.fetchFeed(limit: 1)
-            print("Feed loaded: \(feed.items.count) items")
-        } catch {
-            print("Error: \(error)")
+    @main
+    struct MyApp: App {
+        let shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig()
+        )
+
+        var body: some Scene {
+            WindowGroup {
+                ShortKitFeedView(shortKit: shortKit)
+                    .ignoresSafeArea()
+            }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="iOS (UIKit)">
+    ```swift ViewController.swift
+    import UIKit
+    import ShortKit
+
+    class ViewController: UIViewController {
+        override func viewDidLoad() {
+            super.viewDidLoad()
+
+            let shortKit = ShortKit(
+                apiKey: "pk_live_your_publishable_key",
+                config: FeedConfig()
+            )
+
+            let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+            addChild(feedVC)
+            feedVC.view.frame = view.bounds
+            feedVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(feedVC.view)
+            feedVC.didMove(toParent: self)
         }
     }
     ```
   </Tab>
   <Tab title="Android">
-    ```kotlin
-    // Check SDK is initialized
-    Log.d("Shortkit", "Version: ${ShortKit.version}")
+    ```kotlin MainActivity.kt
+    import android.os.Bundle
+    import androidx.appcompat.app.AppCompatActivity
+    import dev.shortkit.ShortKit
+    import dev.shortkit.FeedConfig
+    import dev.shortkit.ShortKitFeedView
 
-    // Fetch a test feed
-    ShortKit.fetchFeed(limit = 1) { result ->
-        result.onSuccess { feed ->
-            Log.d("Shortkit", "Feed loaded: ${feed.items.size} items")
-        }.onFailure { error ->
-            Log.e("Shortkit", "Error: $error")
+    class MainActivity : AppCompatActivity() {
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+
+            val shortKit = ShortKit(
+                apiKey = "pk_live_your_publishable_key",
+                config = FeedConfig()
+            )
+
+            val feedView = ShortKitFeedView(this, shortKit)
+            setContentView(feedView)
         }
     }
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    // Check SDK is initialized
-    console.log('Shortkit version:', ShortKit.version);
+    ```tsx App.tsx
+    import React from 'react';
+    import { ShortKit, ShortKitFeed } from '@shortkit/react-native';
 
-    // Fetch a test feed
-    const feed = await ShortKit.fetchFeed({ limit: 1 });
-    console.log('Feed loaded:', feed.items.length, 'items');
-    ```
-  </Tab>
-  <Tab title="Web">
-    ```typescript
-    // Check SDK is initialized
-    console.log('Shortkit version:', ShortKit.version);
+    const shortKit = ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key',
+      config: { feedHeight: 'fullscreen' }
+    });
 
-    // Fetch a test feed
-    const feed = await ShortKit.fetchFeed({ limit: 1 });
-    console.log('Feed loaded:', feed.items.length, 'items');
+    export default function App() {
+      return <ShortKitFeed style={{ flex: 1 }} />;
+    }
     ```
   </Tab>
 </Tabs>
 
+Build and run your app. If you have content uploaded to your ShortKit account, you should see a vertical video feed. If your account has no content yet, the feed will display an empty state -- follow the [Quickstart](/quickstart) to upload your first video.
+
+<Tip>
+  Get your publishable API key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development.
+</Tip>
+
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="iOS: Module not found">
-    - Ensure you've run `pod install` or added the Swift Package correctly
-    - Clean build folder: **Product → Clean Build Folder**
-    - Restart Xcode
+  <Accordion title="iOS: 'No such module ShortKit'">
+    This means Xcode has not resolved the Swift Package dependency.
+
+    1. Verify the package URL is exactly `https://github.com/AudienceKit/shortkit-ios`
+    2. Go to **File** then **Packages** then **Reset Package Caches**
+    3. Clean the build folder: **Product** then **Clean Build Folder** (Shift+Cmd+K)
+    4. Close and reopen Xcode
+    5. Confirm your deployment target is iOS 16.0 or higher in your project settings
+  </Accordion>
+  <Accordion title="iOS: Deployment target too low">
+    ShortKit requires iOS 16.0 or later. If you see a build error referencing a minimum deployment target:
+
+    1. Select your project in the Xcode navigator
+    2. Under the **General** tab, set **Minimum Deployments** to iOS 16.0 or higher
+    3. If you have multiple targets, update each one
   </Accordion>
   <Accordion title="Android: Dependency resolution failed">
-    - Verify the maven repository URL is correct
-    - Check your internet connection
-    - Run `./gradlew --refresh-dependencies`
+    If Gradle cannot resolve the ShortKit dependency:
+
+    1. Verify the Maven repository URL is `https://maven.shortkit.dev` in your `settings.gradle.kts`
+    2. Make sure the repository block is inside `dependencyResolutionManagement`, not the buildscript block
+    3. Check your internet connection and any proxy configuration
+    4. Run `./gradlew --refresh-dependencies` to clear the dependency cache
+    5. Confirm your `minSdk` is 24 or higher
   </Accordion>
   <Accordion title="React Native: Native module not linked">
-    - For RN CLI: Run `cd ios && pod install`
-    - For Expo: Rebuild with `npx expo prebuild --clean`
-    - Check that autolinking is working
+    If you see an error about `ShortKit` not being found at runtime:
+
+    - **React Native CLI:** Run `cd ios && pod install` and rebuild
+    - **Expo:** Run `npx expo prebuild --clean` and rebuild
+    - Verify autolinking is enabled (check `react-native.config.js` is not excluding the package)
+    - Clear the Metro cache: `npx react-native start --reset-cache`
   </Accordion>
-  <Accordion title="Web: CORS errors">
-    - Ensure your domain is in the allowlist in Admin Portal
-    - Check you're using a publishable key, not a secret key
-    - Verify the API key is for the correct environment
+
+  <Accordion title="All platforms: Feed loads but shows no content">
+    If the SDK initializes successfully but the feed is empty:
+
+    1. Confirm you have uploaded at least one video to your ShortKit account. You can check in the [Admin Portal](https://portal.shortkit.dev) under **Content**.
+    2. Verify the video status is **Ready** (processing can take 1-2 minutes after upload)
+    3. Check that you are using the correct API key for the environment where your content lives (`pk_live_...` for production content, `pk_test_...` for test content)
+  </Accordion>
+  <Accordion title="All platforms: 401 Unauthorized error">
+    A 401 error means the API key is invalid or not recognized:
+
+    1. Double-check the full key string, including the `pk_live_` or `pk_test_` prefix
+    2. Make sure you are using the **publishable key**, not the secret key, in client-side code
+    3. Verify the key has not been revoked in the Admin Portal
+    4. Confirm the key matches the environment you are targeting
   </Accordion>
 </AccordionGroup>
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="iOS Guide" icon="apple" href="/sdk/ios">
-    Deep dive into iOS integration.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Full walkthrough: initialize the SDK, display a feed, and upload your first video.
   </Card>
-  <Card title="Android Guide" icon="android" href="/sdk/android">
-    Deep dive into Android integration.
+  <Card title="SDK overview" icon="book" href="/sdk/overview">
+    Understand the SDK architecture, capabilities, and what it handles for you.
   </Card>
-  <Card title="Configuration" icon="gear" href="/sdk/configuration">
-    Customize SDK behavior.
+  <Card title="Configuration" icon="sliders" href="/sdk/configuration">
+    Customize feed height, controls, playback behavior, and remote config options.
   </Card>
   <Card title="Theming" icon="palette" href="/sdk/theming">
-    Match your app's design.
+    Match the feed to your brand with colors, fonts, and control styling.
   </Card>
 </Columns>

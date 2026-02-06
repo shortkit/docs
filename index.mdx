@@ -1,40 +1,40 @@
 ---
 title: "Introduction"
-description: "Drop-in short-form video feeds for your app. Build a best-in-class experience without the infrastructure complexity."
-keywords: ["shortkit", "video feed", "short-form video", "SDK", "video infrastructure"]
+description: "Add a best-in-class short-form video feed to your app with a single SDK integration."
+keywords: ["shortkit", "short-form video", "video feed SDK", "video infrastructure", "mobile video", "vertical video"]
 ---
 
-shortkit is a full-stack platform that enables media companies, news publishers, and content-driven businesses to deploy native, high-quality short-form video feeds within their own mobile and web applications.
+ShortKit provides a best-in-class short-form video feed for your app without requiring you to build video infrastructure. A single SDK integration gives you a production-grade feed with adaptive streaming, intelligent prefetch, engagement tracking, and analytics — all behind one API.
 
-## Why shortkit?
+## Why ShortKit?
 
-Media companies create enormous volumes of content but distribute it primarily on centralized platforms. This creates three structural problems:
+Media companies produce enormous volumes of short-form content but distribute it on platforms they don't control. This creates three structural problems that compound over time:
 
 <Columns cols={3}>
   <Card title="Attention leakage" icon="eye-slash">
-    Users consume your content but remain on TikTok or Instagram. You build audience for them, not yourself.
+    Users consume your content on third-party platforms. You build their audience, not yours. Every view outside your app is a missed opportunity for direct engagement.
   </Card>
   <Card title="Revenue leakage" icon="money-bill-transfer">
-    Ad revenue from short-form video accrues to the platform, not you. Your monetization depends on users being in your app.
+    Short-form video ad revenue accrues to the distribution platform, not to you. Effective monetization requires users in your app, watching your inventory, on your terms.
   </Card>
   <Card title="Data loss" icon="database">
-    Engagement signals stay with centralized platforms. You can't use this data to improve your products or sell targeted advertising.
+    Engagement signals — what users watch, skip, rewatch, and share — remain locked inside third-party platforms. Without this data, you cannot improve your product or optimize advertising.
   </Card>
 </Columns>
 
-## The shortkit platform
+## The ShortKit platform
 
-shortkit delivers three tightly integrated components:
+ShortKit is composed of three components with a single integration surface. The SDK communicates with one API — your application never interacts with the underlying infrastructure directly.
 
 <Columns cols={3}>
   <Card title="Client SDK" icon="mobile" href="/sdk/overview">
-    Cross-platform SDK with production-grade vertical video feeds, adaptive bitrate streaming, intelligent prefetch, and extensible UI components.
+    Native SDKs with full-screen vertical video feeds, adaptive bitrate streaming, intelligent prefetch, engagement tracking, and configurable UI. Zero external dependencies.
   </Card>
   <Card title="Video infrastructure" icon="server" href="/guides/platform/content-pipeline">
-    Managed backend handling upload, transcoding, CDN delivery, feed ranking, analytics, and metadata management.
+    Fully managed backend handling upload, transcoding, CDN delivery, feed ranking, remote configuration, engagement analytics, and identity resolution. Scales automatically with no server management required.
   </Card>
   <Card title="Admin portal" icon="browser" href="/portal/overview">
-    Web dashboard for content management, feed configuration, A/B testing, ad integration, and analytics.
+    Web dashboard for content management, feed configuration, A/B testing, analytics, and settings. Enables non-technical team members to manage feeds without code changes.
   </Card>
 </Columns>
 
@@ -42,29 +42,29 @@ shortkit delivers three tightly integrated components:
 
 <Columns cols={4}>
   <Card title="iOS" icon="apple" href="/sdk/ios">
-    Swift SDK with custom AVFoundation pipeline
+    Swift SDK with UIKit and SwiftUI support. iOS 16+, SPM distribution.
   </Card>
   <Card title="Android" icon="android" href="/sdk/android">
-    Kotlin SDK built on Media3/ExoPlayer
+    Kotlin SDK built on Media3/ExoPlayer. Adaptive streaming, prefetch, and full lifecycle management.
   </Card>
   <Card title="React Native" icon="react" href="/sdk/react-native">
-    Single package with native bridges
+    Single package with native bridges. Same playback engine as the native SDKs on each platform.
   </Card>
   <Card title="Web" icon="globe" href="/sdk/web">
-    TypeScript SDK with hls.js/dash.js
+    TypeScript SDK with hls.js/dash.js. Responsive vertical player for desktop and mobile browsers.
   </Card>
 </Columns>
 
 ## Get started
 
 <Card title="Quickstart" icon="rocket" href="/quickstart" horizontal>
-  Get your first video feed running in under 10 minutes.
+  Get a video feed running in your app in under 10 minutes. One dependency, one initializer, one view.
 </Card>
 
 <Card title="Core concepts" icon="book" href="/core-concepts" horizontal>
-  Understand the key concepts and architecture behind shortkit.
+  Understand feeds, content items, engagement signals, and how the SDK communicates with the backend.
 </Card>
 
 <Card title="API reference" icon="code" href="/api/introduction" horizontal>
-  Explore the complete API documentation.
+  Complete reference for the ShortKit REST API — authentication, content, feeds, analytics, and webhooks.
 </Card>

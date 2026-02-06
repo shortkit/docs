@@ -1,209 +1,230 @@
 ---
 title: "Core concepts"
-description: "Understand the key concepts and terminology used throughout shortkit."
-keywords: ["concepts", "terminology", "fundamentals", "overview"]
+description: "The mental model behind ShortKit: organizations, content lifecycle, feeds, identity, configuration, engagement events, and adaptive streaming."
+keywords: ["concepts", "terminology", "fundamentals", "overview", "content lifecycle", "feeds", "identity", "configuration"]
 ---
 
-This page explains the fundamental concepts you'll encounter when working with shortkit.
+This page explains the fundamental concepts you will encounter when building with ShortKit. Each section maps directly to types, fields, and behaviors in the SDK and API, so what you read here is what you will see in code.
 
 ## Organizations
 
-An **organization** represents your company or team in shortkit. Each organization has:
+An **organization** is the top-level boundary for everything in ShortKit. Your content library, user data, analytics, configuration, and API keys all belong to a single organization and are fully isolated from every other organization.
 
-- Isolated content library and user data
-- Separate API key pairs (publishable and secret)
-- Independent configuration and settings
-- Its own Admin Portal access
+When you create an organization, ShortKit generates two key pairs -- one for each environment:
 
-All API requests and SDK operations are scoped to a single organization, identified by your API key.
+| Key | Format | Environment | Access scope |
+|-----|--------|-------------|--------------|
+| **Publishable key** | `pk_live_...` | Live | Read-only. Safe for client-side code. Grants access to feed data, remote config, event ingestion, and identity resolution. |
+| **Secret key** | `sk_live_...` | Live | Full access. Server-side only. Grants content CRUD, config management, analytics, and everything the publishable key can do. |
+| **Publishable key** | `pk_test_...` | Test | Same scope as live publishable key, but against isolated test data. |
+| **Secret key** | `sk_test_...` | Test | Same scope as live secret key, but against isolated test data. |
+
+`live` and `test` keys access completely separate content libraries and configuration. Use test keys during development so your production feed is never affected.
+
+<Warning>
+  Never expose a secret key (`sk_live_...` or `sk_test_...`) in client-side code. Secret keys should only be used in server-side applications.
+</Warning>
 
 ## Content
 
-**Content** refers to individual video assets in your library. Each content item includes:
-
-- The video file (transcoded into multiple renditions)
-- Metadata (title, description, tags)
-- Generated assets (thumbnails, preview GIFs, caption tracks)
-- Engagement statistics
+**Content** is an individual video asset in your library. Each content item carries the video file (transcoded into multiple HLS renditions), metadata (title, description, custom key-value pairs), generated assets (thumbnails, caption tracks), and engagement statistics.
 
 ### Content lifecycle
 
-Content progresses through these states: `processing` → `ready` → `live` → `archived`. If transcoding fails, content enters the `error` state.
+Every content item moves through a state machine with five states:
 
-| Status | Description |
-|--------|-------------|
-| `processing` | Video is being transcoded and assets generated |
-| `ready` | Processing complete, not yet visible in feeds |
-| `scheduled` | Set to go live at a future date/time |
-| `live` | Visible in feeds and available for playback |
-| `archived` | Removed from feeds, still accessible via direct link |
-| `error` | Processing failed, requires attention |
+| Status | What is happening | In the feed? |
+|--------|-------------------|--------------|
+| `waiting_for_upload` | An upload session has been created via `POST /v1/uploads`, but the file has not been received yet. | No |
+| `processing` | The file has been received and transcoding is in progress. ShortKit is generating HLS renditions, thumbnails, and caption tracks. | No |
+| `ready` | Transcoding is complete and playback is available. The content is eligible to appear in feeds, subject to editorial controls (`is_suppressed`, `publish_at`, `expires_at`). | Yes (if not suppressed, not expired, and `publish_at` has passed) |
+| `error` | Transcoding failed. The content record is preserved so you can inspect it or retry. | No |
+| `archived` | Manually archived by an operator or automatically expired (when `expires_at` passes). Can be un-archived. | No |
+
+Content transitions are one-directional under normal operation: `waiting_for_upload` to `processing` to `ready`, and from `ready` to `archived`. The `error` state is a terminal branch off of `processing`. Webhooks fire on the `ready` and `error` transitions so your server can react immediately.
 
 ## Feeds
 
-A **feed** is a ranked list of content served to users. The feed is personalized based on:
+A **feed** is a ranked list of content items served to users. When the SDK calls `GET /v1/feed`, ShortKit assembles the list by:
 
-- User engagement history (topics watched, completion rates)
-- Content freshness (recency)
-- Editorial controls (pins, boosts, suppression)
-- Geographic relevance
-- Configured ranking weights
+1. Filtering to content in the `ready` state whose `publish_at` is in the past, `expires_at` is in the future (or null), and `is_suppressed` is false.
+2. Ordering by reverse chronological publish time, with editorial overrides applied (pins and suppression -- see [Editorial controls](#editorial-controls) below).
+3. Returning a page of feed items with cursor-based pagination.
 
-### Feed types
+### Feed items
 
-<Columns cols={2}>
-  <Card title="Primary feed" icon="list">
-    The main vertical scroll feed users see when entering the video experience.
+Each item in the feed response includes everything the SDK needs to display and play the video:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Unique content identifier |
+| `title` | Display title |
+| `description` | Display description |
+| `duration` | Video duration in seconds |
+| `streamingUrl` | Signed HLS manifest URL |
+| `thumbnailUrl` | First-frame thumbnail |
+| `captionTracks` | Array of available caption tracks (language, URL) |
+| `customMetadata` | Arbitrary key-value pairs you attached at upload time |
+
+### Pagination
+
+Feed pagination is cursor-based (keyset pagination). Each response includes a `cursor` value that you pass to the next request. Because the cursor encodes the position as an opaque token rather than an offset, performance is constant regardless of how deep into the feed the user scrolls.
+
+## Editorial controls
+
+Editorial controls let your team override algorithmic ordering without modifying content:
+
+<Columns cols={3}>
+  <Card title="Pin" icon="thumbtack">
+    Lock content to a specific feed position. Setting `pin_position: 1` means this item is always first in the feed, for every user. Pinned items are deterministic -- they are not influenced by ranking signals.
   </Card>
-  <Card title="Adjacent feeds" icon="arrows-left-right">
-    Additional feeds accessible by horizontal swipe, each with their own content filters and ranking.
+  <Card title="Suppress" icon="eye-slash">
+    Hide content from the feed without deleting it. Setting `is_suppressed: true` removes the item from all feed responses. The content record and its analytics are preserved, and suppression is reversible.
+  </Card>
+  <Card title="Schedule" icon="calendar">
+    Control the visibility window with `publish_at` and `expires_at` timestamps. Content in the `ready` state only appears in feeds when the current time falls within this window. When `expires_at` passes, the content transitions to `archived`.
   </Card>
 </Columns>
 
 ## Users and identity
 
-shortkit uses a **two-phase identity model** to track users:
+ShortKit uses a **two-phase identity model** to collect engagement signals immediately -- before your user ever logs in -- and then unify that data once they authenticate.
 
 ### Phase 1: Anonymous
 
-On first launch, the SDK generates a unique device ID. All engagement events are attributed to this anonymous identifier. This allows:
+On first SDK initialization, ShortKit generates a UUID v4 and stores it in the platform's local storage (UserDefaults on iOS, SharedPreferences on Android). Every engagement event from that device is attributed to this anonymous ID. No user authentication is required. This gives you:
 
-- Immediate signal collection without user authentication
-- Device-level personalization
-- Feed ranking that improves from the first session
+- Engagement signal collection from the very first session
+- Device-level personalization of the feed
+- Baseline analytics even for users who never log in
 
 ### Phase 2: Identified
 
-When your app authenticates a user, call `setUserId()` to associate their engagement data with a persistent identifier. This enables:
-
-- Cross-device engagement history
-- Personalization that follows users between devices
-- User-level analytics and reporting
+When your app authenticates a user, call `setUserId()` to associate their device with a persistent identifier from your system:
 
 ```swift
-// When user logs in
-shortkit.setUserId("user_12345")
-
-// When user logs out
-shortkit.clearUserId()
+// User logs in
+shortKit.setUserId("user-123")
 ```
 
+The SDK automatically merges all engagement data from the anonymous profile into the identified profile. From this point forward, events are attributed to `user-123`, enabling:
+
+- Cross-device personalization (same user on phone and tablet sees a consistent feed)
+- User-level analytics and cohort reporting
+- Engagement history that survives app reinstalls
+
+### Logout
+
+When the user logs out, call `clearUserId()`:
+
+```swift
+// User logs out
+shortKit.clearUserId()
+```
+
+This generates a new anonymous UUID v4 for the device. The previous identified profile is not affected -- it retains all its merged engagement data. The device simply starts accumulating fresh anonymous events until the next `setUserId()` call.
+
 <Info>
-  The user ID should be a unique, persistent string from your system (database ID, UUID, hashed email). shortkit never receives or stores actual user credentials.
+  The user ID should be a stable, unique string from your system -- a database primary key, UUID, or hashed email. ShortKit never receives or stores actual user credentials.
 </Info>
 
 ## Configuration
 
-shortkit uses a **hybrid configuration model** combining code-level defaults with server-side overrides:
+ShortKit uses a **three-layer configuration model** that gives developers full control at build time while allowing server-side overrides without shipping app updates.
 
-### Code-level config
+### Layer 1: Code-level defaults
 
-Configuration passed during SDK initialization. This defines baseline behavior and serves as the fallback when the server is unreachable.
+You pass a `FeedConfig` when initializing the SDK. Every field has a sensible default, so `FeedConfig()` alone produces a working configuration:
 
-```typescript
-shortkit.initialize({
-  apiKey: 'pk_live_...',
-  config: {
-    feedOrientation: 'vertical',
-    feedHeight: 'fullscreen',
-    controls: { playPause: true, scrubber: true }
-  }
-});
+```swift
+let config = FeedConfig(
+    feedOrientation: .vertical,
+    feedHeight: .fullscreen,
+    controls: ControlsConfig(
+        playPause: true,
+        scrubber: true
+    )
+)
+
+let shortKit = ShortKit(
+    apiKey: "pk_live_...",
+    config: config
+)
 ```
 
-### Remote config overlay
+These code-level values are the baseline. They are always available, even if the network is down on first launch.
 
-The SDK fetches configuration from the server on initialization. This overlay contains only the fields that differ from your defaults, including any A/B test variant assignments.
+### Layer 2: Remote config overlay
 
-Remote config enables you to:
-- Change behavior without app updates
-- Run A/B experiments
-- Adjust settings per user segment
+On initialization, the SDK fetches a remote configuration overlay from `GET /v1/config`. This overlay is **sparse** -- it contains only the fields you want to override, not a complete configuration. The SDK merges the overlay on top of the code-level defaults:
+
+```
+Final config = Code-level defaults + Remote overlay (sparse merge)
+```
+
+For example, if your code sets `feedHeight: .fullscreen` and the server returns `{ "feedHeight": "compact" }`, the final value is `compact`. Every other field retains the code-level default.
+
+This mechanism supports A/B testing natively: the server can return different overlay values per user segment, and the merge works identically.
+
+### Fetching behavior
+
+The remote config fetch is **non-blocking**. The SDK begins rendering with code-level defaults immediately. The overlay fetch runs concurrently with a 2-second timeout. When the response arrives, the SDK merges and applies it. If the fetch fails or times out, the SDK falls back to the last cached overlay (persisted to disk with a 5-minute TTL) or, if no cache exists, proceeds with code-level defaults alone.
 
 <Tip>
-  The SDK never blocks rendering waiting for remote config. If the fetch fails or times out (default: 2 seconds), it falls back gracefully to cached or code-level config.
+  Because the fetch is non-blocking, the feed always appears instantly. The remote overlay applies as soon as it arrives -- typically within a few hundred milliseconds on a healthy connection.
 </Tip>
-
-## Ranking signals
-
-The feed ranking system uses multiple **signals** to determine content order:
-
-| Signal | Description |
-|--------|-------------|
-| **Recency** | How recently the content was published. Newer content scores higher. |
-| **Engagement** | Aggregate engagement across all users: views, watch time, completions, shares. |
-| **Geo-relevance** | Match between user location and content's geographic targeting. |
-| **Topic affinity** | Match between user's historical preferences and content tags. |
-| **Completion rate** | How often users watch this content to the end. |
-
-Weights for each signal are configurable in the Admin Portal, allowing you to tune the balance between freshness and engagement.
-
-## Editorial controls
-
-Editorial teams can override algorithmic ranking with three controls:
-
-<Columns cols={3}>
-  <Card title="Pin" icon="thumbtack">
-    Force content to a specific position (e.g., position 1) regardless of ranking score. Deterministic for all users.
-  </Card>
-  <Card title="Boost" icon="arrow-up">
-    Add a positive modifier to ranking score, causing content to rise while still competing with other signals.
-  </Card>
-  <Card title="Suppress" icon="arrow-down">
-    Add a negative modifier or exclude content from the feed entirely.
-  </Card>
-</Columns>
-
-## Adaptive bitrate streaming
-
-shortkit delivers video using **adaptive bitrate (ABR) streaming**. Each video is transcoded into multiple quality levels:
-
-| Rendition | Resolution | H.264 Bitrate | AV1 Bitrate |
-|-----------|------------|---------------|-------------|
-| 1080p | 1920×1080 | ~4,500 kbps | ~2,500 kbps |
-| 720p | 1280×720 | ~2,500 kbps | ~1,500 kbps |
-| 480p | 854×480 | ~1,200 kbps | ~700 kbps |
-| 360p | 640×360 | ~700 kbps | ~400 kbps |
-| 240p | 426×240 | ~400 kbps | ~250 kbps |
-
-The SDK automatically selects the optimal quality based on:
-- Available network bandwidth
-- Device capabilities
-- Battery state
-
-This ensures smooth playback across varying network conditions while maximizing quality when bandwidth allows.
 
 ## Engagement events
 
-The SDK collects **engagement events** to power analytics and feed ranking:
+The SDK collects **11 engagement event types** that power analytics dashboards and feed ranking:
 
 | Event | Trigger |
 |-------|---------|
-| `impression` | Video enters viewport |
-| `playStart` | First frame begins playback |
-| `watchProgress` | Periodic updates during playback |
-| `completion` | Video reaches end |
-| `swipe` | User navigates to next/previous video |
-| `interaction` | User taps a control (share, like, etc.) |
+| `feedEntry` | The feed view appears on screen |
+| `feedExit` | The feed disappears (navigated away or app backgrounded) |
+| `impression` | A feed cell snaps into view and the thumbnail becomes visible |
+| `playStart` | The first video frame renders |
+| `watchProgress` | Fires every 1 second of active playback |
+| `completion` | The video reaches the end |
+| `swipe` | The user swipes to the next or previous video |
+| `rebuffer` | Playback stalls waiting for data |
+| `qualityChange` | Adaptive bitrate streaming switches to a different rendition |
+| `error` | A playback error occurs |
+| `interaction` | The user taps a control (share, like, captions, etc.) |
 
-Events are batched and sent at regular intervals (default: every 5 seconds) to minimize network overhead.
+### Event batching and delivery
+
+Events are not sent individually. The SDK accumulates them in memory and flushes to `POST /v1/events` on a regular cycle:
+
+1. **Periodic flush** -- every 30 seconds while the app is active.
+2. **Background flush** -- immediately when the app moves to the background, to capture the most recent events before the OS suspends the process.
+3. **Crash resilience** -- before each POST attempt, the batch is written to disk. If the app crashes before the POST completes, the persisted batch is retried on next launch.
+4. **Retry policy** -- failed POSTs are retried up to 3 times with backoff. After 3 failures the batch is dropped to prevent unbounded disk growth.
+
+## Adaptive bitrate streaming
+
+ShortKit delivers video using **HLS** (HTTP Live Streaming) with **H.264** encoding. Each video is transcoded into multiple quality renditions, and the player selects the best one based on current network conditions.
+
+### Playback performance
+
+The SDK pre-buffers upcoming videos so swiping between them starts playback near-instantly. Thumbnails are prefetched ahead of the current scroll position so the feed feels responsive even on slower connections. Quality rendition selection is automatic — the player monitors network throughput and adjusts in real time. No manual management is required.
 
 ## Webhooks
 
-**Webhooks** notify your server when important events occur in shortkit:
+**Webhooks** notify your server when content transitions to a terminal state:
 
-- `content.ready` - Content finished processing and is available
-- `content.errored` - Content processing failed
+- `content.ready` -- transcoding completed, content is available for playback
+- `content.errored` -- transcoding failed
 
-Webhook requests include a signature header (`X-Shortform-Signature`) for verification.
+Each webhook request includes a signature header (`X-Shortform-Signature`) for HMAC-SHA256 verification, so you can confirm the request originated from ShortKit.
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="Architecture overview" icon="sitemap" href="/architecture">
-    Understand how shortkit's components work together.
+    Understand how ShortKit's components work together end-to-end.
   </Card>
   <Card title="SDK configuration" icon="sliders" href="/sdk/configuration">
-    Learn about all available configuration options.
+    Explore all available FeedConfig options and their defaults.
   </Card>
 </Columns>

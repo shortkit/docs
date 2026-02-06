@@ -1,223 +1,219 @@
 ---
 title: "Authentication"
-description: "Authenticate API requests using API keys."
+description: "Authenticate API requests using publishable keys and secret keys."
 keywords: ["authentication", "API keys", "security", "authorization"]
 ---
 
-All API requests require authentication using API keys. shortkit uses two types of keys for different contexts.
+All API requests require authentication. ShortKit uses two types of API keys -- **publishable keys** for client-side access and **secret keys** for server-side operations.
 
 ## API key types
 
-| Key Type | Prefix | Use Case | Permissions |
-|----------|--------|----------|-------------|
-| **Secret key** | `sk_live_` / `sk_test_` | Server-side API calls | Full access |
-| **Publishable key** | `pk_live_` / `pk_test_` | Client SDK initialization | Read-only, limited |
+| Key type | Prefix | Header | Permissions |
+|----------|--------|--------|-------------|
+| **Publishable** | `pk_live_` / `pk_test_` | `X-API-Key` | Read-only: feed, config, events, identity |
+| **Secret** | `sk_live_` / `sk_test_` | `Authorization: Bearer` | Full access: uploads, content management, and all read operations |
 
 <Warning>
-  Never expose secret keys in client-side code, public repositories, or browser environments. Secret keys have full API access.
+  Secret keys grant full API access. Never expose them in client-side code, mobile apps, public repositories, or browser environments.
 </Warning>
 
-## Using API keys
+## Publishable keys
 
-### Server-side requests
+Publishable keys are designed to be embedded in client applications. They provide **read-only** access to public-facing endpoints.
 
-Include your secret key in the `Authorization` header:
+Use the `X-API-Key` header:
 
 ```bash
-curl https://api.shortkit.dev/v1/content \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+curl https://api.shortkit.dev/v1/feed?limit=10 \
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
+
+### Publishable key permissions
+
+Publishable keys can access:
+
+- `GET /v1/feed` -- Retrieve ranked video feeds
+- `GET /v1/config` -- Fetch remote configuration
+- `POST /v1/events` -- Send engagement events
+- `POST /v1/identity/resolve` -- Resolve user identity
+
+Publishable keys **cannot** access:
+
+- Content upload or management endpoints
+- Analytics query endpoints
+- Any write operation on content or configuration
 
 ### SDK initialization
 
-Use publishable keys when initializing client SDKs:
+Use your publishable key when initializing the ShortKit SDK:
 
-<Tabs>
-  <Tab title="iOS">
-    ```swift
-    shortkit.initialize(apiKey: "pk_live_your_publishable_key")
-    ```
-  </Tab>
-  <Tab title="Android">
-    ```kotlin
-    shortkit.initialize(context, "pk_live_your_publishable_key")
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    shortkit.initialize({ apiKey: 'pk_live_your_publishable_key' });
-    ```
-  </Tab>
-  <Tab title="Web">
-    ```typescript
-    shortkit.initialize({ apiKey: 'pk_live_your_publishable_key' });
-    ```
-  </Tab>
-</Tabs>
+```swift
+ShortKit.initialize(apiKey: "pk_live_your_publishable_key")
+```
 
-## Environments
+The SDK handles authentication automatically for all subsequent requests.
 
-Each environment has separate API keys:
+## Secret keys
 
-| Environment | Key Prefixes | Purpose |
-|-------------|--------------|---------|
-| **Production** | `sk_live_`, `pk_live_` | Live traffic, real data |
-| **Staging** | `sk_test_`, `pk_test_` | Testing, development |
+Secret keys are used for server-to-server communication. They provide **full access** to all API endpoints, including content uploads and management.
 
-Data is isolated between environments. Test keys cannot access production data and vice versa.
-
-## Obtaining API keys
-
-### Admin Portal
-
-1. Go to **Settings → API Keys**
-2. View existing keys or create new ones
-3. Copy the key (shown only once for secret keys)
-
-### Key permissions
-
-Secret keys have full access. Publishable keys are restricted to:
-
-- Fetching feed content (read-only)
-- Sending engagement events
-- Reading public configuration
-
-Publishable keys **cannot**:
-
-- Create, update, or delete content
-- Access analytics data
-- Modify configuration
-- Manage webhooks
-
-## Key management
-
-### Rotating keys
-
-To rotate a compromised or expired key:
-
-1. Go to **Settings → API Keys**
-2. Click **Create New Key**
-3. Update your application with the new key
-4. Delete the old key once migration is complete
-
-<Tip>
-  Plan key rotations during low-traffic periods. Update all services using the key before deleting the old one.
-</Tip>
-
-### Revoking keys
-
-Immediately revoke compromised keys:
-
-1. Go to **Settings → API Keys**
-2. Find the compromised key
-3. Click **Revoke**
-
-Revoked keys stop working immediately. Any requests using the key will receive a `401 Unauthorized` response.
-
-### Key metadata
-
-Add descriptions to track key usage:
+Use the `Authorization` header with a `Bearer` token:
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/api-keys \
+curl -X POST https://api.shortkit.dev/v1/uploads \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "secret",
-    "description": "Backend service - production"
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe"],
+    "customMetadata": {
+      "articleUrl": "https://weather.com/severe-storm"
+    }
   }'
 ```
 
+### Secret key permissions
+
+Secret keys can access all endpoints available to publishable keys, plus:
+
+- `POST /v1/uploads` -- Create direct upload sessions
+- `GET /v1/uploads/{id}` -- Check upload status
+
+Secret keys are shown **once** at creation time. They cannot be retrieved after that. Store them securely.
+
+## Environment isolation
+
+Every API key includes an environment prefix -- either `live` or `test`. These environments are **completely isolated**:
+
+| Environment | Key prefixes | Behavior |
+|-------------|-------------|----------|
+| **Live** | `pk_live_`, `sk_live_` | Production content, real video processing, persistent data |
+| **Test** | `pk_test_`, `sk_test_` | Test content, watermarked video, data deleted after 24 hours |
+
+- A `live` key cannot read or write `test` data
+- A `test` key cannot read or write `live` data
+- Test environment videos are watermarked and limited to 10 seconds
+- Test environment content is automatically deleted after 24 hours
+
+<Tip>
+  Always use `test` keys during development. This prevents accidental modifications to production content and avoids incurring video processing costs.
+</Tip>
+
+## Obtaining API keys
+
+1. Sign in to the **ShortKit Dashboard**
+2. Navigate to **Settings** then **API Keys**
+3. Click **Create New Key** and select the key type (publishable or secret)
+4. Copy the key immediately -- secret keys are only displayed once
+
+## Key rotation
+
+To rotate a compromised or aging key:
+
+1. Create a new key of the same type in **Settings** then **API Keys**
+2. Update your application to use the new key
+3. Verify the new key is working in production
+4. Revoke the old key
+
+Revoked keys stop working immediately. Any request using a revoked key receives a `401` error response.
+
 ## Authentication errors
 
-| Status | Error Code | Description |
-|--------|------------|-------------|
-| `401` | `UNAUTHORIZED` | Missing or invalid API key |
-| `401` | `KEY_REVOKED` | API key has been revoked |
-| `403` | `FORBIDDEN` | Key lacks required permissions |
-| `403` | `ENVIRONMENT_MISMATCH` | Using test key on production endpoint |
+| HTTP Status | Error code | Description |
+|-------------|------------|-------------|
+| `401` | `invalid_api_key` | API key is missing, malformed, or has been revoked |
+| `403` | `forbidden` | The key type does not have permission for this endpoint (e.g., publishable key used on a secret-key endpoint) |
 
-### Error response example
+### Example: missing API key
+
+```bash
+curl https://api.shortkit.dev/v1/feed
+```
 
 ```json
 {
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid API key provided"
-  },
+  "data": null,
   "meta": {
-    "requestId": "req_xyz789"
-  }
+    "request_id": "req_7c1b4a5d"
+  },
+  "errors": [
+    {
+      "code": "invalid_api_key",
+      "message": "No API key was provided. Include your key in the X-API-Key header or Authorization header."
+    }
+  ]
+}
+```
+
+### Example: publishable key on a secret-key endpoint
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/uploads \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "My Video"}'
+```
+
+```json
+{
+  "data": null,
+  "meta": {
+    "request_id": "req_2e8f1a3b"
+  },
+  "errors": [
+    {
+      "code": "forbidden",
+      "message": "This endpoint requires a secret key. Publishable keys have read-only access."
+    }
+  ]
 }
 ```
 
 ## Security best practices
 
 <AccordionGroup>
-  <Accordion title="Use environment variables">
-    Store keys in environment variables, not in code:
+  <Accordion title="Store keys in environment variables">
+    Never hard-code API keys in source files. Use environment variables or a secrets manager:
 
     ```bash
-    # .env file (never commit this)
+    # .env file (never commit this file)
     SHORTKIT_SECRET_KEY=sk_live_your_secret_key
+    SHORTKIT_PUBLISHABLE_KEY=pk_live_your_publishable_key
     ```
 
     ```javascript
-    // Access in code
-    const apiKey = process.env.SHORTKIT_SECRET_KEY;
+    // Access in your server code
+    const secretKey = process.env.SHORTKIT_SECRET_KEY;
     ```
   </Accordion>
-  <Accordion title="Restrict key permissions">
-    Create separate keys for different services. If one is compromised, impact is limited.
+  <Accordion title="Use the correct key type for each context">
+    - **Mobile apps and client-side code**: Always use publishable keys (`pk_live_` / `pk_test_`)
+    - **Backend servers and scripts**: Use secret keys (`sk_live_` / `sk_test_`)
+
+    Publishable keys are safe to embed in shipped code because they only grant read-only access.
   </Accordion>
-  <Accordion title="Monitor key usage">
-    Review API key usage in **Settings → API Keys → Usage**. Look for unusual patterns that might indicate compromise.
+  <Accordion title="Use test keys during development">
+    Use `pk_test_` and `sk_test_` keys in development and staging environments. This prevents accidental modifications to production data and avoids unnecessary video processing costs.
   </Accordion>
-  <Accordion title="Use staging keys for development">
-    Never use production keys during development. Use staging keys to avoid accidental data modification.
+  <Accordion title="Rotate keys on a regular schedule">
+    Rotate API keys periodically (for example, quarterly) as a preventive measure. Do not wait until a key is compromised to rotate it.
   </Accordion>
-  <Accordion title="Implement key rotation schedules">
-    Rotate keys periodically (e.g., quarterly) as a security practice, not just when compromised.
+  <Accordion title="Monitor for exposed keys">
+    If a secret key is accidentally committed to a public repository or exposed in client-side code, revoke it immediately in **Settings** then **API Keys** and create a replacement.
+  </Accordion>
+  <Accordion title="Limit key distribution">
+    Create separate secret keys for separate services. If one service is compromised, you can revoke its key without affecting others.
   </Accordion>
 </AccordionGroup>
 
-## SDK authentication
-
-The SDKs handle authentication automatically once initialized. Additional options:
-
-### Organization context
-
-For multi-tenant applications, specify organization context:
-
-```typescript
-shortkit.initialize({
-  apiKey: 'pk_live_your_publishable_key',
-  organizationId: 'org_abc123'  // Optional: explicit org context
-});
-```
-
-### User context
-
-Associate requests with authenticated users:
-
-```typescript
-// After user logs in
-shortkit.identifyUser({
-  userId: 'user_123',
-  traits: {
-    plan: 'premium',
-    interests: ['sports', 'music']
-  }
-});
-```
-
 ## Next steps
 
-<Columns cols={2}>
+<CardGroup cols={2}>
+  <Card title="API Introduction" icon="book" href="/api/introduction">
+    Overview of API design, response format, and pagination.
+  </Card>
   <Card title="Error handling" icon="triangle-exclamation" href="/api/errors">
-    Learn about error codes and handling.
+    Understand error codes and implement robust error handling.
   </Card>
-  <Card title="API introduction" icon="book" href="/api/introduction">
-    Overview of API design and conventions.
-  </Card>
-</Columns>
+</CardGroup>

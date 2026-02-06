@@ -1,141 +1,111 @@
 ---
 title: "Architecture"
-description: "Technical overview of Shortkit's system architecture and component interactions."
-keywords: ["architecture", "system design", "technical overview", "infrastructure"]
+description: "How ShortKit's components work together: SDK, API, video delivery, and the surfaces you interact with."
+keywords: ["architecture", "system design", "technical overview", "SDK architecture", "video delivery"]
 ---
 
-This page provides a technical overview of how Shortkit's components work together to deliver short-form video experiences.
+This page explains how ShortKit's components work together to deliver short-form video experiences. It is intended for engineers evaluating ShortKit or integrating at a deeper level.
 
 ## System overview
 
-Shortkit is structured as three tightly integrated layers:
+ShortKit is structured as three layers:
 
-1. **Client Layer** - Your app embeds the Shortkit SDK, which handles feed UI, video playback, and event collection
-2. **Platform Layer** - API Gateway routes requests to backend services (Content, Feed, Analytics, Config, Ads, User Signals)
-3. **Infrastructure Layer** - CDN, transcoding pipeline, and storage handle video processing and delivery
+1. **Client SDK** -- Embedded in your app, handles feed UI, video playback, engagement tracking, and remote configuration
+2. **ShortKit API** -- A single API at `api.shortkit.dev` that handles feed assembly, content management, configuration, analytics, and identity
+3. **Video delivery** -- A global CDN that serves HLS video streams and thumbnails directly to the device
 
-All SDK requests go through the API Gateway—the SDK never communicates directly with infrastructure services.
+The SDK communicates over exactly two paths: API requests go to `api.shortkit.dev`, and video playback streams directly from the CDN. The SDK never communicates with the transcoding pipeline or any other infrastructure service.
 
-## Client SDK layer
+## Two networking paths
 
-The Client SDK is embedded within your host application. It handles:
+The SDK communicates over exactly two networking paths. Understanding this separation is important for firewall rules, proxy configuration, and debugging.
 
-- **Feed UI rendering** - Vertical/horizontal scrolling video feed with configurable controls
-- **Video playback** - Custom media pipelines with adaptive bitrate streaming
-- **Signal collection** - Engagement events (impressions, watch time, completions)
-- **Remote configuration** - Fetching config overlays and A/B test variants
-- **Ad integration** - Native ad rendering via Google IMA SDK
+### API path
 
-### Platform-specific implementations
+**SDK** → `api.shortkit.dev` → **ShortKit API**
 
-| Platform | Player Architecture |
-|----------|-------------------|
-| **iOS** | Custom pipeline on AVFoundation (AVSampleBufferDisplayLayer, AudioToolbox). Bypasses AVPlayer to enable DASH, multi-codec ABR, and granular buffer control. |
-| **Android** | Built on Media3/ExoPlayer with custom extensions for buffer management and signal collection. |
-| **React Native** | Native bridge to iOS and Android implementations. Single SDK package detects platform and delegates accordingly. |
-| **Web** | Custom player using hls.js (HLS) and dash.js (DASH) with unified API surface. |
+All feed, config, analytics, and identity requests travel this path. The SDK sends HTTPS requests to the ShortKit API, which processes them and returns JSON responses.
 
-## Backend services
+### Video delivery path
 
-### Content Service
+**SDK** → **CDN** (HLS manifests and segments, thumbnails)
 
-Manages video assets throughout their lifecycle: creates content records on upload, triggers transcoding jobs, manages metadata, and handles state transitions (processing → ready → archived).
+The SDK receives streaming URLs and thumbnail URLs as part of feed responses. When it is time to play a video, the player fetches HLS manifests and segments directly from the CDN. ShortKit's API servers are not involved in video delivery -- once the feed response provides the URLs, playback is entirely between the device and the CDN.
 
-### Feed Service
+## API capabilities
 
-Computes personalized, ranked feeds by applying the signal-weighted ranking algorithm, incorporating editorial overrides, enforcing content filters, and returning content with streaming URLs.
+The ShortKit API at `api.shortkit.dev` exposes five capabilities:
 
-### Analytics Service
+| Capability | What it does | Endpoint |
+|------------|-------------|----------|
+| **Feed** | Ranks content, constructs feed responses with streaming and thumbnail URLs | `GET /v1/feed` |
+| **Content** | Content metadata, upload orchestration, transcoding lifecycle | `POST /v1/uploads`, `GET /v1/uploads/{id}` |
+| **Config** | Remote SDK configuration overlays | `GET /v1/config` |
+| **Analytics** | Engagement event ingestion | `POST /v1/events` |
+| **Identity** | Anonymous and identified user management, identity merge | `POST /v1/identity/resolve` |
 
-Ingests engagement events with real-time processing (ranking signals update within 60 seconds) and aggregate reporting for dashboards. Also tracks quality metrics like startup time and rebuffering.
-
-### Config Service
-
-Manages remote SDK configuration, A/B experiment definitions, and variant assignments. Delivers sparse config responses containing only fields that differ from defaults.
-
-### Ad Service
-
-Handles ad placement configuration, frequency rules, Google IMA integration, and aggregates ad performance metrics.
-
-### User Signal Service
-
-Stores per-user engagement profiles keyed by user ID or anonymous device ID. Tracks topic affinities and supports identity resolution when users authenticate.
-
-## Infrastructure layer
-
-### Transcoding pipeline
-
-On ingest, every video is processed into:
-
-- **ABR ladder** - Multiple quality renditions (1080p down to 144p) in H.264 and AV1 codecs
-- **Streaming manifests** - HLS (.m3u8) and DASH (.mpd) outputs
-- **Thumbnails** - First-frame images at each resolution
-- **Preview assets** - Animated previews for mini-player widgets
-
-### CDN delivery
-
-Video segments and assets are served via CDN with edge caching, origin shielding, signed URLs for access control, and custom domain support.
-
-### Storage
-
-Durable storage for original source files, transcoded segments, thumbnails, and caption tracks.
+All infrastructure-specific details (video processing asset IDs, CDN token generation, transcoding state) are abstracted behind the API. Your integration only ever references ShortKit content IDs.
 
 ## Data flows
 
-### Video playback
-
-1. Your app displays the feed via the SDK
-2. SDK requests ranked content from `GET /v1/feed`
-3. Feed Service returns content list with signed streaming URLs
-4. SDK fetches HLS/DASH manifest from CDN
-5. SDK fetches and renders video segments
-
 ### Content upload
 
-1. Your server requests an upload session via `POST /v1/uploads`
-2. API returns a signed upload URL
-3. Your server uploads the video file directly to storage
-4. Transcoding pipeline processes the video
-5. Webhook notifies your server when content is ready
+1. You call `POST /v1/uploads` with metadata (title, description, tags)
+2. ShortKit returns a signed upload URL and a content ID
+3. You upload the video file directly to the signed URL
+4. ShortKit transcodes the video into an HLS adaptive bitrate ladder (multiple resolutions and bitrates)
+5. On completion, a `content.ready` webhook fires and the content status transitions to `ready`
+6. Content begins appearing in feed responses
+
+### Feed delivery
+
+1. SDK calls `GET /v1/feed` with a cursor (omitted for the first page)
+2. ShortKit assembles the feed: reverse-chronological order, pinned items first, suppressed items excluded, publish/expire windows respected
+3. For each content item, the response includes a streaming URL and thumbnail URL
+4. Response includes content IDs, streaming URLs, thumbnail URLs, caption tracks, and any custom metadata
+5. The SDK renders the feed, assigns players from the pool, and begins prefetching thumbnails
 
 ### Engagement tracking
 
-1. SDK batches engagement events locally
-2. SDK sends events via `POST /v1/events`
-3. Analytics Service processes events and updates ranking signals (within 60 seconds)
-4. Aggregated metrics appear in dashboards
+1. The SDK collects events as the user interacts: `playStart`, `watchProgress`, `completion`, `swipe`, and others
+2. Events accumulate in memory, each tagged with a timestamp, user ID, session ID, and content ID
+3. Every 30 seconds, events are flushed to `POST /v1/events`
+4. When the app backgrounds, an immediate flush occurs
+5. On next app launch, any unsent events from the previous session are sent first
 
-## Authentication model
+## Authentication
 
-Each organization receives two API keys:
+ShortKit uses API key authentication with two key types and strict environment isolation.
 
-| Key Type | Prefix | Usage | Security |
-|----------|--------|-------|----------|
-| **Publishable** | `pk_` | SDK initialization, feed requests | Safe for client-side code |
-| **Secret** | `sk_` | Server-to-server API, Admin Portal | Never expose in client code |
+| Key type | Prefix | Transport | Access level |
+|----------|--------|-----------|-------------|
+| **Publishable** | `pk_live_`, `pk_test_` | `X-API-Key` header | Read-only (feed, config, events) |
+| **Secret** | `sk_live_`, `sk_test_` | `Authorization: Bearer` header | Full access (uploads, management) |
+
+**Environment isolation:** Keys prefixed with `live` access production data. Keys prefixed with `test` access a completely separate test environment. There is no crossover.
 
 ### User identity
 
 The SDK manages identity in two phases:
 
-1. **Anonymous** - Device-generated UUID on first launch
-2. **Identified** - Your app's user ID after authentication
+1. **Anonymous** -- A device-generated UUID is assigned on first SDK initialization
+2. **Identified** -- When your app authenticates a user, call `setUserId()` to merge the anonymous profile into the identified one
 
-Identity resolution merges anonymous engagement data with the identified profile.
+Identity resolution merges all engagement data collected during the anonymous phase into the identified user profile.
 
 ## Security
 
 - All API communication over TLS 1.2+
-- API keys hashed at rest
-- Signed CDN URLs with configurable expiry (default: 6 hours)
-- Webhook requests signed with HMAC-SHA256
+- Secret API keys are hashed and never retrievable after initial creation
+- Signed CDN URLs with configurable expiry
+- Webhook requests signed with HMAC-SHA256 for verification
 - Per-organization data isolation
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="SDK overview" icon="mobile" href="/sdk/overview">
-    Learn about the Client SDK capabilities.
+    Learn about the SDK capabilities and integration points.
   </Card>
   <Card title="API reference" icon="code" href="/api/introduction">
     Explore the complete API documentation.

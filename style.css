@@ -232,7 +232,6 @@ html[class*="dark"] .card {
 .code-block,
 pre {
   background: #fafafa !important;
-  border: 1px solid #e4e4e7 !important;
 }
 
 .dark .code-block,
@@ -242,7 +241,6 @@ html.dark pre,
 html[class*="dark"] .code-block,
 html[class*="dark"] pre {
   background: #1a1a1e !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* ========================================
