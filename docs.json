@@ -179,6 +179,7 @@
             "group": "Configuration",
             "pages": [
               "api/ranking",
+              "api/ad-config",
               "api/experiments",
               "api/webhooks"
             ]

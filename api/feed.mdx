@@ -132,6 +132,124 @@ Each item in the `data` array contains:
   through to your app's UI layer.
 </ResponseField>
 
+## Ad slots in the feed
+
+When your organization has ads enabled via the `/v1/ad-config` endpoint, the feed response can include `ad_slot` items interleaved with `content` items. Each item in the `data` array carries a `type` field that acts as a discriminator:
+
+- `"content"` -- A standard video content item, with the schema documented above.
+- `"ad_slot"` -- An ad placement marker inserted by the server at configured intervals.
+
+<Note>
+  If you are using the ShortKit SDK, ad slots are handled automatically. The SDK loads and renders ads through the configured ad provider. This section is for customers calling the Feed API directly.
+</Note>
+
+### Ad slot object
+
+When `type` is `"ad_slot"`, the item contains the following fields:
+
+<ResponseField name="id" type="string">
+  Server-assigned ad slot identifier (e.g., `ad_slot_001`).
+</ResponseField>
+
+<ResponseField name="position" type="integer">
+  The position of this ad slot in the feed.
+</ResponseField>
+
+<ResponseField name="adTagUrl" type="string | null">
+  VAST tag URL for the ad request. Used by ad providers such as Google IMA to fetch ad creatives.
+</ResponseField>
+
+<ResponseField name="adUnitId" type="string | null">
+  Ad unit identifier. An alternative to `adTagUrl` for ad providers that use unit-based lookups.
+</ResponseField>
+
+<ResponseField name="targeting" type="object">
+  Key-value pairs for ad targeting (e.g., `{"content_category": "sports", "org": "espn"}`). Passed to the ad provider to refine ad selection.
+</ResponseField>
+
+<ResponseField name="skipPolicy" type="string">
+  Controls whether the user can skip the ad. One of:
+  - `"non_skippable"` -- The ad cannot be skipped.
+  - `"skippable_after"` -- The ad can be skipped after `skipDelaySeconds` seconds.
+  - `"always_skippable"` -- The ad can be skipped immediately.
+</ResponseField>
+
+<ResponseField name="skipDelaySeconds" type="integer | null">
+  Number of seconds the user must wait before skipping. Only applies when `skipPolicy` is `"skippable_after"`.
+</ResponseField>
+
+### Example response with ad slots
+
+```json
+{
+  "data": [
+    {
+      "type": "content",
+      "id": "sk_content_abc123",
+      "title": "Breaking: Weather Alert",
+      "description": "Severe thunderstorm warning for the metro area",
+      "duration": 32.5,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+      "captionTracks": [],
+      "customMetadata": {}
+    },
+    {
+      "type": "content",
+      "id": "sk_content_def456",
+      "title": "Product Launch Recap",
+      "description": "Highlights from today's launch event",
+      "duration": 58.0,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_def456/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_def456/thumbnail.jpg",
+      "captionTracks": [],
+      "customMetadata": {}
+    },
+    {
+      "type": "content",
+      "id": "sk_content_ghi789",
+      "title": "Morning Market Update",
+      "description": "Stock futures and key earnings to watch",
+      "duration": 45.0,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_ghi789/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_ghi789/thumbnail.jpg",
+      "captionTracks": [],
+      "customMetadata": {}
+    },
+    {
+      "type": "ad_slot",
+      "id": "ad_slot_001",
+      "position": 3,
+      "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/shortkit-feed&cust_params=category%3Dsports",
+      "adUnitId": "/1234/shortkit-feed",
+      "targeting": {
+        "content_category": "sports",
+        "org": "espn"
+      },
+      "skipPolicy": "skippable_after",
+      "skipDelaySeconds": 5
+    },
+    {
+      "type": "content",
+      "id": "sk_content_jkl012",
+      "title": "Chef's Quick Recipe",
+      "description": "Five-minute pasta you can make tonight",
+      "duration": 28.0,
+      "streamingUrl": "https://video.shortkit.dev/sk_content_jkl012/stream.m3u8",
+      "thumbnailUrl": "https://images.shortkit.dev/sk_content_jkl012/thumbnail.jpg",
+      "captionTracks": [],
+      "customMetadata": {}
+    }
+  ],
+  "meta": {
+    "cursor": "eyJwIjoxMH0",
+    "request_id": "req_feed002"
+  }
+}
+```
+
+When the organization has no ad configuration or ads are disabled, the feed contains only `content` items -- identical to the standard response format documented above.
+
 ## Ranking
 
 The feed ranking algorithm determines the order in which content is returned. It considers multiple signals to deliver the most relevant content to each user.

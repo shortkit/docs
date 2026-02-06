@@ -23,7 +23,7 @@ Event-specific fields are documented for each event type below.
 
 ## Event types
 
-The SDK tracks 11 event types.
+The SDK tracks 17 event types: 11 content events and 6 ad events.
 
 ### feedEntry
 
@@ -148,6 +148,70 @@ Supported interaction types:
 | `caption_toggle` | User toggled captions on or off | `true` / `false` |
 | `mute_toggle` | User muted or unmuted | `true` / `false` |
 | `seek` | User scrubbed to a new position | Seek target in seconds |
+
+## Ad events
+
+When the feed includes ad slots and an ad provider is configured, the SDK emits 6 additional event types for ad lifecycle tracking. These events flow through the same `POST /v1/events` pipeline and 30-second batching cycle as content events.
+
+### adRequest
+
+Fired when the SDK calls `loadAd` on the ad provider to request an ad for a slot.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `filled` | boolean | Whether the ad request was filled successfully |
+| `errorReason` | string | Reason for failure (e.g., `"no_fill"`, `"timeout"`). Only present when `filled` is `false` |
+
+### adImpression
+
+Fired when the ad cell becomes visible and the first frame renders. This is the billable event for most ad networks.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `adUnitId` | string | Ad unit identifier |
+| `creativeId` | string | Creative identifier from the ad provider |
+| `position` | number | Position of the ad in the feed |
+
+### adStart
+
+Fired when the ad video begins playback.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `adUnitId` | string | Ad unit identifier |
+| `creativeId` | string | Creative identifier from the ad provider |
+| `position` | number | Position of the ad in the feed |
+
+### adProgress
+
+Fired at the 25%, 50%, and 75% quartile marks during ad playback, following the standard VAST quartile tracking model.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `quartile` | string | The quartile reached: `"first"` (25%), `"midpoint"` (50%), or `"third"` (75%) |
+
+### adComplete
+
+Fired when the ad video reaches the end without being skipped.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `adUnitId` | string | Ad unit identifier |
+| `creativeId` | string | Creative identifier from the ad provider |
+
+### adSkip
+
+Fired when the user swipes past the ad after the skip delay has elapsed.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `watchTime` | number | Seconds the user watched the ad before skipping |
 
 ## Event batching
 

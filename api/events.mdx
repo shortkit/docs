@@ -149,6 +149,17 @@ The response indicates how many events were accepted and how many were rejected 
 | `feedExit` | User exits the feed view | `watchTime` |
 | `interaction` | Generic user interaction | `action` |
 
+### Ad events
+
+| Event type | Trigger | Event-specific fields |
+|------------|---------|----------------------|
+| `adRequest` | SDK calls `loadAd` on the ad provider | `slotId`, `filled`, `errorReason` |
+| `adImpression` | Ad cell becomes visible and first frame renders | `slotId`, `adUnitId`, `creativeId`, `position` |
+| `adStart` | Ad video begins playback | `slotId`, `adUnitId`, `creativeId`, `position` |
+| `adProgress` | Ad reaches a quartile mark (25%, 50%, 75%) | `slotId`, `quartile` |
+| `adComplete` | Ad video reaches the end without being skipped | `slotId`, `adUnitId`, `creativeId` |
+| `adSkip` | User swiped past the ad after the skip delay | `slotId`, `watchTime` |
+
 ### Quality events
 
 | Event type | Trigger | Event-specific fields |
@@ -460,6 +471,169 @@ Sent when a playback error occurs.
 |-------|------|-------------|
 | `errorCode` | string | Machine-readable error code |
 | `errorMessage` | string | Human-readable error description |
+
+## Ad event data schemas
+
+Ad events use the same common fields (`type`, `userId`, `sessionId`, `timestamp`) as content events. The `contentId` field is omitted since ad events are identified by `slotId` instead. Ad events are batched and delivered alongside content events in the same `POST /v1/events` requests.
+
+### adRequest
+
+Sent when the SDK calls `loadAd` on the ad provider. Records whether the ad request was filled.
+
+```json
+{
+  "type": "adRequest",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:30Z",
+  "data": {
+    "slotId": "ad_slot_001",
+    "filled": true
+  }
+}
+```
+
+On failure, the `errorReason` field is included:
+
+```json
+{
+  "type": "adRequest",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:30Z",
+  "data": {
+    "slotId": "ad_slot_002",
+    "filled": false,
+    "errorReason": "no_fill"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `filled` | boolean | Whether the ad request was filled successfully |
+| `errorReason` | string | Reason for failure (e.g., `no_fill`, `timeout`). Present only when `filled` is `false` |
+
+### adImpression
+
+Sent when the ad cell becomes visible and the first frame renders.
+
+```json
+{
+  "type": "adImpression",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:32Z",
+  "data": {
+    "slotId": "ad_slot_001",
+    "adUnitId": "/1234/shortkit-feed",
+    "creativeId": "cr_xyz",
+    "position": 3
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `adUnitId` | string | Ad unit identifier |
+| `creativeId` | string | Creative identifier from the ad provider |
+| `position` | integer | Position of the ad in the feed |
+
+### adStart
+
+Sent when the ad video begins playback.
+
+```json
+{
+  "type": "adStart",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:33Z",
+  "data": {
+    "slotId": "ad_slot_001",
+    "adUnitId": "/1234/shortkit-feed",
+    "creativeId": "cr_xyz",
+    "position": 3
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `adUnitId` | string | Ad unit identifier |
+| `creativeId` | string | Creative identifier from the ad provider |
+| `position` | integer | Position of the ad in the feed |
+
+### adProgress
+
+Sent at the 25%, 50%, and 75% quartile marks during ad playback.
+
+```json
+{
+  "type": "adProgress",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:40Z",
+  "data": {
+    "slotId": "ad_slot_001",
+    "quartile": "midpoint"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `quartile` | string | The quartile reached: `first` (25%), `midpoint` (50%), or `third` (75%) |
+
+### adComplete
+
+Sent when the ad video reaches the end without being skipped.
+
+```json
+{
+  "type": "adComplete",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:55Z",
+  "data": {
+    "slotId": "ad_slot_001",
+    "adUnitId": "/1234/shortkit-feed",
+    "creativeId": "cr_xyz"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `adUnitId` | string | Ad unit identifier |
+| `creativeId` | string | Creative identifier from the ad provider |
+
+### adSkip
+
+Sent when the user swipes past the ad after the skip delay has elapsed.
+
+```json
+{
+  "type": "adSkip",
+  "userId": "user_456",
+  "sessionId": "sess_xyz789",
+  "timestamp": "2026-02-05T12:00:45Z",
+  "data": {
+    "slotId": "ad_slot_001",
+    "watchTime": 6.2
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slotId` | string | Server-assigned ad slot identifier |
+| `watchTime` | number | Seconds the user watched the ad before skipping |
 
 ## SDK batching behavior
 

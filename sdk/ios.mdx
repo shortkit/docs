@@ -53,6 +53,7 @@ public init(
 | `apiKey` | `String` | Your publishable key (`pk_live_...`). Found in **Settings → API Keys** in the [Admin Portal](https://portal.shortkit.dev). |
 | `config` | `FeedConfig` | Controls layout, playback controls, theming, and captions. See [FeedConfig](#feedconfig). |
 | `environment` | `Environment` | `.production` (default), `.staging`, `.development`, or `.custom(URL)` for a custom endpoint. |
+| `adProvider` | `ShortKitAdProvider?` | Optional ad provider for in-feed video ads. Pass a `GoogleIMAAdProvider` instance (from the `ShortKitGoogleAds` package) or a custom implementation conforming to `ShortKitAdProvider`. When `nil` (the default), ad slots returned in the feed are silently ignored. |
 
 <Tabs>
   <Tab title="SwiftUI">
@@ -97,6 +98,71 @@ public init(
                 config: FeedConfig(
                     feedHeight: .fullscreen,
                     theme: ThemeConfig(primaryColor: .systemRed)
+                )
+            )
+
+            return true
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+#### Initialization with ad provider
+
+To enable in-feed video ads, pass an `adProvider` during initialization. The example below uses the built-in Google IMA adapter from the `ShortKitGoogleAds` package.
+
+<Tabs>
+  <Tab title="SwiftUI">
+    ```swift App.swift
+    import SwiftUI
+    import ShortKit
+    import ShortKitGoogleAds
+
+    @main
+    struct MyApp: App {
+        let shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig(
+                feedHeight: .fullscreen,
+                theme: ThemeConfig(primaryColor: .red)
+            ),
+            adProvider: GoogleIMAAdProvider(
+                defaultAdTagBaseUrl: "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed"
+            )
+        )
+
+        var body: some Scene {
+            WindowGroup {
+                ContentView(shortKit: shortKit)
+            }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="UIKit">
+    ```swift AppDelegate.swift
+    import UIKit
+    import ShortKit
+    import ShortKitGoogleAds
+
+    @main
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+        var shortKit: ShortKit!
+
+        func application(
+            _ application: UIApplication,
+            didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+        ) -> Bool {
+
+            shortKit = ShortKit(
+                apiKey: "pk_live_your_publishable_key",
+                config: FeedConfig(
+                    feedHeight: .fullscreen,
+                    theme: ThemeConfig(primaryColor: .systemRed)
+                ),
+                adProvider: GoogleIMAAdProvider(
+                    defaultAdTagBaseUrl: "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed"
                 )
             )
 

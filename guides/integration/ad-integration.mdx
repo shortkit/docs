@@ -1,349 +1,385 @@
 ---
-title: "Ad integration"
-description: "Set up native in-feed video advertising with Google IMA SDK."
-keywords: ["ads", "advertising", "monetization", "IMA", "Google Ad Manager", "VAST"]
+title: "Ad Integration"
+description: "Add in-feed video ad interstitials to your ShortKit feed with a pluggable ad provider."
+keywords: ["ads", "advertising", "monetization", "Google IMA", "VAST", "ad provider", "in-feed ads", "video ads"]
 ---
 
-ShortKit integrates with the Google IMA SDK to deliver native in-feed video ads that match your app's visual style. Ads render as full-screen feed cards, consistent with organic content, and the SDK handles all VAST tracking requirements automatically.
+ShortKit supports in-feed video ad interstitials inserted between content items. Ads are fully opt-in -- if you do not configure an ad provider, the feed is content-only and behaves exactly as it does today. When ads are enabled, full-screen video ads appear at server-controlled intervals, styled to match your feed.
 
-<Info>
-  Ad integration is available as an add-on feature. Contact your account team to enable it.
-</Info>
+---
 
-## Overview
+## Enabling ads
 
-The ad integration works as follows:
+Pass an `adProvider` parameter to the `ShortKit` initializer. This is the only client-side change required to enable ads.
 
-1. **SDK requests an ad** -- The feed controller determines when an ad slot is due based on your frequency configuration
-2. **IMA SDK fetches the ad** -- A request is made to Google Ad Manager for an available creative
-3. **Native rendering** -- The SDK renders the ad in a full-screen feed card styled with your theme
-4. **Tracking compliance** -- The SDK fires all required VAST tracking events automatically
+```swift
+import ShortKit
+import ShortKitGoogleAds
 
-## Account setup
-
-### Option 1: Self-managed
-
-Use your own Google Ad Manager account:
-
-<Steps>
-  <Step title="Get your GAM credentials">
-    From your Google Ad Manager account, obtain:
-    - Network code
-    - Ad unit ID for in-feed video
-  </Step>
-  <Step title="Configure in Admin Portal">
-    1. Go to **Ads** then **Configuration**
-    2. Select **Self-managed**
-    3. Enter your network code and ad unit ID
-    4. Click **Verify Connection**
-  </Step>
-  <Step title="Map content categories">
-    1. Go to **Ads** then **Configuration** then **Categories**
-    2. Map your content tags to IAB categories
-    3. This enables targeted ad delivery based on content context
-  </Step>
-</Steps>
-
-### Option 2: Platform-managed
-
-Let ShortKit handle ad operations:
-
-1. Go to **Ads** then **Configuration**
-2. Select **Platform-managed**
-3. Complete the enrollment form
-4. The ShortKit team configures your inventory
-5. View revenue in the Ads dashboard
-
-Platform-managed benefits:
-- Optimized fill rates and CPMs
-- No ad operations expertise required
-- Aggregate data improves targeting across the network
-- Dedicated support
-
-## SDK configuration
-
-Enable ads in your SDK configuration:
-
-<Tabs>
-  <Tab title="iOS">
-    ```swift
-    let shortKit = ShortKit(
-        apiKey: "pk_live_abc123",
-        config: FeedConfig(
-            ads: AdsConfig(
-                enabled: true,
-                frequency: .countBased(interval: 5, firstAdAfter: 3)
-            )
-        )
+let shortKit = ShortKit(
+    apiKey: "pk_live_...",
+    config: FeedConfig(...),
+    adProvider: GoogleIMAAdProvider(
+        defaultAdTagBaseUrl: "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed"
     )
-    ```
-  </Tab>
-  <Tab title="Android">
-    ```kotlin
-    val shortKit = ShortKit(
-        apiKey = "pk_live_abc123",
-        config = FeedConfig(
-            ads = AdsConfig(
-                enabled = true,
-                frequency = AdFrequency.CountBased(interval = 5, firstAdAfter = 3)
-            )
-        )
+)
+```
+
+When no `adProvider` is set, ad slots in the feed response are silently ignored and the feed renders content only.
+
+<Warning>
+  The `adProvider` parameter is optional. If you are not monetizing with ads, omit it entirely. There is no `enabled: false` toggle -- the absence of a provider is what disables ads.
+</Warning>
+
+---
+
+## Google IMA setup
+
+ShortKit ships a Google IMA adapter as a separate Swift Package Manager target called `ShortKitGoogleAds`. The core `ShortKit` package remains zero-dependency -- the Google Interactive Media Ads SDK is only pulled in when you explicitly add the ads target.
+
+### Adding the SPM targets
+
+Add both products to your `Package.swift` dependencies:
+
+```swift Package.swift
+dependencies: [
+    .package(url: "https://github.com/AudienceKit/shortkit-ios.git", from: "1.0.0")
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: [
+            .product(name: "ShortKit", package: "shortkit-ios"),              // Core -- no dependencies
+            .product(name: "ShortKitGoogleAds", package: "shortkit-ios")      // Adds Google IMA SDK
+        ]
     )
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    const shortKit = new ShortKit({
-      apiKey: "pk_live_abc123",
-      config: {
-        ads: {
-          enabled: true,
-          frequency: {
-            mode: "count",
-            interval: 5,
-            firstAdAfter: 3
-          }
-        }
-      }
-    });
-    ```
-  </Tab>
-  <Tab title="Web">
-    ```typescript
-    const shortKit = new ShortKit({
-      apiKey: "pk_live_abc123",
-      config: {
-        ads: {
-          enabled: true,
-          frequency: {
-            mode: "count",
-            interval: 5,
-            firstAdAfter: 3
-          }
-        }
-      }
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## Ad frequency modes
-
-### Count-based
-
-Show an ad every N content videos:
-
-```typescript
-ads: {
-  frequency: {
-    mode: "count",
-    interval: 5,      // Ad every 5 videos
-    firstAdAfter: 3   // No ads until the 3rd video
-  }
-}
+]
 ```
 
-### Time-based
+Or in Xcode, go to **File -> Add Package Dependencies**, add the `shortkit-ios` package, and select both the `ShortKit` and `ShortKitGoogleAds` library products.
 
-Show an ad every M minutes of watch time:
+### Initializing the ad provider
 
-```typescript
-ads: {
-  frequency: {
-    mode: "time",
-    intervalMinutes: 3,      // Ad every 3 minutes
-    minSessionMinutes: 1     // No ads in the first minute
-  }
-}
+`GoogleIMAAdProvider` accepts two parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `defaultAdTagBaseUrl` | `String` | Required | Your VAST ad tag base URL. The SDK appends targeting key-values as query parameters at request time. |
+| `loadTimeout` | `TimeInterval` | `5.0` | Maximum time in seconds to wait for an ad to load before treating the slot as a no-fill. |
+
+```swift
+let adProvider = GoogleIMAAdProvider(
+    defaultAdTagBaseUrl: "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    loadTimeout: 5.0
+)
 ```
 
-### Platform-optimized
+<Tip>
+  Keep the `loadTimeout` between 3 and 8 seconds. Too short and you lose fill on slower connections. Too long and the user may swipe past the slot before the ad is ready.
+</Tip>
 
-Let the platform determine the optimal frequency based on engagement signals:
+---
 
-```typescript
-ads: {
-  frequency: {
-    mode: "platform-optimized"
-  }
-}
-```
+## Ad behavior
 
-Uses heuristics based on:
-- Session depth
-- Content completion rates
-- Aggregate engagement data
+When ads are enabled, here is what the user experiences:
 
-## Native ad styling
+- **Full-screen video ads** appear between content items at positions determined by your server-side configuration. Ads render as feed cells that match the rest of the feed.
+- **"Ad" label** -- a small label in the top-left corner of every ad cell, required by most ad policies. The label is styled through your `ThemeConfig` so it matches your feed.
+- **Skip countdown** -- when the skip policy is set to `skippableAfter`, a countdown appears on screen ("Skip in 5... 4... 3..."). The user cannot swipe past the ad until the countdown reaches zero.
+- **Click-through** -- tapping an ad opens the click-through URL in an in-app browser. Playback pauses during the click-through and resumes automatically when the user returns.
+- **No-fill handling** -- if no ad is available for a slot (no fill, timeout, or any error), the slot collapses silently. The next content item shifts up into that position. The user never sees a blank or loading cell.
 
-Ads render as native feed cards that match your theme. Customize the sponsored label:
+---
 
-```typescript
-theme: {
-  sponsoredLabel: {
-    text: "Ad",
-    textColor: "#FFFFFF",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    fontSize: 11,
-    position: "topRight"
-  }
-}
-```
+## Server-side ad configuration
 
-### Styling options
+Ad placement and policies are configured per-organization on the server, either through the API (`/v1/ad-config`) or the Admin Portal under **Settings -> Ads**. The server inserts ad slot markers into the feed response at the intervals you configure. The SDK renders them in order.
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `text` | string | Label text (e.g., "Ad", "Sponsored") |
-| `textColor` | string | Label text color |
-| `backgroundColor` | string | Label background color |
-| `fontSize` | number | Text size in points |
-| `position` | string | Corner placement: `topLeft`, `topRight`, `bottomLeft`, `bottomRight` |
+### Configurable fields
 
-## Ad events
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `Boolean` | `false` | Master toggle. When disabled, no ad slots are inserted into the feed. |
+| `frequency` | `Integer` | `5` | Insert an ad slot every N content items. |
+| `firstAdOffset` | `Integer` | `3` | Minimum number of content items before the first ad. The feed never leads with an ad. |
+| `maxPerPage` | `Integer` | `3` | Maximum ad slots per feed page. Prevents ad-heavy pages on large page sizes. |
+| `adTagUrl` | `String` | -- | Default VAST ad tag URL passed to the SDK's ad provider. |
+| `adUnitId` | `String` | -- | Default ad unit identifier (alternative to VAST tag URL). |
+| `skipPolicy` | `String` | `skippable_after` | One of `non_skippable`, `skippable_after`, or `always_skippable`. See [Skip policies](#skip-policies). |
+| `skipDelaySeconds` | `Integer` | `5` | Seconds before skip is allowed. Only applies when `skipPolicy` is `skippable_after`. |
+| `targeting` | `Object` | `{}` | Default key-value targeting pairs included in every ad request. |
 
-Handle ad lifecycle events in your app:
+<Note>
+  See the [Ad Config API reference](/api-reference/ad-config) for full request and response schemas.
+</Note>
 
-<Tabs>
-  <Tab title="iOS">
-    ```swift
-    class MyDelegate: ShortKitDelegate {
-        func shortKit(_ shortKit: ShortKit, didShowAd ad: Ad) {
-            analytics.track("ad_impression", properties: [
-                "adId": ad.id,
-                "position": ad.position
-            ])
-        }
+---
 
-        func shortKit(_ shortKit: ShortKit, didCompleteAd ad: Ad) {
-            analytics.track("ad_completed", properties: [
-                "adId": ad.id,
-                "watchTime": ad.watchTime
-            ])
-        }
+## Skip policies
 
-        func shortKit(_ shortKit: ShortKit, adDidFail error: AdError) {
-            print("Ad failed: \(error.message)")
-        }
+Skip policies control whether and when a user can swipe past an ad. The policy is set server-side and enforced by the SDK.
+
+<AccordionGroup>
+  <Accordion title="nonSkippable">
+    The user cannot swipe past the ad until it finishes playing. Use this for high-value placements where completion is required.
+
+    ```json
+    {
+      "skipPolicy": "non_skippable"
     }
     ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    <ShortKitFeedView
-      onAdImpression={(ad) => {
-        analytics.track("ad_impression", {
-          adId: ad.id,
-          position: ad.position
-        });
-      }}
-      onAdCompleted={(ad) => {
-        analytics.track("ad_completed", {
-          adId: ad.id,
-          watchTime: ad.watchTime
-        });
-      }}
-      onAdError={(error) => {
-        console.error("Ad error:", error);
-      }}
-    />
+  </Accordion>
+  <Accordion title="skippableAfter">
+    A countdown timer appears on screen. Once the countdown reaches zero, the user can swipe past the ad. The `skipDelaySeconds` field controls the countdown duration.
+
+    ```json
+    {
+      "skipPolicy": "skippable_after",
+      "skipDelaySeconds": 5
+    }
     ```
-  </Tab>
-</Tabs>
 
-### Available events
+    The SDK renders the countdown UI ("Skip in 5... 4... 3...") consistently regardless of the ad provider.
+  </Accordion>
+  <Accordion title="alwaysSkippable">
+    The user can swipe past the ad immediately with no delay. Use this for a lower-friction experience at the cost of lower completion rates.
 
-| Event | Description |
-|-------|-------------|
-| `adImpression` | Ad rendered in feed |
-| `adStarted` | Ad playback began |
-| `adFirstQuartile` | 25% of ad watched |
-| `adMidpoint` | 50% of ad watched |
-| `adThirdQuartile` | 75% of ad watched |
-| `adCompleted` | Ad finished playing |
-| `adSkipped` | User swiped past the ad |
-| `adClicked` | User tapped the ad |
-| `adError` | Ad failed to load or play |
+    ```json
+    {
+      "skipPolicy": "always_skippable"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
 
-## VAST compliance
+---
 
-The SDK automatically handles all VAST tracking requirements:
+## Building a custom ad provider
 
-- Impression tracking
-- Quartile events (25%, 50%, 75%)
-- Completion tracking
-- Click tracking and click-through URLs
-- Error reporting
+If you use your own ad server or a provider other than Google IMA, you can implement the `ShortKitAdProvider` protocol directly. The core `ShortKit` package defines the protocol -- no additional dependencies are required.
 
-This ensures accurate reporting in Google Ad Manager and proper billing for your inventory.
+### ShortKitAdProvider protocol
 
-## Testing ads
+The SDK calls three methods on your provider during the ad lifecycle:
 
-### Test mode
+```swift
+public protocol ShortKitAdProvider: AnyObject {
+    /// Called when an ad slot enters the prefetch window (approximately 6 items
+    /// ahead of the current position). Load and prepare the ad creative here.
+    func loadAd(for slot: AdSlot, completion: @escaping (Result<PreparedAd, AdError>) -> Void)
 
-Enable test ads during development to avoid generating real impressions:
-
-<Tabs>
-  <Tab title="iOS">
-    ```swift
-    let shortKit = ShortKit(
-        apiKey: "pk_test_abc123",
-        config: FeedConfig(
-            ads: AdsConfig(
-                enabled: true,
-                testMode: true
-            )
-        )
+    /// Called when the ad cell becomes the active (visible) cell.
+    /// Render the ad into the provided container view.
+    func displayAd(
+        _ ad: PreparedAd,
+        in container: UIView,
+        presentingViewController: UIViewController,
+        delegate: ShortKitAdDelegate
     )
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    const shortKit = new ShortKit({
-      apiKey: "pk_test_abc123",
-      config: {
-        ads: {
-          enabled: true,
-          testMode: true
-        }
-      }
-    });
-    ```
-  </Tab>
-</Tabs>
 
-Test mode:
-- Shows Google test ad creatives
-- No real impressions are recorded
-- No revenue is generated
+    /// Called when the user swipes away, the ad completes, or an error occurs.
+    /// Tear down the ad and release resources.
+    func dismissAd(_ ad: PreparedAd)
+}
+```
+
+The provider owns rendering. The SDK provides a `UIView` container and a presenting `UIViewController`. Your provider renders the ad creative into that container using whatever player or rendering approach your ad server requires. The SDK does not play ad video through its own player -- the ad cell is entirely yours.
+
+### AdSlot
+
+Server-assigned metadata for each ad slot, delivered as part of the feed response.
+
+```swift
+public struct AdSlot {
+    public let id: String                   // Server-assigned slot ID
+    public let position: Int                // Position in the feed
+    public let adTagUrl: String?            // VAST tag URL (if applicable)
+    public let adUnitId: String?            // Ad unit identifier
+    public let targeting: [String: String]  // Key-value targeting pairs
+    public let skipPolicy: SkipPolicy
+}
+
+public enum SkipPolicy {
+    case nonSkippable
+    case skippableAfter(seconds: TimeInterval)
+    case alwaysSkippable
+}
+```
+
+### PreparedAd
+
+An opaque handle your provider creates during `loadAd` and returns to the SDK. Store whatever internal state you need (loaded creative, player instance, metadata) inside the `providerData` property.
+
+```swift
+public class PreparedAd {
+    public let slotId: String
+    public let skipPolicy: SkipPolicy
+    internal let providerData: Any
+}
+```
+
+### ShortKitAdDelegate
+
+The SDK implements this protocol. Your provider calls these methods during ad playback to report lifecycle events.
+
+```swift
+public protocol ShortKitAdDelegate: AnyObject {
+    func adDidStart(_ ad: PreparedAd)
+    func adDidReachQuartile(_ ad: PreparedAd, quartile: AdQuartile)
+    func adDidComplete(_ ad: PreparedAd)
+    func adWasSkipped(_ ad: PreparedAd, watchTime: TimeInterval)
+    func adDidFail(_ ad: PreparedAd, error: AdError)
+    func adDidReceiveClick(_ ad: PreparedAd)
+}
+```
+
+### AdQuartile
+
+Standard VAST quartile markers.
+
+```swift
+public enum AdQuartile {
+    case first      // 25%
+    case midpoint   // 50%
+    case third      // 75%
+}
+```
+
+### AdError
+
+Error types your provider returns when an ad cannot be loaded or played.
+
+```swift
+public enum AdError: Error {
+    case noFill              // No ad available for this slot
+    case timeout             // Load exceeded the timeout window
+    case networkError(Error) // Underlying network failure
+    case providerError(String) // Provider-specific error with a description
+}
+```
+
+### Skeleton implementation
+
+Here is a minimal custom provider to use as a starting point:
+
+```swift
+import ShortKit
+import UIKit
+import AVFoundation
+
+class MyAdProvider: NSObject, ShortKitAdProvider {
+    private var activePlayers: [String: AVPlayer] = [:]
+
+    func loadAd(for slot: AdSlot, completion: @escaping (Result<PreparedAd, AdError>) -> Void) {
+        // Call your ad server with the slot's targeting data
+        MyAdServer.fetchAd(adUnitId: slot.adUnitId, targeting: slot.targeting) { result in
+            switch result {
+            case .success(let creative):
+                let ad = PreparedAd(
+                    slotId: slot.id,
+                    skipPolicy: slot.skipPolicy,
+                    providerData: creative  // Your loaded creative
+                )
+                completion(.success(ad))
+
+            case .failure:
+                completion(.failure(.noFill))
+            }
+        }
+    }
+
+    func displayAd(
+        _ ad: PreparedAd,
+        in container: UIView,
+        presentingViewController: UIViewController,
+        delegate: ShortKitAdDelegate
+    ) {
+        guard let creative = ad.providerData as? MyCreative else {
+            delegate.adDidFail(ad, error: .providerError("Invalid creative"))
+            return
+        }
+
+        // Set up your player and render into the container view
+        let player = AVPlayer(url: creative.videoUrl)
+        let playerLayer = AVPlayerLayer(player: player)
+        playerLayer.frame = container.bounds
+        playerLayer.videoGravity = .resizeAspectFill
+        container.layer.addSublayer(playerLayer)
+
+        activePlayers[ad.slotId] = player
+
+        // Report lifecycle events to the SDK via the delegate
+        delegate.adDidStart(ad)
+        player.play()
+    }
+
+    func dismissAd(_ ad: PreparedAd) {
+        activePlayers[ad.slotId]?.pause()
+        activePlayers[ad.slotId] = nil
+    }
+}
+```
+
+<Warning>
+  Your provider must call `adDidStart`, `adDidComplete` (or `adWasSkipped`), and the quartile callbacks at the correct moments. The SDK relies on these delegate calls to update the UI (skip countdown, progress indicators) and to emit analytics events.
+</Warning>
+
+---
+
+## Ad analytics
+
+Ad engagement events flow through the same analytics pipeline as content events. The SDK emits six ad-specific event types automatically based on the delegate callbacks your ad provider reports:
+
+| Event | Trigger |
+|---|---|
+| `adRequest` | SDK calls `loadAd` on the provider. Includes whether the request was filled. |
+| `adImpression` | Ad cell becomes visible and the first frame renders. |
+| `adStart` | Ad video begins playback. |
+| `adProgress` | Fires at 25%, 50%, and 75% quartile marks. |
+| `adComplete` | Ad video reaches the end without being skipped. |
+| `adSkip` | User swipes past the ad after the skip delay. Includes watch time. |
+
+These events are batched and delivered alongside content events with no additional setup. View ad analytics in the [Admin Portal](https://portal.shortkit.dev) under **Analytics**, or consume them via the events API.
+
+<Tip>
+  See [Engagement Signals](/guides/engagement-signals) for the full event schema and delivery details.
+</Tip>
+
+---
 
 ## Best practices
 
 <AccordionGroup>
   <Accordion title="Start with conservative frequency">
-    Begin with 1 ad every 6-8 videos. Monitor retention metrics before increasing frequency.
+    Begin with 1 ad every 5-8 content items with a `firstAdOffset` of at least 3. Monitor retention metrics before increasing frequency.
   </Accordion>
-  <Accordion title="Monitor user experience metrics">
-    Track session length and return rates. If they decline after changing ad frequency, revert the change.
+  <Accordion title="Use skippableAfter for most placements">
+    A 5-second skip delay balances ad revenue with user experience. Non-skippable ads drive higher completion rates but can hurt retention if overused.
   </Accordion>
-  <Accordion title="Use A/B testing for frequency tuning">
-    Test different frequencies against your engagement metrics to find the optimal balance between revenue and retention.
+  <Accordion title="Monitor no-fill rates">
+    High no-fill rates mean wasted ad slots. Check the `adRequest` events in your analytics to track fill rates. If fill is low, review your targeting configuration or ad tag setup.
   </Accordion>
-  <Accordion title="Style ads to match your feed">
-    Native-looking ads perform better and create a less disruptive experience than visually distinct formats.
-  </Accordion>
-  <Accordion title="Map content categories carefully">
-    Accurate IAB category mapping improves ad relevance and prevents inappropriate ad-content combinations.
+  <Accordion title="Test with a staging environment first">
+    Use a test API key and the `.staging` environment to verify ad behavior before shipping to production. This avoids generating real impressions during development.
   </Accordion>
 </AccordionGroup>
 
+---
+
 ## Next steps
 
-<Columns cols={2}>
-  <Card title="Ad management" icon="rectangle-ad" href="/portal/ad-management">
-    Monitor ad performance in the Admin Portal.
+<CardGroup cols={2}>
+  <Card title="Ad Config API" icon="code" href="/api-reference/ad-config">
+    Full reference for the `/v1/ad-config` endpoints.
   </Card>
-  <Card title="A/B testing" icon="flask" href="/portal/ab-testing">
-    Test ad frequency configurations.
+  <Card title="Admin Portal: Ads" icon="gear" href="/portal/ad-management">
+    Configure and monitor ads in the Admin Portal.
   </Card>
-</Columns>
+  <Card title="Engagement Signals" icon="chart-line" href="/guides/engagement-signals">
+    Event schema and delivery details for content and ad events.
+  </Card>
+  <Card title="iOS SDK" icon="apple" href="/sdk/ios">
+    Full SDK reference including initialization, theming, and configuration.
+  </Card>
+</CardGroup>

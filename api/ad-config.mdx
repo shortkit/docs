@@ -1,0 +1,283 @@
+---
+title: "Ad Configuration"
+description: "Configure in-feed video ad placement, frequency, and skip behavior for your organization."
+keywords: ["ads", "ad config", "VAST", "ad slots", "monetization", "in-feed ads"]
+---
+
+The Ad Configuration API controls how ad slots are inserted into your feed. You set placement rules (frequency, offset, caps) and default ad parameters (VAST tag URL, targeting, skip behavior) at the organization level. The server uses this configuration to interleave ad slots with content items in every feed response. When ads are disabled or no configuration exists, the feed contains only content items.
+
+<Note>
+  Ad configuration requires a **secret key**. Both endpoints are management-only and should be called from your backend or the Admin Portal -- never from client-side code.
+</Note>
+
+## Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/v1/ad-config` | Secret key | Retrieve the current ad configuration |
+| `PUT` | `/v1/ad-config` | Secret key | Update ad configuration (sparse) |
+
+## Authentication
+
+Both endpoints require your **secret key** passed as a Bearer token in the `Authorization` header.
+
+```bash
+Authorization: Bearer sk_live_your_secret_key
+```
+
+<Warning>
+  These endpoints reject publishable keys (`pk_live_...` / `pk_test_...`). Ad configuration is a server-side management operation. Using a publishable key returns a `403 Forbidden` error.
+</Warning>
+
+## Get ad configuration
+
+Retrieve the current ad configuration for your organization.
+
+```bash
+GET /v1/ad-config
+```
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/ad-config \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Example response
+
+```json
+{
+  "data": {
+    "enabled": true,
+    "frequency": 5,
+    "firstAdOffset": 3,
+    "maxPerPage": 3,
+    "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    "adUnitId": "/1234/shortkit-feed",
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 5,
+    "defaultTargeting": { "category": "sports" }
+  },
+  "meta": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+If no ad configuration has been set, all fields return their default values with `enabled` set to `false`.
+
+### Response fields
+
+<ResponseField name="data" type="object">
+  The ad configuration for your organization.
+</ResponseField>
+
+<ResponseField name="data.enabled" type="boolean">
+  Master toggle for ad slots in the feed. When `false`, no ad slots are inserted into feed responses. Default: `false`.
+</ResponseField>
+
+<ResponseField name="data.frequency" type="integer">
+  Insert an ad slot every N content items. For example, a frequency of `5` places an ad after every 5th content item. Default: `5`.
+</ResponseField>
+
+<ResponseField name="data.firstAdOffset" type="integer">
+  Minimum number of content items before the first ad slot. Ensures users see content before encountering an ad. Default: `3`.
+</ResponseField>
+
+<ResponseField name="data.maxPerPage" type="integer">
+  Maximum number of ad slots per feed page. Prevents ad-heavy pages when using large page sizes. Default: `3`.
+</ResponseField>
+
+<ResponseField name="data.adTagUrl" type="string | null">
+  Default VAST tag URL passed to the ad provider for each ad slot. Nullable -- set to `null` if you use `adUnitId` instead.
+</ResponseField>
+
+<ResponseField name="data.adUnitId" type="string | null">
+  Default ad unit identifier for each ad slot. Nullable -- an alternative to `adTagUrl` depending on your ad provider setup.
+</ResponseField>
+
+<ResponseField name="data.skipPolicy" type="string">
+  Controls whether users can skip ads. One of:
+  - `"non_skippable"` -- Users cannot skip the ad.
+  - `"skippable_after"` -- Users can skip after a delay (see `skipDelaySeconds`).
+  - `"always_skippable"` -- Users can skip immediately.
+
+  Default: `"skippable_after"`.
+</ResponseField>
+
+<ResponseField name="data.skipDelaySeconds" type="integer">
+  Seconds before the skip action becomes available. Only applies when `skipPolicy` is `"skippable_after"`. Ignored for other skip policies. Default: `5`.
+</ResponseField>
+
+<ResponseField name="data.defaultTargeting" type="object">
+  Key-value pairs included in every ad slot for ad targeting. These are passed to the ad provider alongside each ad request. Default: `{}`.
+</ResponseField>
+
+<ResponseField name="meta" type="object">
+  Request metadata.
+  <Expandable title="properties">
+    <ResponseField name="request_id" type="string">
+      Unique identifier for the request. Include this in support inquiries.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Update ad configuration
+
+Update your organization's ad configuration. This endpoint uses **sparse updates** -- only include the fields you want to change. Omitted fields retain their current values.
+
+```bash
+PUT /v1/ad-config
+```
+
+### Request body
+
+<ParamField body="enabled" type="boolean">
+  Master toggle for ad slots in the feed. Set to `true` to start inserting ad slots into feed responses.
+</ParamField>
+
+<ParamField body="frequency" type="integer">
+  Insert an ad slot every N content items. Must be a positive integer.
+</ParamField>
+
+<ParamField body="firstAdOffset" type="integer">
+  Minimum number of content items before the first ad slot. Must be a non-negative integer.
+</ParamField>
+
+<ParamField body="maxPerPage" type="integer">
+  Maximum number of ad slots per feed page. Must be a positive integer.
+</ParamField>
+
+<ParamField body="adTagUrl" type="string | null">
+  Default VAST tag URL passed to the ad provider. Set to `null` to clear.
+</ParamField>
+
+<ParamField body="adUnitId" type="string | null">
+  Default ad unit identifier. Set to `null` to clear.
+</ParamField>
+
+<ParamField body="skipPolicy" type="string">
+  One of: `"non_skippable"`, `"skippable_after"`, `"always_skippable"`.
+</ParamField>
+
+<ParamField body="skipDelaySeconds" type="integer">
+  Seconds before skip is allowed. Only applies when `skipPolicy` is `"skippable_after"`.
+</ParamField>
+
+<ParamField body="defaultTargeting" type="object">
+  Key-value pairs included in every ad slot for targeting. Replaces the entire targeting object when provided.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/ad-config \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "frequency": 4,
+    "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 3
+  }'
+```
+
+### Example response
+
+The response returns the **full** ad configuration after the update, including unchanged fields:
+
+```json
+{
+  "data": {
+    "enabled": true,
+    "frequency": 4,
+    "firstAdOffset": 3,
+    "maxPerPage": 3,
+    "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    "adUnitId": null,
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 3,
+    "defaultTargeting": {}
+  },
+  "meta": {
+    "request_id": "req_xyz789"
+  }
+}
+```
+
+<Tip>
+  Only the fields included in the request body are updated. In the example above, `firstAdOffset`, `maxPerPage`, and `defaultTargeting` were not sent and kept their existing values.
+</Tip>
+
+## Error responses
+
+<Tabs>
+  <Tab title="401 Unauthorized">
+    Returned when the `Authorization` header is missing or contains an invalid key.
+
+    ```json
+    {
+      "error": {
+        "code": "unauthorized",
+        "message": "Invalid or missing API key."
+      },
+      "meta": {
+        "request_id": "req_err401"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="403 Forbidden">
+    Returned when a publishable key is used instead of a secret key. Ad configuration is a management operation that requires a secret key.
+
+    ```json
+    {
+      "error": {
+        "code": "forbidden",
+        "message": "This endpoint requires a secret key. Publishable keys are not permitted."
+      },
+      "meta": {
+        "request_id": "req_err403"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## How ad slots appear in the feed
+
+Once ads are enabled, the feed response includes `ad_slot` items interleaved with content items at the intervals you configure. The SDK handles rendering automatically -- ad slots are only visible to users when an ad provider is configured in the SDK. If no ad provider is set, ad slots are silently ignored.
+
+<Tip>
+  Changes to ad configuration take effect on the next feed request. There is no delay or propagation period.
+</Tip>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Start with conservative settings">
+    Begin with a higher `firstAdOffset` and lower `frequency` to minimize disruption to the user experience. Adjust based on engagement metrics.
+  </Accordion>
+  <Accordion title="Test in your staging environment first">
+    Use your `sk_test_...` key to verify ad configuration changes before applying them in production.
+  </Accordion>
+  <Accordion title="Use defaultTargeting for segmentation">
+    Set `defaultTargeting` with key-value pairs that match your ad server's targeting taxonomy. This improves fill rates and ad relevance.
+  </Accordion>
+  <Accordion title="Prefer skippable ads">
+    The `skippable_after` policy with a reasonable delay (3-5 seconds) balances ad revenue with user experience. Non-skippable ads can increase user drop-off.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="SDK ad provider setup" icon="rectangle-ad" href="/sdk/ad-provider">
+    Configure the ad provider in the SDK to render ad slots.
+  </Card>
+  <Card title="Analytics events" icon="chart-line" href="/api/events">
+    Track ad engagement with impression, quartile, and skip events.
+  </Card>
+</Columns>
