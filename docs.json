@@ -124,7 +124,7 @@
         "icon": "list-check",
         "groups": [
           {
-            "group": "",
+            "group": "Changelog",
             "pages": [
               "changelog"
             ]
