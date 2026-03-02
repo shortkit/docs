@@ -78,8 +78,7 @@
             "group": "Secure & Integrate",
             "pages": [
               "guides/security/identity-management",
-              "guides/security/playback-security",
-              "guides/security/authentication"
+              "guides/security/playback-security"
             ]
           },
           {
