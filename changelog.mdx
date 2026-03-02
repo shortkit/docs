@@ -19,13 +19,13 @@ keywords: ["changelog", "updates", "releases", "what's new"]
 <Update label="February 2026" tags={["SDK", "Portal"]}>
   ## Ad integration support
 
-  **SDK** — The iOS, Android, and React Native SDKs now support in-feed video ad interstitials via a pluggable `adProvider` interface. The initial release ships with a Google IMA adapter (`ShortKitGoogleAds`), and ad frequency is controlled server-side through the new [Ad Configuration API](/api/ad-config). The Portal also gained an [Ad Management](/portal/ad-management) section for configuring ad tags and previewing insertion frequency without code changes.
+  **SDK** — The iOS, Android, and React Native SDKs now support in-feed video ad interstitials via a pluggable `adProvider` interface. The initial release ships with a Google IMA adapter (`ShortKitGoogleAds`), and ad frequency is controlled server-side through the new [Ad Configuration API](/api/configuration#ad-configuration). The Portal also gained an [Ad Management](/portal/ad-management) section for configuring ad tags and previewing insertion frequency without code changes.
 </Update>
 
 <Update label="February 2026" tags={["API", "Portal"]}>
   ## Bulk operations API and analytics dashboard improvements
 
-  **API** — A new set of [Bulk Operations](/api/bulk-operations) endpoints lets you update, archive, or tag up to 100 content items in a single request. This is useful for large content libraries where managing items one-by-one is impractical.
+  **API** — A new set of [Bulk Operations](/api/content#bulk-operations) endpoints lets you update, archive, or tag up to 100 content items in a single request. This is useful for large content libraries where managing items one-by-one is impractical.
 
   **Portal** — The [Analytics dashboard](/portal/analytics) now includes completion rate trends, average session duration over time, and a breakdown of engagement by entry point. Filters for date range and content tags have been added across all analytics views.
 </Update>

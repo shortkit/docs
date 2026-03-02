@@ -72,7 +72,7 @@ The top-level configuration struct for the video feed.
 </ResponseField>
 
 <ResponseField name="theme" type="ThemeConfig" default="ThemeConfig()">
-  Visual theme for all SDK-rendered UI. See the [Theming](/sdk/theming) page for full reference.
+  Visual theme for all SDK-rendered UI. See the `ThemeConfig` fields below for full reference.
 </ResponseField>
 
 ## ControlsConfig
@@ -98,7 +98,7 @@ Each control can be independently enabled or disabled.
       Whether captions are visible by default when a video starts playing.
     </ResponseField>
     <ResponseField name="style" type="CaptionStyle" default="CaptionStyle()">
-      Caption visual styling. See the [Theming](/sdk/theming#caption-styling) page for full reference.
+      Caption visual styling. See the `ThemeConfig` fields above for full reference.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -215,10 +215,10 @@ let shortKit = ShortKit(
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Theming" icon="palette" href="/sdk/theming">
-    Customize colors, fonts, and visual styling.
-  </Card>
-  <Card title="Engagement signals" icon="signal" href="/sdk/engagement-signals">
+  <Card title="Engagement signals" icon="signal" href="/guides/engagement/engagement-signals">
     Understand the events collected by the SDK.
+  </Card>
+  <Card title="Installation" icon="download" href="/sdk/installation">
+    Platform-specific SDK installation steps.
   </Card>
 </Columns>

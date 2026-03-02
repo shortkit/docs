@@ -224,7 +224,7 @@ Fired when transcoding fails.
 </ResponseField>
 
 <ResponseField name="generateSubtitles" type="boolean" default="false">
-  When `true`, ShortKit automatically generates caption tracks via speech-to-text during processing. See [Transcoding](/guides/platform/transcoding) for details.
+  When `true`, ShortKit automatically generates caption tracks via speech-to-text during processing. See [Transcoding](/guides/upload/transcoding) for details.
 </ResponseField>
 
 <ResponseField name="publishAt" type="datetime">
@@ -272,7 +272,7 @@ When content reaches `ready` status, ShortKit has automatically generated the fo
 
 | Asset | Description |
 |-------|-------------|
-| **HLS renditions** | Multiple quality levels for adaptive bitrate streaming (see [Transcoding](/guides/platform/transcoding)) |
+| **HLS renditions** | Multiple quality levels for adaptive bitrate streaming (see [Transcoding](/guides/upload/transcoding)) |
 | **First-frame thumbnail** | Static image of the first frame, used by the SDK for instant display before video loads |
 | **Caption tracks** | Auto-generated subtitle track embedded in the HLS manifest (when `generateSubtitles: true`) |
 
@@ -281,10 +281,10 @@ Thumbnails and caption tracks are delivered alongside video content in the feed 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Transcoding" icon="film" href="/guides/platform/transcoding">
+  <Card title="Transcoding" icon="film" href="/guides/upload/transcoding">
     Learn how ShortKit encodes video for adaptive streaming.
   </Card>
-  <Card title="CDN delivery" icon="globe" href="/guides/platform/cdn-delivery">
+  <Card title="CDN delivery" icon="globe" href="/guides/feed/cdn-delivery">
     Understand how video reaches your users globally.
   </Card>
 </Columns>
