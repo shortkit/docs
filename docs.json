@@ -120,51 +120,8 @@
         ]
       },
       {
-        "tab": "Portal",
-        "icon": "gauge",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "portal/overview"
-            ]
-          },
-          {
-            "group": "Content",
-            "pages": [
-              "portal/content-management"
-            ]
-          },
-          {
-            "group": "Feed",
-            "pages": [
-              "portal/feed-configuration",
-              "portal/ab-testing"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "pages": [
-              "portal/analytics"
-            ]
-          },
-          {
-            "group": "Monetization",
-            "pages": [
-              "portal/ad-management"
-            ]
-          },
-          {
-            "group": "Settings",
-            "pages": [
-              "portal/settings"
-            ]
-          }
-        ]
-      },
-      {
         "tab": "Changelog",
-        "icon": "clock-rotate-left",
+        "icon": "list-check",
         "groups": [
           {
             "group": "",
