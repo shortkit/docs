@@ -204,7 +204,7 @@ html[class*="dark"] #sidebar-content {
 #sidebar-content [aria-expanded] + div a,
 #sidebar-content [data-state] + div .sidebar-title,
 #sidebar-content [aria-expanded] + div .sidebar-title {
-  padding-left: 1rem !important;
+  padding-left: 1.5rem !important;
 }
 
 /* Active sidebar item - lavender background like fal.ai */
