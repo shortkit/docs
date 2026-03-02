@@ -49,8 +49,6 @@
             "group": "Display a Feed",
             "pages": [
               "guides/feed/feed-configuration",
-              "guides/feed/ranking",
-              "guides/feed/cdn-delivery",
               "guides/feed/deep-linking"
             ]
           },
