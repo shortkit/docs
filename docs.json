@@ -28,71 +28,92 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Overview",
-        "icon": "sparkles",
+        "tab": "Docs",
+        "icon": "book-open",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "Overview",
             "pages": [
-              "index",
               "quickstart",
-              "core-concepts",
-              "architecture"
+              "core-concepts"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "SDK",
-        "icon": "puzzle-piece",
-        "groups": [
+          },
           {
-            "group": "Getting Started",
+            "group": "Upload Content",
             "pages": [
-              "sdk/overview",
-              "sdk/installation"
+              "guides/upload/content-pipeline",
+              "guides/upload/transcoding"
+            ]
+          },
+          {
+            "group": "Display a Feed",
+            "pages": [
+              "guides/feed/feed-configuration",
+              "guides/feed/ranking",
+              "guides/feed/cdn-delivery",
+              "guides/feed/deep-linking"
+            ]
+          },
+          {
+            "group": "Playback Features",
+            "pages": [
+              "guides/playback/captions",
+              "guides/playback/storyboard-timelines"
+            ]
+          },
+          {
+            "group": "Track Engagement",
+            "pages": [
+              "guides/engagement/engagement-signals",
+              "guides/engagement/analytics",
+              "guides/engagement/data-export"
+            ]
+          },
+          {
+            "group": "Monetize",
+            "pages": [
+              "guides/monetize/ad-integration",
+              "guides/monetize/ad-configuration",
+              "guides/monetize/experiments"
+            ]
+          },
+          {
+            "group": "Secure & Integrate",
+            "pages": [
+              "guides/security/identity-management",
+              "guides/security/playback-security",
+              "guides/security/authentication"
             ]
           },
           {
             "group": "Platforms & SDKs",
             "pages": [
-              "sdk/ios",
-              "sdk/android",
-              "sdk/react-native"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
+              "sdk/installation",
               "sdk/configuration",
-              "sdk/theming",
-
-              "sdk/engagement-signals"
+              "sdk/reference"
             ]
           }
         ]
       },
       {
-        "tab": "Guides",
-        "icon": "book-open",
+        "tab": "API Reference",
+        "icon": "square-terminal",
         "groups": [
           {
-            "group": "Platform",
+            "group": "Overview",
             "pages": [
-              "guides/platform/content-pipeline",
-              "guides/platform/transcoding",
-              "guides/platform/cdn-delivery",
-              "guides/platform/feed-ranking"
+              "api/introduction",
+              "api/authentication",
+              "api/errors"
             ]
           },
           {
-            "group": "Integration",
+            "group": "Endpoints",
             "pages": [
-              "guides/integration/identity-management",
-              "guides/integration/ad-integration",
-              "guides/integration/webhooks",
-              "guides/integration/data-export",
-              "guides/integration/playback-security"
+              "api/content",
+              "api/feed",
+              "api/analytics",
+              "api/configuration"
             ]
           }
         ]
@@ -141,47 +162,13 @@
         ]
       },
       {
-        "tab": "API",
-        "icon": "terminal",
+        "tab": "Changelog",
+        "icon": "clock-rotate-left",
         "groups": [
           {
-            "group": "Overview",
+            "group": "",
             "pages": [
-              "api/introduction",
-              "api/authentication",
-              "api/errors"
-            ]
-          },
-          {
-            "group": "Content",
-            "pages": [
-              "api/uploads",
-              "api/content",
-              "api/bulk-operations"
-            ]
-          },
-          {
-            "group": "Feed",
-            "pages": [
-              "api/feed",
-              "api/configuration"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "pages": [
-              "api/events",
-              "api/analytics",
-              "api/export"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
-              "api/ranking",
-              "api/ad-config",
-              "api/experiments",
-              "api/webhooks"
+              "changelog"
             ]
           }
         ]
