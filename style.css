@@ -492,37 +492,7 @@ html[class*="dark"] button[aria-label*="theme"] {
 }
 
 /* Custom home icon for Home tab */
-/* Hide icon only on the first (home) tab - not all tabs */
-.nav-tabs-item[href="/"] svg,
-.nav-tabs-item:first-child svg,
-.nav-tabs-item[href="/"] .icon,
-.nav-tabs-item:first-child .icon {
-  display: none !important;
-}
-
-.nav-tabs-item[href="/"]::before,
-.nav-tabs-item:first-child::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  -webkit-mask-image: url('/images/home.svg');
-  mask-image: url('/images/home.svg');
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  background-color: currentColor;
-  margin-right: 0;
-}
-
-/* Home icon - orange when selected */
-.nav-tabs-item[href="/"].\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\]::before,
-.nav-tabs-item:first-child.\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\]::before {
-  background-color: #FF6600 !important;
-}
+/* Custom home icon override removed — all tabs use their docs.json icon */
 
 /* Keep search bar clean */
 .relative.lg\:flex.items-center.flex-1.z-20.justify-center,
@@ -560,6 +530,9 @@ html[class*="dark"] button[aria-label*="theme"] {
   background: #ffffff !important;
   border: 1px solid #e4e4e7 !important;
   border-radius: 4px !important;
+  min-width: 350px !important;
+  width: 100% !important;
+  max-width: 500px !important;
 }
 
 .dark #search-bar-entry,
