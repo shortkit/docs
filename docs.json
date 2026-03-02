@@ -71,8 +71,7 @@
             "group": "Monetize",
             "pages": [
               "guides/monetize/ad-integration",
-              "guides/monetize/ad-configuration",
-              "guides/monetize/experiments"
+              "guides/monetize/ad-configuration"
             ]
           },
           {
