@@ -1,70 +1,251 @@
 ---
 title: "Configuration"
-description: "Retrieve and update the remote config overlay that controls SDK behavior."
-keywords: ["configuration", "settings", "API", "remote config", "overlay"]
+description: "Control feed ranking, ad placement, and A/B testing."
+keywords: ["ranking", "algorithm", "feed", "pinning", "suppression", "ads", "ad config", "VAST", "experiments", "A/B testing"]
 ---
 
-The Configuration API delivers a sparse config overlay to the SDK at runtime. The overlay contains only the fields you have explicitly changed -- the SDK merges it on top of its compiled-in defaults. This means you can change player behavior, theming, and feed settings without shipping an app update.
+The Configuration APIs control how content is ranked in the feed, how ad slots are placed, and how you can run A/B tests across configuration variants. For the SDK remote config overlay (controls, playback, theme, captions), see the [Feed API](/api/feed#remote-configuration).
 
 ## Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| `GET` | `/v1/config` | Publishable key | Retrieve the active config overlay |
-| `PUT` | `/v1/config` | Secret key | Update the config overlay |
+| `GET` | `/v1/ad-config` | Secret key | Retrieve the current ad configuration |
+| `PUT` | `/v1/ad-config` | Secret key | Update ad configuration |
+| `GET` | `/v1/experiments` | Secret key | List experiments |
+| `POST` | `/v1/experiments` | Secret key | Create experiment |
+| `GET` | `/v1/experiments/{id}` | Secret key | Get experiment details |
+| `PATCH` | `/v1/experiments/{id}` | Secret key | Update experiment (draft only) |
+| `POST` | `/v1/experiments/{id}/start` | Secret key | Start experiment |
+| `POST` | `/v1/experiments/{id}/stop` | Secret key | Stop experiment |
+| `GET` | `/v1/experiments/{id}/results` | Secret key | Get experiment results |
+| `DELETE` | `/v1/experiments/{id}` | Secret key | Delete experiment (draft only) |
 
-## How the overlay works
+---
 
-The SDK ships with sensible defaults for every configurable property. When the SDK initializes, it calls `GET /v1/config` to fetch any overrides you have set. The response is **sparse** -- it only includes fields that differ from defaults. The SDK deep-merges the overlay on top of its defaults.
+## Ranking
 
-```
-SDK defaults (compiled-in)
-    + config overlay (from GET /v1/config)
-    ─────────────────────────────────────
-    = effective configuration
-```
+The Ranking system determines the order in which content appears in the feed. This section explains how ranking works and how you can control it through editorial overrides.
 
-For example, if the SDK default for `controls.scrubber` is `true` and you set it to `false` via the overlay, the overlay response contains only that field. Every other setting keeps its default value.
+### How feed ranking works
 
-## Get config overlay
+ShortKit uses **reverse-chronological order** as the base ranking for all feed content. The most recently created content appears first, followed by older content in descending order.
 
-Retrieve the current config overlay for your organization. The SDK calls this endpoint automatically on initialization.
+On top of this base order, you can apply two editorial controls:
+
+| Control | Effect |
+|---------|--------|
+| **Pinning** (`pinPosition`) | Forces a content item to a specific position in the feed, regardless of its creation date |
+| **Suppression** (`isSuppressed`) | Removes a content item from the feed entirely without archiving it |
+
+Content must also satisfy scheduling constraints to appear in the feed:
+
+- `publishAt` -- if set, content only appears after this time
+- `expiresAt` -- if set, content is excluded after this time
+- Status must be `ready` (not `waiting_for_upload`, `processing`, `error`, or `archived`)
+
+### Feed ordering logic
+
+When the SDK requests the feed via `GET /v1/feed`, the server applies the following logic:
+
+1. **Filter** -- exclude content that is suppressed, not yet published, expired, or not in `ready` status
+2. **Pin** -- content with a `pinPosition` is placed at that position in the feed
+3. **Order** -- all remaining content is ordered by creation time, newest first
+4. **Paginate** -- return the requested page using cursor-based pagination
+
+Pinned items always appear at their specified positions. If two items are pinned to the same position, the more recently pinned item takes priority.
+
+### Pinning content
+
+Pin a content item to a specific position in the feed. Position `1` is the first item the user sees.
+
+#### Pin via Content API
 
 ```bash
-GET /v1/config
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pinPosition": 1
+  }'
 ```
+
+#### Unpin
+
+Set `pinPosition` to `null` to remove the pin and return the item to its chronological position:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pinPosition": null
+  }'
+```
+
+#### Pin multiple items
+
+Use the [Bulk operations](/api/content#bulk-update) to pin or unpin multiple items at once:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      { "id": "sk_content_abc123", "pinPosition": 1 },
+      { "id": "sk_content_def456", "pinPosition": 3 },
+      { "id": "sk_content_ghi789", "pinPosition": 5 }
+    ]
+  }'
+```
+
+### Suppressing content
+
+Suppress a content item to hide it from the feed without archiving it. Suppressed content retains its metadata and analytics, and can be restored at any time.
+
+#### Suppress via Content API
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "isSuppressed": true
+  }'
+```
+
+#### Unsuppress
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "isSuppressed": false
+  }'
+```
+
+#### Suppress in bulk
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      { "id": "sk_content_abc123", "isSuppressed": true },
+      { "id": "sk_content_def456", "isSuppressed": true }
+    ]
+  }'
+```
+
+### Scheduling
+
+Control when content appears in the feed using `publishAt` and `expiresAt` timestamps:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publishAt": "2026-02-10T09:00:00Z",
+    "expiresAt": "2026-02-17T09:00:00Z"
+  }'
+```
+
+Content with a `publishAt` in the future will not appear in the feed until that time. Content with an `expiresAt` in the past is automatically excluded.
+
+### Example: Curated feed
+
+Combine pinning, suppression, and scheduling to fully curate the feed:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "id": "sk_content_breaking",
+        "pinPosition": 1
+      },
+      {
+        "id": "sk_content_promo",
+        "pinPosition": 3,
+        "expiresAt": "2026-02-14T00:00:00Z"
+      },
+      {
+        "id": "sk_content_outdated",
+        "isSuppressed": true
+      }
+    ]
+  }'
+```
+
+This produces a feed where:
+- The breaking news item always appears first
+- The promotional item appears at position 3 until February 14
+- The outdated item is hidden from the feed
+- All other content fills remaining positions in reverse-chronological order
+
+### Future: Signal-weighted ranking
+
+A future release will add signal-weighted ranking that incorporates engagement signals (completion rate, watch time, likes) into the feed order. When available, you will be able to configure signal weights to control how much each factor influences content position.
+
+The editorial controls described on this page (pinning, suppression, scheduling) will continue to work alongside signal-weighted ranking, with editorial overrides always taking priority.
+
+---
+
+## Ad configuration
+
+The Ad Configuration API controls how ad slots are inserted into your feed. You set placement rules (frequency, offset, caps) and default ad parameters (VAST tag URL, targeting, skip behavior) at the organization level. The server uses this configuration to interleave ad slots with content items in every feed response. When ads are disabled or no configuration exists, the feed contains only content items.
+
+<Note>
+  Ad configuration requires a **secret key**. Both endpoints are management-only and should be called from your backend or the Admin Portal -- never from client-side code.
+</Note>
 
 ### Authentication
 
-Include your publishable key in the `X-API-Key` header.
+Both ad config endpoints require your **secret key** passed as a Bearer token in the `Authorization` header.
 
-### Headers
+```bash
+Authorization: Bearer sk_live_your_secret_key
+```
 
-| Header | Description |
-|--------|-------------|
-| `X-API-Key` | Your publishable key (`pk_live_...` or `pk_test_...`) |
-| `X-User-Id` | Optional. User identifier for future per-user experiment assignments. |
+<Warning>
+  These endpoints reject publishable keys (`pk_live_...` / `pk_test_...`). Ad configuration is a server-side management operation. Using a publishable key returns a `403 Forbidden` error.
+</Warning>
+
+## Get ad configuration
+
+Retrieve the current ad configuration for your organization.
+
+```bash
+GET /v1/ad-config
+```
 
 ### Example request
 
 ```bash
-curl https://api.shortkit.dev/v1/config \
-  -H "X-API-Key: pk_live_your_publishable_key"
+curl https://api.shortkit.dev/v1/ad-config \
+  -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
 ### Example response
 
-The response contains only the fields that differ from SDK defaults:
-
 ```json
 {
   "data": {
-    "controls": {
-      "scrubber": false
-    },
-    "theme": {
-      "primaryColor": "#FF5733"
-    }
+    "enabled": true,
+    "frequency": 5,
+    "firstAdOffset": 3,
+    "maxPerPage": 3,
+    "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    "adUnitId": "/1234/shortkit-feed",
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 5,
+    "defaultTargeting": { "category": "sports" }
   },
   "meta": {
     "request_id": "req_abc123"
@@ -72,181 +253,141 @@ The response contains only the fields that differ from SDK defaults:
 }
 ```
 
-If no overrides have been set, the response is an empty object:
-
-```json
-{
-  "data": {},
-  "meta": {
-    "request_id": "req_def456"
-  }
-}
-```
+If no ad configuration has been set, all fields return their default values with `enabled` set to `false`.
 
 ### Response fields
 
 <ResponseField name="data" type="object">
-  Sparse config overlay. Contains only fields that differ from SDK defaults. Any category or property not present should be left at its default value.
+  The ad configuration for your organization.
 </ResponseField>
 
-<ResponseField name="data.controls" type="object">
-  Player control overrides.
+<ResponseField name="data.enabled" type="boolean">
+  Master toggle for ad slots in the feed. When `false`, no ad slots are inserted into feed responses. Default: `false`.
+</ResponseField>
+
+<ResponseField name="data.frequency" type="integer">
+  Insert an ad slot every N content items. For example, a frequency of `5` places an ad after every 5th content item. Default: `5`.
+</ResponseField>
+
+<ResponseField name="data.firstAdOffset" type="integer">
+  Minimum number of content items before the first ad slot. Ensures users see content before encountering an ad. Default: `3`.
+</ResponseField>
+
+<ResponseField name="data.maxPerPage" type="integer">
+  Maximum number of ad slots per feed page. Prevents ad-heavy pages when using large page sizes. Default: `3`.
+</ResponseField>
+
+<ResponseField name="data.adTagUrl" type="string | null">
+  Default VAST tag URL passed to the ad provider for each ad slot. Nullable -- set to `null` if you use `adUnitId` instead.
+</ResponseField>
+
+<ResponseField name="data.adUnitId" type="string | null">
+  Default ad unit identifier for each ad slot. Nullable -- an alternative to `adTagUrl` depending on your ad provider setup.
+</ResponseField>
+
+<ResponseField name="data.skipPolicy" type="string">
+  Controls whether users can skip ads. One of:
+  - `"non_skippable"` -- Users cannot skip the ad.
+  - `"skippable_after"` -- Users can skip after a delay (see `skipDelaySeconds`).
+  - `"always_skippable"` -- Users can skip immediately.
+
+  Default: `"skippable_after"`.
+</ResponseField>
+
+<ResponseField name="data.skipDelaySeconds" type="integer">
+  Seconds before the skip action becomes available. Only applies when `skipPolicy` is `"skippable_after"`. Ignored for other skip policies. Default: `5`.
+</ResponseField>
+
+<ResponseField name="data.defaultTargeting" type="object">
+  Key-value pairs included in every ad slot for ad targeting. These are passed to the ad provider alongside each ad request. Default: `{}`.
+</ResponseField>
+
+<ResponseField name="meta" type="object">
+  Request metadata.
   <Expandable title="properties">
-    <ResponseField name="scrubber" type="boolean">
-      Show the scrubber (seek bar) in the player. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="muteButton" type="boolean">
-      Show the mute/unmute button. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="shareButton" type="boolean">
-      Show the share button. SDK default: `true`.
+    <ResponseField name="request_id" type="string">
+      Unique identifier for the request. Include this in support inquiries.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="data.playback" type="object">
-  Playback behavior overrides.
-  <Expandable title="properties">
-    <ResponseField name="autoplay" type="boolean">
-      Auto-start playback when content is visible. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="muted" type="boolean">
-      Start playback muted. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="loop" type="boolean">
-      Loop video on completion. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="preloadCount" type="integer">
-      Number of videos to preload ahead (1-10). SDK default: `3`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
+## Update ad configuration
 
-<ResponseField name="data.captions" type="object">
-  Caption display overrides.
-  <Expandable title="properties">
-    <ResponseField name="defaultOn" type="boolean">
-      Show captions by default. SDK default: `false`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="data.theme" type="object">
-  UI theming overrides.
-  <Expandable title="properties">
-    <ResponseField name="primaryColor" type="string">
-      Primary accent color (hex). SDK default: `"#FFFFFF"`.
-    </ResponseField>
-    <ResponseField name="backgroundColor" type="string">
-      Background color (hex). SDK default: `"#000000"`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="data.feed" type="object">
-  Feed behavior overrides.
-  <Expandable title="properties">
-    <ResponseField name="pageSize" type="integer">
-      Items per feed request (10-50). SDK default: `10`.
-    </ResponseField>
-    <ResponseField name="refreshInterval" type="integer">
-      Auto-refresh interval in seconds. SDK default: `300`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-### Merge example
-
-Given these SDK defaults:
-
-```json
-{
-  "controls": { "scrubber": true, "muteButton": true, "shareButton": true },
-  "playback": { "autoplay": true, "muted": true, "loop": true, "preloadCount": 3 },
-  "captions": { "defaultOn": false },
-  "theme": { "primaryColor": "#FFFFFF", "backgroundColor": "#000000" },
-  "feed": { "pageSize": 10, "refreshInterval": 300 }
-}
-```
-
-And this overlay from `GET /v1/config`:
-
-```json
-{
-  "controls": { "scrubber": false },
-  "theme": { "primaryColor": "#FF5733" }
-}
-```
-
-The SDK resolves the effective configuration as:
-
-```json
-{
-  "controls": { "scrubber": false, "muteButton": true, "shareButton": true },
-  "playback": { "autoplay": true, "muted": true, "loop": true, "preloadCount": 3 },
-  "captions": { "defaultOn": false },
-  "theme": { "primaryColor": "#FF5733", "backgroundColor": "#000000" },
-  "feed": { "pageSize": 10, "refreshInterval": 300 }
-}
-```
-
-Only `controls.scrubber` and `theme.primaryColor` changed. Everything else kept its default.
-
-## Update config overlay
-
-Set or update the config overlay for your organization. Only include the fields you want to override -- omitted fields are removed from the overlay (reverting to SDK defaults).
+Update your organization's ad configuration. This endpoint uses **sparse updates** -- only include the fields you want to change. Omitted fields retain their current values.
 
 ```bash
-PUT /v1/config
+PUT /v1/ad-config
 ```
 
-### Authentication
+### Request body
 
-Requires your **secret key** as a Bearer token.
+<ParamField body="enabled" type="boolean">
+  Master toggle for ad slots in the feed. Set to `true` to start inserting ad slots into feed responses.
+</ParamField>
+
+<ParamField body="frequency" type="integer">
+  Insert an ad slot every N content items. Must be a positive integer.
+</ParamField>
+
+<ParamField body="firstAdOffset" type="integer">
+  Minimum number of content items before the first ad slot. Must be a non-negative integer.
+</ParamField>
+
+<ParamField body="maxPerPage" type="integer">
+  Maximum number of ad slots per feed page. Must be a positive integer.
+</ParamField>
+
+<ParamField body="adTagUrl" type="string | null">
+  Default VAST tag URL passed to the ad provider. Set to `null` to clear.
+</ParamField>
+
+<ParamField body="adUnitId" type="string | null">
+  Default ad unit identifier. Set to `null` to clear.
+</ParamField>
+
+<ParamField body="skipPolicy" type="string">
+  One of: `"non_skippable"`, `"skippable_after"`, `"always_skippable"`.
+</ParamField>
+
+<ParamField body="skipDelaySeconds" type="integer">
+  Seconds before skip is allowed. Only applies when `skipPolicy` is `"skippable_after"`.
+</ParamField>
+
+<ParamField body="defaultTargeting" type="object">
+  Key-value pairs included in every ad slot for targeting. Replaces the entire targeting object when provided.
+</ParamField>
 
 ### Example request
 
 ```bash
-curl -X PUT https://api.shortkit.dev/v1/config \
+curl -X PUT https://api.shortkit.dev/v1/ad-config \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "controls": {
-      "scrubber": false,
-      "shareButton": false
-    },
-    "playback": {
-      "preloadCount": 5
-    },
-    "captions": {
-      "defaultOn": true
-    },
-    "theme": {
-      "primaryColor": "#FF5733"
-    }
+    "enabled": true,
+    "frequency": 4,
+    "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 3
   }'
 ```
 
-### Response
+### Example response
 
-Returns the full overlay as saved:
+The response returns the **full** ad configuration after the update, including unchanged fields:
 
 ```json
 {
   "data": {
-    "controls": {
-      "scrubber": false,
-      "shareButton": false
-    },
-    "playback": {
-      "preloadCount": 5
-    },
-    "captions": {
-      "defaultOn": true
-    },
-    "theme": {
-      "primaryColor": "#FF5733"
-    }
+    "enabled": true,
+    "frequency": 4,
+    "firstAdOffset": 3,
+    "maxPerPage": 3,
+    "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/feed",
+    "adUnitId": null,
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 3,
+    "defaultTargeting": {}
   },
   "meta": {
     "request_id": "req_xyz789"
@@ -254,42 +395,487 @@ Returns the full overlay as saved:
 }
 ```
 
-### Reset to defaults
+<Tip>
+  Only the fields included in the request body are updated. In the example above, `firstAdOffset`, `maxPerPage`, and `defaultTargeting` were not sent and kept their existing values.
+</Tip>
 
-To reset all overrides and revert entirely to SDK defaults, send an empty object:
+### Ad config error responses
 
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
+<Tabs>
+  <Tab title="401 Unauthorized">
+    Returned when the `Authorization` header is missing or contains an invalid key.
 
-## SDK sync
+    ```json
+    {
+      "error": {
+        "code": "unauthorized",
+        "message": "Invalid or missing API key."
+      },
+      "meta": {
+        "request_id": "req_err401"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="403 Forbidden">
+    Returned when a publishable key is used instead of a secret key. Ad configuration is a management operation that requires a secret key.
 
-The SDK fetches the config overlay automatically on initialization and refreshes it periodically (default: every 5 minutes). Configuration changes take effect on the next SDK refresh without requiring an app update.
+    ```json
+    {
+      "error": {
+        "code": "forbidden",
+        "message": "This endpoint requires a secret key. Publishable keys are not permitted."
+      },
+      "meta": {
+        "request_id": "req_err403"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
 
-## Best practices
+### How ad slots appear in the feed
+
+Once ads are enabled, the feed response includes `ad_slot` items interleaved with content items at the intervals you configure. The SDK handles rendering automatically -- ad slots are only visible to users when an ad provider is configured in the SDK. If no ad provider is set, ad slots are silently ignored.
+
+<Tip>
+  Changes to ad configuration take effect on the next feed request. There is no delay or propagation period.
+</Tip>
+
+### Ad best practices
 
 <AccordionGroup>
-  <Accordion title="Keep overlays small">
-    Only override what you need. A smaller overlay means faster config resolution and less risk of unintended side effects.
+  <Accordion title="Start with conservative settings">
+    Begin with a higher `firstAdOffset` and lower `frequency` to minimize disruption to the user experience. Adjust based on engagement metrics.
   </Accordion>
-  <Accordion title="Test in staging first">
-    Use your `pk_test_...` key to verify configuration changes before applying them in production.
+  <Accordion title="Test in your staging environment first">
+    Use your `sk_test_...` key to verify ad configuration changes before applying them in production.
   </Accordion>
-  <Accordion title="Use A/B testing for significant changes">
-    For changes that may affect engagement (hiding controls, changing preload behavior), use experiments to roll out to a subset of users first.
+  <Accordion title="Use defaultTargeting for segmentation">
+    Set `defaultTargeting` with key-value pairs that match your ad server's targeting taxonomy. This improves fill rates and ad relevance.
+  </Accordion>
+  <Accordion title="Prefer skippable ads">
+    The `skippable_after` policy with a reasonable delay (3-5 seconds) balances ad revenue with user experience. Non-skippable ads can increase user drop-off.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Experiments
+
+The Experiments API allows you to run A/B tests by assigning users to different configuration variants. Experiments are delivered through the [config overlay system](/api/feed#remote-configuration) -- each variant specifies a config overlay that is merged on top of the organization-level overlay for users in that variant group.
+
+### Experiment types
+
+| Type | Description | What the variant controls |
+|------|-------------|--------------------------|
+| `config` | Test different SDK configuration values | Config overlay fields (controls, playback, theme, etc.) |
+| `ranking` | Test different feed ranking strategies | Ranking parameters (when signal-weighted ranking is available) |
+
+### How experiments work
+
+1. You create an experiment with two or more variants, each specifying a config overlay
+2. You allocate a percentage of total traffic to the experiment
+3. Within the experiment, traffic is split across variants
+4. When a user in the experiment group calls `GET /v1/config`, the response merges the variant's overlay on top of the organization overlay
+5. The SDK applies the merged config, and the user experiences the variant without any app-side changes
+6. ShortKit tracks metrics for each variant automatically based on event data
+
+## List experiments
+
+```bash
+GET /v1/experiments
+```
+
+<ParamField query="status" type="string">
+  Filter by status: `draft`, `running`, `completed`, `stopped`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  Items per page.
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/experiments?status=running" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "exp_abc123",
+      "name": "Preload count test",
+      "description": "Testing whether preloading more videos improves watch time",
+      "status": "running",
+      "type": "config",
+      "traffic": 0.20,
+      "variants": [
+        { "id": "control", "name": "Control (3 preload)", "traffic": 0.5 },
+        { "id": "treatment", "name": "5 preload", "traffic": 0.5 }
+      ],
+      "startedAt": "2026-02-01T12:00:00Z",
+      "createdAt": "2026-01-28T10:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 3,
+    "request_id": "req_abc123"
+  }
+}
+```
+
+## Create experiment
+
+Create a new A/B test. Experiments start in `draft` status and must be explicitly started.
+
+```bash
+POST /v1/experiments
+```
+
+### Request body
+
+<ParamField body="name" type="string" required>
+  Experiment name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Experiment description.
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  Experiment type: `config` or `ranking`.
+</ParamField>
+
+<ParamField body="traffic" type="number" required>
+  Fraction of total users enrolled in the experiment (0.0 to 1.0). Users not in the experiment receive the standard config overlay.
+</ParamField>
+
+<ParamField body="variants" type="array" required>
+  Two or more experiment variants. Traffic allocations within variants must sum to 1.0.
+  <Expandable title="variant properties">
+    <ParamField body="id" type="string" required>
+      Variant identifier (e.g., `control`, `treatment`).
+    </ParamField>
+    <ParamField body="name" type="string" required>
+      Human-readable variant name.
+    </ParamField>
+    <ParamField body="traffic" type="number" required>
+      Traffic allocation within the experiment (must sum to 1.0 across all variants).
+    </ParamField>
+    <ParamField body="config" type="object" required>
+      Config overlay for this variant. Uses the same structure as `PUT /v1/config`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="metrics" type="string[]">
+  Metrics to track for the experiment: `completionRate`, `watchTime`, `sessionsPerUser`.
+</ParamField>
+
+### Example: Config experiment
+
+Test whether hiding the scrubber increases completion rate:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Scrubber visibility test",
+    "description": "Testing whether hiding the scrubber increases completion rate",
+    "type": "config",
+    "traffic": 0.20,
+    "variants": [
+      {
+        "id": "control",
+        "name": "Scrubber visible",
+        "traffic": 0.5,
+        "config": {
+          "controls": {
+            "scrubber": true
+          }
+        }
+      },
+      {
+        "id": "no_scrubber",
+        "name": "Scrubber hidden",
+        "traffic": 0.5,
+        "config": {
+          "controls": {
+            "scrubber": false
+          }
+        }
+      }
+    ],
+    "metrics": ["completionRate", "watchTime"]
+  }'
+```
+
+### Example: Preload count experiment
+
+Test whether preloading more videos improves the experience:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Preload count test",
+    "description": "Testing preload count impact on watch time and rebuffer rate",
+    "type": "config",
+    "traffic": 0.30,
+    "variants": [
+      {
+        "id": "control",
+        "name": "3 preload (default)",
+        "traffic": 0.33,
+        "config": {
+          "playback": { "preloadCount": 3 }
+        }
+      },
+      {
+        "id": "preload_5",
+        "name": "5 preload",
+        "traffic": 0.33,
+        "config": {
+          "playback": { "preloadCount": 5 }
+        }
+      },
+      {
+        "id": "preload_1",
+        "name": "1 preload",
+        "traffic": 0.34,
+        "config": {
+          "playback": { "preloadCount": 1 }
+        }
+      }
+    ],
+    "metrics": ["watchTime", "sessionsPerUser"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "exp_xyz789",
+    "name": "Scrubber visibility test",
+    "status": "draft",
+    "type": "config",
+    "traffic": 0.20,
+    "variants": [
+      { "id": "control", "name": "Scrubber visible", "traffic": 0.5 },
+      { "id": "no_scrubber", "name": "Scrubber hidden", "traffic": 0.5 }
+    ],
+    "metrics": ["completionRate", "watchTime"],
+    "createdAt": "2026-02-05T12:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_exp123"
+  }
+}
+```
+
+## Start experiment
+
+Begin running an experiment. Users will start being assigned to variants.
+
+```bash
+POST /v1/experiments/{id}/start
+```
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments/exp_xyz789/start \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": {
+    "id": "exp_xyz789",
+    "status": "running",
+    "startedAt": "2026-02-05T12:00:00Z"
+  }
+}
+```
+
+## Stop experiment
+
+End an experiment. Optionally declare a winning variant to roll out its config overlay to all users.
+
+```bash
+POST /v1/experiments/{id}/stop
+```
+
+<ParamField body="winner" type="string">
+  Variant ID to roll out as the new organization config overlay.
+</ParamField>
+
+<ParamField body="reason" type="string">
+  Reason for stopping the experiment.
+</ParamField>
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/experiments/exp_xyz789/stop \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "winner": "no_scrubber",
+    "reason": "Statistical significance reached -- 12% lift in completion rate"
+  }'
+```
+
+## Get results
+
+Retrieve experiment results and statistical analysis.
+
+```bash
+GET /v1/experiments/{id}/results
+```
+
+```bash
+curl https://api.shortkit.dev/v1/experiments/exp_abc123/results \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "experimentId": "exp_abc123",
+    "status": "running",
+    "duration": {
+      "days": 7,
+      "startedAt": "2026-01-28T12:00:00Z"
+    },
+    "variants": [
+      {
+        "id": "control",
+        "name": "Scrubber visible",
+        "participants": 12500,
+        "metrics": {
+          "completionRate": {
+            "value": 0.42,
+            "confidence": 0.95
+          },
+          "watchTime": {
+            "value": 28.5,
+            "confidence": 0.95
+          }
+        }
+      },
+      {
+        "id": "no_scrubber",
+        "name": "Scrubber hidden",
+        "participants": 12480,
+        "metrics": {
+          "completionRate": {
+            "value": 0.47,
+            "confidence": 0.95,
+            "lift": 0.119,
+            "significant": true
+          },
+          "watchTime": {
+            "value": 31.2,
+            "confidence": 0.95,
+            "lift": 0.095,
+            "significant": true
+          }
+        }
+      }
+    ],
+    "recommendation": {
+      "winner": "no_scrubber",
+      "confidence": 0.97
+    }
+  },
+  "meta": {
+    "request_id": "req_res456"
+  }
+}
+```
+
+## Update experiment
+
+Modify experiment settings. Only experiments in `draft` status can be updated.
+
+```bash
+PATCH /v1/experiments/{id}
+```
+
+<ParamField body="name" type="string">
+  Updated name.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="traffic" type="number">
+  Updated traffic allocation.
+</ParamField>
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/experiments/exp_xyz789 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "traffic": 0.30
+  }'
+```
+
+<Warning>
+  Experiments can only be modified in `draft` status. Running experiments cannot be changed.
+</Warning>
+
+## Delete experiment
+
+Delete an experiment. Only experiments in `draft` or `stopped` status can be deleted.
+
+```bash
+DELETE /v1/experiments/{id}
+```
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/experiments/exp_xyz789 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+<Warning>
+  Running experiments cannot be deleted. Stop the experiment first.
+</Warning>
+
+## Experiment best practices
+
+<AccordionGroup>
+  <Accordion title="Run experiments for sufficient duration">
+    Wait for statistical significance before drawing conclusions. Typically 1-2 weeks minimum depending on traffic volume.
+  </Accordion>
+  <Accordion title="Start with small traffic allocation">
+    Begin with 10-20% of traffic and increase if no negative impact is detected.
+  </Accordion>
+  <Accordion title="Test one variable at a time">
+    Isolate the effect of a single config change per experiment. Testing multiple changes simultaneously makes it difficult to attribute results.
+  </Accordion>
+  <Accordion title="Monitor guardrail metrics">
+    Even if your primary metric improves, watch for negative impacts on other metrics (e.g., improving completion rate but increasing rebuffer rate).
   </Accordion>
 </AccordionGroup>
 
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="SDK configuration" icon="gear" href="/sdk/configuration">
-    Configure SDK defaults in code.
+  <Card title="Feed API" icon="rss" href="/api/feed">
+    Feed delivery and SDK remote config.
   </Card>
-  <Card title="A/B testing" icon="flask" href="/api/experiments">
-    Test configuration variants with experiments.
+  <Card title="Content API" icon="video" href="/api/content">
+    Manage content metadata and editorial controls.
   </Card>
 </Columns>

@@ -1,21 +1,26 @@
 ---
 title: "Content"
-description: "Manage your video content library -- list, retrieve, update, and delete content."
-keywords: ["content", "videos", "API", "CRUD", "metadata"]
+description: "Manage your video content library -- upload, list, update, delete, and perform bulk operations."
+keywords: ["content", "videos", "API", "CRUD", "metadata", "upload", "ingestion", "bulk", "batch"]
 ---
 
-The Content API manages your video library. Use it to list content, retrieve details, update metadata and editorial controls, and delete content. Content is created via the [Uploads API](/api/uploads) and delivered to end users via the [Feed API](/api/feed).
+The Content API manages your entire video library. Use it to upload new videos, list content, retrieve details, update metadata and editorial controls, delete content, and perform bulk operations on multiple items at once.
 
 ## Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/v1/content` | List all content |
-| `GET` | `/v1/content/{id}` | Get content by ID |
-| `PATCH` | `/v1/content/{id}` | Update content |
-| `DELETE` | `/v1/content/{id}` | Delete content |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/uploads` | Secret key | Create an upload session |
+| `GET` | `/v1/uploads/{id}` | Secret key | Check upload/processing status |
+| `GET` | `/v1/content` | Secret key | List all content |
+| `GET` | `/v1/content/{id}` | Secret key | Get content by ID |
+| `PATCH` | `/v1/content/{id}` | Secret key | Update content |
+| `DELETE` | `/v1/content/{id}` | Secret key | Delete content |
+| `POST` | `/v1/content/bulk/update` | Secret key | Update multiple content items |
+| `POST` | `/v1/content/bulk/archive` | Secret key | Archive multiple content items |
+| `POST` | `/v1/content/bulk/tag` | Secret key | Add or remove tags from multiple items |
 
-All Content API endpoints require a **secret key** via the `Authorization` header.
+---
 
 ## Content object
 
@@ -144,6 +149,363 @@ Content with status `ready` appears in the feed only when all of these condition
 - `isSuppressed` is `false`
 - `publishAt` is `null` or in the past
 - `expiresAt` is `null` or in the future
+
+---
+
+## Uploads
+
+The Uploads API lets you ingest video content into ShortKit. You create an upload session, receive a signed upload URL, and PUT your file directly to it. ShortKit handles transcoding, thumbnail generation, and subtitle extraction automatically.
+
+### Upload flow
+
+```
+1. POST /v1/uploads          -- Create upload session (returns signed URL + content ID)
+2. PUT  {uploadUrl}           -- Upload file directly to the signed URL
+3. Processing                 -- ShortKit transcodes, generates thumbnails and captions
+4. Ready                      -- Content appears in your feed (or poll status / receive webhook)
+```
+
+### Upload methods
+
+| Method | Best for | Max size |
+|--------|----------|----------|
+| [Direct upload](#create-upload) | Most use cases | 5 GB |
+| [Server-side SDK](#upload-sdk-helpers) | Automated pipelines with progress tracking | 5 GB |
+
+## Create upload
+
+Creates a new upload session and returns a signed upload URL. The upload URL is valid for 60 minutes.
+
+```bash
+POST /v1/uploads
+```
+
+### Authentication
+
+Requires a **secret key** via the `Authorization` header.
+
+### Request body
+
+<ParamField body="title" type="string" required>
+  Display title for the content (max 200 characters).
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description (max 2000 characters).
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Tags for categorization and filtering.
+</ParamField>
+
+<ParamField body="customMetadata" type="object">
+  Arbitrary key-value pairs attached to the content. Use this for your own application data
+  such as article URLs, campaign IDs, or internal references.
+</ParamField>
+
+<ParamField body="generateSubtitles" type="boolean" default={true}>
+  When `true`, ShortKit automatically generates English captions from the audio track
+  using speech-to-text. Captions are embedded in the HLS stream once processing completes.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/uploads \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "generateSubtitles": true
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "uploadUrl": "https://uploads.shortkit.dev/direct/sk_content_abc123?token=eyJ...",
+    "status": "waiting_for_upload",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "createdAt": "2026-02-05T12:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_xyz789"
+  }
+}
+```
+
+The `uploadUrl` is a signed URL for direct file upload. It expires after 60 minutes.
+
+## Upload the file
+
+Once you have the signed `uploadUrl`, upload your video file with an HTTP `PUT` request:
+
+```bash
+curl -X PUT "${uploadUrl}" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4
+```
+
+<Note>
+  The `PUT` request goes directly to the signed upload URL, not to `api.shortkit.dev`.
+  No `Authorization` header is needed -- the URL itself contains the upload credentials.
+</Note>
+
+After the PUT completes successfully, ShortKit begins processing the video automatically.
+The content status transitions from `waiting_for_upload` to `processing`.
+
+## Check processing status
+
+Poll the upload status to determine when your content is ready.
+
+```bash
+GET /v1/uploads/{id}
+```
+
+### Authentication
+
+Requires a **secret key** via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The content ID returned from the create upload call (e.g., `sk_content_abc123`).
+</ParamField>
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/uploads/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response (processing)
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "processing",
+    "title": "Breaking: Weather Alert",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:00:15Z"
+  },
+  "meta": {
+    "request_id": "req_abc456"
+  }
+}
+```
+
+### Response (ready)
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "ready",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "duration": 32.5,
+    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
+    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+    "captionTracks": [
+      {
+        "language": "en",
+        "label": "English",
+        "source": "embedded",
+        "url": null
+      }
+    ],
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:03:45Z"
+  },
+  "meta": {
+    "request_id": "req_def789"
+  }
+}
+```
+
+### Response (error)
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "error",
+    "title": "Breaking: Weather Alert",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:02:30Z"
+  },
+  "meta": {
+    "request_id": "req_err001"
+  }
+}
+```
+
+### Expected processing times
+
+| Step | Duration |
+|------|----------|
+| Upload (30s video, ~50 MB) | 5--30 seconds depending on network speed |
+| Transcoding and thumbnail generation | 1--5 minutes for a 1-minute video |
+| Subtitle generation (if enabled) | Additional 1--3 minutes |
+| **Total: upload to ready** | **~2--8 minutes** |
+
+### Supported formats
+
+#### Video formats
+
+| Format | Extensions | MIME types |
+|--------|------------|------------|
+| MP4 | `.mp4`, `.m4v` | `video/mp4` |
+| QuickTime | `.mov` | `video/quicktime` |
+| WebM | `.webm` | `video/webm` |
+| MKV | `.mkv` | `video/x-matroska` |
+
+#### Video requirements
+
+| Property | Requirement |
+|----------|-------------|
+| Duration | 1--180 seconds |
+| Resolution | 480p -- 4K |
+| Frame rate | 24--60 fps |
+| Max bitrate | 50 Mbps |
+| Max file size | 5 GB |
+| Codec | H.264, H.265, VP9, AV1 |
+
+#### Encoding recommendations
+
+For the fastest processing and best playback quality:
+
+- **Container:** MP4 (`.mp4`)
+- **Video codec:** H.264 High profile
+- **Audio codec:** AAC-LC, stereo, 128 kbps or higher
+- **Orientation:** Vertical (9:16) for short-form feeds
+- **Resolution:** 1080 x 1920 (1080p vertical)
+- **Frame rate:** 30 fps
+- **Bitrate:** 6--10 Mbps for 1080p
+
+<Warning>
+  Files that do not meet the requirements above may fail during processing.
+  Check content status after upload to detect failures early.
+</Warning>
+
+### Upload SDK helpers
+
+Server-side SDKs provide upload helpers with progress tracking and automatic retries:
+
+<Tabs>
+  <Tab title="JavaScript">
+    ```javascript
+    import { ShortkitAdmin } from '@shortkit/node';
+
+    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
+
+    // Create upload and send file in one call
+    const content = await shortkit.uploads.create({
+      file: fs.createReadStream('video.mp4'),
+      title: 'Weather Alert',
+      tags: ['weather', 'breaking'],
+      customMetadata: { articleUrl: 'https://example.com/alert' },
+      onProgress: (progress) => {
+        console.log(`${progress.percent}% uploaded`);
+      }
+    });
+
+    console.log(content.id);     // sk_content_abc123
+    console.log(content.status); // waiting_for_upload | processing
+
+    // Poll until ready
+    const ready = await shortkit.uploads.waitForReady(content.id, {
+      pollInterval: 5000, // ms
+      timeout: 600000     // 10 minutes
+    });
+
+    console.log(ready.status);       // ready
+    console.log(ready.streamingUrl); // https://video.shortkit.dev/...
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from shortkit import ShortkitAdmin
+
+    shortkit = ShortkitAdmin(api_key="sk_live_...")
+
+    # Create upload and send file in one call
+    with open("video.mp4", "rb") as f:
+        content = shortkit.uploads.create(
+            file=f,
+            title="Weather Alert",
+            tags=["weather", "breaking"],
+            custom_metadata={"article_url": "https://example.com/alert"},
+            on_progress=lambda p: print(f"{p.percent}% uploaded"),
+        )
+
+    print(content.id)      # sk_content_abc123
+    print(content.status)  # waiting_for_upload | processing
+
+    # Poll until ready
+    ready = shortkit.uploads.wait_for_ready(
+        content.id,
+        poll_interval=5,  # seconds
+        timeout=600,      # 10 minutes
+    )
+
+    print(ready.status)         # ready
+    print(ready.streaming_url)  # https://video.shortkit.dev/...
+    ```
+  </Tab>
+</Tabs>
+
+### Upload error handling
+
+| Error code | Description | Solution |
+|------------|-------------|----------|
+| `invalid_request` | Missing required fields (e.g., `title`) | Include all required fields in the request body |
+| `file_too_large` | File exceeds 5 GB limit | Compress or trim the video |
+| `invalid_media_type` | Unsupported video format | Use a supported format (MP4, MOV, WebM, MKV) |
+| `duration_exceeded` | Video longer than 180 seconds | Trim to 180 seconds or less |
+| `upload_expired` | Signed upload URL has expired | Create a new upload session |
+
+```javascript
+try {
+  const content = await shortkit.uploads.create({ file, title: 'My Video' });
+} catch (error) {
+  switch (error.code) {
+    case 'file_too_large':
+      // Compress or trim the video before re-uploading
+      break;
+    case 'invalid_media_type':
+      // Convert to a supported format
+      break;
+    case 'upload_expired':
+      // Create a new upload session
+      break;
+  }
+}
+```
+
+---
 
 ## List content
 
@@ -452,6 +814,270 @@ curl -X DELETE https://api.shortkit.dev/v1/content/sk_content_abc123 \
   but can still be retrieved via `GET /v1/content/{id}`.
 </Note>
 
+---
+
+## Bulk operations
+
+Bulk operations allow you to update or archive multiple content items in a single request, reducing API calls and improving efficiency for managing large content libraries.
+
+## Bulk update
+
+Update metadata, editorial controls, or scheduling for multiple content items.
+
+```bash
+POST /v1/content/bulk/update
+```
+
+### Request body
+
+<ParamField body="items" type="array" required>
+  Array of update operations (max 100 items).
+
+  <Expandable title="Item properties">
+    <ParamField body="id" type="string" required>
+      Content ID to update.
+    </ParamField>
+    <ParamField body="title" type="string">
+      New title.
+    </ParamField>
+    <ParamField body="description" type="string">
+      New description.
+    </ParamField>
+    <ParamField body="tags" type="string[]">
+      Replace tags.
+    </ParamField>
+    <ParamField body="customMetadata" type="object">
+      Merge custom metadata.
+    </ParamField>
+    <ParamField body="pinPosition" type="integer">
+      Pin to a specific feed position (1-indexed). Set to `null` to unpin.
+    </ParamField>
+    <ParamField body="isSuppressed" type="boolean">
+      Suppress content from appearing in the feed.
+    </ParamField>
+    <ParamField body="publishAt" type="string">
+      Scheduled publish time (ISO 8601). Content appears in the feed after this time.
+    </ParamField>
+    <ParamField body="expiresAt" type="string">
+      Expiration time (ISO 8601). Content is removed from the feed after this time.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="continueOnError" type="boolean" default={false}>
+  Continue processing remaining items if individual items fail.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "id": "sk_content_abc123",
+        "title": "Updated Weather Alert",
+        "pinPosition": 1
+      },
+      {
+        "id": "sk_content_def456",
+        "tags": ["featured", "breaking"],
+        "isSuppressed": false
+      }
+    ],
+    "continueOnError": true
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "successful": [
+      { "id": "sk_content_abc123", "status": "updated" },
+      { "id": "sk_content_def456", "status": "updated" }
+    ],
+    "failed": [],
+    "totalProcessed": 2,
+    "totalSuccessful": 2,
+    "totalFailed": 0
+  },
+  "meta": {
+    "request_id": "req_xyz789"
+  }
+}
+```
+
+### Partial failure response
+
+When `continueOnError` is `true` and some items fail:
+
+```json
+{
+  "data": {
+    "successful": [
+      { "id": "sk_content_abc123", "status": "updated" }
+    ],
+    "failed": [
+      {
+        "id": "sk_content_invalid",
+        "error": {
+          "code": "not_found",
+          "message": "Content not found"
+        }
+      }
+    ],
+    "totalProcessed": 2,
+    "totalSuccessful": 1,
+    "totalFailed": 1
+  },
+  "meta": {
+    "request_id": "req_xyz789"
+  }
+}
+```
+
+## Bulk archive
+
+Archive multiple content items. Archived content is removed from the feed but its metadata and analytics are preserved.
+
+```bash
+POST /v1/content/bulk/archive
+```
+
+### Request body
+
+<ParamField body="ids" type="string[]" required>
+  Content IDs to archive (max 100).
+</ParamField>
+
+<ParamField body="continueOnError" type="boolean" default={false}>
+  Continue if individual archival operations fail.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/bulk/archive \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ids": ["sk_content_abc123", "sk_content_def456", "sk_content_ghi789"],
+    "continueOnError": true
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "successful": [
+      { "id": "sk_content_abc123", "status": "archived" },
+      { "id": "sk_content_def456", "status": "archived" },
+      { "id": "sk_content_ghi789", "status": "archived" }
+    ],
+    "failed": [],
+    "totalProcessed": 3,
+    "totalSuccessful": 3,
+    "totalFailed": 0
+  },
+  "meta": {
+    "request_id": "req_abc456"
+  }
+}
+```
+
+## Bulk tag
+
+Add or remove tags from multiple content items at once.
+
+```bash
+POST /v1/content/bulk/tag
+```
+
+### Request body
+
+<ParamField body="ids" type="string[]" required>
+  Content IDs to modify (max 100).
+</ParamField>
+
+<ParamField body="addTags" type="string[]">
+  Tags to add.
+</ParamField>
+
+<ParamField body="removeTags" type="string[]">
+  Tags to remove.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/bulk/tag \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ids": ["sk_content_abc123", "sk_content_def456"],
+    "addTags": ["featured", "homepage"],
+    "removeTags": ["draft"]
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "successful": [
+      {
+        "id": "sk_content_abc123",
+        "tags": ["featured", "homepage", "weather"]
+      },
+      {
+        "id": "sk_content_def456",
+        "tags": ["featured", "homepage"]
+      }
+    ],
+    "failed": [],
+    "totalProcessed": 2,
+    "totalSuccessful": 2,
+    "totalFailed": 0
+  },
+  "meta": {
+    "request_id": "req_tag789"
+  }
+}
+```
+
+## Bulk rate limits
+
+| Limit | Value |
+|-------|-------|
+| Items per request | 100 |
+| Requests per minute | 60 |
+| Items per minute | 1,000 |
+
+For larger operations, space your requests accordingly.
+
+## Bulk best practices
+
+<AccordionGroup>
+  <Accordion title="Use continueOnError for resilience">
+    When processing large batches, enable `continueOnError` to ensure one failure does not stop the entire operation.
+  </Accordion>
+  <Accordion title="Handle partial failures">
+    Always check the `failed` array in responses and implement retry logic for failed items.
+  </Accordion>
+  <Accordion title="Batch by logical groups">
+    Group related content together. If one group fails, other groups remain unaffected.
+  </Accordion>
+</AccordionGroup>
+
+---
+
 ## Webhooks
 
 Subscribe to content lifecycle events:
@@ -466,10 +1092,10 @@ See [Webhooks](/guides/webhooks) for setup instructions.
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Uploads API" icon="upload" href="/api/uploads">
-    Create new content via direct upload.
-  </Card>
   <Card title="Feed API" icon="rss" href="/api/feed">
     See how content is delivered to end users.
+  </Card>
+  <Card title="Analytics" icon="chart-bar" href="/api/analytics">
+    Measure content performance and engagement.
   </Card>
 </Columns>
