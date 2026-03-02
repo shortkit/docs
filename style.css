@@ -199,10 +199,12 @@ html[class*="dark"] #sidebar-content {
   color: #71717a;
 }
 
-/* Indent page titles under top-level sidebar groups */
-#sidebar-content .sidebar-title,
-#sidebar-content a[href] {
-  padding-left: 0.75rem !important;
+/* Indent items nested under top-level sidebar group headers (Overview, Developer Guides, etc.) */
+#sidebar-content [data-state] + div a,
+#sidebar-content [aria-expanded] + div a,
+#sidebar-content [data-state] + div .sidebar-title,
+#sidebar-content [aria-expanded] + div .sidebar-title {
+  padding-left: 1rem !important;
 }
 
 /* Active sidebar item - lavender background like fal.ai */
