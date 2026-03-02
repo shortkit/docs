@@ -39,46 +39,51 @@
             ]
           },
           {
-            "group": "Upload Content",
+            "group": "Developer Guides",
             "pages": [
-              "guides/upload/content-pipeline",
-              "guides/upload/transcoding"
-            ]
-          },
-          {
-            "group": "Display a Feed",
-            "pages": [
-              "guides/feed/feed-configuration",
-              "guides/feed/deep-linking"
-            ]
-          },
-          {
-            "group": "Playback Features",
-            "pages": [
-              "guides/playback/captions",
-              "guides/playback/storyboard-timelines"
-            ]
-          },
-          {
-            "group": "Track Engagement",
-            "pages": [
-              "guides/engagement/engagement-signals",
-              "guides/engagement/analytics",
-              "guides/engagement/data-export"
-            ]
-          },
-          {
-            "group": "Monetize",
-            "pages": [
-              "guides/monetize/ad-integration",
-              "guides/monetize/ad-configuration"
-            ]
-          },
-          {
-            "group": "Secure & Integrate",
-            "pages": [
-              "guides/security/identity-management",
-              "guides/security/playback-security"
+              {
+                "group": "Upload Content",
+                "pages": [
+                  "guides/upload/content-pipeline",
+                  "guides/upload/transcoding"
+                ]
+              },
+              {
+                "group": "Display a Feed",
+                "pages": [
+                  "guides/feed/feed-configuration",
+                  "guides/feed/deep-linking"
+                ]
+              },
+              {
+                "group": "Playback Features",
+                "pages": [
+                  "guides/playback/captions",
+                  "guides/playback/storyboard-timelines"
+                ]
+              },
+              {
+                "group": "Track Engagement",
+                "pages": [
+                  "guides/engagement/engagement-signals",
+                  "guides/engagement/analytics",
+                  "guides/engagement/data-export"
+                ]
+              },
+              {
+                "group": "Monetize",
+                "pages": [
+                  "guides/monetize/ad-integration",
+                  "guides/monetize/ad-configuration"
+                ]
+              },
+              {
+                "group": "Secure & Integrate",
+                "pages": [
+                  "guides/security/identity-management",
+                  "guides/security/playback-security"
+                ]
+              }
             ]
           },
           {
