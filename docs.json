@@ -39,7 +39,7 @@
             ]
           },
           {
-            "group": "SDK",
+            "group": "ShortKit SDK",
             "pages": [
               "sdk/installation",
               "sdk/configuration",
