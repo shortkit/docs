@@ -1,0 +1,1068 @@
+---
+title: "Overlays"
+description: "Configure the UI layer on top of ShortKit's video player -- use a built-in template or build your own with the FeedOverlay protocol."
+keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "player", "publishers", "commands"]
+---
+
+Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
+
+## Overlay modes
+
+`OverlayMode` controls what UI the SDK renders on top of video content. Set it via `FeedConfig`:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Built-in template
+    let config = FeedConfig(overlay: .template(.news))
+
+    // Custom overlay -- you provide the UI, SDK manages the lifecycle
+    let config = FeedConfig(overlay: .custom {
+        MyOverlay(theme: .dark)
+    })
+
+    // No overlay -- bare video, no UI
+    let config = FeedConfig(overlay: .none)
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Built-in template
+    val config = FeedConfig(overlay = OverlayMode.Template(OverlayTemplate.NEWS))
+
+    // Custom overlay
+    val config = FeedConfig(overlay = OverlayMode.Custom {
+        MyOverlay(theme = Theme.Dark)
+    })
+
+    // No overlay
+    val config = FeedConfig(overlay = OverlayMode.None)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Built-in template
+    <ShortKitFeed overlay={{ mode: "template", template: "news" }} />
+
+    // Custom overlay
+    <ShortKitFeed overlay={{ mode: "custom", component: MyOverlay }} />
+
+    // No overlay
+    <ShortKitFeed overlay={{ mode: "none" }} />
+    ```
+  </Tab>
+</Tabs>
+
+| Mode | Behavior |
+|------|----------|
+| `.template(...)` | SDK renders a built-in overlay with controls, metadata display, and transitions. The specific template determines the layout and feature set. |
+| `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You build the UI, the SDK handles when to configure, activate, and transition it. |
+| `.none` | SDK renders only the raw video. No overlay, no controls. |
+
+## Custom overlays
+
+When the built-in template doesn't fit your product -- custom controls, branded UI, domain-specific actions -- use `.custom` to provide your own overlay. The SDK manages per-cell creation, content binding, and transition lifecycle exactly as it does for built-in templates. You own the UI; the SDK owns the lifecycle.
+
+### The FeedOverlay protocol
+
+Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at specific moments in the cell lifecycle:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public protocol FeedOverlay: AnyObject {
+        func attach(player: ShortKitPlayer)
+        func configure(with item: ContentItem)
+        func resetPlaybackProgress()
+        func activatePlayback()
+        func fadeOutForTransition()
+        func restoreFromTransition()
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    interface FeedOverlay {
+        fun attach(player: ShortKitPlayer)
+        fun configure(item: ContentItem)
+        fun resetPlaybackProgress()
+        fun activatePlayback()
+        fun fadeOutForTransition()
+        fun restoreFromTransition()
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `attach(player:)` | Once, immediately after creation. | Store the player reference and subscribe to its reactive streams (`time`, `playerState`, `isMuted`, `activeCue`, etc.). |
+| `configure(with:)` | A cell receives a new content item (initial load or cell reuse). | Update labels, thumbnails, and metadata to reflect the new item. |
+| `resetPlaybackProgress()` | The cell is being prepared for new content. | Reset scrubber position, clear caption text, discard stale state from the previous item. |
+| `activatePlayback()` | The cell becomes the active playback cell. | Begin processing `player.time` updates to drive your scrubber, captions, and time-dependent UI. |
+| `fadeOutForTransition()` | The user begins swiping to the next video. | Dim or hide your overlay so it doesn't show at full opacity during the transition. |
+| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
+
+The SDK calls your factory closure once per cell, lazily on first use. Your overlay is added as a full-screen subview of the cell and persists across cell reuses. Immediately after creation, the SDK calls `attach(player:)` with its `ShortKitPlayer` instance -- this is where you store the player reference and subscribe to its reactive streams.
+
+From that point on, the SDK drives your overlay through the remaining protocol methods. When a cell is reused for new content, it calls `configure(with:)` followed by `resetPlaybackProgress()` so your overlay can update its metadata and clear stale state. When the cell becomes the active playback cell, it calls `activatePlayback()` -- your signal to start processing time updates. During swipes, it calls `fadeOutForTransition()` on the outgoing cell and `restoreFromTransition()` + `activatePlayback()` on the incoming cell.
+
+### Registering your overlay
+
+Pass a factory closure to `.custom`. The closure returns a view conforming to `FeedOverlay`. The SDK calls `attach(player:)` immediately after to provide the player:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let config = FeedConfig(overlay: .custom {
+        MyOverlay(theme: .dark, analytics: myTracker)
+    })
+
+    let shortKit = ShortKit(apiKey: "pk_live_...", config: config)
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val config = FeedConfig(overlay = OverlayMode.Custom {
+        MyOverlay(context, theme = Theme.Dark, analytics = myTracker)
+    })
+
+    val shortKit = ShortKit(apiKey = "pk_live_...", config = config)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitFeed
+      apiKey="pk_live_..."
+      overlay={{ mode: "custom", component: MyOverlay }}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+The factory is your opportunity to inject your own dependencies -- themes, data services, feature flags -- at construction time. The SDK provides its dependency (the player) separately through `attach(player:)`.
+
+## ShortKitPlayer
+
+`ShortKitPlayer` is the public interface to the video player. Both built-in templates and custom overlays use it the same way: subscribe to reactive streams for state, call methods for commands. Access it via `shortKit.player`.
+
+### Reactive streams
+
+Subscribe to these streams to keep your overlay in sync with playback state. Updates are delivered on the main thread.
+
+| Publisher | Type | Description |
+|-----------|------|-------------|
+| `time` | `PlayerTime` | Elapsed time, total duration, and buffered duration. Fires at ~1-second intervals while playing. |
+| `playerState` | `PlayerState` | State transitions: `.idle`, `.loading`, `.ready`, `.playing`, `.paused`, `.seeking`, `.buffering`, `.ended`, `.error(String)`. |
+| `currentItem` | `ContentItem?` | Metadata for the active content item. `nil` when nothing is loaded. |
+| `isMuted` | `Bool` | Current mute state. |
+| `playbackRate` | `Float` | Current playback speed (1.0, 1.5, 2.0). |
+| `captionsEnabled` | `Bool` | Whether captions are currently on. |
+| `activeCaptionTrack` | `CaptionTrack?` | The selected caption track (language, label, source). |
+| `activeCue` | `VTTCue?` | The active caption cue at the current playback time. Contains `startTime`, `endTime`, and `text`. |
+| `didLoop` | `LoopEvent` | Fires each time the video loops. Contains `contentId` and `loopCount`. |
+| `feedTransition` | `FeedTransitionEvent` | Start and end of feed navigation. Contains `phase` (`.began`/`.ended`), `from`, `to`, `direction`. |
+
+Synchronous reads are available without subscribing via `currentItemValue` and `playbackRateValue`.
+
+### Commands
+
+Call these methods from your gesture handlers and buttons to control playback:
+
+| Method | Description |
+|--------|-------------|
+| `play()` | Resume playback. |
+| `pause()` | Pause playback. |
+| `seek(to:)` | Seek to a time in seconds. Does not auto-resume. |
+| `seekAndPlay(to:)` | Seek to a time and immediately resume playback. |
+| `setMuted(_:)` | Set mute state. |
+| `skipToNext()` | Navigate to the next feed item. |
+| `skipToPrevious()` | Navigate to the previous feed item. |
+| `setPlaybackRate(_:)` | Set playback speed (e.g. 1.0, 1.5, 2.0). |
+| `setCaptionsEnabled(_:)` | Enable or disable captions. |
+| `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (e.g. "en"). |
+| `sendContentSignal(_:)` | Send a `.positive` or `.negative` signal for the recommendation engine. Call this when a user likes, shares, or otherwise engages with content. |
+| `setMaxBitrate(_:)` | Cap video bitrate in bits per second. Pass 0 to uncap. |
+| `seekThumbnail(at:)` | Returns a thumbnail image at the given time for scrubber preview, or `nil` if unavailable. |
+
+### ContentItem
+
+The content metadata available to your overlay via `configure(with:)` and the `currentItem` publisher:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `String` | Unique content identifier. |
+| `title` | `String` | Content title. |
+| `description` | `String?` | Content description. |
+| `duration` | `Double` | Total duration in seconds. |
+| `streamingUrl` | `String` | HLS streaming URL. |
+| `thumbnailUrl` | `String` | Poster image URL. |
+| `captionTracks` | `[CaptionTrack]` | Available caption tracks. |
+| `customMetadata` | `[String: JSONValue]?` | App-specific metadata attached to the content. |
+| `author` | `String?` | Content author. |
+| `articleUrl` | `String?` | Link to the full article. |
+| `commentCount` | `Int?` | Number of comments. |
+
+## Example: scrubber with seek thumbnails
+
+This example shows a draggable scrubber that displays a thumbnail preview at the seek position while the user drags. It uses `player.time` to track progress and `player.seekThumbnail(at:)` to fetch storyboard frames.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    import Combine
+    import ShortKit
+    import UIKit
+
+    final class ScrubberOverlay: UIView, FeedOverlay {
+
+        private var player: ShortKitPlayer!
+        private var subscriptions = Set<AnyCancellable>()
+        private var isActive = false
+        private var isScrubbing = false
+        private var videoDuration: Double = 0
+
+        // MARK: - UI
+
+        private let track = UIView()
+        private let playedProgress = UIView()
+        private let bufferedProgress = UIView()
+        private let thumbnailPreview = UIImageView()
+        private let timeLabel = UILabel()
+
+        private var playedWidth: NSLayoutConstraint!
+        private var bufferedWidth: NSLayoutConstraint!
+        private var handleCenterX: NSLayoutConstraint!
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            setupUI()
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        // MARK: - FeedOverlay
+
+        func attach(player: ShortKitPlayer) {
+            self.player = player
+            player.time
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] time in
+                    guard let self, self.isActive, !self.isScrubbing else { return }
+                    self.videoDuration = time.duration
+                    let fraction = time.duration > 0 ? time.current / time.duration : 0
+                    self.playedWidth.constant = self.track.bounds.width * fraction
+                    let buffered = time.duration > 0 ? time.buffered / time.duration : 0
+                    self.bufferedWidth.constant = self.track.bounds.width * buffered
+                }
+                .store(in: &subscriptions)
+        }
+
+        func configure(with item: ContentItem) {
+            videoDuration = item.duration
+        }
+
+        func resetPlaybackProgress() {
+            isActive = false
+            isScrubbing = false
+            playedWidth.constant = 0
+            bufferedWidth.constant = 0
+            thumbnailPreview.isHidden = true
+            timeLabel.isHidden = true
+        }
+
+        func activatePlayback() { isActive = true }
+
+        func fadeOutForTransition() {
+            UIView.animate(withDuration: 0.15) { self.alpha = 0.3 }
+        }
+
+        func restoreFromTransition() {
+            UIView.animate(withDuration: 0.15) { self.alpha = 1.0 }
+        }
+
+        // MARK: - Scrub gesture
+
+        @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+            let x = gesture.location(in: track).x
+            let fraction = max(0, min(1, x / track.bounds.width))
+            let seekTime = videoDuration * fraction
+
+            switch gesture.state {
+            case .began:
+                isScrubbing = true
+                thumbnailPreview.isHidden = false
+                timeLabel.isHidden = false
+
+            case .changed:
+                handleCenterX.constant = track.bounds.width * fraction
+                playedWidth.constant = track.bounds.width * fraction
+
+                if let thumb = player.seekThumbnail(at: seekTime) {
+                    thumbnailPreview.image = thumb
+                }
+                let m = Int(seekTime) / 60, s = Int(seekTime) % 60
+                timeLabel.text = String(format: "%d:%02d", m, s)
+                thumbnailPreview.center.x = handleCenterX.constant
+
+            case .ended, .cancelled:
+                isScrubbing = false
+                thumbnailPreview.isHidden = true
+                timeLabel.isHidden = true
+                player.seekAndPlay(to: seekTime)
+
+            default: break
+            }
+        }
+
+        // MARK: - Setup (abbreviated — layout constraints omitted for brevity)
+
+        private func setupUI() {
+            track.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+            addSubview(track)
+            track.addSubview(bufferedProgress)
+            track.addSubview(playedProgress)
+            addSubview(thumbnailPreview)
+            addSubview(timeLabel)
+
+            // ... constraint setup for track at bottom, progress bars, thumbnail above track
+
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+            track.addGestureRecognizer(pan)
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    class ScrubberOverlay @JvmOverloads constructor(
+        context: Context,
+        attrs: AttributeSet? = null
+    ) : FrameLayout(context, attrs), FeedOverlay {
+
+        private lateinit var player: ShortKitPlayer
+        private var isActive = false
+        private var isScrubbing = false
+        private var videoDuration = 0.0
+
+        private val track: View
+        private val playedProgress: View
+        private val bufferedProgress: View
+        private val thumbnailPreview: ImageView
+        private val timeLabel: TextView
+
+        init {
+            inflate(context, R.layout.scrubber_overlay, this)
+            track = findViewById(R.id.track)
+            playedProgress = findViewById(R.id.playedProgress)
+            bufferedProgress = findViewById(R.id.bufferedProgress)
+            thumbnailPreview = findViewById(R.id.thumbnailPreview)
+            timeLabel = findViewById(R.id.timeLabel)
+
+            track.setOnTouchListener { _, event -> handleTouch(event) }
+        }
+
+        // FeedOverlay
+
+        override fun attach(player: ShortKitPlayer) {
+            this.player = player
+            findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
+                player.time.collect { time ->
+                    if (!isActive || isScrubbing) return@collect
+                    videoDuration = time.duration
+                    val fraction = if (time.duration > 0) time.current / time.duration else 0.0
+                    playedProgress.layoutParams.width = (track.width * fraction).toInt()
+                    playedProgress.requestLayout()
+                    val buffered = if (time.duration > 0) time.buffered / time.duration else 0.0
+                    bufferedProgress.layoutParams.width = (track.width * buffered).toInt()
+                    bufferedProgress.requestLayout()
+                }
+            }
+        }
+
+        override fun configure(item: ContentItem) {
+            videoDuration = item.duration
+        }
+
+        override fun resetPlaybackProgress() {
+            isActive = false
+            isScrubbing = false
+            playedProgress.layoutParams.width = 0
+            bufferedProgress.layoutParams.width = 0
+            thumbnailPreview.visibility = View.GONE
+            timeLabel.visibility = View.GONE
+        }
+
+        override fun activatePlayback() { isActive = true }
+
+        override fun fadeOutForTransition() {
+            animate().alpha(0.3f).setDuration(150).start()
+        }
+
+        override fun restoreFromTransition() {
+            animate().alpha(1.0f).setDuration(150).start()
+        }
+
+        private fun handleTouch(event: MotionEvent): Boolean {
+            val fraction = (event.x / track.width).coerceIn(0f, 1f).toDouble()
+            val seekTime = videoDuration * fraction
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    isScrubbing = true
+                    thumbnailPreview.visibility = View.VISIBLE
+                    timeLabel.visibility = View.VISIBLE
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    playedProgress.layoutParams.width = (track.width * fraction).toInt()
+                    playedProgress.requestLayout()
+
+                    player.seekThumbnail(seekTime)?.let { thumbnailPreview.setImageBitmap(it) }
+
+                    val m = (seekTime / 60).toInt()
+                    val s = (seekTime % 60).toInt()
+                    timeLabel.text = String.format("%d:%02d", m, s)
+                    thumbnailPreview.x = (track.width * fraction).toFloat() - thumbnailPreview.width / 2
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isScrubbing = false
+                    thumbnailPreview.visibility = View.GONE
+                    timeLabel.visibility = View.GONE
+                    player.seekAndPlay(seekTime)
+                }
+            }
+            return true
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    import { useRef, useState, useCallback } from "react";
+    import { View, Image, Text, StyleSheet } from "react-native";
+    import { Gesture, GestureDetector } from "react-native-gesture-handler";
+    import { useShortKitOverlay } from "@shortkit/react-native";
+
+    export function ScrubberOverlay() {
+      const { player, item, isActive, transitioning } = useShortKitOverlay();
+      const [isScrubbing, setIsScrubbing] = useState(false);
+      const [seekFraction, setSeekFraction] = useState(0);
+      const [thumbnail, setThumbnail] = useState(null);
+      const trackRef = useRef(null);
+
+      const progress = (!isScrubbing && isActive && player.time.duration > 0)
+        ? player.time.current / player.time.duration
+        : seekFraction;
+
+      const buffered = player.time.duration > 0
+        ? player.time.buffered / player.time.duration
+        : 0;
+
+      const panGesture = Gesture.Pan()
+        .onBegin(() => setIsScrubbing(true))
+        .onUpdate((e) => {
+          trackRef.current?.measure((x, y, width) => {
+            const frac = Math.max(0, Math.min(1, e.x / width));
+            setSeekFraction(frac);
+            const seekTime = (item?.duration ?? 0) * frac;
+            setThumbnail(player.seekThumbnail(seekTime));
+          });
+        })
+        .onEnd(() => {
+          const seekTime = (item?.duration ?? 0) * seekFraction;
+          player.seekAndPlay(seekTime);
+          setIsScrubbing(false);
+          setThumbnail(null);
+        });
+
+      const seekTime = (item?.duration ?? 0) * seekFraction;
+      const minutes = Math.floor(seekTime / 60);
+      const seconds = Math.floor(seekTime % 60);
+
+      return (
+        <View style={[styles.overlay, transitioning && styles.dimmed]}>
+          {isScrubbing && thumbnail && (
+            <View style={[styles.preview, { left: `${seekFraction * 100}%` }]}>
+              <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
+              <Text style={styles.time}>{`${minutes}:${String(seconds).padStart(2, "0")}`}</Text>
+            </View>
+          )}
+          <GestureDetector gesture={panGesture}>
+            <View ref={trackRef} style={styles.track}>
+              <View style={[styles.buffered, { width: `${buffered * 100}%` }]} />
+              <View style={[styles.played, { width: `${progress * 100}%` }]} />
+            </View>
+          </GestureDetector>
+        </View>
+      );
+    }
+
+    const styles = StyleSheet.create({
+      overlay: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
+      dimmed: { opacity: 0.3 },
+      track: { height: 3, backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 44 },
+      played: { height: 3, backgroundColor: "#fff", position: "absolute" },
+      buffered: { height: 3, backgroundColor: "rgba(255,255,255,0.3)", position: "absolute" },
+      preview: { position: "absolute", bottom: 60, alignItems: "center", marginLeft: -60 },
+      thumbnail: { width: 120, height: 68, borderRadius: 4 },
+      time: { color: "#fff", fontSize: 12, fontVariant: ["tabular-nums"], marginTop: 4 },
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```tsx
+    import { useRef, useState, useCallback } from "react";
+    import { useShortKitOverlay } from "@shortkit/web";
+
+    export function ScrubberOverlay() {
+      const { player, item, isActive, transitioning } = useShortKitOverlay();
+      const [isScrubbing, setIsScrubbing] = useState(false);
+      const [seekFraction, setSeekFraction] = useState(0);
+      const [thumbnail, setThumbnail] = useState<string | null>(null);
+      const trackRef = useRef<HTMLDivElement>(null);
+
+      const progress = (!isScrubbing && isActive && player.time.duration > 0)
+        ? player.time.current / player.time.duration
+        : seekFraction;
+
+      const buffered = player.time.duration > 0
+        ? player.time.buffered / player.time.duration
+        : 0;
+
+      const handlePointerDown = useCallback(() => setIsScrubbing(true), []);
+
+      const handlePointerMove = useCallback((e: React.PointerEvent) => {
+        if (!isScrubbing || !trackRef.current) return;
+        const rect = trackRef.current.getBoundingClientRect();
+        const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        setSeekFraction(frac);
+        const seekTime = (item?.duration ?? 0) * frac;
+        setThumbnail(player.seekThumbnail(seekTime));
+      }, [isScrubbing, item, player]);
+
+      const handlePointerUp = useCallback(() => {
+        const seekTime = (item?.duration ?? 0) * seekFraction;
+        player.seekAndPlay(seekTime);
+        setIsScrubbing(false);
+        setThumbnail(null);
+      }, [seekFraction, item, player]);
+
+      const seekTime = (item?.duration ?? 0) * seekFraction;
+      const minutes = Math.floor(seekTime / 60);
+      const seconds = Math.floor(seekTime % 60);
+
+      return (
+        <div
+          className="scrubber-overlay"
+          style={{ opacity: transitioning ? 0.3 : 1 }}
+        >
+          {isScrubbing && thumbnail && (
+            <div className="seek-preview" style={{ left: `${seekFraction * 100}%` }}>
+              <img src={thumbnail} width={120} height={68} />
+              <span>{`${minutes}:${String(seconds).padStart(2, "0")}`}</span>
+            </div>
+          )}
+          <div
+            ref={trackRef}
+            className="scrub-track"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <div className="buffered" style={{ width: `${buffered * 100}%` }} />
+            <div className="played" style={{ width: `${progress * 100}%` }} />
+          </div>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The key pattern: guard on `isActive` and `!isScrubbing` in your time stream handler so you only update the scrubber from playback when the overlay is active and the user isn't dragging. During a drag, update the UI from the gesture position instead and call `player.seekAndPlay(to:)` on release.
+
+## Example: closed captions
+
+This example shows a caption label that follows the active cue and can be repositioned by dragging. It uses `player.activeCue` for the text and a pan gesture for repositioning.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    import Combine
+    import ShortKit
+    import UIKit
+
+    final class CaptionOverlay: UIView, FeedOverlay {
+
+        private var player: ShortKitPlayer!
+        private var subscriptions = Set<AnyCancellable>()
+        private var isActive = false
+        private var captionBottomOffset: NSLayoutConstraint!
+
+        private let captionLabel: UILabel = {
+            let label = UILabel()
+            label.numberOfLines = 0
+            label.textAlignment = .center
+            label.textColor = .white
+            label.font = .systemFont(ofSize: 16, weight: .semibold)
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+            label.layer.cornerRadius = 6
+            label.clipsToBounds = true
+            label.isUserInteractionEnabled = true
+            label.translatesAutoresizingMaskIntoConstraints = false
+            return label
+        }()
+
+        private let captionToggle = UIButton(type: .system)
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            setupUI()
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        // MARK: - FeedOverlay
+
+        func attach(player: ShortKitPlayer) {
+            self.player = player
+
+            player.activeCue
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] cue in
+                    guard let self, self.isActive else { return }
+                    if let cue {
+                        self.captionLabel.text = "  \(cue.text)  "
+                        self.captionLabel.isHidden = false
+                    } else {
+                        self.captionLabel.isHidden = true
+                    }
+                }
+                .store(in: &subscriptions)
+
+            player.captionsEnabled
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] enabled in
+                    self?.captionToggle.alpha = enabled ? 1.0 : 0.5
+                    if !enabled { self?.captionLabel.isHidden = true }
+                }
+                .store(in: &subscriptions)
+        }
+
+        func configure(with item: ContentItem) {
+            captionLabel.text = nil
+            captionLabel.isHidden = true
+        }
+
+        func resetPlaybackProgress() {
+            isActive = false
+            captionLabel.text = nil
+            captionLabel.isHidden = true
+            captionBottomOffset.constant = -100
+        }
+
+        func activatePlayback() { isActive = true }
+
+        func fadeOutForTransition() {
+            UIView.animate(withDuration: 0.15) { self.alpha = 0.3 }
+        }
+
+        func restoreFromTransition() {
+            UIView.animate(withDuration: 0.15) { self.alpha = 1.0 }
+        }
+
+        // MARK: - Drag to reposition
+
+        @objc private func handleDrag(_ gesture: UIPanGestureRecognizer) {
+            captionBottomOffset.constant += gesture.translation(in: self).y
+            gesture.setTranslation(.zero, in: self)
+        }
+
+        @objc private func toggleCaptions() {
+            player.captionsEnabled
+                .first()
+                .sink { [weak self] enabled in
+                    self?.player.setCaptionsEnabled(!enabled)
+                }
+                .store(in: &subscriptions)
+        }
+
+        private func setupUI() {
+            addSubview(captionLabel)
+            addSubview(captionToggle)
+
+            captionBottomOffset = captionLabel.bottomAnchor.constraint(
+                equalTo: bottomAnchor, constant: -100
+            )
+            NSLayoutConstraint.activate([
+                captionLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+                captionLabel.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -48),
+                captionBottomOffset,
+            ])
+
+            captionLabel.addGestureRecognizer(
+                UIPanGestureRecognizer(target: self, action: #selector(handleDrag))
+            )
+            captionToggle.addTarget(self, action: #selector(toggleCaptions), for: .touchUpInside)
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    class CaptionOverlay @JvmOverloads constructor(
+        context: Context,
+        attrs: AttributeSet? = null
+    ) : FrameLayout(context, attrs), FeedOverlay {
+
+        private lateinit var player: ShortKitPlayer
+        private var isActive = false
+
+        private val captionLabel: TextView
+        private val captionToggle: ImageButton
+        private var captionOffsetY = 0f
+
+        init {
+            inflate(context, R.layout.caption_overlay, this)
+            captionLabel = findViewById(R.id.captionLabel)
+            captionToggle = findViewById(R.id.captionToggle)
+
+            // Drag to reposition
+            captionLabel.setOnTouchListener { view, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_MOVE -> {
+                        captionOffsetY += event.y - view.height / 2
+                        view.translationY = captionOffsetY
+                    }
+                }
+                true
+            }
+
+            captionToggle.setOnClickListener {
+                val enabled = player.captionsEnabledValue
+                player.setCaptionsEnabled(!enabled)
+            }
+        }
+
+        override fun attach(player: ShortKitPlayer) {
+            this.player = player
+            findViewTreeLifecycleOwner()?.lifecycleScope?.apply {
+                launch {
+                    player.activeCue.collect { cue ->
+                        if (!isActive) return@collect
+                        if (cue != null) {
+                            captionLabel.text = cue.text
+                            captionLabel.visibility = View.VISIBLE
+                        } else {
+                            captionLabel.visibility = View.GONE
+                        }
+                    }
+                }
+                launch {
+                    player.captionsEnabled.collect { enabled ->
+                        captionToggle.alpha = if (enabled) 1.0f else 0.5f
+                        if (!enabled) captionLabel.visibility = View.GONE
+                    }
+                }
+            }
+        }
+
+        override fun configure(item: ContentItem) {
+            captionLabel.text = null
+            captionLabel.visibility = View.GONE
+        }
+
+        override fun resetPlaybackProgress() {
+            isActive = false
+            captionLabel.text = null
+            captionLabel.visibility = View.GONE
+            captionOffsetY = 0f
+            captionLabel.translationY = 0f
+        }
+
+        override fun activatePlayback() { isActive = true }
+
+        override fun fadeOutForTransition() {
+            animate().alpha(0.3f).setDuration(150).start()
+        }
+
+        override fun restoreFromTransition() {
+            animate().alpha(1.0f).setDuration(150).start()
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    import { useState, useRef } from "react";
+    import { View, Text, Pressable, StyleSheet } from "react-native";
+    import { Gesture, GestureDetector } from "react-native-gesture-handler";
+    import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
+    import { useShortKitOverlay } from "@shortkit/react-native";
+
+    export function CaptionOverlay() {
+      const { player, isActive, transitioning } = useShortKitOverlay();
+      const offsetY = useSharedValue(0);
+
+      const cueText = isActive ? player.activeCue?.text : null;
+      const captionsOn = player.captionsEnabled;
+
+      const dragGesture = Gesture.Pan().onUpdate((e) => {
+        offsetY.value += e.translationY;
+      });
+
+      const captionStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: offsetY.value }],
+      }));
+
+      return (
+        <View style={[styles.overlay, transitioning && styles.dimmed]}>
+          {cueText && captionsOn && (
+            <GestureDetector gesture={dragGesture}>
+              <Animated.View style={[styles.captionBox, captionStyle]}>
+                <Text style={styles.captionText}>{cueText}</Text>
+              </Animated.View>
+            </GestureDetector>
+          )}
+          <Pressable
+            style={[styles.toggle, !captionsOn && styles.toggleOff]}
+            onPress={() => player.setCaptionsEnabled(!captionsOn)}
+          >
+            <Text style={styles.toggleIcon}>CC</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    const styles = StyleSheet.create({
+      overlay: { ...StyleSheet.absoluteFillObject },
+      dimmed: { opacity: 0.3 },
+      captionBox: {
+        position: "absolute", bottom: 100, alignSelf: "center",
+        backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6,
+      },
+      captionText: { color: "#fff", fontSize: 16, fontWeight: "600", textAlign: "center" },
+      toggle: {
+        position: "absolute", bottom: 60, right: 16, width: 44, height: 44,
+        justifyContent: "center", alignItems: "center",
+      },
+      toggleOff: { opacity: 0.5 },
+      toggleIcon: { color: "#fff", fontSize: 16, fontWeight: "700" },
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```tsx
+    import { useState, useRef, useCallback } from "react";
+    import { useShortKitOverlay } from "@shortkit/web";
+
+    export function CaptionOverlay() {
+      const { player, isActive, transitioning } = useShortKitOverlay();
+      const [offsetY, setOffsetY] = useState(0);
+      const dragging = useRef(false);
+      const lastY = useRef(0);
+
+      const cueText = isActive ? player.activeCue?.text : null;
+      const captionsOn = player.captionsEnabled;
+
+      const handlePointerDown = useCallback((e: React.PointerEvent) => {
+        dragging.current = true;
+        lastY.current = e.clientY;
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      }, []);
+
+      const handlePointerMove = useCallback((e: React.PointerEvent) => {
+        if (!dragging.current) return;
+        setOffsetY((prev) => prev + (e.clientY - lastY.current));
+        lastY.current = e.clientY;
+      }, []);
+
+      const handlePointerUp = useCallback(() => {
+        dragging.current = false;
+      }, []);
+
+      return (
+        <div
+          className="caption-overlay"
+          style={{ opacity: transitioning ? 0.3 : 1 }}
+        >
+          {cueText && captionsOn && (
+            <div
+              className="caption-box"
+              style={{ transform: `translateY(${offsetY}px)` }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+            >
+              {cueText}
+            </div>
+          )}
+          <button
+            className="caption-toggle"
+            style={{ opacity: captionsOn ? 1 : 0.5 }}
+            onClick={() => player.setCaptionsEnabled(!captionsOn)}
+          >
+            CC
+          </button>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The `activeCue` publisher emits a `VTTCue` (with `startTime`, `endTime`, and `text`) when a cue becomes active, and `nil` when no cue covers the current playback time. The SDK handles cue timing internally -- your overlay just renders whatever text it receives.
+
+## Engagement signals
+
+When your custom overlay includes actions like likes, shares, or saves, report them to the SDK using `sendContentSignal`. This feeds the recommendation engine so future feed content reflects user preferences.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // User liked the video
+    player.sendContentSignal(.positive)
+
+    // User tapped "not interested"
+    player.sendContentSignal(.negative)
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    player.sendContentSignal(ContentSignal.Positive)
+    player.sendContentSignal(ContentSignal.Negative)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { sendContentSignal } = useShortKitPlayer();
+    sendContentSignal("positive");
+    sendContentSignal("negative");
+    ```
+  </Tab>
+</Tabs>
+
+`OverlayActionDelegate` is not wired for custom overlays -- it is specific to built-in templates. Custom overlays handle their own user interaction callbacks and report engagement through content signals.
+
+## Carousel and survey modes
+
+Image carousels and surveys follow the same overlay pattern as video content. Each has a mode enum with `.none`, `.template(...)`, and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let config = FeedConfig(
+        overlay: .custom { MyVideoOverlay() },
+        carouselMode: .custom { MyCarouselOverlay() },
+        surveyMode: .custom { MySurveyOverlay() }
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val config = FeedConfig(
+        overlay = OverlayMode.Custom { MyVideoOverlay(context) },
+        carouselMode = CarouselMode.Custom { MyCarouselOverlay(context) },
+        surveyMode = SurveyMode.Custom { MySurveyOverlay(context) }
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitFeed
+      overlay={{ mode: "custom", component: MyVideoOverlay }}
+      carouselMode={{ mode: "custom", component: MyCarouselOverlay }}
+      surveyMode={{ mode: "custom", component: MySurveyOverlay }}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+| Mode | Options | Behavior |
+|------|---------|----------|
+| `CarouselMode` | `.template(.default)` | Paged image gallery with page dots, text panel, action buttons, and "Read more" link. |
+| | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the entire carousel UI. |
+| | `.none` | No carousel UI. Developer accesses raw `ImageCarouselItem` data. |
+| `SurveyMode` | `.template(.default)` | Centered question with styled option buttons, haptic feedback, and auto-advance after selection. |
+| | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the survey UI and report responses via callbacks. |
+| | `.none` | No survey UI. Developer accesses raw `SurveyItem` data. |
+
+### Custom carousel overlays
+
+Custom carousel overlays conform to `CarouselOverlay`. Unlike video overlays, there is no player — the overlay owns everything: image display, auto-scroll, text, and actions. The SDK provides carousel data through `configure(with:)` and manages cell lifecycle.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public protocol CarouselOverlay: AnyObject {
+        func configure(with item: ImageCarouselItem)
+        func resetState()
+        func fadeOutForTransition()
+        func restoreFromTransition()
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    interface CarouselOverlay {
+        fun configure(item: ImageCarouselItem)
+        fun resetState()
+        fun fadeOutForTransition()
+        fun restoreFromTransition()
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure(with:)` | A cell receives a new carousel item (initial load or cell reuse). | Load images, set up page indicators, populate text and metadata from the `ImageCarouselItem`. |
+| `resetState()` | The cell is being prepared for new content. | Cancel auto-scroll timers, clear images, reset page position and any expanded text state. |
+| `fadeOutForTransition()` | The user begins swiping to the next feed item. | Dim or hide your overlay during the transition. |
+| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
+
+The `ImageCarouselItem` provided in `configure(with:)` contains the carousel's images, metadata, and optional auto-scroll interval. Your overlay is responsible for displaying the images and handling all user interaction — paging, text expansion, action buttons — directly.
+
+### Custom survey overlays
+
+Custom survey overlays conform to `SurveyOverlay`. The protocol includes two callback properties that the SDK sets on your overlay after creation. Your overlay calls these when the user selects a survey option — the SDK handles forwarding the response to the host app delegate and triggering auto-advance.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public protocol SurveyOverlay: AnyObject {
+        var onSurveyResponse: ((String, SurveyOption) -> Void)? { get set }
+        var onAutoAdvance: (() -> Void)? { get set }
+        func configure(with item: SurveyItem)
+        func resetState()
+        func fadeOutForTransition()
+        func restoreFromTransition()
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    interface SurveyOverlay {
+        var onSurveyResponse: ((surveyId: String, option: SurveyOption) -> Unit)?
+        var onAutoAdvance: (() -> Unit)?
+        fun configure(item: SurveyItem)
+        fun resetState()
+        fun fadeOutForTransition()
+        fun restoreFromTransition()
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure(with:)` | A cell receives a new survey item. | Display the question and option buttons from the `SurveyItem`. |
+| `resetState()` | The cell is being prepared for new content. | Cancel any pending auto-advance timers, clear selection state, reset button styling. |
+| `fadeOutForTransition()` | The user begins swiping to the next feed item. | Dim or hide your overlay during the transition. |
+| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
+| `onSurveyResponse` | Set by SDK after creation. | Call this with the survey ID and selected option when the user taps an answer. The SDK forwards it to `ShortKitDelegate`. |
+| `onAutoAdvance` | Set by SDK after creation. | Call this after a short delay following selection (e.g. 500ms). The SDK scrolls to the next feed item. |

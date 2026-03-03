@@ -1,67 +1,41 @@
 ---
 title: "Quickstart"
-description: "Get a short-form video feed running in your app in under 10 minutes."
+description: "Get a short-form video feed running in your app in under 5 minutes."
 keywords: ["quickstart", "getting started", "installation", "setup", "tutorial"]
 ---
 
-Get your API keys, install the SDK, and display a video feed. By the end of this guide you will have a working vertical feed and your first piece of uploaded content.
+Get your API key, upload a video, and display a feed.
 
-## Before you begin
+## Prerequisites
 
-You need:
-- A ShortKit account with API keys ([contact us](https://calendly.com/michael-shortkit/20-min-meeting) to get started)
-- An existing iOS application (SwiftUI or UIKit)
+| Requirement | Details |
+|---|---|
+| ShortKit account | Sign up at [portal.shortkit.dev](https://portal.shortkit.dev) or [contact us](https://calendly.com/michael-shortkit/20-min-meeting) |
+| API keys | Publishable key (`pk_live_...`) from **Settings > API Keys** in the portal |
+| Platform | iOS 16+, Android 8+ (API 24), React 18+, or any modern browser |
 
-## Step 1: Get your API keys
-
-<Steps>
-  <Step title="Log in to the Admin Portal">
-    Navigate to [portal.shortkit.dev](https://portal.shortkit.dev) and sign in with your organization credentials.
-  </Step>
-  <Step title="Navigate to API Keys">
-    Go to **Settings → API Keys** in the sidebar.
-  </Step>
-  <Step title="Copy your keys">
-    You will see two keys:
-    - **Publishable key** (`pk_live_...`): Used in the client SDK. Safe to ship in your app binary.
-    - **Secret key** (`sk_live_...`): Used for server-side API calls only.
-
-    Copy the publishable key for SDK initialization, and the secret key for uploading content in Step 5.
-  </Step>
-</Steps>
-
-<Warning>
-  Never expose your secret key (`sk_live_...` or `sk_test_...`) in client-side code, source control, or your app binary. Use it only from your server or a secure CI environment.
-</Warning>
-
-## Step 2: Install the SDK
+## 1. Install the SDK
 
 <Tabs>
-  <Tab title="iOS (SPM)">
-    In Xcode, go to **File → Add Package Dependencies** and enter the repository URL:
+  <Tab title="Swift">
+    In Xcode, go to **File > Add Package Dependencies** and enter:
 
     ```
     https://github.com/AudienceKit/shortkit-ios
     ```
 
-    Or add it to your `Package.swift`:
+    Or add to your `Package.swift`:
 
     ```swift Package.swift
     dependencies: [
         .package(url: "https://github.com/AudienceKit/shortkit-ios.git", from: "1.0.0")
     ]
     ```
+
+    Add `ShortKit` to your target's dependencies.
   </Tab>
-  <Tab title="Android">
-    Add the dependency to your `build.gradle.kts`:
-
-    ```kotlin build.gradle.kts
-    dependencies {
-        implementation("dev.shortkit:shortkit-android:1.0.0")
-    }
-    ```
-
-    Add the ShortKit Maven repository in your `settings.gradle.kts`:
+  <Tab title="Kotlin">
+    Add the ShortKit Maven repository and dependency:
 
     ```kotlin settings.gradle.kts
     dependencyResolutionManagement {
@@ -72,107 +46,94 @@ You need:
         }
     }
     ```
+
+    ```kotlin build.gradle.kts
+    dependencies {
+        implementation("dev.shortkit:shortkit-android:1.0.0")
+    }
+    ```
   </Tab>
-  <Tab title="React Native">
-    <CodeGroup>
-
-    ```bash npm
-    npm install @shortkit/react-native
-    ```
-
-    ```bash yarn
-    yarn add @shortkit/react-native
-    ```
-
-    </CodeGroup>
-
-    Then install iOS pods:
-
+  <Tab title="React">
     ```bash
-    cd ios && pod install
+    npm install @shortkit/react
     ```
+  </Tab>
+  <Tab title="Web">
+    No installation needed. Add the script tag in step 5.
   </Tab>
 </Tabs>
 
-## Step 3: Initialize ShortKit
+## 2. Upload a video
 
-Create a `ShortKit` instance with your publishable key and a `FeedConfig`. Do this once, early in your app lifecycle.
+Your feed needs content. Upload a video through the portal or the API.
 
-<Tabs>
-  <Tab title="SwiftUI">
-    ```swift App.swift
-    import SwiftUI
-    import ShortKit
+**Option A: Portal** — Go to **Content** in the [admin portal](https://portal.shortkit.dev) and upload a video file.
 
-    @main
-    struct MyApp: App {
-        let shortKit = ShortKit(
-            apiKey: "pk_live_your_publishable_key",
-            config: FeedConfig(
-                feedHeight: .fullscreen,
-                controls: ControlsConfig(),
-                theme: ThemeConfig()
-            )
-        )
+**Option B: API** — Create an upload session and PUT your file to the signed URL:
 
-        var body: some Scene {
-            WindowGroup {
-                ContentView(shortKit: shortKit)
-            }
-        }
-    }
-    ```
-  </Tab>
-  <Tab title="UIKit">
-    ```swift AppDelegate.swift
-    import UIKit
-    import ShortKit
+```bash
+# Create an upload session
+curl -X POST https://api.shortkit.dev/v1/uploads \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "My First Video"}'
 
-    @main
-    class AppDelegate: UIResponder, UIApplicationDelegate {
-        var shortKit: ShortKit!
-
-        func application(
-            _ application: UIApplication,
-            didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-        ) -> Bool {
-
-            shortKit = ShortKit(
-                apiKey: "pk_live_your_publishable_key",
-                config: FeedConfig(
-                    feedHeight: .fullscreen,
-                    controls: ControlsConfig(),
-                    theme: ThemeConfig()
-                )
-            )
-
-            return true
-        }
-    }
-    ```
-  </Tab>
-</Tabs>
-
-**Optional:** If you have logged-in users, set a user ID so ShortKit can personalize the feed:
-
-```swift
-shortKit.setUserId("user_12345")
+# Upload the file to the signed URL returned in the response
+curl -X PUT "<uploadUrl from response>" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4
 ```
 
-Call `shortKit.clearUserId()` on logout.
+Processing takes a few seconds. The video status changes from `waiting_for_upload` to `processing` to `ready`. You can poll `GET /v1/uploads/{id}` to check, or watch the status in the portal.
 
-## Step 4: Display the feed
+<Info>
+  See the [upload pipeline guide](/guides/upload-pipeline) for details on metadata, captions, and carousel content.
+</Info>
+
+## 3. Create an embed
+
+An embed defines which content appears in your feed and how it behaves. Create one in the portal or via the API.
+
+**Option A: Portal** — Go to **Embeds** in the [admin portal](https://portal.shortkit.dev), click **New Embed**, choose the **Feed** mode, and save. Copy the embed ID (`emb_...`) from the page header.
+
+**Option B: API**:
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/embeds \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My App Feed", "mode": "feed"}'
+```
+
+The response includes the embed ID:
+
+```json
+{
+  "data": {
+    "id": "emb_abc123",
+    "name": "My App Feed",
+    "mode": "feed",
+    ...
+  }
+}
+```
+
+## 4. Display the feed
+
+Pass your publishable key and embed ID to the SDK to render a full-screen video feed.
 
 <Tabs>
   <Tab title="SwiftUI">
-    Drop `ShortKitFeedView` into any SwiftUI view. It handles its own layout and playback.
-
-    ```swift ContentView.swift
+    ```swift
     import SwiftUI
     import ShortKit
 
-    struct ContentView: View {
-        let shortKit: ShortKit
+    struct FeedScreen: View {
+        let shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            embedId: "emb_your_embed_id",
+            config: FeedConfig()
+        )
 
         var body: some View {
             ShortKitFeedView(shortKit: shortKit)
@@ -182,16 +143,19 @@ Call `shortKit.clearUserId()` on logout.
     ```
   </Tab>
   <Tab title="UIKit">
-    Present `ShortKitFeedViewController` or embed it as a child view controller.
-
-    ```swift ViewController.swift
+    ```swift
     import UIKit
     import ShortKit
 
-    class ViewController: UIViewController {
+    class FeedViewController: UIViewController {
         override func viewDidLoad() {
             super.viewDidLoad()
 
+            let shortKit = ShortKit(
+                apiKey: "pk_live_your_publishable_key",
+                embedId: "emb_your_embed_id",
+                config: FeedConfig()
+            )
             let feedVC = ShortKitFeedViewController(shortKit: shortKit)
             addChild(feedVC)
             feedVC.view.frame = view.bounds
@@ -202,75 +166,67 @@ Call `shortKit.clearUserId()` on logout.
     }
     ```
   </Tab>
-</Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    import com.shortkit.sdk.ShortKit
+    import com.shortkit.sdk.config.FeedConfig
+    import com.shortkit.sdk.feed.ShortKitFeedFragment
 
-Build and run. You will see an empty feed until you upload content in the next step.
+    class FeedActivity : AppCompatActivity() {
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            setContentView(R.layout.activity_feed)
 
-## Step 5: Upload test content
+            val shortKit = ShortKit(
+                context = this,
+                apiKey = "pk_live_your_publishable_key",
+                embedId = "emb_your_embed_id",
+                config = FeedConfig()
+            )
 
-Use the Upload API from your terminal to push a video into your feed. This requires your **secret key**.
-
-<Steps>
-  <Step title="Create an upload">
-    ```bash
-    curl -X POST https://api.shortkit.dev/v1/uploads \
-      -H "X-API-Key: sk_live_your_secret_key" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "title": "My First Video",
-        "description": "Testing ShortKit integration",
-        "tags": ["test", "demo"],
-        "customMetadata": {
-          "articleUrl": "https://example.com/article"
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.container, ShortKitFeedFragment.newInstance(shortKit))
+                .commit()
         }
-      }'
-    ```
-
-    Response:
-
-    ```json
-    {
-      "data": {
-        "id": "sk_content_abc123",
-        "uploadUrl": "https://uploads.shortkit.dev/...",
-        "status": "waiting_for_upload"
-      }
     }
     ```
-  </Step>
-  <Step title="Upload the file to the signed URL">
-    Use the `uploadUrl` from the response to PUT your video file:
+  </Tab>
+  <Tab title="React">
+    ```tsx
+    import { ShortKitFeed } from "@shortkit/react";
 
-    ```bash
-    curl -X PUT "UPLOAD_URL_FROM_RESPONSE" \
-      -H "Content-Type: video/mp4" \
-      --data-binary @your-video.mp4
+    export default function FeedPage() {
+      return (
+        <ShortKitFeed
+          apiKey="pk_live_your_publishable_key"
+          embedId="emb_your_embed_id"
+          style={{ width: "100%", height: "100vh" }}
+        />
+      );
+    }
     ```
+  </Tab>
+  <Tab title="Web">
+    ```html
+    <div id="shortkit-feed" style="width: 100%; height: 100vh"></div>
+    <script src="https://cdn.shortkit.dev/sdk/feed.js"></script>
+    <script>
+      ShortKit.feed('#shortkit-feed', {
+        apiKey: 'pk_live_your_publishable_key',
+        embedId: 'emb_your_embed_id'
+      });
+    </script>
+    ```
+  </Tab>
+</Tabs>
 
-    Processing typically takes 1-2 minutes. Once complete, the video appears in your feed automatically.
-  </Step>
-  <Step title="Verify in your app">
-    Relaunch your app (or wait for the feed to refresh). Your uploaded video should appear in the feed. Swipe up to scroll through content.
-  </Step>
-</Steps>
-
-<Note>
-  You can also upload content through the Admin Portal at [portal.shortkit.dev](https://portal.shortkit.dev) under **Content → Upload**.
-</Note>
+Run your app. You should see a vertically-scrolling video feed with your uploaded content.
 
 ## Next steps
 
-<CardGroup cols={2}>
-  <Card title="Configure the SDK" icon="sliders" href="/sdk/configuration">
-    Customize FeedConfig options: feed height, controls, and playback behavior.
-  </Card>
-  <Card title="Core concepts" icon="book" href="/core-concepts">
-    Understand how ShortKit's components work together.
-  </Card>
-  <Card title="User identity" icon="user" href="/guides/security/identity-management">
-    Set up setUserId for personalized feeds and analytics.
-  </Card>
-  <Card title="Upload API reference" icon="cloud-arrow-up" href="/api-reference/uploads">
-    Full reference for the /v1/uploads endpoint and content management.
-  </Card>
-</CardGroup>
+You have a working feed. Here's where to go from here:
+
+- **Add an overlay** — Display titles, descriptions, and action buttons on top of your videos. See [Overlays](/sdk/overlays) and [Custom overlays](/guides/custom-overlays).
+- **Configure feed behavior** — Adjust height, mute behavior, carousel and survey modes. See [Configuration](/sdk/configuration).
+- **Track engagement** — Pass custom dimensions and query analytics. See [Analytics](/sdk/analytics).
+- **Identify users** — Link feed activity to your logged-in users with `setUserId`. See [User identity](/sdk/identity).

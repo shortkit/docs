@@ -1,31 +1,43 @@
 ---
-title: "Changelog"
-description: "Product updates and improvements to the ShortKit platform."
-keywords: ["changelog", "updates", "releases", "what's new"]
+title: ""
 ---
 
-<Update label="March 2026" tags={["API", "SDK"]}>
-  ## Feed personalization
+<div className="changelog-wrapper">
 
-  **API** — The `GET /v1/feed` endpoint now supports user-level personalization. When a `userId` is provided, the ranking algorithm factors in watch history and engagement signals to tailor the feed order per user. Feeds without a `userId` continue to use the default reverse-chronological ranking. See the [Feed API docs](/api/feed) for details.
-</Update>
+<div className="changelog-entry">
+<div className="changelog-header">
+<span className="changelog-date">Mar 2026</span>
+<div className="changelog-tags-row">
+<span className="changelog-tag">platform</span>
+<span className="changelog-tag">sdk</span>
+</div>
+</div>
+<h3>Captions & storyboard timelines</h3>
+<p>Auto-generated WebVTT captions during transcoding for all uploads. Storyboard thumbnail sprite sheets for scrub previews in the player.</p>
+</div>
 
-<Update label="March 2026" tags={["Platform", "SDK"]}>
-  ## Caption auto-generation and storyboard timelines
+<div className="changelog-entry">
+<div className="changelog-header">
+<span className="changelog-date">Feb 2026</span>
+<div className="changelog-tags-row">
+<span className="changelog-tag">sdk</span>
+<span className="changelog-tag">portal</span>
+</div>
+</div>
+<h3>Ad integration</h3>
+<p>In-feed video ad interstitials via pluggable <code>adProvider</code> interface. Ships with Google IMA adapter. Frequency controlled server-side through the Ad Configuration API.</p>
+</div>
 
-  **Platform** — ShortKit now auto-generates WebVTT captions during transcoding for all newly uploaded content. Captions are available in the feed response and rendered by the SDK when the user enables them. We also added storyboard timeline support, generating thumbnail sprite sheets so users see visual previews while scrubbing through videos. See [Captions](/guides/playback/captions) and [Storyboard Timelines](/guides/playback/storyboard-timelines).
-</Update>
+<div className="changelog-entry">
+<div className="changelog-header">
+<span className="changelog-date">Feb 2026</span>
+<div className="changelog-tags-row">
+<span className="changelog-tag">api</span>
+<span className="changelog-tag">portal</span>
+</div>
+</div>
+<h3>Bulk operations & analytics</h3>
+<p>Batch update, archive, or tag up to 100 items per request. Analytics dashboard adds completion rates, session duration, and entry-point breakdown.</p>
+</div>
 
-<Update label="February 2026" tags={["SDK", "Portal"]}>
-  ## Ad integration support
-
-  **SDK** — The iOS, Android, and React Native SDKs now support in-feed video ad interstitials via a pluggable `adProvider` interface. The initial release ships with a Google IMA adapter (`ShortKitGoogleAds`), and ad frequency is controlled server-side through the new [Ad Configuration API](/api/configuration#ad-configuration). The Portal also gained an [Ad Management](/portal/ad-management) section for configuring ad tags and previewing insertion frequency without code changes.
-</Update>
-
-<Update label="February 2026" tags={["API", "Portal"]}>
-  ## Bulk operations API and analytics dashboard improvements
-
-  **API** — A new set of [Bulk Operations](/api/content#bulk-operations) endpoints lets you update, archive, or tag up to 100 content items in a single request. This is useful for large content libraries where managing items one-by-one is impractical.
-
-  **Portal** — The [Analytics dashboard](/portal/analytics) now includes completion rate trends, average session duration over time, and a breakdown of engagement by entry point. Filters for date range and content tags have been added across all analytics views.
-</Update>
+</div>

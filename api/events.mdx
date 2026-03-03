@@ -1,0 +1,356 @@
+---
+title: "Events"
+description: "Ingest analytics events from SDK clients. The events endpoint accepts batched event payloads and powers the ShortKit analytics pipeline."
+keywords: ["events", "analytics", "tracking", "viewEnd", "video views", "engagement", "API"]
+---
+
+The Events API ingests analytics events from SDK clients. Events are sent in batches and stored for the V1 analytics pipeline. `viewEnd` events additionally create `VideoView` rows that power the V2 metrics system.
+
+<Note>
+  The ShortKit SDK calls this endpoint automatically. You only need to use it directly if you are building a custom client without the SDK.
+</Note>
+
+## Endpoint
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/events` | Publishable key | Ingest a batch of analytics events |
+
+---
+
+## Ingest events
+
+Send a batch of up to 100 analytics events in a single request.
+
+```bash
+POST /v1/events
+```
+
+### Authentication
+
+Pass your publishable key via the `X-API-Key` header.
+
+```bash
+X-API-Key: pk_live_your_publishable_key
+```
+
+### Request body
+
+The request body contains a single `events` array. Each element is an event envelope.
+
+```json
+{
+  "events": [
+    {
+      "type": "impression",
+      "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+      "userId": "user_123",
+      "sessionId": "sess_abc",
+      "viewSessionId": "vsess_xyz",
+      "timestamp": "2026-03-01T12:00:00Z",
+      "data": {
+        "positionInFeed": 0
+      }
+    },
+    {
+      "type": "playStart",
+      "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+      "userId": "user_123",
+      "sessionId": "sess_abc",
+      "viewSessionId": "vsess_xyz",
+      "timestamp": "2026-03-01T12:00:01Z",
+      "data": {
+        "startupTimeMs": 850,
+        "initialRendition": "auto"
+      }
+    }
+  ]
+}
+```
+
+The `events` array accepts a maximum of **100 events** per request.
+
+### Event envelope
+
+Every event shares the same envelope structure.
+
+<ParamField body="type" type="string" required>
+  The event type. Must be one of the valid event types listed below.
+</ParamField>
+
+<ParamField body="contentId" type="string">
+  The content item ID this event relates to. Null for feed-level events (`feedEntry`, `feedExit`) and ad events.
+</ParamField>
+
+<ParamField body="userId" type="string">
+  The user ID. Either an anonymous device UUID or an identified user ID set via `setUserId()`. Defaults to `"anonymous"` on the server if omitted.
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Feed session identifier. Reserved for future use.
+</ParamField>
+
+<ParamField body="viewSessionId" type="string">
+  A UUID that links all events from a single video view together. Created when a content item becomes active, and included on every event until the user navigates away.
+</ParamField>
+
+<ParamField body="timestamp" type="string" required>
+  ISO 8601 timestamp of when the event occurred on the client. Must be within the last 24 hours.
+</ParamField>
+
+<ParamField body="data" type="object">
+  Event-specific payload. The shape depends on the `type` field. Defaults to an empty object if omitted.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/events \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": [
+      {
+        "type": "impression",
+        "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+        "userId": "user_123",
+        "viewSessionId": "vsess_xyz",
+        "timestamp": "2026-03-01T12:00:00Z",
+        "data": { "positionInFeed": 0 }
+      }
+    ]
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "received": 5,
+    "failed": 0
+  },
+  "meta": {
+    "request_id": "req_8f3a2b1c"
+  }
+}
+```
+
+<ResponseField name="data.received" type="integer">
+  Number of events that passed validation and were stored.
+</ResponseField>
+
+<ResponseField name="data.failed" type="integer">
+  Number of events that failed validation. Failed events are silently dropped -- they do not cause the request to return an error status.
+</ResponseField>
+
+---
+
+## Valid event types
+
+There are 21 valid event types across six categories.
+
+### Core playback
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `impression` | Content item became the active item in the feed | `positionInFeed` |
+| `firstFrame` | First video frame rendered on screen | `ttffMs` |
+| `playStart` | Player buffered enough to begin playback | `startupTimeMs`, `initialRendition` |
+| `watchProgress` | Emitted once per second during playback | `currentTime`, `totalDuration`, `percentComplete`, `currentBitrate` |
+| `completion` | Video reached its natural end | `totalWatchTime`, `didLoop`, `loopCount` |
+
+### Navigation
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `swipe` | User navigated between content items | `toContentId`, `watchTimeOnFrom`, `direction` |
+| `feedEntry` | Feed view appeared on screen | `entryPoint` |
+| `feedExit` | Feed view disappeared | `totalSessionTime`, `videosWatched` |
+
+### Engagement
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `like` | User liked the content | -- |
+| `share` | User shared the content | -- |
+| `save` | User saved the content | -- |
+| `interaction` | Generic UI interaction (play/pause, mute, captions, seek) | `interactionType`, `value` |
+| `contentSignal` | Positive or negative signal for recommendation tuning | `signal` |
+
+### Quality of experience
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `rebuffer` | Rebuffering episode ended | `currentTime`, `rebufferDurationMs`, `networkType` |
+| `qualityChange` | HLS rendition switch | `fromRendition`, `toRendition` |
+| `error` | Playback failure | `errorCode`, `errorMessage`, `errorType` |
+
+### Ads
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `adRequest` | Ad load completed (success or failure) | `slotId`, `filled`, `errorReason` |
+| `adImpression` | Ad became visible in the feed | `slotId`, `adUnitId`, `position` |
+| `adStart` | Ad playback began | `slotId`, `adUnitId`, `position` |
+| `adProgress` | Ad reached a VAST quartile marker | `slotId`, `quartile`, `position` |
+| `adComplete` | Ad played to completion | `slotId`, `position` |
+| `adSkip` | User skipped the ad | `slotId`, `watchTime`, `position` |
+
+### Analytics V2
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `viewEnd` | Full summary of a single video view session | See [viewEnd event](#viewend-event) below |
+
+---
+
+## Validation rules
+
+Each event in the batch is validated independently. Invalid events increment the `failed` count but do not cause the entire request to fail.
+
+| Rule | Behavior |
+|------|----------|
+| **Event type** | `type` must be one of the valid types listed above. Unknown types are rejected. |
+| **Timestamp age** | `timestamp` must parse as a valid ISO 8601 datetime and fall within the last 24 hours. Events older than 24 hours or with unparseable timestamps are rejected. |
+| **Batch size** | The `events` array accepts at most 100 elements. Requests exceeding this limit are rejected with a `422` response before any events are processed. |
+
+A request with 10 events where 2 fail validation returns HTTP 200 with `{ "received": 8, "failed": 2 }`.
+
+---
+
+## viewEnd event
+
+The `viewEnd` event is the most important event for analytics. It fires when a view session ends (user swipes away, feed disappears, or app backgrounds) and contains the full accumulated metrics for one video view.
+
+On the server, each `viewEnd` event creates a `VideoView` row in the database. The V2 metrics endpoints (`/v1/metrics/*`) query these rows. This means `viewEnd` is the bridge between raw event ingestion and the structured analytics pipeline.
+
+### viewEnd data fields
+
+```json
+{
+  "type": "viewEnd",
+  "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+  "userId": "user_123",
+  "viewSessionId": "vsess_xyz",
+  "timestamp": "2026-03-01T12:00:30Z",
+  "data": {
+    "viewSessionId": "vsess_xyz",
+    "viewStart": "2026-03-01T12:00:00Z",
+    "watchTimeMs": 15000,
+    "playingTimeMs": 14500,
+    "completed": true,
+    "looped": false,
+    "loopCount": 0,
+    "exitBeforeStart": false,
+    "videoStartupTimeMs": 850,
+    "rebufferCount": 1,
+    "rebufferDurationMs": 200,
+    "seekCount": 0,
+    "seekDurationMs": 0,
+    "avgBitrateBps": 2500000,
+    "renditionChangeCount": 2,
+    "renditionUpshiftCount": 1,
+    "renditionDownshiftCount": 1,
+    "captionsEnabled": false,
+    "clientAppName": "MyApp",
+    "clientAppVersion": "1.2.0",
+    "deviceInfo": {
+      "deviceCategory": "phone",
+      "deviceManufacturer": "Apple",
+      "deviceModel": "iPhone15,3",
+      "deviceName": "iPhone 15 Pro Max",
+      "osName": "iOS",
+      "osVersion": "18.2",
+      "connectionType": "wifi",
+      "userAgent": "ShortKit/0.1.0 iOS/18.2"
+    },
+    "customDimensions": {
+      "custom_1": "sports",
+      "custom_2": "premium_user"
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `viewSessionId` | `string` | UUID identifying this specific view. Matches the envelope-level `viewSessionId`. |
+| `viewStart` | `string` | ISO 8601 timestamp of when the view began. |
+| `watchTimeMs` | `integer` | Wall-clock time from view start to end, in milliseconds. |
+| `playingTimeMs` | `integer` | Actual playing time accumulated at 1 Hz, in milliseconds. |
+| `completed` | `boolean` | Whether the video played to its natural end at least once. |
+| `looped` | `boolean` | Whether the video looped at least once. |
+| `loopCount` | `integer` | Total number of completions. 0 if the video never reached the end. |
+| `exitBeforeStart` | `boolean` | Whether the user left before the player reached `readyToPlay`. |
+| `videoStartupTimeMs` | `integer \| null` | Time from impression to `readyToPlay` in milliseconds. Null if the player never started. |
+| `rebufferCount` | `integer` | Number of rebuffering episodes during the view. |
+| `rebufferDurationMs` | `integer` | Total rebuffer duration in milliseconds. |
+| `seekCount` | `integer` | Number of seek operations. |
+| `seekDurationMs` | `integer` | Total time spent seeking in milliseconds. |
+| `avgBitrateBps` | `integer \| null` | Weighted average bitrate in bits per second. Null if no samples were collected. |
+| `renditionChangeCount` | `integer` | Total HLS rendition switches. |
+| `renditionUpshiftCount` | `integer` | Switches to a higher-quality rendition. |
+| `renditionDownshiftCount` | `integer` | Switches to a lower-quality rendition. |
+| `captionsEnabled` | `boolean` | Whether captions were enabled during this view. |
+| `clientAppName` | `string \| null` | App name passed at SDK initialization. |
+| `clientAppVersion` | `string \| null` | App version passed at SDK initialization. |
+| `deviceInfo` | `object` | Device and connection metadata. See below. |
+| `customDimensions` | `object` | Custom dimension key-value pairs (`custom_1` through `custom_5`). |
+
+### deviceInfo object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `deviceCategory` | `string` | `"phone"`, `"tablet"`, or `"other"`. |
+| `deviceManufacturer` | `string` | Device manufacturer (e.g., `"Apple"`). |
+| `deviceModel` | `string` | Hardware identifier (e.g., `"iPhone15,3"`). |
+| `deviceName` | `string` | Human-readable device name. |
+| `osName` | `string` | Operating system name (e.g., `"iOS"`). |
+| `osVersion` | `string` | OS version string (e.g., `"18.2"`). |
+| `connectionType` | `string` | `"wifi"`, `"cellular"`, `"wired"`, or `"unknown"`. |
+| `userAgent` | `string` | SDK user agent string (e.g., `"ShortKit/0.1.0 iOS/18.2"`). |
+
+### Server-side enrichment
+
+When processing a `viewEnd` event, the server enriches the `VideoView` row with data not present in the client payload:
+
+| Field | Source |
+|-------|--------|
+| `video_title` | Looked up from the `Content` table using `contentId`. |
+| `video_duration_ms` | Looked up from the `Content` table using `contentId`. |
+| `viewer_ip` | Captured from the HTTP request. |
+
+---
+
+## SDK behavior
+
+The ShortKit SDK handles event collection and delivery automatically. Understanding the SDK's behavior is useful for interpreting your analytics data.
+
+### Batching
+
+Events are queued in memory and flushed every 30 seconds. Before sending, the batch is persisted to disk so events survive app termination. Failed sends are retried up to 3 times with the next flush cycle. After 3 failures, the batch is discarded.
+
+### Automatic events
+
+Most events fire without any developer action. The SDK tracks impressions, playback starts, watch progress, completions, swipes, rebuffers, errors, and view sessions automatically. Ad events fire through the ad provider delegate callbacks.
+
+### When viewEnd fires
+
+A `viewEnd` event is emitted when:
+- The user swipes to a different content item
+- The feed view disappears (e.g., the user navigates away)
+- The app enters the background
+
+Each `viewEnd` contains the accumulated metrics for the entire view session, from impression to departure.
+
+---
+
+## Error responses
+
+| HTTP Status | Error code | Description |
+|-------------|------------|-------------|
+| 401 | `invalid_api_key` | The `X-API-Key` header is missing or the key is not valid. |
+| 422 | `invalid_request` | The request body failed schema validation (e.g., `events` array exceeds 100 elements). |
+| 429 | `rate_limited` | Too many requests. Retry after the duration in the `Retry-After` header. |
+| 500 | `internal_error` | An unexpected error occurred. Contact support with the `request_id`. |

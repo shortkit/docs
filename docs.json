@@ -16,11 +16,11 @@
   },
   "fonts": {
     "heading": {
-      "family": "Public Sans",
+      "family": "Inter",
       "weight": 600
     },
     "body": {
-      "family": "Public Sans",
+      "family": "Inter",
       "weight": 400
     }
   },
@@ -34,8 +34,7 @@
           {
             "group": "Getting Started",
             "pages": [
-              "quickstart",
-              "core-concepts"
+              "quickstart"
             ]
           },
           {
@@ -54,13 +53,10 @@
           {
             "group": "Developer Guides",
             "pages": [
-              "guides/custom-overlays",
               "guides/content-types",
               "guides/captions",
               "guides/upload-pipeline",
-              "guides/feed-customization",
-              "guides/analytics",
-              "guides/server-side-integration"
+              "guides/feed-customization"
             ]
           }
         ]
@@ -70,11 +66,9 @@
         "icon": "square-terminal",
         "groups": [
           {
-            "group": "Overview",
+            "group": "Getting Started",
             "pages": [
-              "api/introduction",
-              "api/authentication",
-              "api/errors"
+              "api/common-workflows"
             ]
           },
           {
@@ -104,6 +98,7 @@
           {
             "group": "Organization",
             "pages": [
+              "api/authentication",
               "api/organization"
             ]
           }
@@ -156,12 +151,7 @@
       "vscode"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/shortkit",
-      "github": "https://github.com/shortkit"
-    }
-  },
+  "footer": {},
   "styling": {
     "codeblocks": {
       "theme": {

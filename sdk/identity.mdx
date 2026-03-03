@@ -1,0 +1,147 @@
+---
+title: "Identity"
+description: "How ShortKit tracks anonymous and identified users across sessions and devices."
+keywords: ["identity", "user ID", "anonymous", "identity resolution", "setUserId", "clearUserId"]
+---
+
+ShortKit assigns every device an anonymous ID on first launch. When your user signs in, you promote them to an identified user and the backend merges their anonymous history.
+
+## Anonymous by default
+
+On first initialization, the SDK generates a random UUID and persists it in device storage. This ID is attached to every API request and analytics event automatically. No setup required.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // No user ID passed — SDK uses its auto-generated anonymous UUID.
+    let shortKit = ShortKit(apiKey: "pk_live_...", config: FeedConfig())
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Anonymous by default.
+    val shortKit = ShortKit(apiKey = "pk_live_...", config = FeedConfig())
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Anonymous by default.
+    const shortKit = ShortKit.initialize({ apiKey: "pk_live_..." });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    // Anonymous by default.
+    const shortKit = ShortKit.initialize({ apiKey: "pk_live_..." });
+    ```
+  </Tab>
+</Tabs>
+
+The anonymous ID survives app restarts. It is only replaced when you call `clearUserId()`.
+
+## Setting an identified user
+
+Call `setUserId` when the user signs in. The SDK switches all subsequent requests and events to this ID and triggers identity resolution on the backend.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.setUserId("user_abc123")
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.setUserId("user_abc123")
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    shortKit.setUserId("user_abc123");
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    shortKit.setUserId("user_abc123");
+    ```
+  </Tab>
+</Tabs>
+
+You can also pass the user ID at init time to skip the anonymous-first flow entirely:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let shortKit = ShortKit(
+        apiKey: "pk_live_...",
+        config: FeedConfig(),
+        userId: "user_abc123"
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val shortKit = ShortKit(
+        apiKey = "pk_live_...",
+        config = FeedConfig(),
+        userId = "user_abc123"
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const shortKit = ShortKit.initialize({
+      apiKey: "pk_live_...",
+      userId: "user_abc123",
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    const shortKit = ShortKit.initialize({
+      apiKey: "pk_live_...",
+      userId: "user_abc123",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Clearing identity
+
+Call `clearUserId` on sign-out. The SDK reverts to anonymous mode with a fresh UUID. The previous anonymous ID is discarded.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    shortKit.clearUserId();
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```typescript
+    shortKit.clearUserId();
+    ```
+  </Tab>
+</Tabs>
+
+## How identity resolution works
+
+When `setUserId` is called, the SDK sends a `POST /v1/identity/resolve` request with both the anonymous ID and the identified user ID:
+
+```json
+{ "anonymousId": "a1b2c3d4-...", "userId": "user_abc123" }
+```
+
+The anonymous user profile is merged into the identified user profile, the anonymous device ID is appended to the identified user's `linked_device_ids` array, and the anonymous profile is deleted. All events previously attributed to the anonymous ID become queryable under the identified user.
+
+## User ID on events
+
+Every analytics event the SDK emits carries the current user ID in the `X-User-Id` request header — whether the user is anonymous or identified. You never need to attach user IDs to events manually. The SDK handles this at the network layer.

@@ -199,11 +199,8 @@ html[class*="dark"] #sidebar-content {
   color: #71717a;
 }
 
-/* Indent items nested under top-level sidebar group headers (Overview, Developer Guides, etc.) */
-#sidebar-content [data-state] + div a,
-#sidebar-content [aria-expanded] + div a,
-#sidebar-content [data-state] + div .sidebar-title,
-#sidebar-content [aria-expanded] + div .sidebar-title {
+/* Indent page links under sidebar group headers */
+#sidebar-content a {
   padding-left: 1.5rem !important;
 }
 
@@ -554,27 +551,14 @@ html[class*="dark"] ::-webkit-scrollbar-thumb:hover {
    PAGINATION
    ======================================== */
 
-.pagination-next,
-.pagination-prev {
-  background: #ffffff !important;
-  border: 1px solid #e4e4e7 !important;
-  transition: all 0.15s ease;
+#pagination {
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
 }
 
-.dark .pagination-next,
-.dark .pagination-prev,
-html.dark .pagination-next,
-html.dark .pagination-prev,
-html[class*="dark"] .pagination-next,
-html[class*="dark"] .pagination-prev {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.pagination-next:hover,
-.pagination-prev:hover {
-  border-color: #FF6600 !important;
-}
+/* Lone next link (has ml-auto) stays right — no override needed */
+/* Lone prev link (no ml-auto) stays left — no override needed */
 
 /* ========================================
    ACCORDION
@@ -748,4 +732,152 @@ html.dark #search-bar-entry,
 html[class*="dark"] #search-bar-entry {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   CHANGELOG PAGE
+   ======================================== */
+
+/* Hide sidebar on changelog page */
+body:has(.changelog-wrapper) #sidebar-content,
+body:has(.changelog-wrapper) #sidebar {
+  display: none !important;
+}
+
+/* Hide page title, subtitle, and TOC on changelog page */
+body:has(.changelog-wrapper) #table-of-contents,
+body:has(.changelog-wrapper) #table-of-contents-content {
+  display: none !important;
+}
+
+/* Hide the auto-generated page heading and description */
+body:has(.changelog-wrapper) article > h1:first-of-type,
+body:has(.changelog-wrapper) .page-header,
+body:has(.changelog-wrapper) article > p:first-of-type {
+  display: none !important;
+}
+
+/* Changelog wrapper */
+.changelog-wrapper {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+/* Individual entry — timeline style */
+.changelog-entry {
+  border-left: 2px solid #e4e4e7;
+  padding: 0 0 2.5rem 1.5rem;
+  position: relative;
+}
+
+.changelog-entry:last-child {
+  padding-bottom: 0;
+}
+
+/* Timeline dot */
+.changelog-entry::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50% !important;
+  background: #FF6600;
+}
+
+/* Header row — date + tags */
+.changelog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+/* Date */
+.changelog-date {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.8rem;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+/* Tags row */
+.changelog-tags-row {
+  display: flex;
+  gap: 0.375rem;
+}
+
+/* Tag pill */
+.changelog-tag {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  background: #f4f4f5;
+  padding: 0.125rem 0.5rem;
+  border-radius: 2px !important;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+/* Entry title */
+.changelog-entry h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.375rem 0;
+  color: #18181b;
+}
+
+/* Entry description */
+.changelog-entry p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #71717a;
+  margin: 0;
+}
+
+/* Inline code inside changelog */
+.changelog-entry code {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.8rem;
+  background: #f4f4f5 !important;
+  padding: 0.1rem 0.35rem !important;
+  border-radius: 3px !important;
+  color: #18181b !important;
+}
+
+/* ---- Dark mode ---- */
+
+.dark .changelog-entry,
+html.dark .changelog-entry,
+html[class*="dark"] .changelog-entry {
+  border-left-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .changelog-tag,
+html.dark .changelog-tag,
+html[class*="dark"] .changelog-tag {
+  background: rgba(255, 255, 255, 0.06);
+  color: #71717a;
+}
+
+.dark .changelog-entry h3,
+html.dark .changelog-entry h3,
+html[class*="dark"] .changelog-entry h3 {
+  color: #e4e4e7;
+}
+
+.dark .changelog-entry p,
+html.dark .changelog-entry p,
+html[class*="dark"] .changelog-entry p {
+  color: #71717a;
+}
+
+.dark .changelog-entry code,
+html.dark .changelog-entry code,
+html[class*="dark"] .changelog-entry code {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e4e4e7 !important;
 }

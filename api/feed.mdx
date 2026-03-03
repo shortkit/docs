@@ -1,32 +1,27 @@
 ---
 title: "Feed"
-description: "Retrieve a personalized video feed and manage the remote config overlay that controls SDK behavior."
-keywords: ["feed", "ranking", "personalization", "API", "configuration", "settings", "remote config", "overlay"]
+description: "Retrieve the polymorphic content feed consumed by the ShortKit SDK, including video, carousel, survey, and ad slot items."
+keywords: ["feed", "API", "video", "carousel", "survey", "ad slot", "pagination", "cursor"]
 ---
 
-The Feed API is the primary endpoint consumed by the ShortKit SDK. It returns a ranked list of video content tailored to the requesting user. The Configuration endpoints deliver a sparse config overlay to the SDK at runtime, letting you change player behavior, theming, and feed settings without shipping an app update.
+The Feed API is the primary endpoint consumed by the ShortKit SDK. It returns a polymorphic list of items -- videos, image carousels, surveys, and ad slots -- ordered by editorial controls and recency.
 
 ## Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | `/v1/feed` | Publishable key | Get a personalized video feed |
-| `GET` | `/v1/config` | Publishable key | Retrieve the active config overlay |
-| `PUT` | `/v1/config` | Secret key | Update the config overlay |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/feed` | Full feed (videos, carousels, surveys, ad slots) |
+| `GET` | `/v1/feed/videos` | Video-only feed (no carousels) |
+
+Both endpoints require a **publishable key** via the `X-API-Key` header.
 
 ---
 
-## Get feed
+## GET /v1/feed
 
-Retrieves a ranked feed of video content for a given user. The SDK calls this endpoint automatically, but you can also call it directly for server-side rendering or custom integrations.
-
-```bash
-GET /v1/feed
-```
+Returns a paginated, polymorphic feed. Each item in the `data` array has a `type` discriminator: `content`, `image_carousel`, `survey`, or `ad_slot`.
 
 ### Authentication
-
-The Feed API uses a **publishable key** passed via the `X-API-Key` header. Publishable keys are safe to embed in client-side code and mobile apps.
 
 ```bash
 X-API-Key: pk_live_your_publishable_key
@@ -34,15 +29,29 @@ X-API-Key: pk_live_your_publishable_key
 
 ### Query parameters
 
-<ParamField query="userId" type="string">
-  Identifier for the user requesting the feed. When provided, the ranking algorithm personalizes results based on the user's watch history and engagement signals. If omitted, the feed returns a default ranked order.
+<ParamField query="limit" type="integer" default="10">
+  Items per page. Range: 1--50.
 </ParamField>
+
+<ParamField query="cursor" type="string">
+  Opaque pagination cursor from a previous response's `meta.next_cursor`.
+</ParamField>
+
+### Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `X-API-Key` | Yes | Publishable key (`pk_live_...` or `pk_test_...`) |
+| `X-User-Id` | No | Current user ID. Used for survey deduplication (`once_per_user` rule). |
+| `X-Session-Id` | No | Current session ID. Used for survey deduplication (`once_per_session`, `max_per_session` rules). |
 
 ### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/feed?userId=user_456" \
-  -H "X-API-Key: pk_live_your_publishable_key"
+curl "https://api.shortkit.dev/v1/feed?limit=10" \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "X-User-Id: user_456" \
+  -H "X-Session-Id: sess_abc"
 ```
 
 ### Response
@@ -51,60 +60,98 @@ curl "https://api.shortkit.dev/v1/feed?userId=user_456" \
 {
   "data": [
     {
-      "id": "sk_content_abc123",
+      "type": "content",
+      "id": "b2f7c3a1-8e4d-4f6a-9c5b-1d2e3f4a5b6c",
       "title": "Breaking: Weather Alert",
       "description": "Severe thunderstorm warning for the metro area",
       "duration": 32.5,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
+      "streamingUrl": "https://stream.shortkit.dev/d7f2a9b1c3e4.m3u8",
+      "thumbnailUrl": "https://image.shortkit.dev/d7f2a9b1c3e4/thumbnail.jpg?time=0",
       "captionTracks": [
         {
           "language": "en",
           "label": "English",
-          "source": "embedded",
-          "url": null
+          "source": "generated",
+          "url": "https://stream.shortkit.dev/d7f2a9b1c3e4/text/trk001.vtt"
         }
       ],
-      "customMetadata": {
-        "articleUrl": "https://example.com/weather-alert",
-        "category": "severe-weather"
-      }
+      "customMetadata": { "category": "severe-weather" },
+      "author": "Jane Doe",
+      "section": "Weather",
+      "publisherUrl": "https://example.com/weather-alert"
     },
     {
-      "id": "sk_content_def456",
-      "title": "Product Launch Recap",
-      "description": "Highlights from today's launch event",
-      "duration": 58.0,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_def456/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_def456/thumbnail.jpg",
-      "captionTracks": [
-        {
-          "language": "en",
-          "label": "English",
-          "source": "embedded",
-          "url": null
-        }
+      "type": "image_carousel",
+      "id": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "images": [
+        { "url": "https://images.example.com/slide1.jpg", "alt": "Slide 1" },
+        { "url": "https://images.example.com/slide2.jpg", "alt": "Slide 2" }
       ],
-      "customMetadata": {
-        "category": "product"
+      "autoScrollInterval": 5.0,
+      "caption": "Photo gallery from the event",
+      "title": "Launch Event Photos",
+      "description": "Highlights from today's launch",
+      "author": "John Smith",
+      "section": "Product",
+      "publisherUrl": "https://example.com/launch"
+    },
+    {
+      "type": "survey",
+      "id": "c3d4e5f6-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+      "question": "How did you discover this content?",
+      "options": [
+        { "id": "opt_001", "text": "Social media" },
+        { "id": "opt_002", "text": "Search" },
+        { "id": "opt_003", "text": "Friend" }
+      ],
+      "autoAdvanceDelay": 3.0
+    },
+    {
+      "type": "ad_slot",
+      "id": "ad_slot_p0_3_0",
+      "position": 4,
+      "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/shortkit-feed",
+      "adUnitId": "/1234/shortkit-feed",
+      "targeting": { "content_category": "weather" },
+      "skipPolicy": "skippable_after",
+      "skipDelaySeconds": 5,
+      "adFormat": "native",
+      "nativeFormatId": "fmt_001",
+      "nativeAssetKeys": {
+        "videoUrl": "video_url",
+        "headline": "headline",
+        "ctaText": "cta_text",
+        "sponsorName": "sponsor_name",
+        "sponsorLogo": "sponsor_logo"
       }
     }
   ],
   "meta": {
-    "request_id": "req_feed001"
+    "request_id": "req_8f3a2b1c",
+    "next_cursor": "eyJjYSI6IjIwMjYtMDMtMDFUMTI6MDA6MDAiLCJpZCI6ImIyZjdjM2ExLThlNGQtNGY2YS05YzViLTFkMmUzZjRhNWI2YyJ9"
   }
 }
 ```
 
-### Feed item object
+---
 
-Each item in the `data` array contains:
+## Feed item types
 
-<ResponseField name="id" type="string">
-  Content identifier (e.g., `sk_content_abc123`).
+Every item in the `data` array carries a `type` field. Parse this discriminator to determine the schema.
+
+### `content` (video)
+
+A playable video with HLS streaming URL, thumbnail, and optional captions.
+
+<ResponseField name="type" type="string" required>
+  Always `"content"`.
 </ResponseField>
 
-<ResponseField name="title" type="string">
+<ResponseField name="id" type="string" required>
+  Content UUID.
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
   Display title.
 </ResponseField>
 
@@ -112,244 +159,281 @@ Each item in the `data` array contains:
   Optional description text.
 </ResponseField>
 
-<ResponseField name="duration" type="number">
+<ResponseField name="duration" type="number" required>
   Video duration in seconds.
 </ResponseField>
 
-<ResponseField name="streamingUrl" type="string">
-  HLS streaming URL. Pass this directly to your video player.
+<ResponseField name="streamingUrl" type="string" required>
+  HLS streaming URL (`https://stream.shortkit.dev/{playback_id}.m3u8`). Pass directly to your video player.
 </ResponseField>
 
-<ResponseField name="thumbnailUrl" type="string">
+<ResponseField name="thumbnailUrl" type="string" required>
   Thumbnail image URL for the poster frame.
 </ResponseField>
 
-<ResponseField name="captionTracks" type="array">
-  Available caption tracks. Each track has `language` (ISO 639-1 code), `label` (human-readable name),
-  `source` (`"embedded"` for captions in the HLS stream, `"external"` for sidecar files),
-  and `url` (`null` for embedded, a URL for external).
+<ResponseField name="captionTracks" type="array" required>
+  Available caption tracks. Each track has `language` (ISO 639-1), `label` (human-readable name), `source` (`"generated"` or `"uploaded"`), and `url` (VTT file URL).
 </ResponseField>
 
-<ResponseField name="customMetadata" type="object">
-  Arbitrary key-value pairs set when the content was created or updated.
-  Use this to pass application-specific data (article URLs, category tags, deep links)
-  through to your app's UI layer.
+<ResponseField name="customMetadata" type="object" required>
+  Arbitrary key-value pairs set when the content was created or updated. Use this to pass application-specific data (article URLs, category tags, deep links) through to your UI layer.
 </ResponseField>
 
-## Ad slots in the feed
-
-When your organization has ads enabled via the `/v1/ad-config` endpoint, the feed response can include `ad_slot` items interleaved with `content` items. Each item in the `data` array carries a `type` field that acts as a discriminator:
-
-- `"content"` -- A standard video content item, with the schema documented above.
-- `"ad_slot"` -- An ad placement marker inserted by the server at configured intervals.
-
-<Note>
-  If you are using the ShortKit SDK, ad slots are handled automatically. The SDK loads and renders ads through the configured ad provider. This section is for customers calling the Feed API directly.
-</Note>
-
-### Ad slot object
-
-When `type` is `"ad_slot"`, the item contains the following fields:
-
-<ResponseField name="id" type="string">
-  Server-assigned ad slot identifier (e.g., `ad_slot_001`).
+<ResponseField name="author" type="string | null">
+  Content author name.
 </ResponseField>
 
-<ResponseField name="position" type="integer">
-  The position of this ad slot in the feed.
+<ResponseField name="section" type="string | null">
+  Editorial section (e.g., `"Sports"`, `"Weather"`).
+</ResponseField>
+
+<ResponseField name="publisherUrl" type="string | null">
+  Primary publication URL associated with this content.
+</ResponseField>
+
+### `image_carousel`
+
+A swipeable set of images with optional auto-scroll.
+
+<ResponseField name="type" type="string" required>
+  Always `"image_carousel"`.
+</ResponseField>
+
+<ResponseField name="id" type="string" required>
+  Content UUID.
+</ResponseField>
+
+<ResponseField name="images" type="array" required>
+  Ordered array of image objects. Each has `url` (image source) and `alt` (alt text, may be `null`).
+</ResponseField>
+
+<ResponseField name="autoScrollInterval" type="number | null">
+  Seconds between automatic slide transitions. `null` means auto-scroll is disabled.
+</ResponseField>
+
+<ResponseField name="caption" type="string | null">
+  Caption text displayed below the carousel.
+</ResponseField>
+
+<ResponseField name="title" type="string | null">
+  Display title.
+</ResponseField>
+
+<ResponseField name="description" type="string | null">
+  Optional description text.
+</ResponseField>
+
+<ResponseField name="author" type="string | null">
+  Content author name.
+</ResponseField>
+
+<ResponseField name="section" type="string | null">
+  Editorial section.
+</ResponseField>
+
+<ResponseField name="publisherUrl" type="string | null">
+  Primary publication URL.
+</ResponseField>
+
+### `survey`
+
+An in-feed poll injected between content items based on placement rules.
+
+<ResponseField name="type" type="string" required>
+  Always `"survey"`.
+</ResponseField>
+
+<ResponseField name="id" type="string" required>
+  Survey UUID.
+</ResponseField>
+
+<ResponseField name="question" type="string" required>
+  The question text displayed to the user.
+</ResponseField>
+
+<ResponseField name="options" type="array" required>
+  Answer options. Each has `id` (option UUID) and `text` (display label). Submit the selected `id` to `POST /v1/surveys/{survey_id}/responses`.
+</ResponseField>
+
+<ResponseField name="autoAdvanceDelay" type="number | null">
+  Seconds to wait after the user responds before auto-advancing to the next feed item.
+</ResponseField>
+
+### `ad_slot`
+
+A server-inserted ad placement marker. The SDK loads and renders the ad creative using the provided configuration.
+
+<ResponseField name="type" type="string" required>
+  Always `"ad_slot"`.
+</ResponseField>
+
+<ResponseField name="id" type="string" required>
+  Server-assigned ad slot identifier (e.g., `ad_slot_p0_3_0`).
+</ResponseField>
+
+<ResponseField name="position" type="integer" required>
+  Zero-based position of this ad slot in the assembled feed.
 </ResponseField>
 
 <ResponseField name="adTagUrl" type="string | null">
-  VAST tag URL for the ad request. Used by ad providers such as Google IMA to fetch ad creatives.
+  VAST tag URL for the ad request. Used by ad providers such as Google IMA.
 </ResponseField>
 
 <ResponseField name="adUnitId" type="string | null">
-  Ad unit identifier. An alternative to `adTagUrl` for ad providers that use unit-based lookups.
+  Ad unit identifier for providers that use unit-based lookups.
 </ResponseField>
 
-<ResponseField name="targeting" type="object">
-  Key-value pairs for ad targeting (e.g., `{"content_category": "sports", "org": "espn"}`). Passed to the ad provider to refine ad selection.
+<ResponseField name="targeting" type="object" required>
+  Key-value pairs passed to the ad provider for targeting (e.g., `{"content_category": "sports"}`).
 </ResponseField>
 
-<ResponseField name="skipPolicy" type="string">
-  Controls whether the user can skip the ad. One of:
-  - `"non_skippable"` -- The ad cannot be skipped.
-  - `"skippable_after"` -- The ad can be skipped after `skipDelaySeconds` seconds.
-  - `"always_skippable"` -- The ad can be skipped immediately.
+<ResponseField name="skipPolicy" type="string" required>
+  Controls skip behavior. One of: `"non_skippable"`, `"skippable_after"`, `"always_skippable"`.
 </ResponseField>
 
-<ResponseField name="skipDelaySeconds" type="integer | null">
-  Number of seconds the user must wait before skipping. Only applies when `skipPolicy` is `"skippable_after"`.
+<ResponseField name="skipDelaySeconds" type="integer" required>
+  Seconds the user must wait before skipping. Only meaningful when `skipPolicy` is `"skippable_after"`.
 </ResponseField>
 
-### Example response with ad slots
+<ResponseField name="adFormat" type="string | null">
+  `"native"` when native ads are enabled, otherwise `null`.
+</ResponseField>
 
-```json
-{
-  "data": [
-    {
-      "type": "content",
-      "id": "sk_content_abc123",
-      "title": "Breaking: Weather Alert",
-      "description": "Severe thunderstorm warning for the metro area",
-      "duration": 32.5,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
-      "captionTracks": [],
-      "customMetadata": {}
-    },
-    {
-      "type": "content",
-      "id": "sk_content_def456",
-      "title": "Product Launch Recap",
-      "description": "Highlights from today's launch event",
-      "duration": 58.0,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_def456/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_def456/thumbnail.jpg",
-      "captionTracks": [],
-      "customMetadata": {}
-    },
-    {
-      "type": "content",
-      "id": "sk_content_ghi789",
-      "title": "Morning Market Update",
-      "description": "Stock futures and key earnings to watch",
-      "duration": 45.0,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_ghi789/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_ghi789/thumbnail.jpg",
-      "captionTracks": [],
-      "customMetadata": {}
-    },
-    {
-      "type": "ad_slot",
-      "id": "ad_slot_001",
-      "position": 3,
-      "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/1234/shortkit-feed&cust_params=category%3Dsports",
-      "adUnitId": "/1234/shortkit-feed",
-      "targeting": {
-        "content_category": "sports",
-        "org": "espn"
-      },
-      "skipPolicy": "skippable_after",
-      "skipDelaySeconds": 5
-    },
-    {
-      "type": "content",
-      "id": "sk_content_jkl012",
-      "title": "Chef's Quick Recipe",
-      "description": "Five-minute pasta you can make tonight",
-      "duration": 28.0,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_jkl012/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_jkl012/thumbnail.jpg",
-      "captionTracks": [],
-      "customMetadata": {}
-    }
-  ],
-  "meta": {
-    "cursor": "eyJwIjoxMH0",
-    "request_id": "req_feed002"
-  }
-}
+<ResponseField name="nativeFormatId" type="string | null">
+  Identifier for the native ad format template. Present only when `adFormat` is `"native"`.
+</ResponseField>
+
+<ResponseField name="nativeAssetKeys" type="object | null">
+  Mapping of asset keys used to extract creative fields from the native ad response. Present only when `adFormat` is `"native"`. Contains: `videoUrl`, `headline`, `ctaText`, `sponsorName`, `sponsorLogo`.
+</ResponseField>
+
+---
+
+## GET /v1/feed/videos
+
+Same as `GET /v1/feed` but returns only video content items. Image carousels are excluded. Surveys and ad slots are still injected.
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/feed/videos?limit=10" \
+  -H "X-API-Key: pk_live_your_publishable_key"
 ```
 
-When the organization has no ad configuration or ads are disabled, the feed contains only `content` items -- identical to the standard response format documented above.
+The response uses the same envelope and pagination as `/v1/feed`. The `data` array will contain `content` (video), `survey`, and `ad_slot` items -- never `image_carousel`.
 
-## Ranking
+---
 
-The feed ranking algorithm determines the order in which content is returned. It considers multiple signals to deliver the most relevant content to each user.
+## Pagination
 
-### Ranking signals
+Both feed endpoints use cursor-based pagination. The cursor is an opaque, base64-encoded token derived from `(created_at, id)` of the last content item.
 
-| Signal | Description |
-|--------|-------------|
-| **Recency** | Newer content is favored over older content. |
-| **Editorial controls** | Pinned content appears at its designated position. Suppressed content, future-scheduled content, and expired content are excluded. |
-| **Watch history** | Content the user has already watched is deprioritized to avoid repetition. |
-| **Engagement** | Content with higher engagement rates (completions, likes, shares) is ranked higher. |
-| **Personalization** | The algorithm learns from a user's viewing patterns to surface content aligned with their interests. |
+### How it works
 
-### Content eligibility
+1. Make an initial request without a `cursor` parameter.
+2. If more items are available, the response includes `meta.next_cursor`.
+3. Pass that value as the `cursor` query parameter in your next request.
+4. When `meta.next_cursor` is absent, you have reached the end of the feed.
 
-Content must meet all of the following criteria to appear in the feed:
+```bash
+# Page 1
+curl "https://api.shortkit.dev/v1/feed?limit=10" \
+  -H "X-API-Key: pk_live_your_publishable_key"
 
-| Rule | Behavior |
-|------|----------|
-| **Status** | Only content with status `ready` is included. |
-| **Suppression** | Content where `isSuppressed` is `true` is excluded. |
-| **Publish window** | Content with a `publishAt` timestamp in the future is excluded. |
-| **Expiration window** | Content with an `expiresAt` timestamp in the past is excluded. |
+# Page 2 -- use next_cursor from the previous response
+curl "https://api.shortkit.dev/v1/feed?limit=10&cursor=eyJjYSI6Ij..." \
+  -H "X-API-Key: pk_live_your_publishable_key"
+```
 
-### Pinned content
+<Note>
+  The cursor field is `meta.next_cursor` (not `meta.cursor`). The cursor is computed from content items only -- injected surveys and ad slots do not affect cursor stability.
+</Note>
 
-Content with a `pinPosition` value is placed at its specified position in the feed, regardless of other ranking signals. Multiple pinned items are ordered by `pinPosition` ascending. All unpinned content follows, ordered by the ranking algorithm.
+---
 
-## SDK integration
+## Ordering
 
-The ShortKit SDK handles feed fetching and video playback automatically. You do not need to call the Feed API directly unless you are building a custom integration.
+Content is returned in a two-tier sort order:
 
-<Tabs>
-  <Tab title="iOS (Swift)">
-    ```swift
-    import ShortKit
+1. **Pinned items first** -- content with a `pinPosition` value appears at the top, sorted by `pinPosition` ascending.
+2. **Reverse-chronological** -- all remaining content is sorted by `created_at` descending, with `id` descending as a tiebreaker.
 
-    // Initialize with your publishable key
-    let config = ShortKitConfig(apiKey: "pk_live_your_publishable_key")
-    let shortKit = ShortKit(config: config)
+### Filtered out
 
-    // Present the feed as a full-screen view
-    let feedView = ShortKitFeedView()
-    present(feedView, animated: true)
+The following content never appears in the feed:
 
-    // Identify the current user for personalized ranking
-    shortKit.identify(userId: "user_456")
-    ```
-  </Tab>
-  <Tab title="Android (Kotlin)">
-    ```kotlin
-    import dev.shortkit.sdk.ShortKit
-    import dev.shortkit.sdk.ShortKitConfig
+| Condition | Behavior |
+|-----------|----------|
+| Status is not `ready` | Excluded (still processing, errored, or archived) |
+| `isSuppressed` is `true` | Excluded by editorial suppression |
+| `publishAt` is in the future | Excluded until the scheduled publish time |
+| `expiresAt` is in the past | Excluded after the expiration time |
 
-    // Initialize with your publishable key
-    val config = ShortKitConfig(apiKey = "pk_live_your_publishable_key")
-    val shortKit = ShortKit(config)
+---
 
-    // Present the feed as a full-screen view
-    val feedFragment = ShortKitFeedFragment()
-    supportFragmentManager.beginTransaction()
-        .replace(R.id.container, feedFragment)
-        .commit()
+## Survey injection
 
-    // Identify the current user for personalized ranking
-    shortKit.identify(userId = "user_456")
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    import { ShortKit, ShortKitFeedView } from '@shortkit/react-native';
+Active surveys are injected into the feed between content items. The server evaluates placement rules to determine which surveys to show and where.
 
-    // Initialize with your publishable key
-    const shortKit = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+### Placement rules
 
-    // Render the feed as a full-screen component
-    function App() {
-      return <ShortKitFeedView />;
-    }
+Each survey has an ordered set of placement rules configured via the admin API:
 
-    // Identify the current user for personalized ranking
-    shortKit.identify({ userId: 'user_456' });
-    ```
-  </Tab>
-</Tabs>
+| Rule | Effect |
+|------|--------|
+| `min_videos_before` | The survey is inserted after `n` content items. Required on every survey. |
+| `once_per_user` | Skip this survey if `X-User-Id` has already responded. |
+| `once_per_session` | Skip this survey if `X-Session-Id` has already responded. |
+| `max_per_session` | Limit the total number of surveys injected in a single feed response. |
 
-## Feed error responses
+### Priority
+
+When multiple surveys target the same position, the survey with the higher `priority` value wins. Only one survey occupies a given position.
+
+### Deduplication
+
+Pass `X-User-Id` and `X-Session-Id` headers to enable deduplication. Without these headers, `once_per_user` and `once_per_session` rules cannot be evaluated and those surveys will always be included.
+
+---
+
+## Ad slot interleaving
+
+When ads are enabled for your organization (via `PUT /v1/ad-config`), ad slot items are interleaved into the feed after content ordering and survey injection.
+
+### Configuration
+
+Ad interleaving is controlled by the organization's `AdConfig`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enabled` | `false` | Master toggle. No ad slots are inserted when `false`. |
+| `firstAdOffset` | `3` | Number of content items before the first ad slot. |
+| `frequency` | `5` | Number of content items between subsequent ad slots. |
+| `maxPerPage` | `3` | Maximum ad slots per page of results. |
+
+### Insertion logic
+
+1. The server counts content items (not surveys) in the assembled feed.
+2. After `firstAdOffset` content items, the first ad slot is inserted.
+3. Every `frequency` content items after that, another ad slot is inserted.
+4. Insertion stops when `maxPerPage` is reached.
+
+Ad slots do not affect pagination cursors. The cursor is computed from content items before ad interleaving occurs.
+
+### Native ads
+
+When `nativeEnabled` is `true` in the ad config, ad slots include `adFormat: "native"` and provide `nativeFormatId` and `nativeAssetKeys` fields. The SDK uses these keys to extract creative fields (video URL, headline, CTA, sponsor info) from the native ad response.
+
+---
+
+## Error responses
 
 | HTTP Status | Error code | Description |
 |-------------|------------|-------------|
-| 401 | `invalid_api_key` | The `X-API-Key` header is missing or the key is not valid. |
-| 429 | `rate_limited` | Too many requests. Retry after the duration in the `Retry-After` header. |
-| 500 | `internal_error` | An unexpected error occurred. Contact support if it persists. |
-
-All error responses follow the standard envelope format:
+| 400 | `invalid_request` | Invalid `cursor` or `limit` value |
+| 401 | `invalid_api_key` | Missing or invalid `X-API-Key` header |
+| 429 | `rate_limited` | Too many requests. Retry after the `Retry-After` header value. |
+| 500 | `internal_error` | Unexpected server error. Contact support with the `request_id`. |
 
 ```json
 {
@@ -360,296 +444,8 @@ All error responses follow the standard envelope format:
   "errors": [
     {
       "code": "invalid_api_key",
-      "message": "The provided API key is not valid.",
-      "status": 401
+      "message": "The provided API key is not valid."
     }
   ]
 }
 ```
-
----
-
-## Remote configuration
-
-The Configuration API delivers a sparse config overlay to the SDK at runtime. The overlay contains only the fields you have explicitly changed -- the SDK merges it on top of its compiled-in defaults. This means you can change player behavior, theming, and feed settings without shipping an app update.
-
-### How the overlay works
-
-The SDK ships with sensible defaults for every configurable property. When the SDK initializes, it calls `GET /v1/config` to fetch any overrides you have set. The response is **sparse** -- it only includes fields that differ from defaults. The SDK deep-merges the overlay on top of its defaults.
-
-```
-SDK defaults (compiled-in)
-    + config overlay (from GET /v1/config)
-    -----------------------------------------
-    = effective configuration
-```
-
-For example, if the SDK default for `controls.scrubber` is `true` and you set it to `false` via the overlay, the overlay response contains only that field. Every other setting keeps its default value.
-
-## Get config overlay
-
-Retrieve the current config overlay for your organization. The SDK calls this endpoint automatically on initialization.
-
-```bash
-GET /v1/config
-```
-
-### Authentication
-
-Include your publishable key in the `X-API-Key` header.
-
-### Headers
-
-| Header | Description |
-|--------|-------------|
-| `X-API-Key` | Your publishable key (`pk_live_...` or `pk_test_...`) |
-| `X-User-Id` | Optional. User identifier for future per-user experiment assignments. |
-
-### Example request
-
-```bash
-curl https://api.shortkit.dev/v1/config \
-  -H "X-API-Key: pk_live_your_publishable_key"
-```
-
-### Example response
-
-The response contains only the fields that differ from SDK defaults:
-
-```json
-{
-  "data": {
-    "controls": {
-      "scrubber": false
-    },
-    "theme": {
-      "primaryColor": "#FF5733"
-    }
-  },
-  "meta": {
-    "request_id": "req_abc123"
-  }
-}
-```
-
-If no overrides have been set, the response is an empty object:
-
-```json
-{
-  "data": {},
-  "meta": {
-    "request_id": "req_def456"
-  }
-}
-```
-
-### Response fields
-
-<ResponseField name="data" type="object">
-  Sparse config overlay. Contains only fields that differ from SDK defaults. Any category or property not present should be left at its default value.
-</ResponseField>
-
-<ResponseField name="data.controls" type="object">
-  Player control overrides.
-  <Expandable title="properties">
-    <ResponseField name="scrubber" type="boolean">
-      Show the scrubber (seek bar) in the player. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="muteButton" type="boolean">
-      Show the mute/unmute button. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="shareButton" type="boolean">
-      Show the share button. SDK default: `true`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="data.playback" type="object">
-  Playback behavior overrides.
-  <Expandable title="properties">
-    <ResponseField name="autoplay" type="boolean">
-      Auto-start playback when content is visible. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="muted" type="boolean">
-      Start playback muted. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="loop" type="boolean">
-      Loop video on completion. SDK default: `true`.
-    </ResponseField>
-    <ResponseField name="preloadCount" type="integer">
-      Number of videos to preload ahead (1-10). SDK default: `3`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="data.captions" type="object">
-  Caption display overrides.
-  <Expandable title="properties">
-    <ResponseField name="defaultOn" type="boolean">
-      Show captions by default. SDK default: `false`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="data.theme" type="object">
-  UI theming overrides.
-  <Expandable title="properties">
-    <ResponseField name="primaryColor" type="string">
-      Primary accent color (hex). SDK default: `"#FFFFFF"`.
-    </ResponseField>
-    <ResponseField name="backgroundColor" type="string">
-      Background color (hex). SDK default: `"#000000"`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="data.feed" type="object">
-  Feed behavior overrides.
-  <Expandable title="properties">
-    <ResponseField name="pageSize" type="integer">
-      Items per feed request (10-50). SDK default: `10`.
-    </ResponseField>
-    <ResponseField name="refreshInterval" type="integer">
-      Auto-refresh interval in seconds. SDK default: `300`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-### Merge example
-
-Given these SDK defaults:
-
-```json
-{
-  "controls": { "scrubber": true, "muteButton": true, "shareButton": true },
-  "playback": { "autoplay": true, "muted": true, "loop": true, "preloadCount": 3 },
-  "captions": { "defaultOn": false },
-  "theme": { "primaryColor": "#FFFFFF", "backgroundColor": "#000000" },
-  "feed": { "pageSize": 10, "refreshInterval": 300 }
-}
-```
-
-And this overlay from `GET /v1/config`:
-
-```json
-{
-  "controls": { "scrubber": false },
-  "theme": { "primaryColor": "#FF5733" }
-}
-```
-
-The SDK resolves the effective configuration as:
-
-```json
-{
-  "controls": { "scrubber": false, "muteButton": true, "shareButton": true },
-  "playback": { "autoplay": true, "muted": true, "loop": true, "preloadCount": 3 },
-  "captions": { "defaultOn": false },
-  "theme": { "primaryColor": "#FF5733", "backgroundColor": "#000000" },
-  "feed": { "pageSize": 10, "refreshInterval": 300 }
-}
-```
-
-Only `controls.scrubber` and `theme.primaryColor` changed. Everything else kept its default.
-
-## Update config overlay
-
-Set or update the config overlay for your organization. Only include the fields you want to override -- omitted fields are removed from the overlay (reverting to SDK defaults).
-
-```bash
-PUT /v1/config
-```
-
-### Authentication
-
-Requires your **secret key** as a Bearer token.
-
-### Example request
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "controls": {
-      "scrubber": false,
-      "shareButton": false
-    },
-    "playback": {
-      "preloadCount": 5
-    },
-    "captions": {
-      "defaultOn": true
-    },
-    "theme": {
-      "primaryColor": "#FF5733"
-    }
-  }'
-```
-
-### Response
-
-Returns the full overlay as saved:
-
-```json
-{
-  "data": {
-    "controls": {
-      "scrubber": false,
-      "shareButton": false
-    },
-    "playback": {
-      "preloadCount": 5
-    },
-    "captions": {
-      "defaultOn": true
-    },
-    "theme": {
-      "primaryColor": "#FF5733"
-    }
-  },
-  "meta": {
-    "request_id": "req_xyz789"
-  }
-}
-```
-
-### Reset to defaults
-
-To reset all overrides and revert entirely to SDK defaults, send an empty object:
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/config \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
-## SDK sync
-
-The SDK fetches the config overlay automatically on initialization and refreshes it periodically (default: every 5 minutes). Configuration changes take effect on the next SDK refresh without requiring an app update.
-
-## Best practices
-
-<AccordionGroup>
-  <Accordion title="Keep overlays small">
-    Only override what you need. A smaller overlay means faster config resolution and less risk of unintended side effects.
-  </Accordion>
-  <Accordion title="Test in staging first">
-    Use your `pk_test_...` key to verify configuration changes before applying them in production.
-  </Accordion>
-  <Accordion title="Use A/B testing for significant changes">
-    For changes that may affect engagement (hiding controls, changing preload behavior), use experiments to roll out to a subset of users first.
-  </Accordion>
-</AccordionGroup>
-
-## Next steps
-
-<Columns cols={2}>
-  <Card title="Content API" icon="video" href="/api/content">
-    Manage content metadata and editorial controls.
-  </Card>
-  <Card title="Configuration" icon="gear" href="/api/configuration">
-    Ranking, ad configuration, and A/B testing.
-  </Card>
-</Columns>

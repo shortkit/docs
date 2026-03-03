@@ -1,0 +1,423 @@
+---
+title: "Uploads"
+description: "Upload videos to ShortKit via signed URLs. Create an upload session, PUT your file, and poll for processing status."
+keywords: ["uploads", "video", "API", "ingestion", "signed URL", "processing", "captions", "subtitles"]
+---
+
+The Uploads API handles video ingestion. You create an upload session, receive a signed URL, PUT your video file to it, and ShortKit handles transcoding, thumbnail generation, and caption extraction.
+
+## Upload flow
+
+- `POST /v1/uploads` — Create upload session, get signed URL and content ID
+- `PUT {uploadUrl}` — Upload video file directly to the signed URL
+- ShortKit transcodes, generates thumbnails and captions automatically
+- `GET /v1/uploads/{id}` — Poll until status is `"ready"`
+
+## Status progression
+
+Every upload moves through these statuses:
+
+| Status | Meaning | Visible in feed? |
+|--------|---------|------------------|
+| `waiting_for_upload` | Upload session created; file not yet received | No |
+| `processing` | Video is being transcoded; thumbnails and captions are being generated | No |
+| `ready` | Processing complete; video is playable and appears in the feed | Yes |
+| `error` | Transcoding failed | No |
+
+The transition from `waiting_for_upload` to `processing` happens automatically when the file upload completes and ShortKit receives confirmation from the transcoding service.
+
+---
+
+## Create upload
+
+Creates a new upload session and returns a signed upload URL.
+
+```bash
+POST /v1/uploads
+```
+
+### Authentication
+
+Requires a **secret key** via the `Authorization` header:
+
+```
+Authorization: Bearer sk_live_your_secret_key
+```
+
+### Request body
+
+<ParamField body="title" type="string" required>
+  Display title for the content (max 200 characters).
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description (max 2000 characters).
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Tags for categorization and filtering.
+</ParamField>
+
+<ParamField body="customMetadata" type="object">
+  Arbitrary key-value pairs attached to the content. Passed through to the feed response. Use this for your own application data such as article URLs, campaign IDs, or internal references.
+</ParamField>
+
+<ParamField body="section" type="string">
+  Grouping label for the content.
+</ParamField>
+
+<ParamField body="author" type="string">
+  Author name.
+</ParamField>
+
+<ParamField body="generateSubtitles" type="boolean" default={true}>
+  When `true`, ShortKit automatically generates English captions from the audio track using speech-to-text. The captions are embedded in the HLS stream once processing completes. See [Auto-generated captions](#auto-generated-captions) for details.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/uploads \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "section": "Weather",
+    "author": "Jane Doe",
+    "generateSubtitles": true
+  }'
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "uploadUrl": "https://uploads.shortkit.dev/...",
+    "status": "waiting_for_upload",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "createdAt": "2026-02-05T12:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_xyz789"
+  }
+}
+```
+
+<ResponseField name="id" type="string">
+  The content ID. Use this to poll processing status and to reference this content in other API calls.
+</ResponseField>
+
+<ResponseField name="uploadUrl" type="string">
+  Signed URL for direct file upload. Expires after 60 minutes.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Always `waiting_for_upload` at creation.
+</ResponseField>
+
+---
+
+## Upload the file
+
+Send the video file as the body of an HTTP `PUT` request to the `uploadUrl` returned by the create call.
+
+```bash
+curl -X PUT "${UPLOAD_URL}" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4
+```
+
+<Note>
+  The `PUT` request goes directly to the signed upload URL, not to `api.shortkit.dev`. No `Authorization` header is needed -- the URL itself contains the upload credentials.
+</Note>
+
+After the PUT completes, ShortKit begins transcoding the video automatically. No further API calls are needed to trigger processing.
+
+---
+
+## Check processing status
+
+Poll this endpoint to determine when your video is ready.
+
+```bash
+GET /v1/uploads/{id}
+```
+
+### Authentication
+
+Requires a **secret key** via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The content ID returned from the create upload call.
+</ParamField>
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/uploads/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response (processing)
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "processing",
+    "title": "Breaking: Weather Alert",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:00:15Z"
+  },
+  "meta": {
+    "request_id": "req_abc456"
+  }
+}
+```
+
+### Response (ready)
+
+When processing completes, the response includes streaming URLs, duration, and caption tracks:
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "ready",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "duration": 32.5,
+    "streamingUrl": "https://stream.shortkit.dev/abc123def456.m3u8",
+    "thumbnailUrl": "https://image.shortkit.dev/abc123def456/thumbnail.jpg?time=0",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert",
+      "category": "severe-weather"
+    },
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:03:45Z"
+  },
+  "meta": {
+    "request_id": "req_def789"
+  }
+}
+```
+
+### Response (error)
+
+If transcoding fails:
+
+```json
+{
+  "data": {
+    "id": "sk_content_abc123",
+    "status": "error",
+    "title": "Breaking: Weather Alert",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:02:30Z"
+  },
+  "meta": {
+    "request_id": "req_err001"
+  }
+}
+```
+
+### Expected processing times
+
+| Step | Duration |
+|------|----------|
+| Upload (30s video, ~50 MB) | 5--30 seconds depending on network speed |
+| Transcoding and thumbnail generation | 1--5 minutes for a 1-minute video |
+| Caption generation (if enabled) | Additional 1--3 minutes after video is ready |
+| **Total: upload to ready** | **~2--8 minutes** |
+
+---
+
+## Auto-generated captions
+
+When `generateSubtitles` is `true` (the default), ShortKit creates English captions from the audio track using speech-to-text.
+
+The caption generation process:
+
+1. At upload creation, a placeholder caption track is created with `status: "preparing"`.
+2. After the video finishes transcoding and reaches `ready` status, caption generation begins.
+3. When captions are ready (typically 1--3 minutes after the video is ready), the track status updates to `ready`.
+4. If caption generation fails, the track status updates to `errored`. The video itself remains `ready` and playable.
+
+Caption tracks are embedded in the HLS stream. They appear in the `captionTracks` array on the content object:
+
+```json
+{
+  "captionTracks": [
+    {
+      "language": "en",
+      "label": "English",
+      "source": "generated",
+      "url": "https://stream.shortkit.dev/{playbackId}/text/{trackId}.vtt",
+      "status": "ready"
+    }
+  ]
+}
+```
+
+To disable auto-generated captions, set `generateSubtitles: false` when creating the upload. You can always upload custom caption files later via `POST /v1/content/{id}/captions`.
+
+---
+
+## Code examples
+
+### Full upload flow with curl
+
+```bash
+# 1. Create the upload session
+RESPONSE=$(curl -s -X POST https://api.shortkit.dev/v1/uploads \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Game Highlights",
+    "tags": ["sports", "highlights"],
+    "generateSubtitles": true
+  }')
+
+CONTENT_ID=$(echo "$RESPONSE" | jq -r '.data.id')
+UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.data.uploadUrl')
+
+echo "Content ID: $CONTENT_ID"
+
+# 2. Upload the video file
+curl -X PUT "$UPLOAD_URL" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @highlights.mp4
+
+# 3. Poll until ready
+while true; do
+  STATUS=$(curl -s https://api.shortkit.dev/v1/uploads/$CONTENT_ID \
+    -H "Authorization: Bearer sk_live_your_secret_key" \
+    | jq -r '.data.status')
+
+  echo "Status: $STATUS"
+
+  if [ "$STATUS" = "ready" ] || [ "$STATUS" = "error" ]; then
+    break
+  fi
+
+  sleep 5
+done
+```
+
+### Python
+
+```python
+import requests
+import time
+
+API_KEY = "sk_live_your_secret_key"
+BASE_URL = "https://api.shortkit.dev/v1"
+HEADERS = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json",
+}
+
+# 1. Create the upload session
+resp = requests.post(f"{BASE_URL}/uploads", headers=HEADERS, json={
+    "title": "Game Highlights",
+    "tags": ["sports", "highlights"],
+    "generateSubtitles": True,
+})
+resp.raise_for_status()
+upload = resp.json()["data"]
+
+content_id = upload["id"]
+upload_url = upload["uploadUrl"]
+
+# 2. Upload the video file
+with open("highlights.mp4", "rb") as f:
+    requests.put(upload_url, headers={"Content-Type": "video/mp4"}, data=f).raise_for_status()
+
+# 3. Poll until ready
+while True:
+    resp = requests.get(
+        f"{BASE_URL}/uploads/{content_id}",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+    )
+    resp.raise_for_status()
+    status = resp.json()["data"]["status"]
+    print(f"Status: {status}")
+
+    if status in ("ready", "error"):
+        break
+
+    time.sleep(5)
+
+# 4. Use the content
+if status == "ready":
+    content = resp.json()["data"]
+    print(f"Streaming URL: {content['streamingUrl']}")
+    print(f"Duration: {content['duration']}s")
+```
+
+### Node.js
+
+```javascript
+import fs from "fs";
+
+const API_KEY = "sk_live_your_secret_key";
+const BASE_URL = "https://api.shortkit.dev/v1";
+
+// 1. Create the upload session
+const createResp = await fetch(`${BASE_URL}/uploads`, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    title: "Game Highlights",
+    tags: ["sports", "highlights"],
+    generateSubtitles: true,
+  }),
+});
+
+const { data: upload } = await createResp.json();
+const contentId = upload.id;
+
+// 2. Upload the video file
+const fileBuffer = fs.readFileSync("highlights.mp4");
+await fetch(upload.uploadUrl, {
+  method: "PUT",
+  headers: { "Content-Type": "video/mp4" },
+  body: fileBuffer,
+});
+
+// 3. Poll until ready
+let status;
+do {
+  await new Promise((r) => setTimeout(r, 5000));
+
+  const statusResp = await fetch(`${BASE_URL}/uploads/${contentId}`, {
+    headers: { Authorization: `Bearer ${API_KEY}` },
+  });
+  const { data } = await statusResp.json();
+  status = data.status;
+
+  console.log(`Status: ${status}`);
+} while (status !== "ready" && status !== "error");
+```
+
+---

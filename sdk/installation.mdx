@@ -9,12 +9,12 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 ## Requirements
 
 <Tabs>
-  <Tab title="iOS">
+  <Tab title="Swift">
     - iOS 16.0+
     - Xcode 15+
     - Swift 5.9+
   </Tab>
-  <Tab title="Android">
+  <Tab title="Kotlin">
     - Android API 24+ (Android 7.0)
     - Kotlin 1.9+
     - Android Studio Hedgehog+
@@ -24,14 +24,41 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     - iOS 16.0+ / Android API 24+
     - Expo SDK 50+ (if using Expo)
   </Tab>
+  <Tab title="Web">
+    - Any modern browser (Chrome 80+, Safari 14+, Firefox 78+, Edge 80+)
+    - Node.js 16+ (if using npm)
+  </Tab>
+</Tabs>
+
+## Package structure
+
+<Tabs>
+  <Tab title="Swift">
+    The SDK ships two library products:
+
+    | Product | Purpose | External dependencies |
+    |---|---|---|
+    | `ShortKit` | Core SDK: feed, player, overlays, analytics, captions | **None.** Uses only Foundation, UIKit, AVFoundation, and SwiftUI. |
+    | `ShortKitGoogleAds` | Google ad adapters (`GoogleAdsProvider`, `GoogleIMAAdProvider`) | `GoogleInteractiveMediaAds` >= 3.23.0, `GoogleMobileAds` >= 12.0.0 |
+
+    Most integrations only need `ShortKit`. Add `ShortKitGoogleAds` if you want to monetize with Google IMA VAST or Google Ad Manager native ads.
+  </Tab>
+  <Tab title="Kotlin">
+    The SDK ships two Maven artifacts:
+
+    | Artifact | Purpose | Key dependencies |
+    |---|---|---|
+    | `dev.shortkit:shortkit` | Core SDK: feed, player, overlays, analytics, captions | Media3 (ExoPlayer), OkHttp, AndroidX Fragment, ViewPager2 |
+    | `dev.shortkit:shortkit-google-ads` | Google ad adapters (`GoogleAdsProvider`) | Google Play Services Ads >= 23.6.0, Google IMA SDK >= 3.35.1 |
+
+    Most integrations only need `dev.shortkit:shortkit`. Add `dev.shortkit:shortkit-google-ads` if you want to monetize with Google IMA VAST or Google Ad Manager native ads. Transitive dependencies are resolved automatically by Gradle.
+  </Tab>
 </Tabs>
 
 ## Package installation
 
 <Tabs>
-  <Tab title="iOS">
-    ShortKit for iOS is distributed exclusively via Swift Package Manager. The SDK has zero external dependencies — it uses only Foundation, UIKit, AVFoundation, and SwiftUI.
-
+  <Tab title="Swift">
     ### Option A: Xcode UI
 
     <Steps>
@@ -42,64 +69,56 @@ Get ShortKit installed and verified in your app. Choose your platform below.
         Paste the following URL into the search field:
 
         ```
-        https://github.com/AudienceKit/shortkit-ios
+        https://github.com/shortkit/shortkit-ios
         ```
       </Step>
       <Step title="Select your version rule">
         Choose **Up to Next Major Version** and set the minimum to `1.0.0`. Click **Add Package**.
       </Step>
       <Step title="Add to your target">
-        Select the `ShortKit` library product and add it to your app target.
+        Select the `ShortKit` library product and add it to your app target. If you need Google ad support, also select `ShortKitGoogleAds`.
       </Step>
     </Steps>
 
     ### Option B: Package.swift
 
-    If you manage dependencies in a `Package.swift` file, add ShortKit to your dependencies array:
+    Add ShortKit to your dependencies array:
 
     ```swift Package.swift
     dependencies: [
-        .package(url: "https://github.com/AudienceKit/shortkit-ios.git", from: "1.0.0")
+        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "1.0.0")
     ]
     ```
 
-    Then add `ShortKit` to the target that needs it:
+    Then add the products you need to your target:
 
     ```swift Package.swift
     targets: [
         .target(
             name: "YourApp",
             dependencies: [
-                .product(name: "ShortKit", package: "shortkit-ios")
+                .product(name: "ShortKit", package: "shortkit-ios"),
+                // Optional: add only if you need Google ad support
+                .product(name: "ShortKitGoogleAds", package: "shortkit-ios")
             ]
         )
     ]
     ```
   </Tab>
-  <Tab title="Android">
+  <Tab title="Kotlin">
     ### Gradle
 
-    **Step 1:** Add the ShortKit Maven repository to your project-level `settings.gradle.kts`:
-
-    ```kotlin settings.gradle.kts
-    dependencyResolutionManagement {
-        repositories {
-            google()
-            mavenCentral()
-            maven { url = uri("https://maven.shortkit.dev") }
-        }
-    }
-    ```
-
-    **Step 2:** Add the dependency to your app-level `build.gradle.kts`:
+    Add the dependency to your app-level `build.gradle.kts`:
 
     ```kotlin build.gradle.kts
     dependencies {
-        implementation("dev.shortkit:shortkit-android:1.0.0")
+        implementation("dev.shortkit:shortkit:1.0.0")
     }
     ```
 
-    **Step 3:** Sync your project. In Android Studio, click **Sync Now** when prompted, or go to **File** then **Sync Project with Gradle Files**.
+    Sync your project. In Android Studio, click **Sync Now** when prompted, or go to **File** then **Sync Project with Gradle Files**.
+
+    No custom repository URL is needed — ShortKit is published to Maven Central, which is included by default in Android projects.
   </Tab>
   <Tab title="React Native">
     Install the package with your preferred package manager:
@@ -132,37 +151,149 @@ Get ShortKit installed and verified in your app. Choose your platform below.
       Expo managed workflow projects do not need to run `pod install`. The native modules are linked automatically during the Expo prebuild step.
     </Note>
   </Tab>
+  <Tab title="Web">
+    ### Option A: npm
+
+    ```bash
+    npm install @shortkit/web
+    ```
+
+    ### Option B: CDN
+
+    Add the script tag to your HTML:
+
+    ```html
+    <script src="https://cdn.shortkit.dev/v1/shortkit.min.js"></script>
+    ```
+
+    The CDN script exposes a global `ShortKit` object.
+  </Tab>
 </Tabs>
 
-## Import the module
+## Google Ads setup
 
-After installation, import the ShortKit module in the file where you will initialize the SDK:
+This section applies only if you added the `ShortKitGoogleAds` product (Swift) or `dev.shortkit:shortkit-google-ads` artifact (Kotlin). Skip it if you are not serving ads.
 
 <Tabs>
-  <Tab title="iOS">
+  <Tab title="Swift">
+    ### 1. Add your Google app ID to Info.plist
+
+    ```xml Info.plist
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY</string>
+    ```
+
+    Replace the value with your real Google Ad Manager or AdMob application ID.
+
+    ### 2. Initialize the Google Mobile Ads SDK at launch
+
+    ```swift AppDelegate.swift
+    import GoogleMobileAds
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        MobileAds.shared.start()
+        return true
+    }
+    ```
+
+    Call `MobileAds.shared.start()` once, before creating any `ShortKit` instance with a Google ad provider. Calling it in `application(_:didFinishLaunchingWithOptions:)` is the standard approach.
+
+    ### 3. Pass a Google ad provider to ShortKit
+
     ```swift
     import ShortKit
+    import ShortKitGoogleAds
+
+    let shortKit = ShortKit(
+        apiKey: "pk_live_...",
+        config: FeedConfig(),
+        adProvider: GoogleAdsProvider()
+    )
     ```
+
+    `GoogleAdsProvider` runs a waterfall: custom native, then system-defined native, then IMA VAST, then no-fill. For VAST-only integrations, use `GoogleIMAAdProvider()` instead.
+
+    ### Dependencies pulled by ShortKitGoogleAds
+
+    | Dependency | Minimum version | Purpose |
+    |---|---|---|
+    | `GoogleInteractiveMediaAds` | 3.23.0 | IMA SDK for VAST/VPAID video ads |
+    | `GoogleMobileAds` | 12.0.0 | Google Mobile Ads SDK for native ad formats |
+
+    These are resolved automatically by SPM when you add the `ShortKitGoogleAds` product.
   </Tab>
-  <Tab title="Android">
+  <Tab title="Kotlin">
+    ### 1. Add the Google Ads dependency
+
+    ```kotlin build.gradle.kts
+    dependencies {
+        implementation("dev.shortkit:shortkit:1.0.0")
+        implementation("dev.shortkit:shortkit-google-ads:1.0.0")
+    }
+    ```
+
+    ### 2. Add your Google app ID to AndroidManifest.xml
+
+    ```xml AndroidManifest.xml
+    <application>
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY" />
+    </application>
+    ```
+
+    Replace the value with your real Google Ad Manager or AdMob application ID.
+
+    ### 3. Initialize the Google Mobile Ads SDK at launch
+
+    ```kotlin Application.kt
+    import com.google.android.gms.ads.MobileAds
+
+    class MyApplication : Application() {
+        override fun onCreate() {
+            super.onCreate()
+            MobileAds.initialize(this)
+        }
+    }
+    ```
+
+    Call `MobileAds.initialize()` once, before creating any `ShortKit` instance with a Google ad provider.
+
+    ### 4. Pass a Google ad provider to ShortKit
+
     ```kotlin
-    import dev.shortkit.ShortKit
-    import dev.shortkit.FeedConfig
+    import com.shortkit.sdk.ShortKit
+    import com.shortkit.sdk.config.FeedConfig
+    import com.shortkit.ads.GoogleAdsProvider
+
+    val shortKit = ShortKit(
+        context = this,
+        apiKey = "pk_live_...",
+        config = FeedConfig(),
+        adProvider = GoogleAdsProvider(this)
+    )
     ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    import { ShortKit } from '@shortkit/react-native';
-    ```
+
+    ### Dependencies pulled by shortkit-google-ads
+
+    | Dependency | Minimum version | Purpose |
+    |---|---|---|
+    | `com.google.android.gms:play-services-ads` | 23.6.0 | Google Mobile Ads SDK for native ad formats |
+    | `com.google.ads.interactivemedia.v3:interactivemedia` | 3.35.1 | IMA SDK for VAST/VPAID video ads |
+
+    These are resolved automatically by Gradle when you add the `dev.shortkit:shortkit-google-ads` dependency.
   </Tab>
 </Tabs>
 
 ## Verify installation
 
-Initialize ShortKit with your publishable key and display a feed to confirm the SDK is working. This requires a ShortKit account with at least one uploaded video.
+Build and run this minimal example to confirm the import resolves and the SDK initializes.
 
 <Tabs>
-  <Tab title="iOS (SwiftUI)">
+  <Tab title="Swift (SwiftUI)">
     ```swift App.swift
     import SwiftUI
     import ShortKit
@@ -183,7 +314,7 @@ Initialize ShortKit with your publishable key and display a feed to confirm the 
     }
     ```
   </Tab>
-  <Tab title="iOS (UIKit)">
+  <Tab title="Swift (UIKit)">
     ```swift ViewController.swift
     import UIKit
     import ShortKit
@@ -207,25 +338,29 @@ Initialize ShortKit with your publishable key and display a feed to confirm the 
     }
     ```
   </Tab>
-  <Tab title="Android">
+  <Tab title="Kotlin">
     ```kotlin MainActivity.kt
     import android.os.Bundle
     import androidx.appcompat.app.AppCompatActivity
-    import dev.shortkit.ShortKit
-    import dev.shortkit.FeedConfig
-    import dev.shortkit.ShortKitFeedView
+    import com.shortkit.sdk.ShortKit
+    import com.shortkit.sdk.config.FeedConfig
+    import com.shortkit.sdk.feed.ShortKitFeedFragment
 
     class MainActivity : AppCompatActivity() {
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
 
             val shortKit = ShortKit(
+                context = this,
                 apiKey = "pk_live_your_publishable_key",
                 config = FeedConfig()
             )
 
-            val feedView = ShortKitFeedView(this, shortKit)
-            setContentView(feedView)
+            if (savedInstanceState == null) {
+                supportFragmentManager.beginTransaction()
+                    .replace(android.R.id.content, ShortKitFeedFragment.newInstance(shortKit))
+                    .commit()
+            }
         }
     }
     ```
@@ -245,9 +380,38 @@ Initialize ShortKit with your publishable key and display a feed to confirm the 
     }
     ```
   </Tab>
+  <Tab title="Web (npm)">
+    ```ts app.ts
+    import { ShortKit } from '@shortkit/web';
+
+    const shortKit = ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key'
+    });
+
+    shortKit.mount('#shortkit-feed');
+    ```
+
+    ```html index.html
+    <div id="shortkit-feed" style="width: 400px; height: 700px;"></div>
+    ```
+  </Tab>
+  <Tab title="Web (CDN)">
+    ```html index.html
+    <div id="shortkit-feed" style="width: 400px; height: 700px;"></div>
+
+    <script src="https://cdn.shortkit.dev/v1/shortkit.min.js"></script>
+    <script>
+      var shortKit = ShortKit.initialize({
+        apiKey: 'pk_live_your_publishable_key'
+      });
+
+      shortKit.mount('#shortkit-feed');
+    </script>
+    ```
+  </Tab>
 </Tabs>
 
-Build and run your app. If you have content uploaded to your ShortKit account, you should see a vertical video feed. If your account has no content yet, the feed will display an empty state -- follow the [Quickstart](/quickstart) to upload your first video.
+If you have content uploaded to your ShortKit account, you should see a vertical video feed. If your account has no content yet, the feed will display an empty state -- follow the [Quickstart](/quickstart) to upload your first video.
 
 <Tip>
   Get your publishable API key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development.
@@ -259,7 +423,7 @@ Build and run your app. If you have content uploaded to your ShortKit account, y
   <Accordion title="iOS: 'No such module ShortKit'">
     This means Xcode has not resolved the Swift Package dependency.
 
-    1. Verify the package URL is exactly `https://github.com/AudienceKit/shortkit-ios`
+    1. Verify the package URL is exactly `https://github.com/shortkit/shortkit-ios`
     2. Go to **File** then **Packages** then **Reset Package Caches**
     3. Clean the build folder: **Product** then **Clean Build Folder** (Shift+Cmd+K)
     4. Close and reopen Xcode
@@ -272,14 +436,26 @@ Build and run your app. If you have content uploaded to your ShortKit account, y
     2. Under the **General** tab, set **Minimum Deployments** to iOS 16.0 or higher
     3. If you have multiple targets, update each one
   </Accordion>
+  <Accordion title="iOS: Google Ads linker errors">
+    If you see undefined symbol errors related to Google SDKs after adding `ShortKitGoogleAds`:
+
+    1. Verify the `-ObjC` linker flag is present. SPM sets this automatically, but if you use a wrapper Xcode project, add `-ObjC` under **Build Settings** then **Other Linker Flags**.
+    2. Confirm you called `MobileAds.shared.start()` in your app delegate before creating a `GoogleAdsProvider`.
+    3. Clean the build folder and resolve packages again.
+  </Accordion>
   <Accordion title="Android: Dependency resolution failed">
     If Gradle cannot resolve the ShortKit dependency:
 
-    1. Verify the Maven repository URL is `https://maven.shortkit.dev` in your `settings.gradle.kts`
-    2. Make sure the repository block is inside `dependencyResolutionManagement`, not the buildscript block
-    3. Check your internet connection and any proxy configuration
-    4. Run `./gradlew --refresh-dependencies` to clear the dependency cache
-    5. Confirm your `minSdk` is 24 or higher
+    1. Confirm your project includes Maven Central in its repositories. Most new Android projects include it by default in `settings.gradle.kts`.
+    2. Check your internet connection and any proxy configuration
+    3. Run `./gradlew --refresh-dependencies` to clear the dependency cache
+    4. Confirm your `minSdk` is 24 or higher
+  </Accordion>
+  <Accordion title="Android: Duplicate class errors">
+    If you see duplicate class errors after adding ShortKit, another dependency in your project may include a conflicting version of a transitive dependency (e.g., Media3 or OkHttp).
+
+    1. Run `./gradlew app:dependencies` to inspect the full dependency tree
+    2. Use Gradle's `resolutionStrategy` or `constraints` block to force a consistent version
   </Accordion>
   <Accordion title="React Native: Native module not linked">
     If you see an error about `ShortKit` not being found at runtime:
@@ -289,7 +465,13 @@ Build and run your app. If you have content uploaded to your ShortKit account, y
     - Verify autolinking is enabled (check `react-native.config.js` is not excluding the package)
     - Clear the Metro cache: `npx react-native start --reset-cache`
   </Accordion>
+  <Accordion title="Web: ShortKit is not defined">
+    If you are using the CDN script tag and see `ShortKit is not defined`:
 
+    1. Confirm the script tag loads before your code runs. Place it above your initialization script, or use the `defer` attribute and initialize in a `DOMContentLoaded` listener.
+    2. Check the browser console for network errors loading the script.
+    3. Verify you are using `ShortKit` (capital S, capital K) — the global is case-sensitive.
+  </Accordion>
   <Accordion title="All platforms: Feed loads but shows no content">
     If the SDK initializes successfully but the feed is empty:
 
@@ -306,17 +488,3 @@ Build and run your app. If you have content uploaded to your ShortKit account, y
     4. Confirm the key matches the environment you are targeting
   </Accordion>
 </AccordionGroup>
-
-## Next steps
-
-<Columns cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Full walkthrough: initialize the SDK, display a feed, and upload your first video.
-  </Card>
-  <Card title="Configuration" icon="sliders" href="/sdk/configuration">
-    Customize feed height, controls, playback behavior, and remote config options.
-  </Card>
-  <Card title="Engagement signals" icon="signal" href="/guides/engagement/engagement-signals">
-    Understand the events collected by the SDK.
-  </Card>
-</Columns>

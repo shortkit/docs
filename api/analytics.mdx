@@ -1,831 +1,110 @@
 ---
 title: "Analytics"
-description: "Ingest engagement events, query aggregated metrics, and export raw data."
-keywords: ["analytics", "metrics", "engagement", "events", "tracking", "export", "data", "API"]
+description: "Query video engagement metrics, break down by dimensions, chart timeseries, and export raw view data."
+keywords: ["analytics", "metrics", "views", "timeseries", "breakdown", "dimensions", "export", "API"]
 ---
 
-The Analytics APIs cover the full data lifecycle: ingesting engagement and quality events from your application, querying aggregated metrics, and exporting raw event data for custom analysis. Events power analytics dashboards, feed ranking, and data exports.
+ShortKit has two analytics systems. **V1** provides event-count aggregates from the `events` table. **V2** provides per-view-session metrics from the `video_views` table with flexible timeframes, dimension breakdowns, and data export. V2 is the recommended system for all new integrations.
+
+Both systems require a secret key or portal JWT (`Authorization: Bearer sk_...` or `Authorization: Bearer <jwt>`).
 
 ## Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/v1/events` | Publishable key | Ingest a batch of events |
-| `GET` | `/v1/analytics/overview` | Secret key | High-level metrics summary |
-| `GET` | `/v1/analytics/content` | Secret key | Content-level metrics |
-| `GET` | `/v1/analytics/content/{id}` | Secret key | Single content metrics |
-| `GET` | `/v1/analytics/engagement` | Secret key | Engagement metrics |
-| `GET` | `/v1/analytics/quality` | Secret key | Playback quality metrics |
-| `POST` | `/v1/analytics/export` | Secret key | Create an export job |
-| `GET` | `/v1/analytics/export/{jobId}` | Secret key | Get export job status |
-| `GET` | `/v1/analytics/exports` | Secret key | List export jobs |
-| `DELETE` | `/v1/analytics/export/{jobId}` | Secret key | Cancel an export job |
+| Method | Endpoint | System | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/v1/analytics/overview` | V1 | Aggregate event counts |
+| `GET` | `/v1/analytics/timeseries` | V1 | Time-bucketed event counts |
+| `GET` | `/v1/analytics/top-content` | V1 | Content ranked by play starts |
+| `GET` | `/v1/analytics/content/{id}` | V1 | Per-content event breakdown |
+| `GET` | `/v1/metrics/{metric}` | V2 | Scalar or time-grouped metric |
+| `GET` | `/v1/metrics/{metric}/breakdown` | V2 | Metric broken down by dimension |
+| `GET` | `/v1/metrics/{metric}/timeseries` | V2 | Auto-granularity time series |
+| `GET` | `/v1/dimensions/{dimension}/values` | V2 | Unique values for a dimension |
+| `GET` | `/v1/views` | V2 | List individual view records |
+| `GET` | `/v1/views/{view_id}` | V2 | Single view detail |
+| `GET` | `/v1/exports/views` | V2 | Export raw view data (JSON or CSV) |
 
 ---
 
-## Event ingestion
+## V1: Event-based analytics
 
-The Events API receives engagement and quality signals from your application. The SDK collects events locally and sends them in batches to a single endpoint. These events power analytics dashboards, feed ranking, and data exports.
+V1 endpoints query the `events` table (individual `impression`, `playStart`, `completion` events). They accept a `period` parameter and return aggregate counts.
 
-All events are sent as an array in a single `POST` request. There is no separate single-event endpoint -- even a single event is sent as a one-element array.
+<Note>
+  V1 returns **synthetic demo data** by default. When an organization's `analytics_mode` is set to `"demo"`, these endpoints return generated numbers instead of querying real events. This is the default for new organizations. V2 endpoints always query real data regardless of analytics mode.
+</Note>
 
-### Authentication
-
-Include your publishable key in the `X-API-Key` header. The publishable key is safe to embed in client-side code.
-
-```
-X-API-Key: pk_live_your_publishable_key
-```
-
-## Send events
-
-Send an array of event objects in the request body. Each event follows a common schema with event-specific fields in the `data` object.
-
-```bash
-POST /v1/events
-```
-
-### Request body
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/events \
-  -H "X-API-Key: pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "events": [
-      {
-        "type": "impression",
-        "contentId": "sk_content_abc123",
-        "userId": "user_456",
-        "sessionId": "sess_xyz789",
-        "timestamp": "2026-02-05T12:00:00Z",
-        "data": {
-          "position": 0,
-          "entryPoint": "feed"
-        }
-      },
-      {
-        "type": "playStart",
-        "contentId": "sk_content_abc123",
-        "userId": "user_456",
-        "sessionId": "sess_xyz789",
-        "timestamp": "2026-02-05T12:00:01Z",
-        "data": {
-          "startupTimeMs": 245,
-          "initialRendition": "720p"
-        }
-      },
-      {
-        "type": "completion",
-        "contentId": "sk_content_abc123",
-        "userId": "user_456",
-        "sessionId": "sess_xyz789",
-        "timestamp": "2026-02-05T12:00:34Z",
-        "data": {
-          "watchTime": 32.5,
-          "looped": false
-        }
-      }
-    ]
-  }'
-```
-
-### Common event fields
-
-Every event in the array includes these fields:
-
-<ParamField body="type" type="string" required>
-  Event type. One of the types listed in the event types table below.
-</ParamField>
-
-<ParamField body="contentId" type="string" required>
-  The ShortKit content ID this event relates to.
-</ParamField>
-
-<ParamField body="userId" type="string">
-  Identified user ID from your application (if available). If omitted, the event is attributed to the anonymous device.
-</ParamField>
-
-<ParamField body="sessionId" type="string">
-  Session identifier that groups events from a single viewing session. Generated by the SDK.
-</ParamField>
-
-<ParamField body="timestamp" type="string" required>
-  ISO 8601 timestamp of when the event occurred on the client. Example: `2026-02-05T12:00:00Z`.
-</ParamField>
-
-<ParamField body="data" type="object">
-  Event-specific fields. The schema depends on the event `type`. See the sections below for each type.
-</ParamField>
-
-### Response
-
-```json
-{
-  "data": {
-    "received": 3,
-    "failed": 0
-  },
-  "meta": {
-    "request_id": "req_xyz789"
-  }
-}
-```
-
-The response indicates how many events were accepted and how many were rejected due to validation errors. Failed events in a batch do not affect other events.
-
-### Limits
-
-| Limit | Value |
-|-------|-------|
-| Max events per request | 100 |
-| Max timestamp age | 24 hours |
-
-## Event types
-
-### Engagement events
-
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `impression` | Content appears in viewport | `position`, `entryPoint` |
-| `playStart` | Playback begins | `startupTimeMs`, `initialRendition` |
-| `watchProgress` | Periodic progress update (every ~1s) | `currentTime`, `totalDuration`, `percentComplete` |
-| `completion` | Video reaches end | `watchTime`, `looped` |
-| `swipe` | User swipes to next content | `fromContentId`, `toContentId`, `watchTimeOnPrevious` |
-| `like` | User likes content | _(none)_ |
-| `share` | User shares content | `platform` |
-| `save` | User saves content | _(none)_ |
-
-### Feed navigation events
-
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `feedEntry` | User enters the feed view | _(none)_ |
-| `feedExit` | User exits the feed view | `watchTime` |
-| `interaction` | Generic user interaction | `action` |
-
-### Ad events
-
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `adRequest` | SDK calls `loadAd` on the ad provider | `slotId`, `filled`, `errorReason` |
-| `adImpression` | Ad cell becomes visible and first frame renders | `slotId`, `adUnitId`, `creativeId`, `position` |
-| `adStart` | Ad video begins playback | `slotId`, `adUnitId`, `creativeId`, `position` |
-| `adProgress` | Ad reaches a quartile mark (25%, 50%, 75%) | `slotId`, `quartile` |
-| `adComplete` | Ad video reaches the end without being skipped | `slotId`, `adUnitId`, `creativeId` |
-| `adSkip` | User swiped past the ad after the skip delay | `slotId`, `watchTime` |
-
-### Quality events
-
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `rebuffer` | Playback stalls for buffering | `durationMs`, `currentTime` |
-| `qualityChange` | Rendition changes | `fromRendition`, `toRendition` |
-| `error` | Playback error | `errorCode`, `errorMessage` |
-
-## Event data schemas
-
-### impression
-
-Sent when a content item becomes visible in the feed viewport.
-
-```json
-{
-  "type": "impression",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:00Z",
-  "data": {
-    "position": 0,
-    "entryPoint": "feed"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `position` | integer | Zero-indexed position in the feed |
-| `entryPoint` | string | How the user reached this content: `feed`, `direct`, `share` |
-
-### playStart
-
-Sent when video playback begins (first frame rendered).
-
-```json
-{
-  "type": "playStart",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:01Z",
-  "data": {
-    "startupTimeMs": 245,
-    "initialRendition": "720p"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `startupTimeMs` | integer | Milliseconds from play intent to first frame |
-| `initialRendition` | string | Initial quality rendition (e.g., `720p`, `1080p`) |
-
-### watchProgress
-
-Sent periodically during playback (approximately every 1 second).
-
-```json
-{
-  "type": "watchProgress",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:10Z",
-  "data": {
-    "currentTime": 9.0,
-    "totalDuration": 32.5,
-    "percentComplete": 0.277
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `currentTime` | number | Current playback position in seconds |
-| `totalDuration` | number | Total video duration in seconds |
-| `percentComplete` | number | Fraction of video watched (0.0 to 1.0) |
-
-### completion
-
-Sent when the video reaches the end of playback.
-
-```json
-{
-  "type": "completion",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:34Z",
-  "data": {
-    "watchTime": 32.5,
-    "looped": false
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `watchTime` | number | Total seconds of video watched |
-| `looped` | boolean | Whether the video looped back to the beginning |
-
-### swipe
-
-Sent when the user swipes from one content item to the next.
-
-```json
-{
-  "type": "swipe",
-  "contentId": "sk_content_def456",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:15Z",
-  "data": {
-    "fromContentId": "sk_content_abc123",
-    "toContentId": "sk_content_def456",
-    "watchTimeOnPrevious": 14.2
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `fromContentId` | string | Content ID the user swiped away from |
-| `toContentId` | string | Content ID the user swiped to |
-| `watchTimeOnPrevious` | number | Seconds spent on the previous content before swiping |
-
-### like
-
-Sent when the user likes a content item.
-
-```json
-{
-  "type": "like",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:00Z",
-  "data": {}
-}
-```
-
-No event-specific fields.
-
-### share
-
-Sent when the user shares a content item.
-
-```json
-{
-  "type": "share",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:05Z",
-  "data": {
-    "platform": "messages"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `platform` | string | Share target: `messages`, `twitter`, `copy_link`, `other` |
-
-### save
-
-Sent when the user saves a content item.
-
-```json
-{
-  "type": "save",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:10Z",
-  "data": {}
-}
-```
-
-No event-specific fields.
-
-### feedEntry
-
-Sent when the user enters the feed view.
-
-```json
-{
-  "type": "feedEntry",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:00Z",
-  "data": {}
-}
-```
-
-No event-specific fields.
-
-### feedExit
-
-Sent when the user exits the feed view.
-
-```json
-{
-  "type": "feedExit",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:05:00Z",
-  "data": {
-    "watchTime": 300.0
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `watchTime` | number | Total seconds spent in the feed view |
-
-### interaction
-
-Sent for generic user interactions not covered by other event types.
-
-```json
-{
-  "type": "interaction",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:15Z",
-  "data": {
-    "action": "tap_metadata"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `action` | string | The interaction type (e.g., `tap_metadata`, `long_press`, `double_tap`) |
-
-### rebuffer
-
-Sent when playback stalls due to buffering.
-
-```json
-{
-  "type": "rebuffer",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:12Z",
-  "data": {
-    "durationMs": 1200,
-    "currentTime": 11.0
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `durationMs` | integer | Duration of the stall in milliseconds |
-| `currentTime` | number | Playback position when the stall occurred |
-
-### qualityChange
-
-Sent when the player switches between renditions.
-
-```json
-{
-  "type": "qualityChange",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:08Z",
-  "data": {
-    "fromRendition": "480p",
-    "toRendition": "720p"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `fromRendition` | string | Previous rendition |
-| `toRendition` | string | New rendition |
-
-### error
-
-Sent when a playback error occurs.
-
-```json
-{
-  "type": "error",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:05Z",
-  "data": {
-    "errorCode": "MEDIA_ERR_NETWORK",
-    "errorMessage": "A network error caused the media download to fail."
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `errorCode` | string | Machine-readable error code |
-| `errorMessage` | string | Human-readable error description |
-
-## Ad event data schemas
-
-Ad events use the same common fields (`type`, `userId`, `sessionId`, `timestamp`) as content events. The `contentId` field is omitted since ad events are identified by `slotId` instead. Ad events are batched and delivered alongside content events in the same `POST /v1/events` requests.
-
-### adRequest
-
-Sent when the SDK calls `loadAd` on the ad provider. Records whether the ad request was filled.
-
-```json
-{
-  "type": "adRequest",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:30Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "filled": true
-  }
-}
-```
-
-On failure, the `errorReason` field is included:
-
-```json
-{
-  "type": "adRequest",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:30Z",
-  "data": {
-    "slotId": "ad_slot_002",
-    "filled": false,
-    "errorReason": "no_fill"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `filled` | boolean | Whether the ad request was filled successfully |
-| `errorReason` | string | Reason for failure (e.g., `no_fill`, `timeout`). Present only when `filled` is `false` |
-
-### adImpression
-
-Sent when the ad cell becomes visible and the first frame renders.
-
-```json
-{
-  "type": "adImpression",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:32Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "adUnitId": "/1234/shortkit-feed",
-    "creativeId": "cr_xyz",
-    "position": 3
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `adUnitId` | string | Ad unit identifier |
-| `creativeId` | string | Creative identifier from the ad provider |
-| `position` | integer | Position of the ad in the feed |
-
-### adStart
-
-Sent when the ad video begins playback.
-
-```json
-{
-  "type": "adStart",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:33Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "adUnitId": "/1234/shortkit-feed",
-    "creativeId": "cr_xyz",
-    "position": 3
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `adUnitId` | string | Ad unit identifier |
-| `creativeId` | string | Creative identifier from the ad provider |
-| `position` | integer | Position of the ad in the feed |
-
-### adProgress
-
-Sent at the 25%, 50%, and 75% quartile marks during ad playback.
-
-```json
-{
-  "type": "adProgress",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:40Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "quartile": "midpoint"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `quartile` | string | The quartile reached: `first` (25%), `midpoint` (50%), or `third` (75%) |
-
-### adComplete
-
-Sent when the ad video reaches the end without being skipped.
-
-```json
-{
-  "type": "adComplete",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:55Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "adUnitId": "/1234/shortkit-feed",
-    "creativeId": "cr_xyz"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `adUnitId` | string | Ad unit identifier |
-| `creativeId` | string | Creative identifier from the ad provider |
-
-### adSkip
-
-Sent when the user swipes past the ad after the skip delay has elapsed.
-
-```json
-{
-  "type": "adSkip",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:45Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "watchTime": 6.2
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `watchTime` | number | Seconds the user watched the ad before skipping |
-
-## SDK batching behavior
-
-The SDK collects events locally and flushes them in batches to reduce network overhead. You do not need to call this endpoint directly unless you are building a custom integration.
-
-| Behavior | Default |
-|----------|---------|
-| Events per flush | 10 |
-| Max interval between flushes | 5 seconds |
-| Flush on app background | Yes |
-| Offline queueing | Yes (events are queued and sent when connectivity returns) |
-
-## Event validation
-
-Events are validated server-side before ingestion:
-
-| Rule | Behavior |
-|------|----------|
-| Missing required fields (`type`, `contentId`, `timestamp`) | Event rejected |
-| Unknown event `type` | Event rejected |
-| Timestamp older than 24 hours | Event rejected |
-| Timestamp more than 5 minutes in the future | Timestamp adjusted to server time |
-
-Failed events do not affect other events in the same batch.
-
----
-
-## Metrics taxonomy
-
-Analytics are derived from the event types collected by the SDK. Here is how events map to metrics:
-
-| Metric | Derived from event type | Description |
-|--------|------------------------|-------------|
-| Impressions | `impression` | Number of times content appeared in the viewport |
-| Plays | `playStart` | Number of playback starts |
-| Completions | `completion` | Number of times a video was watched to the end |
-| Completion rate | `completion` / `playStart` | Fraction of plays that reached the end |
-| Average watch time | `watchProgress`, `completion` | Mean seconds watched per play |
-| Likes | `like` | Number of like actions |
-| Shares | `share` | Number of share actions |
-| Saves | `save` | Number of save actions |
-| Rebuffer rate | `rebuffer` / `playStart` | Fraction of plays that experienced a stall |
-| Startup time | `playStart` | Mean time to first frame (ms) |
-| Error rate | `error` / `playStart` | Fraction of plays that encountered an error |
-
-## Common query parameters
-
-All analytics query endpoints accept these parameters for filtering and time-series granularity:
-
-<ParamField query="startDate" type="string" required>
-  Start date (ISO 8601: `YYYY-MM-DD`).
-</ParamField>
-
-<ParamField query="endDate" type="string" required>
-  End date (ISO 8601: `YYYY-MM-DD`).
-</ParamField>
-
-<ParamField query="granularity" type="string" default="day">
-  Time granularity for timeseries data: `hour`, `day`, `week`.
-</ParamField>
-
-## Overview metrics
-
-Get a high-level summary of key metrics across all content.
+### Overview
 
 ```bash
 GET /v1/analytics/overview
 ```
 
-### Example request
+Returns aggregate counts for a time period.
+
+<ParamField query="period" type="string" default="7d">
+  Time period: `24h`, `7d`, `30d`, or `90d`.
+</ParamField>
 
 ```bash
-curl "https://api.shortkit.dev/v1/analytics/overview?startDate=2026-01-01&endDate=2026-01-31" \
+curl "https://api.shortkit.dev/v1/analytics/overview?period=7d" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
-
-### Response
 
 ```json
 {
   "data": {
-    "summary": {
-      "totalImpressions": 1250000,
-      "totalPlays": 980000,
-      "totalCompletions": 420000,
-      "uniqueViewers": 85000,
-      "averageWatchTime": 28.5,
-      "completionRate": 0.428
-    },
-    "timeseries": [
-      {
-        "date": "2026-01-01",
-        "impressions": 42000,
-        "plays": 33000,
-        "completions": 14000,
-        "uniqueViewers": 8500
-      }
-    ]
+    "period": "7d",
+    "impressions": 12500,
+    "playStarts": 8300,
+    "completions": 4200,
+    "completionRate": 50.6,
+    "uniqueViewers": 3100
   },
-  "meta": {
-    "dateRange": {
-      "start": "2026-01-01",
-      "end": "2026-01-31"
-    },
-    "request_id": "req_abc123"
-  }
+  "meta": { "request_id": "req_abc123" }
 }
 ```
 
-## Content analytics
-
-### List content metrics
-
-Get per-content metrics ranked by a sort field.
+### Timeseries
 
 ```bash
-GET /v1/analytics/content
+GET /v1/analytics/timeseries
 ```
 
-<ParamField query="limit" type="integer" default={20}>
-  Items per page (1-100).
+Returns time-bucketed event counts for charting a single metric.
+
+<ParamField query="period" type="string" default="7d">
+  Time period: `24h`, `7d`, `30d`, or `90d`.
 </ParamField>
 
-<ParamField query="cursor" type="string">
-  Pagination cursor from a previous response.
+<ParamField query="metric" type="string" default="impressions">
+  Metric to chart: `impressions`, `playStarts`, or `completions`.
 </ParamField>
-
-<ParamField query="sort" type="string" default="impressions">
-  Sort field: `impressions`, `plays`, `completions`, `watchTime`.
-</ParamField>
-
-<ParamField query="order" type="string" default="desc">
-  Sort order: `asc`, `desc`.
-</ParamField>
-
-<ParamField query="tags" type="string">
-  Filter by tags (comma-separated).
-</ParamField>
-
-### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/analytics/content?startDate=2026-01-01&endDate=2026-01-31&sort=completions&limit=10" \
+curl "https://api.shortkit.dev/v1/analytics/timeseries?period=7d&metric=playStarts" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
-### Response
+Response is an array of `{ timestamp, count }` objects.
 
-```json
-{
-  "data": [
-    {
-      "contentId": "sk_content_abc123",
-      "title": "Product Launch Video",
-      "metrics": {
-        "impressions": 45000,
-        "plays": 38000,
-        "completions": 18000,
-        "totalWatchTime": 684000,
-        "averageWatchTime": 38.0,
-        "completionRate": 0.474,
-        "likes": 2400,
-        "shares": 850,
-        "saves": 320
-      }
-    }
-  ],
-  "meta": {
-    "next_cursor": "eyJvZmZzZXQiOjIwfQ==",
-    "request_id": "req_def456"
-  }
-}
+### Top content
+
+```bash
+GET /v1/analytics/top-content
 ```
 
-### Single content metrics
+Returns content items ranked by play starts.
 
-Get detailed metrics and timeseries for a specific content item.
+<ParamField query="period" type="string" default="7d">
+  Time period: `24h`, `7d`, `30d`, or `90d`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={10}>
+  Number of items to return (1--50).
+</ParamField>
+
+### Per-content breakdown
 
 ```bash
 GET /v1/analytics/content/{id}
@@ -835,447 +114,530 @@ GET /v1/analytics/content/{id}
   Content ID.
 </ParamField>
 
-### Example request
-
-```bash
-curl "https://api.shortkit.dev/v1/analytics/content/sk_content_abc123?startDate=2026-01-01&endDate=2026-01-31&granularity=day" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "contentId": "sk_content_abc123",
-    "title": "Product Launch Video",
-    "summary": {
-      "impressions": 45000,
-      "plays": 38000,
-      "completions": 18000,
-      "uniqueViewers": 32000,
-      "totalWatchTime": 684000,
-      "averageWatchTime": 38.0,
-      "completionRate": 0.474
-    },
-    "timeseries": [
-      {
-        "date": "2026-01-01",
-        "impressions": 2500,
-        "plays": 2100,
-        "completions": 1000
-      }
-    ],
-    "engagement": {
-      "averagePercentWatched": 0.72,
-      "dropoffPoints": [
-        { "second": 5, "retained": 0.95 },
-        { "second": 15, "retained": 0.78 },
-        { "second": 30, "retained": 0.52 }
-      ]
-    }
-  },
-  "meta": {
-    "request_id": "req_ghi789"
-  }
-}
-```
-
-## Engagement analytics
-
-Aggregated engagement metrics across all content, with optional segmentation.
-
-```bash
-GET /v1/analytics/engagement
-```
-
-<ParamField query="segment" type="string">
-  Segment by: `device`, `country`.
+<ParamField query="period" type="string" default="7d">
+  Time period: `24h`, `7d`, `30d`, or `90d`.
 </ParamField>
-
-### Example request
-
-```bash
-curl "https://api.shortkit.dev/v1/analytics/engagement?startDate=2026-01-01&endDate=2026-01-31&segment=device" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "summary": {
-      "totalSessions": 125000,
-      "averageSessionLength": 8.5,
-      "averageVideosPerSession": 12,
-      "averageWatchTimePerSession": 342
-    },
-    "segments": {
-      "ios": {
-        "sessions": 56000,
-        "averageSessionLength": 9.2,
-        "completionRate": 0.48
-      },
-      "android": {
-        "sessions": 50000,
-        "averageSessionLength": 8.1,
-        "completionRate": 0.42
-      }
-    },
-    "timeseries": [
-      {
-        "date": "2026-01-01",
-        "sessions": 4200,
-        "averageVideosPerSession": 11.5
-      }
-    ]
-  },
-  "meta": {
-    "request_id": "req_eng123"
-  }
-}
-```
-
-## Quality analytics
-
-Playback quality metrics derived from `playStart`, `rebuffer`, `qualityChange`, and `error` events.
-
-```bash
-GET /v1/analytics/quality
-```
-
-### Example request
-
-```bash
-curl "https://api.shortkit.dev/v1/analytics/quality?startDate=2026-01-01&endDate=2026-01-31" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "summary": {
-      "averageStartupTime": 285,
-      "rebufferRate": 0.012,
-      "averageRebufferDuration": 1.8,
-      "errorRate": 0.003
-    },
-    "renditionDistribution": {
-      "1080p": 0.25,
-      "720p": 0.45,
-      "480p": 0.20,
-      "360p": 0.10
-    },
-    "errors": {
-      "MEDIA_ERR_NETWORK": 42,
-      "MEDIA_ERR_DECODE": 18,
-      "MEDIA_ERR_SRC_NOT_SUPPORTED": 5
-    },
-    "timeseries": [
-      {
-        "date": "2026-01-01",
-        "startupTime": 290,
-        "rebufferRate": 0.015,
-        "errorRate": 0.004
-      }
-    ]
-  },
-  "meta": {
-    "request_id": "req_qual456"
-  }
-}
-```
-
-## Data availability
-
-| Metric type | Latency | Retention |
-|-------------|---------|-----------|
-| Aggregated | ~1 hour | 2 years |
-| Raw events | N/A (available via export) | 90 days |
 
 ---
 
-## Data export
+## V2: View-based metrics
 
-The Export API allows you to export raw event data for custom analysis, data warehousing, and compliance requirements. Exports are asynchronous -- you create an export job, then download the result when it is ready.
+V2 endpoints query the `video_views` table. Each row represents a single view session, created when the SDK sends a `viewEnd` event. V2 supports arbitrary timeframes, dimension filtering, and 16 metrics across engagement, quality, and behavioral categories.
 
-## Create export
+### Common query parameters
 
-Request an export of raw event data.
+All V2 endpoints accept `timeframe[]` and `filters[]` parameters.
 
-```bash
-POST /v1/analytics/export
+#### Timeframe
+
+The `timeframe[]` parameter controls the time range. It accepts two formats:
+
+| Format | Example | Meaning |
+|--------|---------|---------|
+| Relative | `timeframe[]=7:days` | Last 7 days from now |
+| Relative | `timeframe[]=24:hours` | Last 24 hours from now |
+| Absolute | `timeframe[]=1709251200&timeframe[]=1709856000` | Two Unix timestamps (start, end) |
+
+Default when omitted: `7:days`.
+
+#### Filters
+
+The `filters[]` parameter narrows results by dimension values. Pass one or more `dimension:value` pairs. Multiple filters are ANDed together.
+
+```
+filters[]=device_category:phone&filters[]=custom_1:experiment_hero_v2
 ```
 
-### Request body
+Only dimensions from the valid set (listed below) are accepted. Invalid dimension keys are silently dropped.
 
-<ParamField body="startDate" type="string" required>
-  Start date (ISO 8601: `YYYY-MM-DD`).
-</ParamField>
+---
 
-<ParamField body="endDate" type="string" required>
-  End date. Maximum 30 days from start.
-</ParamField>
+## Valid metrics
 
-<ParamField body="eventTypes" type="string[]">
-  Filter to specific event types (e.g., `["impression", "playStart", "completion"]`). Defaults to all event types.
-</ParamField>
+### Count metrics
 
-<ParamField body="format" type="string" default="jsonl">
-  Output format: `jsonl` (JSON Lines) or `csv`.
-</ParamField>
+These metrics count view sessions matching specific conditions. No `measurement` parameter is needed.
 
-<ParamField body="filters" type="object">
-  Optional filters to narrow the export.
-  <Expandable title="properties">
-    <ParamField body="contentIds" type="string[]">
-      Filter to specific content IDs.
-    </ParamField>
-    <ParamField body="userIds" type="string[]">
-      Filter to specific user IDs.
-    </ParamField>
-  </Expandable>
-</ParamField>
-
-<ParamField body="compression" type="string" default="gzip">
-  Compression: `none` or `gzip`.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/analytics/export \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "startDate": "2026-01-01",
-    "endDate": "2026-01-31",
-    "eventTypes": ["impression", "playStart", "completion", "swipe"],
-    "format": "jsonl",
-    "compression": "gzip"
-  }'
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "jobId": "exp_abc123",
-    "status": "processing",
-    "estimatedSize": "250MB",
-    "estimatedRowCount": 1250000,
-    "estimatedCompletion": "2026-02-05T12:30:00Z",
-    "createdAt": "2026-02-05T12:00:00Z"
-  },
-  "meta": {
-    "request_id": "req_xyz789"
-  }
-}
-```
-
-## Get export status
-
-Check the progress of an export job.
-
-```bash
-GET /v1/analytics/export/{jobId}
-```
-
-<ParamField path="jobId" type="string" required>
-  Export job ID.
-</ParamField>
-
-### Response (processing)
-
-```json
-{
-  "data": {
-    "jobId": "exp_abc123",
-    "status": "processing",
-    "progress": 45,
-    "processedRows": 562500,
-    "estimatedRowCount": 1250000
-  }
-}
-```
-
-### Response (complete)
-
-```json
-{
-  "data": {
-    "jobId": "exp_abc123",
-    "status": "complete",
-    "downloadUrl": "https://exports.shortkit.dev/exp_abc123/data.jsonl.gz",
-    "expiresAt": "2026-02-12T12:00:00Z",
-    "fileSize": "245MB",
-    "rowCount": 1250000,
-    "completedAt": "2026-02-05T12:25:00Z"
-  }
-}
-```
-
-### Export statuses
-
-| Status | Description |
+| Metric | Description |
 |--------|-------------|
-| `queued` | Job is queued for processing |
-| `processing` | Export in progress |
-| `complete` | Ready for download |
-| `failed` | Export failed |
-| `expired` | Download link has expired |
+| `views` | Total view sessions |
+| `unique_viewers` | Distinct viewer IDs |
+| `started_views` | Views where playback started (not `exit_before_start`) |
+| `exits_before_video_start` | Views where the viewer left before playback began |
+| `completions` | Views where the video played to the end |
 
-## List exports
+### Column metrics
 
-List all export jobs for your organization.
+These metrics aggregate a column from the `video_views` table. They support `sum`, `avg`, and `count` as the `measurement` parameter.
+
+| Metric | Default measurement | Unit | Description |
+|--------|---------------------|------|-------------|
+| `watch_time` | `sum` | ms | Wall-clock watch duration |
+| `playing_time` | `sum` | ms | Actual media playback time (excludes buffering) |
+| `video_startup_time` | `avg` | ms | Time from impression to first frame |
+| `rebuffer_count` | `avg` | count | Buffering interruptions per view |
+| `rebuffer_duration` | `avg` | ms | Buffering time per view |
+| `seek_count` | `avg` | count | User seeks per view |
+| `seek_duration` | `avg` | ms | Seek time per view |
+| `avg_bitrate` | `avg` | bps | Average playback bitrate |
+| `rendition_changes` | `avg` | count | ABR quality switches per view |
+
+### Derived metrics
+
+These are computed from other columns. They do not accept a `measurement` parameter.
+
+| Metric | Description |
+|--------|-------------|
+| `rebuffer_frequency` | Rebuffers per minute of playing time |
+| `rebuffer_percentage` | Rebuffer time as a percentage of watch time |
+
+---
+
+## Valid dimensions
+
+Dimensions can be used for both `filters[]` values and `breakdown` grouping.
+
+### Content
+
+| Dimension | Description |
+|-----------|-------------|
+| `content_id` | Content UUID. Breakdowns are enriched with `content_title` and `content_thumbnail_url`. |
+| `video_title` | Content title at time of view |
+
+### Device
+
+| Dimension | Description |
+|-----------|-------------|
+| `device_category` | `"phone"`, `"tablet"`, `"other"` |
+| `device_manufacturer` | e.g., `"Apple"` |
+| `device_model` | e.g., `"iPhone16,1"` |
+| `os_name` | e.g., `"iOS"` |
+| `os_version` | e.g., `"18.3"` |
+| `connection_type` | `"wifi"`, `"cellular"`, etc. |
+
+### Geographic
+
+| Dimension | Description |
+|-----------|-------------|
+| `country` | Country name (from IP geolocation) |
+| `continent_code` | Continent code |
+| `region` | Region or state |
+| `city` | City |
+
+### Viewer
+
+| Dimension | Description |
+|-----------|-------------|
+| `viewer_id` | User ID or anonymous device ID |
+| `client_app_name` | App name from SDK init |
+| `client_app_version` | App version from SDK init |
+
+### Boolean
+
+| Dimension | Description |
+|-----------|-------------|
+| `captions_enabled` | Whether captions were on during the view |
+| `completed` | Whether the video played to the end |
+| `exit_before_start` | Whether the viewer left before playback |
+| `looped` | Whether the video auto-looped |
+
+### Custom
+
+Five arbitrary string fields set at SDK initialization. Use these for A/B test variants, user tiers, campaign sources, or any business-specific segmentation.
+
+| Dimension | Description |
+|-----------|-------------|
+| `custom_1` | First custom dimension |
+| `custom_2` | Second custom dimension |
+| `custom_3` | Third custom dimension |
+| `custom_4` | Fourth custom dimension |
+| `custom_5` | Fifth custom dimension |
+
+---
+
+## Get metric
 
 ```bash
-GET /v1/analytics/exports
+GET /v1/metrics/{metric}
 ```
 
-<ParamField query="limit" type="integer" default={20}>
-  Items per page.
+Returns a scalar aggregate value. Add `group_by` to get a time series instead.
+
+<ParamField path="metric" type="string" required>
+  One of the valid metrics listed above.
 </ParamField>
 
-<ParamField query="status" type="string">
-  Filter by status.
+<ParamField query="measurement" type="string">
+  Aggregation function: `sum`, `avg`, or `count`. Defaults depend on the metric (see table above). Ignored for count metrics and derived metrics.
 </ParamField>
 
-### Example request
+<ParamField query="group_by" type="string">
+  Set to `hour` or `day` to return a time series instead of a scalar.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `7:days`.
+</ParamField>
+
+<ParamField query="filters[]" type="string">
+  Dimension filters in `dimension:value` format.
+</ParamField>
+
+### Scalar response
 
 ```bash
-curl "https://api.shortkit.dev/v1/analytics/exports?limit=10" \
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
-### Response
+```json
+{
+  "data": { "value": 12450, "total_views": 12450 },
+  "timeframe": [1740700800, 1741305600],
+  "meta": { "request_id": "req_abc123" }
+}
+```
+
+### Time series response (with group_by)
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=24:hours&group_by=hour" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    { "date": "2026-02-28T00:00:00Z", "value": 150 },
+    { "date": "2026-02-28T01:00:00Z", "value": 132 }
+  ],
+  "timeframe": [1740700800, 1740787200],
+  "meta": { "request_id": "req_def456" }
+}
+```
+
+---
+
+## Get metric breakdown
+
+```bash
+GET /v1/metrics/{metric}/breakdown
+```
+
+Breaks down a metric by a dimension. Returns the top N dimension values ranked by metric value or view count.
+
+<ParamField path="metric" type="string" required>
+  One of the valid metrics listed above.
+</ParamField>
+
+<ParamField query="dimension" type="string" required>
+  Dimension to group by. One of the valid dimensions listed above.
+</ParamField>
+
+<ParamField query="measurement" type="string">
+  Aggregation function: `sum`, `avg`, or `count`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={10}>
+  Maximum rows to return (1--100).
+</ParamField>
+
+<ParamField query="order_by" type="string" default="value">
+  Sort order: `value` (metric value descending) or `views` (view count descending).
+</ParamField>
+
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `7:days`.
+</ParamField>
+
+<ParamField query="filters[]" type="string">
+  Dimension filters in `dimension:value` format.
+</ParamField>
+
+### Example: views by device category
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views/breakdown?dimension=device_category&timeframe[]=7:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    { "dimension_value": "phone", "metric_value": 9500, "total_views": 9500 },
+    { "dimension_value": "tablet", "metric_value": 2200, "total_views": 2200 },
+    { "dimension_value": "other", "metric_value": 750, "total_views": 750 }
+  ],
+  "timeframe": [1740700800, 1741305600],
+  "meta": { "request_id": "req_bd001" }
+}
+```
+
+### Example: top content by watch time
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/watch_time/breakdown?dimension=content_id&measurement=sum&limit=10&order_by=value&timeframe[]=7:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+When `dimension=content_id`, each row is enriched with `content_title` and `content_thumbnail_url`.
 
 ```json
 {
   "data": [
     {
-      "jobId": "exp_abc123",
-      "status": "complete",
-      "dateRange": {
-        "start": "2026-01-01",
-        "end": "2026-01-31"
-      },
-      "format": "jsonl",
-      "fileSize": "245MB",
-      "createdAt": "2026-02-05T12:00:00Z",
-      "completedAt": "2026-02-05T12:25:00Z"
+      "dimension_value": "abc-123-uuid",
+      "metric_value": 8450000,
+      "total_views": 4200,
+      "content_title": "Product Launch Recap",
+      "content_thumbnail_url": "https://image.shortkit.dev/abc123/thumbnail.jpg?time=0"
     }
   ],
-  "meta": {
-    "total": 25,
-    "request_id": "req_list456"
-  }
+  "timeframe": [1740700800, 1741305600],
+  "meta": { "request_id": "req_bd002" }
 }
 ```
 
-## Cancel export
+---
 
-Cancel a pending or processing export job.
+## Get metric timeseries
 
 ```bash
-DELETE /v1/analytics/export/{jobId}
+GET /v1/metrics/{metric}/timeseries
 ```
 
+Returns time-bucketed metric values for charting. Granularity is automatic: hourly for ranges of 24 hours or less, daily otherwise.
+
+<ParamField path="metric" type="string" required>
+  One of the valid metrics listed above.
+</ParamField>
+
+<ParamField query="measurement" type="string">
+  Aggregation function: `sum`, `avg`, or `count`.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `7:days`.
+</ParamField>
+
+<ParamField query="filters[]" type="string">
+  Dimension filters in `dimension:value` format.
+</ParamField>
+
+### Example: daily views over 30 days for a specific video
+
 ```bash
-curl -X DELETE https://api.shortkit.dev/v1/analytics/export/exp_abc123 \
+curl "https://api.shortkit.dev/v1/metrics/views/timeseries?timeframe[]=30:days&filters[]=content_id:abc-123-uuid" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
 ```json
 {
-  "data": {
-    "jobId": "exp_abc123",
-    "status": "cancelled"
-  }
+  "data": [
+    { "date": "2026-02-01T00:00:00Z", "value": 1823 },
+    { "date": "2026-02-02T00:00:00Z", "value": 2105 }
+  ],
+  "timeframe": [1738368000, 1740960000],
+  "meta": { "request_id": "req_ts001" }
 }
 ```
 
-## Export formats
+---
 
-### JSON Lines (recommended)
-
-One JSON object per line. Each line is a complete event record:
-
-```jsonl
-{"type":"impression","contentId":"sk_content_abc123","userId":"user_456","sessionId":"sess_xyz","timestamp":"2026-01-15T10:30:00Z","data":{"position":0,"entryPoint":"feed"}}
-{"type":"playStart","contentId":"sk_content_abc123","userId":"user_456","sessionId":"sess_xyz","timestamp":"2026-01-15T10:30:01Z","data":{"startupTimeMs":245,"initialRendition":"720p"}}
-{"type":"completion","contentId":"sk_content_abc123","userId":"user_456","sessionId":"sess_xyz","timestamp":"2026-01-15T10:30:34Z","data":{"watchTime":32.5,"looped":false}}
-```
-
-JSONL is recommended because event-specific `data` fields vary by type and are naturally represented as nested JSON.
-
-### CSV
-
-Tabular format with flattened fields:
-
-```csv
-type,contentId,userId,sessionId,timestamp,data.position,data.entryPoint,data.startupTimeMs,data.initialRendition,data.watchTime,data.looped
-impression,sk_content_abc123,user_456,sess_xyz,2026-01-15T10:30:00Z,0,feed,,,,
-playStart,sk_content_abc123,user_456,sess_xyz,2026-01-15T10:30:01Z,,,245,720p,,
-completion,sk_content_abc123,user_456,sess_xyz,2026-01-15T10:30:34Z,,,,,32.5,false
-```
-
-## Processing large exports
-
-For large exports, use a streaming parser to avoid loading the entire file into memory:
-
-```javascript
-const readline = require('readline');
-const zlib = require('zlib');
-const https = require('https');
-
-https.get(downloadUrl, (response) => {
-  const gunzip = zlib.createGunzip();
-  const rl = readline.createInterface({
-    input: response.pipe(gunzip)
-  });
-
-  rl.on('line', (line) => {
-    const event = JSON.parse(line);
-    processEvent(event);
-  });
-});
-```
-
-## BigQuery integration
-
-Load JSONL exports directly into BigQuery for advanced analysis:
+## List dimension values
 
 ```bash
-bq load \
-  --source_format=NEWLINE_DELIMITED_JSON \
-  --autodetect \
-  your_dataset.shortkit_events \
-  gs://your-bucket/shortkit-export.jsonl.gz
+GET /v1/dimensions/{dimension}/values
 ```
 
-Or use a scheduled query to import exports on a recurring basis. The JSONL format maps directly to BigQuery's nested/repeated field model.
+Returns unique values for a dimension with view counts. Use this to populate filter dropdown UIs.
 
-## Export rate limits
+<ParamField path="dimension" type="string" required>
+  One of the valid dimensions listed above.
+</ParamField>
 
-| Limit | Value |
-|-------|-------|
-| Concurrent exports | 3 |
-| Export jobs per day | 20 |
-| Max date range | 30 days |
-| Download link validity | 7 days |
+<ParamField query="limit" type="integer" default={50}>
+  Maximum values to return (1--500).
+</ParamField>
 
-## Next steps
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `7:days`.
+</ParamField>
 
-<Columns cols={2}>
-  <Card title="Content API" icon="video" href="/api/content">
-    Manage content metadata and editorial controls.
-  </Card>
-  <Card title="Feed API" icon="rss" href="/api/feed">
-    Retrieve a personalized video feed.
-  </Card>
-</Columns>
+```bash
+curl "https://api.shortkit.dev/v1/dimensions/os_name/values?timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    { "value": "iOS", "total_views": 3500 },
+    { "value": "Android", "total_views": 1200 }
+  ],
+  "timeframe": [1738368000, 1740960000],
+  "meta": { "request_id": "req_dim001" }
+}
+```
+
+---
+
+## List views
+
+```bash
+GET /v1/views
+```
+
+Returns individual video view records with filtering, sorting, and pagination.
+
+<ParamField query="viewer_id" type="string">
+  Filter by viewer.
+</ParamField>
+
+<ParamField query="content_id" type="string">
+  Filter by content.
+</ParamField>
+
+<ParamField query="order_by" type="string" default="view_start">
+  Sort field: `view_start`, `watch_time_ms`, or `playing_time_ms`.
+</ParamField>
+
+<ParamField query="order_direction" type="string" default="desc">
+  Sort direction: `asc` or `desc`.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={25}>
+  Items per page (1--100).
+</ParamField>
+
+<ParamField query="page" type="integer" default={1}>
+  Page number.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `7:days`.
+</ParamField>
+
+<ParamField query="filters[]" type="string">
+  Dimension filters in `dimension:value` format.
+</ParamField>
+
+```bash
+curl "https://api.shortkit.dev/v1/views?viewer_id=user_456&timeframe[]=7:days&limit=10" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "view-uuid-001",
+      "content_id": "abc-123-uuid",
+      "viewer_id": "user_456",
+      "view_start": "2026-03-01T11:59:45Z",
+      "view_end": "2026-03-01T12:00:00Z",
+      "watch_time_ms": 15000,
+      "playing_time_ms": 14200,
+      "completed": true,
+      "video_startup_time_ms": 320,
+      "rebuffer_count": 0,
+      "os_name": "iOS",
+      "device_category": "phone",
+      "connection_type": "wifi"
+    }
+  ],
+  "total_row_count": 42,
+  "timeframe": [1740700800, 1741305600],
+  "meta": { "request_id": "req_vw001" }
+}
+```
+
+## Get view detail
+
+```bash
+GET /v1/views/{view_id}
+```
+
+<ParamField path="view_id" type="string" required>
+  View record ID.
+</ParamField>
+
+Returns the full view record with all fields.
+
+---
+
+## Export views
+
+```bash
+GET /v1/exports/views
+```
+
+Exports raw view data as JSON or CSV. The response is a file download.
+
+<ParamField query="format" type="string" default="json">
+  Output format: `json` or `csv`.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `7:days`.
+</ParamField>
+
+<ParamField query="filters[]" type="string">
+  Dimension filters in `dimension:value` format.
+</ParamField>
+
+```bash
+curl "https://api.shortkit.dev/v1/exports/views?format=csv&timeframe[]=30:days&filters[]=device_category:phone" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -o views.csv
+```
+
+Maximum **100,000 rows** per export. Results are ordered by `view_start` descending. For larger datasets, use absolute timeframe windows to paginate through the data in chunks.
+
+---
+
+## Query examples
+
+**Total views this week:**
+
+```
+GET /v1/metrics/views?timeframe[]=7:days
+```
+
+**Average startup time by connection type:**
+
+```
+GET /v1/metrics/video_startup_time/breakdown?dimension=connection_type&measurement=avg&timeframe[]=7:days
+```
+
+**Completions for premium users over 30 days:**
+
+```
+GET /v1/metrics/completions?timeframe[]=30:days&filters[]=custom_3:premium
+```
+
+**A/B test comparison by custom dimension:**
+
+```
+GET /v1/metrics/views/breakdown?dimension=custom_1&timeframe[]=7:days
+```
+
+**Hourly view trend for the last 24 hours:**
+
+```
+GET /v1/metrics/views?timeframe[]=24:hours&group_by=hour
+```
+
+**Top 10 content by total watch time:**
+
+```
+GET /v1/metrics/watch_time/breakdown?dimension=content_id&measurement=sum&limit=10&order_by=value&timeframe[]=7:days
+```
+
+**Populate a device filter dropdown:**
+
+```
+GET /v1/dimensions/device_category/values?timeframe[]=30:days
+```
+
+---

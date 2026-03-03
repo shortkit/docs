@@ -1,0 +1,506 @@
+---
+title: "Player"
+description: "Observe playback state and control the video player with ShortKitPlayer."
+keywords: ["player", "playback", "state", "commands", "publishers", "Combine", "Flow", "Observable"]
+---
+
+`ShortKitPlayer` is the public interface for observing and controlling playback. You access it through the `player` property on your `ShortKit` instance. It exposes state via reactive publishers and accepts commands via direct method calls.
+
+```swift
+let player = shortKit.player
+```
+
+The player follows a unidirectional data flow: **state flows down** through publishers, **commands flow up** through methods. You never set state directly.
+
+## Publishers
+
+Publishers emit values whenever the corresponding state changes. Subscribe to receive updates, or use the synchronous accessors for one-off reads.
+
+<Tabs>
+  <Tab title="iOS">
+    ShortKit uses Combine. Every publisher is typed as `AnyPublisher<T, Never>` -- they never fail.
+
+    ```swift
+    import Combine
+
+    var cancellables = Set<AnyCancellable>()
+
+    shortKit.player.playerState
+        .receive(on: DispatchQueue.main)
+        .sink { state in
+            print("State: \(state)")
+        }
+        .store(in: &cancellables)
+    ```
+
+    Store subscriptions in a `Set<AnyCancellable>`. They are automatically cleaned up when the set is deallocated. Always dispatch to the main queue with `.receive(on: DispatchQueue.main)` before updating UI.
+  </Tab>
+  <Tab title="Android">
+    ShortKit for Android uses Kotlin `StateFlow` and `SharedFlow`. Collect from a coroutine scope tied to your lifecycle.
+
+    ```kotlin
+    lifecycleScope.launch {
+        shortKit.player.playerState.collect { state ->
+            println("State: $state")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    The React Native SDK provides an event emitter and React hooks.
+
+    ```typescript
+    import { usePlayerState } from '@shortkit/react-native';
+
+    function MyOverlay() {
+      const state = usePlayerState();
+      return <Text>{state}</Text>;
+    }
+    ```
+
+    For non-React contexts, use the event emitter directly:
+
+    ```typescript
+    const subscription = shortKit.player.on('playerState', (state) => {
+      console.log('State:', state);
+    });
+
+    // Clean up when done
+    subscription.remove();
+    ```
+  </Tab>
+</Tabs>
+
+### Publisher reference
+
+| Publisher | Type | Description |
+|---|---|---|
+| `time` | `PlayerTime` | Fires at ~10 Hz while playing. Contains `current`, `duration`, and `buffered` in seconds. Use for scrubber UI and caption sync. |
+| `playerState` | `PlayerState` | Fires on every playback state transition. See [Player state machine](#player-state-machine) below. |
+| `currentItem` | `ContentItem?` | Metadata for the active content item. `nil` when no content is loaded. |
+| `didLoop` | `LoopEvent` | Fires each time the current video loops back to the beginning. |
+| `feedTransition` | `FeedTransitionEvent` | Fires at the start and end of a feed swipe navigation. |
+| `formatChange` | `FormatChangeEvent` | Fires when the HLS variant switches (resolution or bitrate change). |
+| `isMuted` | `Bool` | Current mute state. |
+| `playbackRate` | `Float` | Current playback speed (e.g. `1.0`, `1.5`, `2.0`). |
+| `captionsEnabled` | `Bool` | Whether captions are currently enabled. |
+| `activeCaptionTrack` | `CaptionTrack?` | The currently selected caption track, or `nil` if none. |
+| `activeCue` | `VTTCue?` | The active caption cue at the current playback time, or `nil` between cues. |
+| `prefetchedAheadCount` | `Int` | Number of content items ahead that have preloaded thumbnails. Useful for building a "loading more" indicator. |
+
+## Synchronous accessors
+
+For cases where you need a point-in-time read without setting up a subscription, two synchronous accessors are available.
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    let item = shortKit.player.currentItemValue    // ContentItem?
+    let rate = shortKit.player.playbackRateValue   // Float
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    val item = shortKit.player.currentItemValue    // ContentItem?
+    val rate = shortKit.player.playbackRateValue   // Float
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    const item = shortKit.player.getCurrentItem();    // ContentItem | null
+    const rate = shortKit.player.getPlaybackRate();   // number
+    ```
+  </Tab>
+</Tabs>
+
+| Accessor | Type | Description |
+|---|---|---|
+| `currentItemValue` | `ContentItem?` | Latest content item without subscribing. |
+| `playbackRateValue` | `Float` | Latest playback rate without subscribing. |
+
+These return the most recent value from the underlying publisher. They do not trigger any side effects.
+
+## Commands
+
+Commands are fire-and-forget methods that control playback. The SDK routes each command to the underlying `AVPlayer` (iOS), `ExoPlayer` (Android), or native bridge (React Native).
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    shortKit.player.play()
+    shortKit.player.pause()
+    shortKit.player.seek(to: 15.0)
+    shortKit.player.seekAndPlay(to: 15.0)
+    shortKit.player.setMuted(false)
+    shortKit.player.skipToNext()
+    shortKit.player.skipToPrevious()
+    shortKit.player.setPlaybackRate(1.5)
+    shortKit.player.sendContentSignal(.positive)
+    shortKit.player.setMaxBitrate(2_000_000)
+    shortKit.player.setCaptionsEnabled(true)
+    shortKit.player.selectCaptionTrack(language: "en")
+
+    // Synchronous -- returns nil if storyboard is not yet loaded
+    let thumbnail: UIImage? = shortKit.player.seekThumbnail(at: 30.0)
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    shortKit.player.play()
+    shortKit.player.pause()
+    shortKit.player.seek(15.0)
+    shortKit.player.seekAndPlay(15.0)
+    shortKit.player.setMuted(false)
+    shortKit.player.skipToNext()
+    shortKit.player.skipToPrevious()
+    shortKit.player.setPlaybackRate(1.5f)
+    shortKit.player.sendContentSignal(ContentSignal.POSITIVE)
+    shortKit.player.setMaxBitrate(2_000_000)
+    shortKit.player.setCaptionsEnabled(true)
+    shortKit.player.selectCaptionTrack("en")
+
+    val thumbnail: Bitmap? = shortKit.player.seekThumbnail(30.0)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    shortKit.player.play();
+    shortKit.player.pause();
+    shortKit.player.seek(15.0);
+    shortKit.player.seekAndPlay(15.0);
+    shortKit.player.setMuted(false);
+    shortKit.player.skipToNext();
+    shortKit.player.skipToPrevious();
+    shortKit.player.setPlaybackRate(1.5);
+    shortKit.player.sendContentSignal('positive');
+    shortKit.player.setMaxBitrate(2_000_000);
+    shortKit.player.setCaptionsEnabled(true);
+    shortKit.player.selectCaptionTrack('en');
+
+    const thumbnail: string | null = shortKit.player.seekThumbnail(30.0);
+    ```
+  </Tab>
+</Tabs>
+
+### Command reference
+
+| Method | Description |
+|---|---|
+| `play()` | Resume playback. |
+| `pause()` | Pause playback. |
+| `seek(to:)` | Seek to a specific time in seconds. Does not auto-resume. |
+| `seekAndPlay(to:)` | Seek to a specific time and immediately resume playback. |
+| `setMuted(_:)` | Set the mute state. `true` mutes, `false` unmutes. |
+| `skipToNext()` | Navigate to the next item in the feed. |
+| `skipToPrevious()` | Navigate to the previous item in the feed. |
+| `setPlaybackRate(_:)` | Set playback speed. Common values: `1.0`, `1.5`, `2.0`. |
+| `sendContentSignal(_:)` | Send a positive or negative signal about the current content. Used by the recommendation engine. |
+| `setMaxBitrate(_:)` | Set the maximum bitrate in bits per second. Pass `0` to uncap. |
+| `setCaptionsEnabled(_:)` | Enable or disable caption rendering. |
+| `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (e.g. `"en"`, `"es"`). |
+| `seekThumbnail(at:)` | Returns a storyboard thumbnail for the given time, or `nil` if the storyboard is not yet loaded. |
+
+## Player state machine
+
+The `playerState` publisher emits one of these values:
+
+```swift
+public enum PlayerState: Equatable, Sendable {
+    case idle
+    case loading
+    case ready
+    case playing
+    case paused
+    case seeking
+    case buffering
+    case ended
+    case error(String)
+}
+```
+
+| State | Meaning |
+|---|---|
+| `idle` | No content loaded. Initial state before the feed provides a video. |
+| `loading` | Content URL received, HLS manifest is being fetched. |
+| `ready` | Enough data buffered to begin playback. Transitions here before auto-playing. |
+| `playing` | Video is actively playing. |
+| `paused` | Playback paused by the user or the SDK (e.g. app backgrounded). |
+| `seeking` | A seek operation is in progress. Returns to `playing` or `paused` when complete. |
+| `buffering` | Playback stalled waiting for data. Returns to `playing` when enough data arrives. |
+| `ended` | Video reached the end. For looping content, the SDK resets to `playing` and emits a `didLoop` event instead. |
+| `error(String)` | A playback error occurred. The associated string contains a description. |
+
+### Typical transitions
+
+```
+idle -> loading -> ready -> playing -> paused -> playing  (tap to pause/resume)
+                                    -> seeking -> playing  (user scrubs)
+                                    -> buffering -> playing (network stall)
+                                    -> ended               (non-looping content)
+playing -> playing + didLoop event                         (looping content)
+any state -> error                                         (unrecoverable failure)
+```
+
+## Player event types
+
+### PlayerTime
+
+Emitted by the `time` publisher at ~10 Hz during playback.
+
+```swift
+public struct PlayerTime: Equatable, Sendable {
+    public let current: Double   // Current playback position in seconds
+    public let duration: Double  // Total duration in seconds
+    public let buffered: Double  // Buffered position in seconds
+}
+```
+
+Compute progress as a fraction: `time.current / time.duration` (guard against `duration == 0`).
+
+### LoopEvent
+
+Emitted by the `didLoop` publisher each time a video restarts from the beginning.
+
+```swift
+public struct LoopEvent: Equatable, Sendable {
+    public let contentId: String  // ID of the content that looped
+    public let loopCount: Int     // Total number of completed loops
+}
+```
+
+### FeedTransitionEvent
+
+Emitted by the `feedTransition` publisher when the user swipes between feed items.
+
+```swift
+public struct FeedTransitionEvent: Equatable, Sendable {
+    public enum Phase: Sendable { case began, ended }
+    public enum Direction: Sendable { case forward, backward }
+
+    public let phase: Phase          // .began when swipe starts, .ended when settled
+    public let from: ContentItem?    // Item being swiped away
+    public let to: ContentItem?      // Item being swiped to
+    public let direction: Direction   // .forward (swipe up) or .backward (swipe down)
+}
+```
+
+The `began` phase fires as soon as the swipe gesture is recognized. The `ended` phase fires after the collection view settles on the new item. Use `began` to fade out a custom overlay and `ended` to configure it for the new item.
+
+### FormatChangeEvent
+
+Emitted by the `formatChange` publisher when the HLS adaptive bitrate algorithm switches variants.
+
+```swift
+public struct FormatChangeEvent: Equatable, Sendable {
+    public let contentId: String
+    public let fromBitrate: Int       // Previous bitrate in bps
+    public let toBitrate: Int         // New bitrate in bps
+    public let fromResolution: String // e.g. "720x1280"
+    public let toResolution: String   // e.g. "1080x1920"
+}
+```
+
+### ContentSignal
+
+Passed to `sendContentSignal(_:)` to influence the recommendation engine.
+
+```swift
+public enum ContentSignal: Equatable, Sendable {
+    case positive   // User liked / saved / engaged positively
+    case negative   // User reported / disliked
+}
+```
+
+## Example: custom overlay with state observation
+
+This example builds a minimal custom overlay that shows a play/pause button and a progress bar, driven entirely by the player's publishers.
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    import UIKit
+    import Combine
+    import ShortKit
+
+    final class MinimalOverlay: UIView {
+
+        private let player: ShortKitPlayer
+        private var cancellables = Set<AnyCancellable>()
+
+        private let playPauseButton = UIButton(type: .system)
+        private let progressView = UIProgressView(progressViewStyle: .default)
+        private let titleLabel = UILabel()
+
+        init(player: ShortKitPlayer) {
+            self.player = player
+            super.init(frame: .zero)
+            setupUI()
+            bind()
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        private func setupUI() {
+            // Layout code omitted for brevity -- add subviews and constraints
+            playPauseButton.addTarget(self, action: #selector(togglePlayPause), for: .touchUpInside)
+        }
+
+        private func bind() {
+            // Update play/pause icon based on state
+            player.playerState
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] state in
+                    let icon = state == .playing ? "pause.fill" : "play.fill"
+                    self?.playPauseButton.setImage(
+                        UIImage(systemName: icon), for: .normal
+                    )
+                }
+                .store(in: &cancellables)
+
+            // Drive progress bar from time publisher
+            player.time
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] time in
+                    guard time.duration > 0 else { return }
+                    self?.progressView.progress = Float(time.current / time.duration)
+                }
+                .store(in: &cancellables)
+
+            // Show title when content changes
+            player.currentItem
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] item in
+                    self?.titleLabel.text = item?.title
+                }
+                .store(in: &cancellables)
+        }
+
+        @objc private func togglePlayPause() {
+            // Read current state, then issue the opposite command
+            player.playerState
+                .first()
+                .sink { [weak self] state in
+                    if state == .playing {
+                        self?.player.pause()
+                    } else {
+                        self?.player.play()
+                    }
+                }
+                .store(in: &cancellables)
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    import android.content.Context
+    import android.widget.FrameLayout
+    import android.widget.ImageButton
+    import android.widget.ProgressBar
+    import android.widget.TextView
+    import dev.shortkit.ShortKitPlayer
+    import dev.shortkit.PlayerState
+    import kotlinx.coroutines.*
+    import kotlinx.coroutines.flow.collectLatest
+
+    class MinimalOverlay(
+        context: Context,
+        private val player: ShortKitPlayer,
+        private val scope: CoroutineScope
+    ) : FrameLayout(context) {
+
+        private val playPauseButton = ImageButton(context)
+        private val progressBar = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal)
+        private val titleText = TextView(context)
+
+        init {
+            setupUI()
+            bind()
+        }
+
+        private fun setupUI() {
+            // Layout code omitted for brevity
+            playPauseButton.setOnClickListener { togglePlayPause() }
+        }
+
+        private fun bind() {
+            scope.launch {
+                player.playerState.collectLatest { state ->
+                    val icon = if (state == PlayerState.PLAYING)
+                        android.R.drawable.ic_media_pause
+                    else
+                        android.R.drawable.ic_media_play
+                    playPauseButton.setImageResource(icon)
+                }
+            }
+
+            scope.launch {
+                player.time.collectLatest { time ->
+                    if (time.duration > 0) {
+                        progressBar.progress = ((time.current / time.duration) * 100).toInt()
+                    }
+                }
+            }
+
+            scope.launch {
+                player.currentItem.collectLatest { item ->
+                    titleText.text = item?.title ?: ""
+                }
+            }
+        }
+
+        private fun togglePlayPause() {
+            val current = player.playerState.value
+            if (current == PlayerState.PLAYING) player.pause() else player.play()
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    import React from 'react';
+    import { View, Text, TouchableOpacity } from 'react-native';
+    import {
+      usePlayerState,
+      usePlayerTime,
+      useCurrentItem,
+      useShortKitPlayer
+    } from '@shortkit/react-native';
+
+    export function MinimalOverlay() {
+      const player = useShortKitPlayer();
+      const state = usePlayerState();
+      const time = usePlayerTime();
+      const item = useCurrentItem();
+
+      const progress = time.duration > 0 ? time.current / time.duration : 0;
+
+      return (
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
+          <Text style={{ color: 'white', fontSize: 16, marginBottom: 8 }}>
+            {item?.title}
+          </Text>
+
+          <View style={{ height: 3, backgroundColor: '#333', borderRadius: 1.5 }}>
+            <View style={{
+              height: 3,
+              width: `${progress * 100}%`,
+              backgroundColor: 'white',
+              borderRadius: 1.5
+            }} />
+          </View>
+
+          <TouchableOpacity
+            onPress={() => state === 'playing' ? player.pause() : player.play()}
+            style={{ marginTop: 12, alignSelf: 'center' }}
+          >
+            <Text style={{ color: 'white', fontSize: 24 }}>
+              {state === 'playing' ? '⏸' : '▶'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>

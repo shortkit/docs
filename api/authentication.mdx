@@ -8,122 +8,173 @@ All API requests require authentication. ShortKit uses two types of API keys -- 
 
 ## API key types
 
-| Key type | Prefix | Header | Permissions |
-|----------|--------|--------|-------------|
-| **Publishable** | `pk_live_` / `pk_test_` | `X-API-Key` | Read-only: feed, config, events, identity |
-| **Secret** | `sk_live_` / `sk_test_` | `Authorization: Bearer` | Full access: uploads, content management, and all read operations |
+| Key type | Prefix | Header | Purpose | Security |
+|----------|--------|--------|---------|----------|
+| **Publishable** | `pk_{env}_` | `X-API-Key` | Read-only access to published content and event ingestion | Safe for client-side code. Stored plaintext on server. |
+| **Secret** | `sk_{env}_` | `Authorization: Bearer` | Full management access -- content CRUD, analytics, uploads, configuration | Server-side only. bcrypt-hashed on server, shown once at creation. |
+
+Both key types encode the environment (`live` or `test`) directly in the prefix, so a single key always maps to exactly one environment.
 
 <Warning>
   Secret keys grant full API access. Never expose them in client-side code, mobile apps, public repositories, or browser environments.
 </Warning>
 
+## Key formats
+
+Publishable keys follow the pattern `pk_{env}_{random}`:
+
+```
+pk_live_a1b2c3d4e5f6g7h8i9j0...
+pk_test_x9y8z7w6v5u4t3s2r1q0...
+```
+
+Secret keys follow the pattern `sk_{env}_{key_id}_{random}`, where `key_id` is a short identifier used for fast O(1) database lookup:
+
+```
+sk_live_a1b2c3_FgHiJkLmNoPqRsTuVwXyZaBcDeFgHiJk...
+sk_test_d4e5f6_AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEf...
+```
+
+The `key_id` segment lets the server look up your organization directly by index instead of bcrypt-comparing against every stored hash.
+
 ## Publishable keys
 
 Publishable keys are designed to be embedded in client applications. They provide **read-only** access to public-facing endpoints.
 
-Use the `X-API-Key` header:
+Send the key in the `X-API-Key` header:
 
 ```bash
 curl https://api.shortkit.dev/v1/feed?limit=10 \
-  -H "X-API-Key: pk_live_your_publishable_key"
+  -H "X-API-Key: pk_live_a1b2c3d4e5f6g7h8i9j0..."
 ```
 
-### Publishable key permissions
-
-Publishable keys can access:
-
-- `GET /v1/feed` -- Retrieve ranked video feeds
-- `GET /v1/config` -- Fetch remote configuration
-- `POST /v1/events` -- Send engagement events
-- `POST /v1/identity/resolve` -- Resolve user identity
-
-Publishable keys **cannot** access:
-
-- Content upload or management endpoints
-- Analytics query endpoints
-- Any write operation on content or configuration
+Publishable keys are stored as plaintext on the server because they are intended to be public. Lookup is a direct indexed query -- no hashing involved.
 
 ### SDK initialization
 
-Use your publishable key when initializing the ShortKit SDK:
+Pass your publishable key when creating a ShortKit instance:
 
 ```swift
-ShortKit.initialize(apiKey: "pk_live_your_publishable_key")
+let shortKit = ShortKit(
+    apiKey: "pk_live_a1b2c3d4e5f6g7h8i9j0...",
+    config: feedConfig,
+    userId: "optional-known-user-id"
+)
 ```
 
-The SDK handles authentication automatically for all subsequent requests.
+The SDK attaches the key to every request automatically via the `X-API-Key` header. You never use a secret key in the SDK.
 
 ## Secret keys
 
-Secret keys are used for server-to-server communication. They provide **full access** to all API endpoints, including content uploads and management.
+Secret keys are used for server-to-server communication. They provide **full access** to all management endpoints.
 
-Use the `Authorization` header with a `Bearer` token:
+Send the key in the `Authorization` header as a Bearer token:
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/uploads \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
+curl -X POST https://api.shortkit.dev/v1/content \
+  -H "Authorization: Bearer sk_live_a1b2c3_FgHiJkLmNoPqRsTuVwXyZ..." \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Breaking: Weather Alert",
     "description": "Severe thunderstorm warning for the metro area",
-    "tags": ["weather", "severe"],
-    "customMetadata": {
-      "articleUrl": "https://weather.com/severe-storm"
-    }
+    "tags": ["weather", "severe"]
   }'
 ```
 
-### Secret key permissions
+Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly once** at creation time and cannot be retrieved afterward. If you lose it, rotate to get a new one.
 
-Secret keys can access all endpoints available to publishable keys, plus:
+## Endpoints by key type
 
-- `POST /v1/uploads` -- Create direct upload sessions
-- `GET /v1/uploads/{id}` -- Check upload status
+### Publishable key (`X-API-Key` header)
 
-Secret keys are shown **once** at creation time. They cannot be retrieved after that. Store them securely.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/feed` | GET | Fetch paginated feed |
+| `/v1/feed/videos` | GET | Fetch video-only feed |
+| `/v1/events` | POST | Ingest analytics events |
+| `/v1/identity/resolve` | POST | Link anonymous device to known user |
+| `/v1/surveys/{id}/respond` | POST | Submit survey response |
+
+### Secret key or portal JWT (`Authorization: Bearer` header)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/content/*` | GET / POST / PATCH / DELETE | Content management |
+| `/v1/uploads` | POST | Create upload sessions |
+| `/v1/surveys/*` | GET / POST / PUT / DELETE | Survey management (CRUD, not submission) |
+| `/v1/embeds/*` | GET / POST / PUT / DELETE | Embed configuration |
+| `/v1/projects/*` | GET / POST / PATCH / DELETE | Video editor projects |
+| `/v1/analytics/*` | GET | Analytics overview and timeseries |
+| `/v1/metrics/*` | GET | Analytics V2 metrics |
+| `/v1/views/*` | GET | Analytics V2 views |
+| `/v1/dimensions/*` | GET | Analytics V2 dimension values |
+| `/v1/org` | GET | Organization info |
+| `/v1/org/rotate-secret-key` | POST | Rotate the secret key |
+
+### Secret key only (`Authorization: Bearer` header)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/ad-config` | GET / PUT | Ad configuration |
 
 ## Environment isolation
 
-Every API key includes an environment prefix -- either `live` or `test`. These environments are **completely isolated**:
+Every API key encodes its environment in the prefix -- either `live` or `test`. These environments are **completely isolated**:
 
 | Environment | Key prefixes | Behavior |
 |-------------|-------------|----------|
 | **Live** | `pk_live_`, `sk_live_` | Production content, real video processing, persistent data |
-| **Test** | `pk_test_`, `sk_test_` | Test content, watermarked video, data deleted after 24 hours |
+| **Test** | `pk_test_`, `sk_test_` | Development and testing, isolated from production |
 
-- A `live` key cannot read or write `test` data
-- A `test` key cannot read or write `live` data
-- Test environment videos are watermarked and limited to 10 seconds
-- Test environment content is automatically deleted after 24 hours
+A `live` key cannot access `test` data, and a `test` key cannot access `live` data. The server extracts the environment from the key prefix and enforces this boundary on every request.
 
 <Tip>
-  Always use `test` keys during development. This prevents accidental modifications to production content and avoids incurring video processing costs.
+  Use `test` keys during development to avoid accidental modifications to production content.
 </Tip>
 
-## Obtaining API keys
+## Secret key rotation
 
-1. Sign in to the **ShortKit Dashboard**
-2. Navigate to **Settings** then **API Keys**
-3. Click **Create New Key** and select the key type (publishable or secret)
-4. Copy the key immediately -- secret keys are only displayed once
+Rotate a compromised or aging secret key by calling `POST /v1/org/rotate-secret-key`. This endpoint accepts either the current secret key or a portal JWT.
 
-## Key rotation
+```bash
+curl -X POST https://api.shortkit.dev/v1/org/rotate-secret-key \
+  -H "Authorization: Bearer sk_live_a1b2c3_FgHiJkLmNoPqRsTuVwXyZ..."
+```
 
-To rotate a compromised or aging key:
+```json
+{
+  "data": {
+    "secret_key": "sk_live_d4e5f6_NewKeyRandomPartHere..."
+  },
+  "meta": {
+    "request_id": "req_8f3a2b1c"
+  }
+}
+```
 
-1. Create a new key of the same type in **Settings** then **API Keys**
-2. Update your application to use the new key
-3. Verify the new key is working in production
-4. Revoke the old key
+The rotation flow:
 
-Revoked keys stop working immediately. Any request using a revoked key receives a `401` error response.
+1. A new `key_id` and random part are generated.
+2. The new key is bcrypt-hashed and stored, replacing the old hash and key ID.
+3. The plaintext new key is returned in the response -- shown once only.
+4. The old key is **immediately invalidated**. Any in-flight requests using the old key will fail.
+
+Update your server environment variables with the new key before discarding the response.
+
+## Key expiration
+
+API keys do not expire automatically. Both publishable and secret keys remain valid until the secret key is manually rotated. There is no time-based expiration policy -- you control the key lifecycle through rotation.
+
+## Rate limiting
+
+All API requests are rate-limited to **120 requests per minute** per key/IP combination, using a sliding 60-second window. When exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header.
 
 ## Authentication errors
 
 | HTTP Status | Error code | Description |
 |-------------|------------|-------------|
 | `401` | `invalid_api_key` | API key is missing, malformed, or has been revoked |
-| `403` | `forbidden` | The key type does not have permission for this endpoint (e.g., publishable key used on a secret-key endpoint) |
+| `403` | `forbidden` | The key type does not have permission for this endpoint |
 
 ### Example: missing API key
 
@@ -150,7 +201,7 @@ curl https://api.shortkit.dev/v1/feed
 
 ```bash
 curl -X POST https://api.shortkit.dev/v1/uploads \
-  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "X-API-Key: pk_live_a1b2c3d4e5f6g7h8i9j0..." \
   -H "Content-Type: application/json" \
   -d '{"title": "My Video"}'
 ```
@@ -170,50 +221,38 @@ curl -X POST https://api.shortkit.dev/v1/uploads \
 }
 ```
 
-## Security best practices
+## Best practices
 
 <AccordionGroup>
-  <Accordion title="Store keys in environment variables">
-    Never hard-code API keys in source files. Use environment variables or a secrets manager:
+  <Accordion title="Publishable keys are safe for client bundles">
+    Publishable keys grant read-only access to published content and event ingestion. They are designed to be shipped in mobile apps, web embeds, and client-side JavaScript. Treat them like a public identifier, not a secret.
+  </Accordion>
+  <Accordion title="Store secret keys in environment variables only">
+    Never hard-code secret keys in source files or commit them to version control. Use environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault, `.env` files excluded from git):
 
     ```bash
-    # .env file (never commit this file)
-    SHORTKIT_SECRET_KEY=sk_live_your_secret_key
-    SHORTKIT_PUBLISHABLE_KEY=pk_live_your_publishable_key
+    # .env (never commit this file)
+    SHORTKIT_SECRET_KEY=sk_live_a1b2c3_FgHiJkLmNoPqRsTuVwXyZ...
     ```
 
-    ```javascript
-    // Access in your server code
-    const secretKey = process.env.SHORTKIT_SECRET_KEY;
+    ```python
+    import os
+    secret_key = os.environ["SHORTKIT_SECRET_KEY"]
     ```
   </Accordion>
   <Accordion title="Use the correct key type for each context">
-    - **Mobile apps and client-side code**: Always use publishable keys (`pk_live_` / `pk_test_`)
-    - **Backend servers and scripts**: Use secret keys (`sk_live_` / `sk_test_`)
+    - **Mobile apps and browsers**: Publishable key (`pk_live_` / `pk_test_`) via `X-API-Key` header
+    - **Backend servers and scripts**: Secret key (`sk_live_` / `sk_test_`) via `Authorization: Bearer` header
 
-    Publishable keys are safe to embed in shipped code because they only grant read-only access.
+    Mixing these up either exposes your secret key or blocks legitimate requests with a `403`.
+  </Accordion>
+  <Accordion title="Rotate on team changes">
+    When a team member with access to the secret key leaves the organization, rotate the key immediately via `POST /v1/org/rotate-secret-key`. The old key is invalidated instantly.
   </Accordion>
   <Accordion title="Use test keys during development">
-    Use `pk_test_` and `sk_test_` keys in development and staging environments. This prevents accidental modifications to production data and avoids unnecessary video processing costs.
-  </Accordion>
-  <Accordion title="Rotate keys on a regular schedule">
-    Rotate API keys periodically (for example, quarterly) as a preventive measure. Do not wait until a key is compromised to rotate it.
+    Use `pk_test_` and `sk_test_` keys in development and staging. This prevents accidental writes to production data.
   </Accordion>
   <Accordion title="Monitor for exposed keys">
-    If a secret key is accidentally committed to a public repository or exposed in client-side code, revoke it immediately in **Settings** then **API Keys** and create a replacement.
-  </Accordion>
-  <Accordion title="Limit key distribution">
-    Create separate secret keys for separate services. If one service is compromised, you can revoke its key without affecting others.
+    If a secret key is accidentally committed to a public repository or included in client-side code, rotate it immediately. The old key stops working as soon as rotation completes.
   </Accordion>
 </AccordionGroup>
-
-## Next steps
-
-<CardGroup cols={2}>
-  <Card title="API Introduction" icon="book" href="/api/introduction">
-    Overview of API design, response format, and pagination.
-  </Card>
-  <Card title="Error handling" icon="triangle-exclamation" href="/api/errors">
-    Understand error codes and implement robust error handling.
-  </Card>
-</CardGroup>

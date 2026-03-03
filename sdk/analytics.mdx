@@ -1,0 +1,223 @@
+---
+title: "Analytics"
+description: ""
+keywords: ["analytics", "events", "tracking", "custom dimensions", "content signals", "identity"]
+---
+
+The SDK automatically collects playback and engagement events the moment the feed is displayed. No setup is required.
+
+Events are batched and delivered in the background. If the app is terminated before a batch is sent, events are persisted to disk and retried on the next launch.
+
+The SDK collects metrics for every video view. A view session starts when a content item becomes active in the feed and ends when the user swipes away, the feed leaves the screen, or the app backgrounds.
+
+### Engagement
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `watchTimeMs` | `Int` | Wall-clock time from view start to end (ms). Includes time spent buffering and paused. |
+| `playingTimeMs` | `Int` | Actual playing time accumulated at 1 Hz (ms). Excludes buffering and pauses. |
+| `videoStartupTimeMs` | `Int?` | Time from impression to player ready (ms). Nil if the player never started. |
+| `exitBeforeStart` | `Bool` | `true` if the user swiped away before playback began. |
+| `completed` | `Bool` | `true` if the video played to its natural end at least once. |
+| `looped` | `Bool` | `true` if the video completed and restarted. |
+| `loopCount` | `Int` | Total number of completions. 0 if the video never reached the end. |
+
+### Quality of experience
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `rebufferCount` | `Int` | Number of rebuffering stalls during playback. |
+| `rebufferDurationMs` | `Int` | Total time spent rebuffering (ms). |
+| `seekCount` | `Int` | Number of user-initiated seek operations. |
+| `seekDurationMs` | `Int` | Total time spent seeking (ms). |
+| `avgBitrateBps` | `Int?` | Weighted average playback bitrate (bits per second). Nil if no samples collected. |
+| `renditionChangeCount` | `Int` | Total HLS rendition (quality) switches. |
+| `renditionUpshiftCount` | `Int` | Switches to a higher-quality rendition. |
+| `renditionDownshiftCount` | `Int` | Switches to a lower-quality rendition. |
+
+### Feed session
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `totalSessionTime` | `Double` | Total time the feed was on screen (seconds). |
+| `videosWatched` | `Int` | Number of videos the user viewed during the session. |
+
+### Ads
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `filled` | `Bool` | Whether the ad request returned a creative. |
+| `errorReason` | `String?` | Failure reason if the ad was not filled (`no_fill`, `timeout`, `network_error`, `provider_error`). |
+| `quartile` | `String` | Playback milestone reached (`first_quartile`, `midpoint`, `third_quartile`, `complete`). |
+| `watchTime` | `Double` | Watch time before the user skipped the ad (seconds). |
+
+### Context
+
+Collected once per view and attached automatically.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `captionsEnabled` | `Bool` | Whether captions were enabled during the view. |
+| `deviceInfo` | `Object` | Device and connection metadata: OS, device model, connection type. See the [Events API reference](/api/events#deviceinfo-object) for the full field list. |
+| `clientAppName` | `String?` | App name passed at SDK init. |
+| `clientAppVersion` | `String?` | App version passed at SDK init. |
+| `customDimensions` | `Object?` | Custom dimensions (`custom_1` through `custom_5`), if set at init. |
+
+All of these metrics are queryable through the [metrics API](/api/analytics), which supports aggregation, dimension breakdowns, timeseries, filtering, and raw data export.
+
+## Custom dimensions
+
+Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event and become queryable as dimensions in the [metrics API](/api/analytics).
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let shortKit = ShortKit(
+        apiKey: "pk_live_...",
+        config: FeedConfig(),
+        clientAppName: "MyNewsApp",
+        clientAppVersion: "2.1.0",
+        customDimensions: [
+            "custom_1": "sports",
+            "custom_2": "premium_user",
+            "custom_3": "experiment_hero_v2"
+        ]
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val shortKit = ShortKit(
+        apiKey = "pk_live_...",
+        config = FeedConfig(),
+        clientAppName = "MyNewsApp",
+        clientAppVersion = "2.1.0",
+        customDimensions = mapOf(
+            "custom_1" to "sports",
+            "custom_2" to "premium_user",
+            "custom_3" to "experiment_hero_v2"
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    const shortKit = ShortKit.initialize({
+      apiKey: 'pk_live_...',
+      config: { feedHeight: 'fullscreen' },
+      clientAppName: 'MyNewsApp',
+      clientAppVersion: '2.1.0',
+      customDimensions: {
+        custom_1: 'sports',
+        custom_2: 'premium_user',
+        custom_3: 'experiment_hero_v2',
+      },
+    });
+    ```
+  </Tab>
+</Tabs>
+
+Keys must be `custom_1` through `custom_5`. Other keys are silently dropped. Values are plain strings.
+
+Custom dimensions are immutable after init. To change them (for example, after a user upgrades their subscription), create a new `ShortKit` instance.
+
+`clientAppName` and `clientAppVersion` are also set at init and included in every `viewEnd` event. Use them to segment analytics by app version.
+
+## Content signals
+
+`contentSignal` is the only event you trigger manually. Use it to send positive or negative signals back to the recommendation engine.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.player.sendContentSignal(.positive)
+    shortKit.player.sendContentSignal(.negative)
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.player.sendContentSignal(ContentSignal.POSITIVE)
+    shortKit.player.sendContentSignal(ContentSignal.NEGATIVE)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    shortKit.player.sendContentSignal('positive');
+    shortKit.player.sendContentSignal('negative');
+    ```
+  </Tab>
+</Tabs>
+
+The signal is emitted with the `contentId` of the currently active video.
+
+## User identity
+
+The SDK generates a persistent anonymous UUID by default. This ID is included in every event and used as the `viewer_id` dimension in analytics.
+
+Call `setUserId()` to switch to identified mode. This links the anonymous device ID to your known user ID for identity resolution.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Associate events with a known user
+    shortKit.setUserId("user_12345")
+
+    // Revert to anonymous tracking (generates a new anonymous ID)
+    shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.setUserId("user_12345")
+    shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    shortKit.setUserId('user_12345');
+    shortKit.clearUserId();
+    ```
+  </Tab>
+</Tabs>
+
+## Overlay actions
+
+The overlay action buttons (like, share, save, comment, article link) are **not** tracked as analytics events by the SDK. They are host-app callbacks. Implement `OverlayActionDelegate` to handle them in your app.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    class MyHandler: OverlayActionDelegate {
+        func overlayDidTapShare(for item: ContentItem) {
+            // Present your share sheet, fire your own analytics
+        }
+    }
+
+    shortKit.overlayActionDelegate = MyHandler()
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.overlayActionDelegate = object : OverlayActionDelegate {
+        override fun overlayDidTapShare(item: ContentItem) {
+            // Handle share
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    shortKit.on('overlayAction', (action, item) => {
+      if (action === 'share') {
+        // Handle share
+      }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+If you want to track overlay interactions in ShortKit analytics, call `sendContentSignal()` from within your delegate handler.
+
+## Querying analytics data
+
+Use the metrics API to query aggregate engagement data, break down by dimensions, chart timeseries, and export raw view records. See the [Analytics API reference](/api/analytics) for endpoints, available metrics, and dimensions.

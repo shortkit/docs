@@ -1,0 +1,357 @@
+---
+title: "Common Workflows"
+description: "End-to-end recipes for the most common ShortKit API operations."
+keywords: ["API", "workflows", "upload", "analytics", "content management", "carousel"]
+---
+
+## Base URL
+
+All API requests use the following base URL:
+
+```
+https://api.shortkit.dev/v1
+```
+
+All endpoints are served over HTTPS. Authenticate with your secret key (`sk_live_...` or `sk_test_...`) as a Bearer token — see [Authentication](/api/authentication) for details.
+
+## Upload a video
+
+Three steps: create an upload session, PUT the file to the signed URL, then poll for completion.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+    import time
+
+    API_BASE = "https://api.shortkit.dev"
+    SECRET_KEY = os.environ["SHORTKIT_SECRET_KEY"]
+    HEADERS = {
+        "Authorization": f"Bearer {SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    # 1. Create the upload session
+    resp = requests.post(f"{API_BASE}/v1/uploads", headers=HEADERS, json={
+        "title": "Breaking: Severe Weather Alert",
+        "description": "Thunderstorm warning for the metro area",
+        "tags": ["weather", "breaking"],
+        "generateSubtitles": True,
+        "customMetadata": {
+            "articleUrl": "https://example.com/weather/storm"
+        }
+    })
+    upload = resp.json()["data"]
+    content_id = upload["id"]
+    upload_url = upload["uploadUrl"]
+
+    # 2. PUT the video file directly to the signed URL
+    with open("video.mp4", "rb") as f:
+        requests.put(upload_url, headers={"Content-Type": "video/mp4"}, data=f)
+
+    # 3. Poll until processing completes
+    while True:
+        status_resp = requests.get(
+            f"{API_BASE}/v1/uploads/{content_id}",
+            headers=HEADERS,
+        )
+        status = status_resp.json()["data"]["status"]
+        if status == "ready":
+            print(f"Video ready: {content_id}")
+            break
+        elif status == "error":
+            print("Processing failed")
+            break
+        time.sleep(2)
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { readFile } from "node:fs/promises";
+
+    const API_BASE = "https://api.shortkit.dev";
+    const SECRET_KEY = process.env.SHORTKIT_SECRET_KEY;
+    const headers = {
+      Authorization: `Bearer ${SECRET_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    // 1. Create the upload session
+    const createResp = await fetch(`${API_BASE}/v1/uploads`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        title: "Breaking: Severe Weather Alert",
+        description: "Thunderstorm warning for the metro area",
+        tags: ["weather", "breaking"],
+        generateSubtitles: true,
+        customMetadata: {
+          articleUrl: "https://example.com/weather/storm",
+        },
+      }),
+    });
+    const { data: upload } = await createResp.json();
+
+    // 2. PUT the video file directly to the signed URL
+    const videoFile = await readFile("video.mp4");
+    await fetch(upload.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "video/mp4" },
+      body: videoFile,
+    });
+
+    // 3. Poll until processing completes
+    let status = "waiting_for_upload";
+    while (status !== "ready" && status !== "error") {
+      await new Promise((r) => setTimeout(r, 2000));
+      const pollResp = await fetch(`${API_BASE}/v1/uploads/${upload.id}`, {
+        headers,
+      });
+      ({ data: { status } } = await pollResp.json());
+    }
+
+    console.log(status === "ready" ? `Video ready: ${upload.id}` : "Processing failed");
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # 1. Create the upload session
+    curl -X POST https://api.shortkit.dev/v1/uploads \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "title": "Breaking: Severe Weather Alert",
+        "description": "Thunderstorm warning for the metro area",
+        "tags": ["weather", "breaking"],
+        "generateSubtitles": true,
+        "customMetadata": {
+          "articleUrl": "https://example.com/weather/storm"
+        }
+      }'
+    # Response includes "uploadUrl" and "id"
+
+    # 2. PUT the video file to the signed URL
+    curl -X PUT "$UPLOAD_URL" \
+      -H "Content-Type: video/mp4" \
+      --data-binary @video.mp4
+
+    # 3. Poll for status
+    curl https://api.shortkit.dev/v1/uploads/$CONTENT_ID \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY"
+    # Repeat until status is "ready" or "error"
+    ```
+  </Tab>
+</Tabs>
+
+Processing typically takes 1--2 minutes for a 30-second video. Poll every 2--5 seconds.
+
+## Create carousel content
+
+Carousels are image slideshows. Create the content item first, then upload images to it.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # 1. Create the carousel content item
+    resp = requests.post(f"{API_BASE}/v1/content", headers=HEADERS, json={
+        "contentType": "carousel",
+        "title": "Game Day Highlights",
+        "caption": "Top moments from tonight's game",
+        "autoScrollInterval": 5.0,
+        "tags": ["sports", "highlights"],
+        "section": "Sports",
+    })
+    carousel_id = resp.json()["data"]["id"]
+
+    # 2. Upload images (multipart/form-data)
+    for i, image_path in enumerate(["slide1.jpg", "slide2.jpg", "slide3.jpg"]):
+        with open(image_path, "rb") as f:
+            requests.post(
+                f"{API_BASE}/v1/content/{carousel_id}/images",
+                headers={"Authorization": f"Bearer {SECRET_KEY}"},
+                files={"file": (image_path, f, "image/jpeg")},
+                data={"position": i, "altText": f"Slide {i + 1}"},
+            )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    // 1. Create the carousel content item
+    const carouselResp = await fetch(`${API_BASE}/v1/content`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        contentType: "carousel",
+        title: "Game Day Highlights",
+        caption: "Top moments from tonight's game",
+        autoScrollInterval: 5.0,
+        tags: ["sports", "highlights"],
+        section: "Sports",
+      }),
+    });
+    const { data: carousel } = await carouselResp.json();
+
+    // 2. Upload images (multipart/form-data)
+    const images = ["slide1.jpg", "slide2.jpg", "slide3.jpg"];
+    for (let i = 0; i < images.length; i++) {
+      const imageFile = await readFile(images[i]);
+      const form = new FormData();
+      form.append("file", new Blob([imageFile], { type: "image/jpeg" }), images[i]);
+      form.append("position", String(i));
+      form.append("altText", `Slide ${i + 1}`);
+
+      await fetch(`${API_BASE}/v1/content/${carousel.id}/images`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SECRET_KEY}` },
+        body: form,
+      });
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # 1. Create the carousel
+    curl -X POST https://api.shortkit.dev/v1/content \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "carousel",
+        "title": "Game Day Highlights",
+        "caption": "Top moments from tonight'\''s game",
+        "autoScrollInterval": 5.0,
+        "tags": ["sports", "highlights"],
+        "section": "Sports"
+      }'
+
+    # 2. Upload images
+    curl -X POST https://api.shortkit.dev/v1/content/$CAROUSEL_ID/images \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY" \
+      -F "file=@slide1.jpg" \
+      -F "position=0" \
+      -F "altText=Slide 1"
+    ```
+  </Tab>
+</Tabs>
+
+Carousels are immediately `ready` after creation -- no transcoding step. Maximum 10 images per carousel.
+
+## Query analytics
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Total views in the last 7 days
+    resp = requests.get(f"{API_BASE}/v1/metrics/views", headers=HEADERS, params={
+        "timeframe[]": "7:days",
+    })
+    total_views = resp.json()["data"]["value"]
+
+    # Daily completion rate over the last 30 days
+    resp = requests.get(f"{API_BASE}/v1/metrics/completions", headers=HEADERS, params={
+        "timeframe[]": "30:days",
+        "group_by": "day",
+    })
+    timeseries = resp.json()["data"]  # [{"date": "2026-02-01T00:00:00Z", "value": 150}, ...]
+
+    # Views broken down by device category, filtered to iOS
+    resp = requests.get(f"{API_BASE}/v1/metrics/views/breakdown", headers=HEADERS, params={
+        "timeframe[]": "7:days",
+        "dimension": "device_category",
+        "filters[]": "os_name:iOS",
+    })
+    breakdown = resp.json()["data"]
+    # [{"dimension_value": "phone", "metric_value": 3200, "total_views": 3200}, ...]
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    // Total views in the last 7 days
+    const viewsResp = await fetch(
+      `${API_BASE}/v1/metrics/views?` + new URLSearchParams({
+        "timeframe[]": "7:days",
+      }),
+      { headers },
+    );
+    const { data: { value: totalViews } } = await viewsResp.json();
+
+    // Daily completion rate over the last 30 days
+    const tsResp = await fetch(
+      `${API_BASE}/v1/metrics/completions?` + new URLSearchParams({
+        "timeframe[]": "30:days",
+        group_by: "day",
+      }),
+      { headers },
+    );
+    const { data: timeseries } = await tsResp.json();
+
+    // Views broken down by device category, filtered to iOS
+    const breakdownResp = await fetch(
+      `${API_BASE}/v1/metrics/views/breakdown?` + new URLSearchParams({
+        "timeframe[]": "7:days",
+        dimension: "device_category",
+        "filters[]": "os_name:iOS",
+      }),
+      { headers },
+    );
+    const { data: breakdown } = await breakdownResp.json();
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Total views in the last 7 days
+    curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days" \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY"
+
+    # Daily completions over the last 30 days
+    curl "https://api.shortkit.dev/v1/metrics/completions?timeframe[]=30:days&group_by=day" \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY"
+
+    # Breakdown by device category, filtered to iOS
+    curl "https://api.shortkit.dev/v1/metrics/views/breakdown?timeframe[]=7:days&dimension=device_category&filters[]=os_name:iOS" \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+## Export view data
+
+Download raw view records as CSV or JSON for offline analysis or data warehousing.
+Use `filters[]` and `timeframe[]` to narrow the result set.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    resp = requests.get(f"{API_BASE}/v1/exports/views", headers=HEADERS, params={
+        "format": "csv",
+        "timeframe[]": "30:days",
+        "filters[]": "os_name:iOS",
+    })
+
+    with open("views_export.csv", "wb") as f:
+        f.write(resp.content)
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { writeFile } from "node:fs/promises";
+
+    const exportResp = await fetch(
+      `${API_BASE}/v1/exports/views?` + new URLSearchParams({
+        format: "csv",
+        "timeframe[]": "30:days",
+        "filters[]": "os_name:iOS",
+      }),
+      { headers },
+    );
+
+    await writeFile("views_export.csv", Buffer.from(await exportResp.arrayBuffer()));
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -o views_export.csv \
+      "https://api.shortkit.dev/v1/exports/views?format=csv&timeframe[]=30:days&filters[]=os_name:iOS" \
+      -H "Authorization: Bearer $SHORTKIT_SECRET_KEY"
+    ```
+  </Tab>
+</Tabs>

@@ -1,57 +1,89 @@
 ---
 title: "Content"
-description: "Manage your video content library -- upload, list, update, delete, and perform bulk operations."
-keywords: ["content", "videos", "API", "CRUD", "metadata", "upload", "ingestion", "bulk", "batch"]
+description: "Create, list, update, search, and delete content items. Manage carousel images, caption tracks, and publication URLs."
+keywords: ["content", "videos", "carousel", "API", "CRUD", "metadata", "captions", "publication URLs"]
 ---
 
-The Content API manages your entire video library. Use it to upload new videos, list content, retrieve details, update metadata and editorial controls, delete content, and perform bulk operations on multiple items at once.
+The Content API manages your video and carousel library. Use it to create content items, attach images and captions, set editorial controls, search by natural language, and archive items you no longer need.
 
 ## Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/v1/uploads` | Secret key | Create an upload session |
-| `GET` | `/v1/uploads/{id}` | Secret key | Check upload/processing status |
-| `GET` | `/v1/content` | Secret key | List all content |
-| `GET` | `/v1/content/{id}` | Secret key | Get content by ID |
-| `PATCH` | `/v1/content/{id}` | Secret key | Update content |
-| `DELETE` | `/v1/content/{id}` | Secret key | Delete content |
-| `POST` | `/v1/content/bulk/update` | Secret key | Update multiple content items |
-| `POST` | `/v1/content/bulk/archive` | Secret key | Archive multiple content items |
-| `POST` | `/v1/content/bulk/tag` | Secret key | Add or remove tags from multiple items |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | [`/v1/content`](#create-content) | Create a content item |
+| `GET` | [`/v1/content`](#list-content) | List content with filters |
+| `GET` | [`/v1/content/search`](#search-content) | Semantic search (Twelve Labs) |
+| `GET` | [`/v1/content/{id}`](#get-content) | Get a single content item |
+| `PATCH` | [`/v1/content/{id}`](#update-content) | Update content fields |
+| `DELETE` | [`/v1/content/{id}`](#delete-content) | Archive a content item |
+| `POST` | [`/v1/content/{id}/images`](#upload-carousel-image) | Upload a carousel image |
+| `DELETE` | [`/v1/content/{id}/images/{image_id}`](#delete-carousel-image) | Delete a carousel image |
+| `PUT` | [`/v1/content/{id}/images/order`](#reorder-carousel-images) | Reorder carousel images |
+| `POST` | [`/v1/content/{id}/captions`](#upload-caption-track) | Upload a caption track (VTT/SRT) |
+| `DELETE` | [`/v1/content/{id}/captions/{track_id}`](#delete-caption-track) | Delete a caption track |
+| `POST` | [`/v1/content/{id}/publication-urls`](#add-publication-url) | Add a publication URL |
+| `PUT` | [`/v1/content/{id}/publication-urls/{url_id}`](#update-publication-url) | Update a publication URL |
+| `DELETE` | [`/v1/content/{id}/publication-urls/{url_id}`](#delete-publication-url) | Delete a publication URL |
+| `PUT` | [`/v1/content/{id}/publication-urls/order`](#reorder-publication-urls) | Reorder publication URLs |
+
+All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **portal JWT** (`Authorization: Bearer <jwt>`).
 
 ---
 
 ## Content object
 
-Every content item has the following shape:
-
 ```json
 {
-  "id": "sk_content_abc123",
+  "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "contentType": "video",
   "title": "Breaking: Weather Alert",
   "description": "Severe thunderstorm warning for the metro area",
   "status": "ready",
   "duration": 32.5,
-  "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-  "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
-  "captionTracks": [
-    {
-      "language": "en",
-      "label": "English",
-      "source": "embedded",
-      "url": null
-    }
-  ],
+  "streamingUrl": "https://stream.shortkit.dev/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe.m3u8",
+  "thumbnailUrl": "https://image.shortkit.dev/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe/thumbnail.jpg?time=0",
+  "section": "Weather",
+  "author": "Jane Doe",
   "tags": ["weather", "severe", "breaking"],
   "customMetadata": {
     "articleUrl": "https://example.com/weather-alert",
     "category": "severe-weather"
   },
+  "captionTracks": [
+    {
+      "id": "a1b2c3d4-...",
+      "language": "en",
+      "label": "English",
+      "source": "generated",
+      "url": "https://stream.shortkit.dev/DS00Spx1.../text/cc1.vtt",
+      "muxTrackId": "cc1",
+      "status": "ready",
+      "createdAt": "2026-02-05T12:03:45Z"
+    }
+  ],
+  "publicationUrls": [
+    {
+      "id": "f4e5d6c7-...",
+      "url": "https://example.com/weather-alert",
+      "label": "Read article",
+      "position": 0,
+      "createdAt": "2026-02-05T12:05:00Z"
+    }
+  ],
+  "images": [],
   "pinPosition": null,
   "isSuppressed": false,
   "publishAt": null,
   "expiresAt": null,
+  "width": 1080,
+  "height": 1920,
+  "aspectRatio": "9:16",
+  "maxFrameRate": 30.0,
+  "videoQuality": "plus",
+  "resolutionTier": "1080p",
+  "carouselCaption": null,
+  "autoScrollInterval": null,
+  "views": 3420,
   "createdAt": "2026-02-05T12:00:00Z",
   "updatedAt": "2026-02-05T12:03:45Z"
 }
@@ -60,59 +92,115 @@ Every content item has the following shape:
 ### Field reference
 
 <ResponseField name="id" type="string">
-  Unique content identifier (e.g., `sk_content_abc123`).
+  UUID. Unique content identifier.
+</ResponseField>
+
+<ResponseField name="contentType" type="string">
+  `"video"` or `"carousel"`.
 </ResponseField>
 
 <ResponseField name="title" type="string">
-  Display title.
+  Display title. Max 200 characters.
 </ResponseField>
 
 <ResponseField name="description" type="string | null">
-  Optional description text.
+  Optional description. Max 2000 characters.
 </ResponseField>
 
 <ResponseField name="status" type="string">
-  Current lifecycle status. One of: `waiting_for_upload`, `processing`, `ready`, `error`, `archived`.
+  Lifecycle status. One of: `waiting_for_upload`, `processing`, `ready`, `error`, `archived`. See [Status lifecycle](#status-lifecycle).
 </ResponseField>
 
 <ResponseField name="duration" type="number | null">
-  Video duration in seconds. Available once status is `ready`.
+  Video duration in seconds. Populated when status reaches `ready`.
 </ResponseField>
 
 <ResponseField name="streamingUrl" type="string | null">
-  HLS streaming URL. Available once status is `ready`.
+  HLS streaming URL. Populated when status reaches `ready`. `null` for carousels.
 </ResponseField>
 
 <ResponseField name="thumbnailUrl" type="string | null">
-  Thumbnail image URL. Available once status is `ready`.
+  Thumbnail image URL. For videos, generated from the stream. For carousels, the first image URL.
 </ResponseField>
 
-<ResponseField name="captionTracks" type="array | null">
-  Available caption tracks. Each track includes `language`, `label`, `source` (`"embedded"` or `"external"`), and `url` (null for embedded captions).
+<ResponseField name="section" type="string | null">
+  Editorial section (e.g., `"Sports"`, `"News"`). Max 200 characters. Passed through to the feed response.
+</ResponseField>
+
+<ResponseField name="author" type="string | null">
+  Content author name. Max 200 characters. Passed through to the feed response.
 </ResponseField>
 
 <ResponseField name="tags" type="string[]">
-  Content tags for categorization and filtering.
+  Tags for categorization and filtering.
 </ResponseField>
 
 <ResponseField name="customMetadata" type="object">
-  Arbitrary key-value pairs set during upload or update. Passed through to the feed response.
+  Arbitrary key-value pairs. Passed through to the feed response. Use this for article URLs, campaign IDs, deep links, or any application-specific data.
+</ResponseField>
+
+<ResponseField name="captionTracks" type="array">
+  Caption tracks attached to this content. Each track has `id`, `language` (ISO 639-1), `label`, `source` (`"generated"`, `"embedded"`, or `"external"`), `url`, `muxTrackId`, `status`, and `createdAt`.
+</ResponseField>
+
+<ResponseField name="publicationUrls" type="array">
+  Ordered list of publication URLs. Each entry has `id`, `url`, `label`, `position`, and `createdAt`.
+</ResponseField>
+
+<ResponseField name="images" type="array">
+  Carousel images. Each entry has `id`, `imageUrl`, `altText`, `position`, and `createdAt`. Empty for video content.
 </ResponseField>
 
 <ResponseField name="pinPosition" type="integer | null">
-  When set, pins this content to a specific position in the feed (1 = top). `null` means unpinned.
+  When set, pins this content to a fixed position in the feed. `null` means unpinned.
 </ResponseField>
 
 <ResponseField name="isSuppressed" type="boolean">
-  When `true`, this content is excluded from the feed regardless of status or scheduling.
+  When `true`, excluded from the feed regardless of status or scheduling.
 </ResponseField>
 
 <ResponseField name="publishAt" type="string | null">
-  ISO 8601 timestamp. Content will not appear in the feed before this time. `null` means immediately available.
+  ISO 8601 timestamp. Content does not appear in the feed before this time. `null` means immediately available.
 </ResponseField>
 
 <ResponseField name="expiresAt" type="string | null">
-  ISO 8601 timestamp. Content is automatically excluded from the feed after this time. `null` means no expiration.
+  ISO 8601 timestamp. Content is removed from the feed after this time. `null` means no expiration.
+</ResponseField>
+
+<ResponseField name="width" type="integer | null">
+  Video width in pixels. Extracted from the source file after processing.
+</ResponseField>
+
+<ResponseField name="height" type="integer | null">
+  Video height in pixels.
+</ResponseField>
+
+<ResponseField name="aspectRatio" type="string | null">
+  Aspect ratio string (e.g., `"9:16"`, `"16:9"`).
+</ResponseField>
+
+<ResponseField name="maxFrameRate" type="number | null">
+  Maximum stored frame rate.
+</ResponseField>
+
+<ResponseField name="videoQuality" type="string | null">
+  Mux video quality tier (e.g., `"plus"`, `"basic"`).
+</ResponseField>
+
+<ResponseField name="resolutionTier" type="string | null">
+  Maximum stored resolution (e.g., `"1080p"`, `"720p"`).
+</ResponseField>
+
+<ResponseField name="carouselCaption" type="string | null">
+  Caption text for carousel content. Max 500 characters. `null` for videos.
+</ResponseField>
+
+<ResponseField name="autoScrollInterval" type="number | null">
+  Seconds between automatic image transitions in a carousel. `null` for videos.
+</ResponseField>
+
+<ResponseField name="views" type="integer">
+  View count for this content item.
 </ResponseField>
 
 <ResponseField name="createdAt" type="string">
@@ -123,27 +211,19 @@ Every content item has the following shape:
   Last modification timestamp (ISO 8601).
 </ResponseField>
 
+---
+
 ## Status lifecycle
-
-Content moves through these statuses:
-
-```
-POST /v1/uploads
-      |
-      v
-waiting_for_upload  -->  processing  -->  ready  -->  archived
-                              |
-                              v
-                            error
-```
 
 | Status | Description | Visible in feed? |
 |--------|-------------|------------------|
-| `waiting_for_upload` | Upload session created; file not yet received | No |
-| `processing` | Video is being transcoded; thumbnails and captions are being generated | No |
-| `ready` | Processing complete; content is available for playback | Yes (subject to editorial controls) |
+| `waiting_for_upload` | Upload session created, video file not yet received | No |
+| `processing` | Video is being transcoded, thumbnails and captions are being generated | No |
+| `ready` | Processing complete, content is playable | Yes (subject to editorial controls) |
 | `error` | Processing failed | No |
-| `archived` | Manually archived or expired | No |
+| `archived` | Soft-deleted via `DELETE /v1/content/{id}` | No |
+
+Carousels skip the upload/processing stages and are created with status `ready` immediately.
 
 Content with status `ready` appears in the feed only when all of these conditions are met:
 - `isSuppressed` is `false`
@@ -152,355 +232,119 @@ Content with status `ready` appears in the feed only when all of these condition
 
 ---
 
-## Uploads
+## Create content
 
-The Uploads API lets you ingest video content into ShortKit. You create an upload session, receive a signed upload URL, and PUT your file directly to it. ShortKit handles transcoding, thumbnail generation, and subtitle extraction automatically.
-
-### Upload flow
-
-```
-1. POST /v1/uploads          -- Create upload session (returns signed URL + content ID)
-2. PUT  {uploadUrl}           -- Upload file directly to the signed URL
-3. Processing                 -- ShortKit transcodes, generates thumbnails and captions
-4. Ready                      -- Content appears in your feed (or poll status / receive webhook)
-```
-
-### Upload methods
-
-| Method | Best for | Max size |
-|--------|----------|----------|
-| [Direct upload](#create-upload) | Most use cases | 5 GB |
-| [Server-side SDK](#upload-sdk-helpers) | Automated pipelines with progress tracking | 5 GB |
-
-## Create upload
-
-Creates a new upload session and returns a signed upload URL. The upload URL is valid for 60 minutes.
+Creates a new content item. Videos are created with status `waiting_for_upload` -- use the [Uploads API](/api/content#upload-flow) to upload the video file. Carousels are created with status `ready` immediately.
 
 ```bash
-POST /v1/uploads
+POST /v1/content
 ```
 
 ### Authentication
 
-Requires a **secret key** via the `Authorization` header.
+Secret key or portal JWT via the `Authorization` header.
 
 ### Request body
 
+<ParamField body="contentType" type="string" default="video">
+  `"video"` or `"carousel"`.
+</ParamField>
+
 <ParamField body="title" type="string" required>
-  Display title for the content (max 200 characters).
+  Display title. Max 200 characters.
 </ParamField>
 
 <ParamField body="description" type="string">
-  Optional description (max 2000 characters).
+  Optional description. Max 2000 characters.
 </ParamField>
 
 <ParamField body="tags" type="string[]">
   Tags for categorization and filtering.
 </ParamField>
 
-<ParamField body="customMetadata" type="object">
-  Arbitrary key-value pairs attached to the content. Use this for your own application data
-  such as article URLs, campaign IDs, or internal references.
+<ParamField body="caption" type="string">
+  Carousel caption text. Max 500 characters. Only applies to carousels.
 </ParamField>
 
-<ParamField body="generateSubtitles" type="boolean" default={true}>
-  When `true`, ShortKit automatically generates English captions from the audio track
-  using speech-to-text. Captions are embedded in the HLS stream once processing completes.
+<ParamField body="autoScrollInterval" type="number">
+  Seconds between automatic image transitions. Only applies to carousels.
+</ParamField>
+
+<ParamField body="pinPosition" type="integer">
+  Pin this content to a fixed feed position (0-indexed).
+</ParamField>
+
+<ParamField body="section" type="string">
+  Editorial section. Max 200 characters.
+</ParamField>
+
+<ParamField body="author" type="string">
+  Content author name. Max 200 characters.
+</ParamField>
+
+<ParamField body="publishAt" type="string">
+  ISO 8601 timestamp. Content will not appear in the feed before this time.
+</ParamField>
+
+<ParamField body="expiresAt" type="string">
+  ISO 8601 timestamp. Content is removed from the feed after this time.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/uploads \
+curl -X POST https://api.shortkit.dev/v1/content \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Breaking: Weather Alert",
-    "description": "Severe thunderstorm warning for the metro area",
-    "tags": ["weather", "severe", "breaking"],
-    "customMetadata": {
-      "articleUrl": "https://example.com/weather-alert",
-      "category": "severe-weather"
-    },
-    "generateSubtitles": true
+    "contentType": "carousel",
+    "title": "Top 5 Weekend Destinations",
+    "section": "Travel",
+    "author": "Travel Desk",
+    "tags": ["travel", "weekend"],
+    "caption": "Swipe through our picks for this weekend.",
+    "autoScrollInterval": 5.0
   }'
 ```
 
-### Response
+### Response (201)
 
 ```json
 {
   "data": {
-    "id": "sk_content_abc123",
-    "uploadUrl": "https://uploads.shortkit.dev/direct/sk_content_abc123?token=eyJ...",
-    "status": "waiting_for_upload",
-    "title": "Breaking: Weather Alert",
-    "description": "Severe thunderstorm warning for the metro area",
-    "tags": ["weather", "severe", "breaking"],
-    "customMetadata": {
-      "articleUrl": "https://example.com/weather-alert",
-      "category": "severe-weather"
-    },
-    "createdAt": "2026-02-05T12:00:00Z"
-  },
-  "meta": {
-    "request_id": "req_xyz789"
-  }
-}
-```
-
-The `uploadUrl` is a signed URL for direct file upload. It expires after 60 minutes.
-
-## Upload the file
-
-Once you have the signed `uploadUrl`, upload your video file with an HTTP `PUT` request:
-
-```bash
-curl -X PUT "${uploadUrl}" \
-  -H "Content-Type: video/mp4" \
-  --data-binary @video.mp4
-```
-
-<Note>
-  The `PUT` request goes directly to the signed upload URL, not to `api.shortkit.dev`.
-  No `Authorization` header is needed -- the URL itself contains the upload credentials.
-</Note>
-
-After the PUT completes successfully, ShortKit begins processing the video automatically.
-The content status transitions from `waiting_for_upload` to `processing`.
-
-## Check processing status
-
-Poll the upload status to determine when your content is ready.
-
-```bash
-GET /v1/uploads/{id}
-```
-
-### Authentication
-
-Requires a **secret key** via the `Authorization` header.
-
-### Path parameters
-
-<ParamField path="id" type="string" required>
-  The content ID returned from the create upload call (e.g., `sk_content_abc123`).
-</ParamField>
-
-### Example request
-
-```bash
-curl https://api.shortkit.dev/v1/uploads/sk_content_abc123 \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response (processing)
-
-```json
-{
-  "data": {
-    "id": "sk_content_abc123",
-    "status": "processing",
-    "title": "Breaking: Weather Alert",
-    "createdAt": "2026-02-05T12:00:00Z",
-    "updatedAt": "2026-02-05T12:00:15Z"
-  },
-  "meta": {
-    "request_id": "req_abc456"
-  }
-}
-```
-
-### Response (ready)
-
-```json
-{
-  "data": {
-    "id": "sk_content_abc123",
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "contentType": "carousel",
+    "title": "Top 5 Weekend Destinations",
+    "description": null,
     "status": "ready",
-    "title": "Breaking: Weather Alert",
-    "description": "Severe thunderstorm warning for the metro area",
-    "duration": 32.5,
-    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
-    "captionTracks": [
-      {
-        "language": "en",
-        "label": "English",
-        "source": "embedded",
-        "url": null
-      }
-    ],
-    "tags": ["weather", "severe", "breaking"],
-    "customMetadata": {
-      "articleUrl": "https://example.com/weather-alert",
-      "category": "severe-weather"
-    },
+    "duration": null,
+    "streamingUrl": null,
+    "thumbnailUrl": null,
+    "section": "Travel",
+    "author": "Travel Desk",
+    "tags": ["travel", "weekend"],
+    "customMetadata": {},
+    "captionTracks": [],
+    "publicationUrls": [],
+    "images": [],
+    "carouselCaption": "Swipe through our picks for this weekend.",
+    "autoScrollInterval": 5.0,
+    "pinPosition": null,
+    "isSuppressed": false,
+    "publishAt": null,
+    "expiresAt": null,
+    "width": null,
+    "height": null,
+    "aspectRatio": null,
+    "maxFrameRate": null,
+    "videoQuality": null,
+    "resolutionTier": null,
+    "views": 0,
     "createdAt": "2026-02-05T12:00:00Z",
-    "updatedAt": "2026-02-05T12:03:45Z"
+    "updatedAt": "2026-02-05T12:00:00Z"
   },
   "meta": {
-    "request_id": "req_def789"
-  }
-}
-```
-
-### Response (error)
-
-```json
-{
-  "data": {
-    "id": "sk_content_abc123",
-    "status": "error",
-    "title": "Breaking: Weather Alert",
-    "createdAt": "2026-02-05T12:00:00Z",
-    "updatedAt": "2026-02-05T12:02:30Z"
-  },
-  "meta": {
-    "request_id": "req_err001"
-  }
-}
-```
-
-### Expected processing times
-
-| Step | Duration |
-|------|----------|
-| Upload (30s video, ~50 MB) | 5--30 seconds depending on network speed |
-| Transcoding and thumbnail generation | 1--5 minutes for a 1-minute video |
-| Subtitle generation (if enabled) | Additional 1--3 minutes |
-| **Total: upload to ready** | **~2--8 minutes** |
-
-### Supported formats
-
-#### Video formats
-
-| Format | Extensions | MIME types |
-|--------|------------|------------|
-| MP4 | `.mp4`, `.m4v` | `video/mp4` |
-| QuickTime | `.mov` | `video/quicktime` |
-| WebM | `.webm` | `video/webm` |
-| MKV | `.mkv` | `video/x-matroska` |
-
-#### Video requirements
-
-| Property | Requirement |
-|----------|-------------|
-| Duration | 1--180 seconds |
-| Resolution | 480p -- 4K |
-| Frame rate | 24--60 fps |
-| Max bitrate | 50 Mbps |
-| Max file size | 5 GB |
-| Codec | H.264, H.265, VP9, AV1 |
-
-#### Encoding recommendations
-
-For the fastest processing and best playback quality:
-
-- **Container:** MP4 (`.mp4`)
-- **Video codec:** H.264 High profile
-- **Audio codec:** AAC-LC, stereo, 128 kbps or higher
-- **Orientation:** Vertical (9:16) for short-form feeds
-- **Resolution:** 1080 x 1920 (1080p vertical)
-- **Frame rate:** 30 fps
-- **Bitrate:** 6--10 Mbps for 1080p
-
-<Warning>
-  Files that do not meet the requirements above may fail during processing.
-  Check content status after upload to detect failures early.
-</Warning>
-
-### Upload SDK helpers
-
-Server-side SDKs provide upload helpers with progress tracking and automatic retries:
-
-<Tabs>
-  <Tab title="JavaScript">
-    ```javascript
-    import { ShortkitAdmin } from '@shortkit/node';
-
-    const shortkit = new ShortkitAdmin({ apiKey: 'sk_live_...' });
-
-    // Create upload and send file in one call
-    const content = await shortkit.uploads.create({
-      file: fs.createReadStream('video.mp4'),
-      title: 'Weather Alert',
-      tags: ['weather', 'breaking'],
-      customMetadata: { articleUrl: 'https://example.com/alert' },
-      onProgress: (progress) => {
-        console.log(`${progress.percent}% uploaded`);
-      }
-    });
-
-    console.log(content.id);     // sk_content_abc123
-    console.log(content.status); // waiting_for_upload | processing
-
-    // Poll until ready
-    const ready = await shortkit.uploads.waitForReady(content.id, {
-      pollInterval: 5000, // ms
-      timeout: 600000     // 10 minutes
-    });
-
-    console.log(ready.status);       // ready
-    console.log(ready.streamingUrl); // https://video.shortkit.dev/...
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    from shortkit import ShortkitAdmin
-
-    shortkit = ShortkitAdmin(api_key="sk_live_...")
-
-    # Create upload and send file in one call
-    with open("video.mp4", "rb") as f:
-        content = shortkit.uploads.create(
-            file=f,
-            title="Weather Alert",
-            tags=["weather", "breaking"],
-            custom_metadata={"article_url": "https://example.com/alert"},
-            on_progress=lambda p: print(f"{p.percent}% uploaded"),
-        )
-
-    print(content.id)      # sk_content_abc123
-    print(content.status)  # waiting_for_upload | processing
-
-    # Poll until ready
-    ready = shortkit.uploads.wait_for_ready(
-        content.id,
-        poll_interval=5,  # seconds
-        timeout=600,      # 10 minutes
-    )
-
-    print(ready.status)         # ready
-    print(ready.streaming_url)  # https://video.shortkit.dev/...
-    ```
-  </Tab>
-</Tabs>
-
-### Upload error handling
-
-| Error code | Description | Solution |
-|------------|-------------|----------|
-| `invalid_request` | Missing required fields (e.g., `title`) | Include all required fields in the request body |
-| `file_too_large` | File exceeds 5 GB limit | Compress or trim the video |
-| `invalid_media_type` | Unsupported video format | Use a supported format (MP4, MOV, WebM, MKV) |
-| `duration_exceeded` | Video longer than 180 seconds | Trim to 180 seconds or less |
-| `upload_expired` | Signed upload URL has expired | Create a new upload session |
-
-```javascript
-try {
-  const content = await shortkit.uploads.create({ file, title: 'My Video' });
-} catch (error) {
-  switch (error.code) {
-    case 'file_too_large':
-      // Compress or trim the video before re-uploading
-      break;
-    case 'invalid_media_type':
-      // Convert to a supported format
-      break;
-    case 'upload_expired':
-      // Create a new upload session
-      break;
+    "request_id": "req_abc123def456"
   }
 }
 ```
@@ -509,11 +353,15 @@ try {
 
 ## List content
 
-Retrieves a paginated list of all content in your organization.
+Returns a paginated list of content items in your organization.
 
 ```bash
 GET /v1/content
 ```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
 
 ### Query parameters
 
@@ -522,7 +370,7 @@ GET /v1/content
 </ParamField>
 
 <ParamField query="cursor" type="string">
-  Opaque cursor token from a previous response's `meta.nextCursor`. Omit for the first page.
+  Opaque pagination cursor from a previous response's `meta.nextCursor`. Omit for the first page.
 </ParamField>
 
 <ParamField query="status" type="string">
@@ -530,13 +378,13 @@ GET /v1/content
 </ParamField>
 
 <ParamField query="tags" type="string">
-  Comma-separated tags to filter by.
+  Comma-separated tag filter. Returns content matching any of the given tags.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=weather" \
+curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=weather,breaking" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
@@ -546,36 +394,20 @@ curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=weather" \
 {
   "data": [
     {
-      "id": "sk_content_abc123",
+      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "contentType": "video",
       "title": "Breaking: Weather Alert",
-      "description": "Severe thunderstorm warning for the metro area",
       "status": "ready",
       "duration": 32.5,
-      "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-      "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
-      "captionTracks": [
-        {
-          "language": "en",
-          "label": "English",
-          "source": "embedded",
-          "url": null
-        }
-      ],
+      "section": "Weather",
+      "author": "Jane Doe",
       "tags": ["weather", "severe", "breaking"],
-      "customMetadata": {
-        "articleUrl": "https://example.com/weather-alert",
-        "category": "severe-weather"
-      },
-      "pinPosition": 1,
-      "isSuppressed": false,
-      "publishAt": null,
-      "expiresAt": "2026-02-06T12:00:00Z",
       "createdAt": "2026-02-05T12:00:00Z",
       "updatedAt": "2026-02-05T12:03:45Z"
     }
   ],
   "meta": {
-    "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2FiYzEyMyJ9",
+    "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJkMjkwZjFlZS02YzU0In0",
     "request_id": "req_list001"
   }
 }
@@ -583,17 +415,84 @@ curl "https://api.shortkit.dev/v1/content?limit=20&status=ready&tags=weather" \
 
 ### Pagination
 
-This endpoint uses **cursor-based pagination**. When there are more results, `meta.nextCursor` contains an opaque cursor token. Pass it as the `cursor` query parameter on the next request to fetch the next page. When `meta.nextCursor` is `null`, you have reached the end of the result set.
+This endpoint uses cursor-based pagination on `(created_at, id)`. When there are more results, `meta.nextCursor` contains an opaque token. Pass it as the `cursor` query parameter to fetch the next page. When `meta.nextCursor` is absent, you have reached the end.
 
 ```bash
-# Next page -- use the cursor from the previous response
-curl "https://api.shortkit.dev/v1/content?limit=20&cursor=eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDBaIiwiaWQiOiJza19jb250ZW50X2FiYzEyMyJ9" \
+# Fetch the next page
+curl "https://api.shortkit.dev/v1/content?limit=20&cursor=eyJjYSI6IjIwMjYtMDIt..." \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
 <Warning>
-  Cursor tokens are opaque and may change format between API versions. Do not parse, decode, or construct them manually. Always use the exact value returned by the API.
+  Cursor tokens are opaque. Do not parse, decode, or construct them manually.
 </Warning>
+
+---
+
+## Search content
+
+Semantic video search powered by Twelve Labs. Returns content items ranked by relevance to a natural-language query.
+
+```bash
+GET /v1/content/search
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Query parameters
+
+<ParamField query="q" type="string" required>
+  Search query. 1--500 characters.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  Maximum results (1--50).
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/content/search?q=severe%20weather%20warning&limit=5" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+Each result includes the standard content object plus a `searchScore` field:
+
+```json
+{
+  "data": [
+    {
+      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "contentType": "video",
+      "title": "Breaking: Weather Alert",
+      "status": "ready",
+      "duration": 32.5,
+      "streamingUrl": "https://stream.shortkit.dev/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe.m3u8",
+      "thumbnailUrl": "https://image.shortkit.dev/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe/thumbnail.jpg?time=0",
+      "searchScore": 92.4,
+      "tags": ["weather", "severe"],
+      "createdAt": "2026-02-05T12:00:00Z",
+      "updatedAt": "2026-02-05T12:03:45Z"
+    }
+  ],
+  "meta": {
+    "request_id": "req_search001",
+    "source": "twelve_labs"
+  }
+}
+```
+
+<Note>
+  Search requires Twelve Labs credentials configured on your organization. If Twelve Labs is not configured, this endpoint returns an empty `data` array with `meta.source` set to `"none"`.
+</Note>
+
+Results are deduplicated by video -- when multiple clips from the same video match, only the highest-scoring clip is returned.
+
+---
 
 ## Get content
 
@@ -603,81 +502,68 @@ Retrieves a single content item by ID.
 GET /v1/content/{id}
 ```
 
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
 ### Path parameters
 
 <ParamField path="id" type="string" required>
-  Content ID (e.g., `sk_content_abc123`).
+  Content UUID.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl https://api.shortkit.dev/v1/content/sk_content_abc123 \
+curl https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851 \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
 ### Response
 
+Returns the full [content object](#content-object) wrapped in the standard envelope.
+
 ```json
 {
-  "data": {
-    "id": "sk_content_abc123",
-    "title": "Breaking: Weather Alert",
-    "description": "Severe thunderstorm warning for the metro area",
-    "status": "ready",
-    "duration": 32.5,
-    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
-    "captionTracks": [
-      {
-        "language": "en",
-        "label": "English",
-        "source": "embedded",
-        "url": null
-      }
-    ],
-    "tags": ["weather", "severe", "breaking"],
-    "customMetadata": {
-      "articleUrl": "https://example.com/weather-alert",
-      "category": "severe-weather"
-    },
-    "pinPosition": null,
-    "isSuppressed": false,
-    "publishAt": null,
-    "expiresAt": null,
-    "createdAt": "2026-02-05T12:00:00Z",
-    "updatedAt": "2026-02-05T12:03:45Z"
-  },
+  "data": { ... },
   "meta": {
     "request_id": "req_get001"
   }
 }
 ```
 
+Returns `404` if the content ID does not exist or does not belong to your organization.
+
+---
+
 ## Update content
 
-Updates content metadata and editorial controls. You cannot replace the source video file after upload -- create a new upload instead.
+Updates content fields. Only provided fields are changed -- omitted fields are left untouched. You cannot replace the source video file; create a new upload instead.
 
 ```bash
 PATCH /v1/content/{id}
 ```
 
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
 ### Path parameters
 
 <ParamField path="id" type="string" required>
-  Content ID to update.
+  Content UUID.
 </ParamField>
 
 ### Request body
 
-All fields are optional. Only include the fields you want to change.
+All fields are optional. Include only the fields you want to change.
 
 <ParamField body="title" type="string">
-  Updated display title (max 200 characters).
+  Updated display title. Max 200 characters.
 </ParamField>
 
 <ParamField body="description" type="string">
-  Updated description (max 2000 characters). Pass `null` to clear.
+  Updated description. Max 2000 characters.
 </ParamField>
 
 <ParamField body="tags" type="string[]">
@@ -685,37 +571,52 @@ All fields are optional. Only include the fields you want to change.
 </ParamField>
 
 <ParamField body="customMetadata" type="object">
-  Merged with existing metadata. Set a key to `null` to remove it.
+  Merged with existing metadata. New keys are added, existing keys are overwritten, and keys set to `null` are removed.
+</ParamField>
+
+<ParamField body="section" type="string">
+  Editorial section.
+</ParamField>
+
+<ParamField body="author" type="string">
+  Content author name.
 </ParamField>
 
 <ParamField body="pinPosition" type="integer | null">
-  Pin this content to a specific feed position (1 = top of feed). Set to `null` to unpin.
-  Multiple items can be pinned; they are ordered by `pinPosition` ascending before unpinned content.
+  Pin to a specific feed position. Set to `null` to unpin.
 </ParamField>
 
 <ParamField body="isSuppressed" type="boolean">
-  Set to `true` to immediately hide this content from the feed. Set to `false` to restore it.
+  Set to `true` to hide from the feed. Set to `false` to restore.
+</ParamField>
+
+<ParamField body="carouselCaption" type="string">
+  Carousel caption text.
+</ParamField>
+
+<ParamField body="autoScrollInterval" type="number">
+  Carousel auto-scroll interval in seconds.
 </ParamField>
 
 <ParamField body="publishAt" type="string | null">
-  ISO 8601 timestamp. Content will not appear in the feed before this time. Set to `null` for immediate availability.
+  ISO 8601 timestamp. Set to `null` for immediate availability.
 </ParamField>
 
 <ParamField body="expiresAt" type="string | null">
-  ISO 8601 timestamp. Content is excluded from the feed after this time. Set to `null` to remove expiration.
+  ISO 8601 timestamp. Set to `null` to remove expiration.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+curl -X PATCH https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851 \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Updated: Severe Weather Warning",
+    "section": "Breaking News",
     "pinPosition": 1,
     "expiresAt": "2026-02-06T00:00:00Z",
-    "tags": ["weather", "severe", "featured"],
     "customMetadata": {
       "featured": true,
       "category": null
@@ -725,73 +626,36 @@ curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
 
 ### Response
 
-Returns the full updated content object:
+Returns the full updated [content object](#content-object).
 
-```json
-{
-  "data": {
-    "id": "sk_content_abc123",
-    "title": "Updated: Severe Weather Warning",
-    "description": "Severe thunderstorm warning for the metro area",
-    "status": "ready",
-    "duration": 32.5,
-    "streamingUrl": "https://video.shortkit.dev/sk_content_abc123/stream.m3u8",
-    "thumbnailUrl": "https://images.shortkit.dev/sk_content_abc123/thumbnail.jpg",
-    "captionTracks": [
-      {
-        "language": "en",
-        "label": "English",
-        "source": "embedded",
-        "url": null
-      }
-    ],
-    "tags": ["weather", "severe", "featured"],
-    "customMetadata": {
-      "articleUrl": "https://example.com/weather-alert",
-      "featured": true
-    },
-    "pinPosition": 1,
-    "isSuppressed": false,
-    "publishAt": null,
-    "expiresAt": "2026-02-06T00:00:00Z",
-    "createdAt": "2026-02-05T12:00:00Z",
-    "updatedAt": "2026-02-05T14:30:00Z"
-  },
-  "meta": {
-    "request_id": "req_upd001"
-  }
-}
-```
+### customMetadata merge behavior
 
-### Editorial controls
+`customMetadata` is merged, not replaced. Given existing metadata `{"a": 1, "b": 2}` and an update of `{"b": 3, "c": 4, "a": null}`, the result is `{"b": 3, "c": 4}`. Key `"a"` was removed because its value was `null`, key `"b"` was overwritten, and key `"c"` was added.
 
-Use these fields to control how and when content appears in the feed:
-
-| Control | Field | Effect |
-|---------|-------|--------|
-| **Pin** | `pinPosition` | Locks content to a specific position in the feed. Pinned items appear before unpinned items, ordered by `pinPosition` ascending. |
-| **Suppress** | `isSuppressed` | Immediately removes content from the feed without deleting it. Useful for temporary takedowns. |
-| **Schedule** | `publishAt` | Content is invisible in the feed until this timestamp passes. |
-| **Expire** | `expiresAt` | Content is automatically removed from the feed after this timestamp. The content is not deleted and can be made visible again by updating or clearing the `expiresAt` value. |
+---
 
 ## Delete content
 
-Archives a content item. Archived content is immediately removed from the feed but its metadata is retained. The content status changes to `archived`.
+Soft-deletes a content item by setting its status to `archived`. Archived content is removed from the feed but can still be retrieved via `GET /v1/content/{id}`.
 
 ```bash
 DELETE /v1/content/{id}
 ```
 
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
 ### Path parameters
 
 <ParamField path="id" type="string" required>
-  Content ID to archive.
+  Content UUID to archive.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X DELETE https://api.shortkit.dev/v1/content/sk_content_abc123 \
+curl -X DELETE https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851 \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
@@ -800,7 +664,7 @@ curl -X DELETE https://api.shortkit.dev/v1/content/sk_content_abc123 \
 ```json
 {
   "data": {
-    "id": "sk_content_abc123",
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
     "deleted": true
   },
   "meta": {
@@ -809,293 +673,521 @@ curl -X DELETE https://api.shortkit.dev/v1/content/sk_content_abc123 \
 }
 ```
 
-<Note>
-  Deleting content sets its status to `archived`. The content no longer appears in the feed
-  but can still be retrieved via `GET /v1/content/{id}`.
-</Note>
+---
+
+## Carousel images
+
+Carousel content supports up to 10 images. Upload images, delete them, or reorder them with the endpoints below.
+
+### Upload carousel image
+
+Uploads an image to a carousel content item.
+
+```bash
+POST /v1/content/{id}/images
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID. Must be a carousel (`contentType: "carousel"`).
+</ParamField>
+
+### Request body
+
+`multipart/form-data` with the following fields:
+
+<ParamField body="file" type="File" required>
+  Image file (JPEG, PNG, WebP, etc.).
+</ParamField>
+
+<ParamField body="position" type="integer" default={0}>
+  Sort order for this image in the carousel.
+</ParamField>
+
+<ParamField body="altText" type="string">
+  Accessibility alt text for the image.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-.../images \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -F "file=@beach.jpg" \
+  -F "position=0" \
+  -F "altText=Sunset over the beach"
+```
+
+### Response (201)
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "imageUrl": "https://storage.googleapis.com/shortkit-assets/orgs/.../image.jpg",
+    "altText": "Sunset over the beach",
+    "position": 0,
+    "createdAt": "2026-02-05T12:05:00Z"
+  },
+  "meta": {
+    "request_id": "req_img001"
+  }
+}
+```
+
+Returns `400` if the content is not a carousel or already has 10 images.
+
+### Delete carousel image
+
+```bash
+DELETE /v1/content/{id}/images/{image_id}
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+<ParamField path="image_id" type="string" required>
+  Image UUID to delete.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/content/d290f1ee-.../images/a1b2c3d4-... \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": { "deleted": true },
+  "meta": { "request_id": "req_imgdel001" }
+}
+```
+
+### Reorder carousel images
+
+Sets the display order of all images in a carousel. Pass the full list of image IDs in the desired order.
+
+```bash
+PUT /v1/content/{id}/images/order
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+### Request body
+
+<ParamField body="imageIds" type="string[]" required>
+  Ordered array of image UUIDs. Each image's `position` is set to its index in this array.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/content/d290f1ee-.../images/order \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageIds": [
+      "image-uuid-3",
+      "image-uuid-1",
+      "image-uuid-2"
+    ]
+  }'
+```
+
+### Response
+
+Returns the reordered image array:
+
+```json
+{
+  "data": [
+    { "id": "image-uuid-3", "imageUrl": "...", "altText": "...", "position": 0, "createdAt": "..." },
+    { "id": "image-uuid-1", "imageUrl": "...", "altText": null, "position": 1, "createdAt": "..." },
+    { "id": "image-uuid-2", "imageUrl": "...", "altText": null, "position": 2, "createdAt": "..." }
+  ],
+  "meta": { "request_id": "req_reorder001" }
+}
+```
 
 ---
 
-## Bulk operations
+## Caption tracks
 
-Bulk operations allow you to update or archive multiple content items in a single request, reducing API calls and improving efficiency for managing large content libraries.
+Upload VTT or SRT caption files to any content item. Auto-generated captions (from Mux) appear automatically after video processing -- use these endpoints to add additional languages or replace generated tracks.
 
-## Bulk update
-
-Update metadata, editorial controls, or scheduling for multiple content items.
+### Upload caption track
 
 ```bash
-POST /v1/content/bulk/update
+POST /v1/content/{id}/captions
 ```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
 
 ### Request body
 
-<ParamField body="items" type="array" required>
-  Array of update operations (max 100 items).
+`multipart/form-data` with the following fields:
 
-  <Expandable title="Item properties">
-    <ParamField body="id" type="string" required>
-      Content ID to update.
-    </ParamField>
-    <ParamField body="title" type="string">
-      New title.
-    </ParamField>
-    <ParamField body="description" type="string">
-      New description.
-    </ParamField>
-    <ParamField body="tags" type="string[]">
-      Replace tags.
-    </ParamField>
-    <ParamField body="customMetadata" type="object">
-      Merge custom metadata.
-    </ParamField>
-    <ParamField body="pinPosition" type="integer">
-      Pin to a specific feed position (1-indexed). Set to `null` to unpin.
-    </ParamField>
-    <ParamField body="isSuppressed" type="boolean">
-      Suppress content from appearing in the feed.
-    </ParamField>
-    <ParamField body="publishAt" type="string">
-      Scheduled publish time (ISO 8601). Content appears in the feed after this time.
-    </ParamField>
-    <ParamField body="expiresAt" type="string">
-      Expiration time (ISO 8601). Content is removed from the feed after this time.
-    </ParamField>
-  </Expandable>
+<ParamField body="file" type="File" required>
+  Caption file. Must have a `.vtt` or `.srt` extension.
 </ParamField>
 
-<ParamField body="continueOnError" type="boolean" default={false}>
-  Continue processing remaining items if individual items fail.
+<ParamField body="language" type="string" default="en">
+  ISO 639-1 language code (e.g., `"en"`, `"es"`, `"fr"`).
+</ParamField>
+
+<ParamField body="label" type="string" default="English">
+  Human-readable label shown in the caption picker.
 </ParamField>
 
 ### Example request
 
 ```bash
-curl -X POST https://api.shortkit.dev/v1/content/bulk/update \
+curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-.../captions \
   -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "items": [
-      {
-        "id": "sk_content_abc123",
-        "title": "Updated Weather Alert",
-        "pinPosition": 1
-      },
-      {
-        "id": "sk_content_def456",
-        "tags": ["featured", "breaking"],
-        "isSuppressed": false
-      }
-    ],
-    "continueOnError": true
-  }'
+  -F "file=@captions_es.vtt" \
+  -F "language=es" \
+  -F "label=Spanish"
+```
+
+### Response (201)
+
+```json
+{
+  "data": {
+    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "language": "es",
+    "label": "Spanish",
+    "source": "external",
+    "url": "https://storage.googleapis.com/shortkit-assets/orgs/.../captions_es.vtt",
+    "muxTrackId": null,
+    "status": "ready",
+    "createdAt": "2026-02-05T13:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_cap001"
+  }
+}
+```
+
+Returns `400` if the file extension is not `.vtt` or `.srt`.
+
+### Delete caption track
+
+```bash
+DELETE /v1/content/{id}/captions/{track_id}
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+<ParamField path="track_id" type="string" required>
+  Caption track UUID.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/content/d290f1ee-.../captions/b2c3d4e5-... \
+  -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
 ### Response
 
 ```json
 {
-  "data": {
-    "successful": [
-      { "id": "sk_content_abc123", "status": "updated" },
-      { "id": "sk_content_def456", "status": "updated" }
-    ],
-    "failed": [],
-    "totalProcessed": 2,
-    "totalSuccessful": 2,
-    "totalFailed": 0
-  },
-  "meta": {
-    "request_id": "req_xyz789"
-  }
+  "data": { "deleted": true },
+  "meta": { "request_id": "req_capdel001" }
 }
 ```
-
-### Partial failure response
-
-When `continueOnError` is `true` and some items fail:
-
-```json
-{
-  "data": {
-    "successful": [
-      { "id": "sk_content_abc123", "status": "updated" }
-    ],
-    "failed": [
-      {
-        "id": "sk_content_invalid",
-        "error": {
-          "code": "not_found",
-          "message": "Content not found"
-        }
-      }
-    ],
-    "totalProcessed": 2,
-    "totalSuccessful": 1,
-    "totalFailed": 1
-  },
-  "meta": {
-    "request_id": "req_xyz789"
-  }
-}
-```
-
-## Bulk archive
-
-Archive multiple content items. Archived content is removed from the feed but its metadata and analytics are preserved.
-
-```bash
-POST /v1/content/bulk/archive
-```
-
-### Request body
-
-<ParamField body="ids" type="string[]" required>
-  Content IDs to archive (max 100).
-</ParamField>
-
-<ParamField body="continueOnError" type="boolean" default={false}>
-  Continue if individual archival operations fail.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/bulk/archive \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ids": ["sk_content_abc123", "sk_content_def456", "sk_content_ghi789"],
-    "continueOnError": true
-  }'
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "successful": [
-      { "id": "sk_content_abc123", "status": "archived" },
-      { "id": "sk_content_def456", "status": "archived" },
-      { "id": "sk_content_ghi789", "status": "archived" }
-    ],
-    "failed": [],
-    "totalProcessed": 3,
-    "totalSuccessful": 3,
-    "totalFailed": 0
-  },
-  "meta": {
-    "request_id": "req_abc456"
-  }
-}
-```
-
-## Bulk tag
-
-Add or remove tags from multiple content items at once.
-
-```bash
-POST /v1/content/bulk/tag
-```
-
-### Request body
-
-<ParamField body="ids" type="string[]" required>
-  Content IDs to modify (max 100).
-</ParamField>
-
-<ParamField body="addTags" type="string[]">
-  Tags to add.
-</ParamField>
-
-<ParamField body="removeTags" type="string[]">
-  Tags to remove.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/bulk/tag \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ids": ["sk_content_abc123", "sk_content_def456"],
-    "addTags": ["featured", "homepage"],
-    "removeTags": ["draft"]
-  }'
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "successful": [
-      {
-        "id": "sk_content_abc123",
-        "tags": ["featured", "homepage", "weather"]
-      },
-      {
-        "id": "sk_content_def456",
-        "tags": ["featured", "homepage"]
-      }
-    ],
-    "failed": [],
-    "totalProcessed": 2,
-    "totalSuccessful": 2,
-    "totalFailed": 0
-  },
-  "meta": {
-    "request_id": "req_tag789"
-  }
-}
-```
-
-## Bulk rate limits
-
-| Limit | Value |
-|-------|-------|
-| Items per request | 100 |
-| Requests per minute | 60 |
-| Items per minute | 1,000 |
-
-For larger operations, space your requests accordingly.
-
-## Bulk best practices
-
-<AccordionGroup>
-  <Accordion title="Use continueOnError for resilience">
-    When processing large batches, enable `continueOnError` to ensure one failure does not stop the entire operation.
-  </Accordion>
-  <Accordion title="Handle partial failures">
-    Always check the `failed` array in responses and implement retry logic for failed items.
-  </Accordion>
-  <Accordion title="Batch by logical groups">
-    Group related content together. If one group fails, other groups remain unaffected.
-  </Accordion>
-</AccordionGroup>
 
 ---
 
-## Webhooks
+## Publication URLs
 
-Subscribe to content lifecycle events:
+Attach links to a content item -- article pages, related resources, or any URL you want to surface alongside the content in the feed. Publication URLs are ordered by `position` and returned in the `publicationUrls` array of the content object.
 
-| Event | Trigger |
-|-------|---------|
-| `content.ready` | Processing completed successfully |
-| `content.errored` | Processing failed |
+### Add publication URL
 
-Webhook notifications can be configured in the Admin Portal to receive callbacks when content processing completes.
+```bash
+POST /v1/content/{id}/publication-urls
+```
 
-## Next steps
+### Authentication
 
-<Columns cols={2}>
-  <Card title="Feed API" icon="rss" href="/api/feed">
-    See how content is delivered to end users.
-  </Card>
-  <Card title="Analytics" icon="chart-bar" href="/api/analytics">
-    Measure content performance and engagement.
-  </Card>
-</Columns>
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+### Request body
+
+<ParamField body="url" type="string" required>
+  The URL to link.
+</ParamField>
+
+<ParamField body="label" type="string">
+  Display label (e.g., `"Read article"`, `"Visit website"`).
+</ParamField>
+
+<ParamField body="position" type="integer" default={0}>
+  Sort order among this content's publication URLs.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/weather-alert",
+    "label": "Read full article",
+    "position": 0
+  }'
+```
+
+### Response (201)
+
+```json
+{
+  "data": {
+    "id": "f4e5d6c7-a8b9-0123-cdef-456789abcdef",
+    "url": "https://example.com/weather-alert",
+    "label": "Read full article",
+    "position": 0,
+    "createdAt": "2026-02-05T14:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_puburl001"
+  }
+}
+```
+
+### Update publication URL
+
+```bash
+PUT /v1/content/{id}/publication-urls/{url_id}
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+<ParamField path="url_id" type="string" required>
+  Publication URL UUID.
+</ParamField>
+
+### Request body
+
+<ParamField body="url" type="string">
+  Updated URL.
+</ParamField>
+
+<ParamField body="label" type="string">
+  Updated label.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls/f4e5d6c7-... \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/updated-article",
+    "label": "Updated article link"
+  }'
+```
+
+### Response
+
+Returns the updated publication URL object.
+
+```json
+{
+  "data": {
+    "id": "f4e5d6c7-a8b9-0123-cdef-456789abcdef",
+    "url": "https://example.com/updated-article",
+    "label": "Updated article link",
+    "position": 0,
+    "createdAt": "2026-02-05T14:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_puburlupd001"
+  }
+}
+```
+
+### Delete publication URL
+
+```bash
+DELETE /v1/content/{id}/publication-urls/{url_id}
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+<ParamField path="url_id" type="string" required>
+  Publication URL UUID.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls/f4e5d6c7-... \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": { "deleted": true },
+  "meta": { "request_id": "req_puburldel001" }
+}
+```
+
+### Reorder publication URLs
+
+Sets the display order of all publication URLs on a content item.
+
+```bash
+PUT /v1/content/{id}/publication-urls/order
+```
+
+### Authentication
+
+Secret key or portal JWT via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Content UUID.
+</ParamField>
+
+### Request body
+
+<ParamField body="urlIds" type="string[]" required>
+  Ordered array of publication URL UUIDs. Each URL's `position` is set to its index in this array.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls/order \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urlIds": ["url-uuid-2", "url-uuid-1"]
+  }'
+```
+
+### Response
+
+Returns the reordered publication URL array:
+
+```json
+{
+  "data": [
+    { "id": "url-uuid-2", "url": "https://...", "label": "...", "position": 0, "createdAt": "..." },
+    { "id": "url-uuid-1", "url": "https://...", "label": "...", "position": 1, "createdAt": "..." }
+  ],
+  "meta": { "request_id": "req_puburlreorder001" }
+}
+```
+
+---
+
+## Editorial controls
+
+Use these fields on `PATCH /v1/content/{id}` to control how and when content appears in the feed:
+
+| Control | Field | Effect |
+|---------|-------|--------|
+| **Pin** | `pinPosition` | Locks content to a fixed position in the feed. Pinned items appear before unpinned items, ordered by `pinPosition` ascending. Set to `null` to unpin. |
+| **Suppress** | `isSuppressed` | Immediately hides content from the feed without archiving it. Set to `false` to restore. |
+| **Schedule** | `publishAt` | Content is invisible in the feed until this timestamp passes. Set to `null` for immediate availability. |
+| **Expire** | `expiresAt` | Content is automatically removed from the feed after this timestamp. The content is not deleted -- update or clear `expiresAt` to make it visible again. |
+
+---
+
+## Error responses
+
+All content endpoints return errors in the standard envelope format:
+
+| HTTP Status | Error code | Cause |
+|-------------|------------|-------|
+| `400` | `invalid_request` | Invalid content ID, missing required fields, invalid `contentType`, unsupported file format |
+| `401` | `invalid_api_key` | Missing or invalid API key |
+| `403` | `forbidden` | Publishable key used on a secret-key endpoint |
+| `404` | `not_found` | Content, image, caption track, or publication URL not found |
+| `429` | `rate_limited` | Too many requests |
+
+```json
+{
+  "data": null,
+  "meta": { "request_id": "req_err001" },
+  "errors": [
+    {
+      "code": "not_found",
+      "message": "Content not found"
+    }
+  ]
+}
+```
+
+---
