@@ -476,6 +476,12 @@ pre code {
   font-family: 'Roboto Mono', monospace !important;
   font-size: 0.85rem !important;
   line-height: 1.6 !important;
+  padding: 1rem 1.25rem !important;
+  display: block !important;
+}
+
+pre {
+  padding: 0 !important;
 }
 
 /* Copy button in code blocks */
