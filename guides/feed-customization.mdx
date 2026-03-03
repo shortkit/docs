@@ -1,0 +1,184 @@
+---
+title: "Feed Ranking"
+description: ""
+keywords: ["feed", "pinning", "suppression", "scheduling", "surveys", "ads", "feed ordering"]
+---
+
+<Note>
+Personalized feed ranking powered by recommender models is currently in beta. If you're interested in early access, [contact us](https://calendly.com/michael-shortkit/20-min-meeting).
+</Note>
+
+By default, the feed returns pinned items first, then everything else in reverse-chronological order.
+
+## Pinning content
+
+Pin a content item to a specific position in the feed:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"pinPosition": 0}'
+```
+
+Unpin it by setting the value to `null`:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"pinPosition": null}'
+```
+
+`pinPosition` can also be set at creation time via `POST /v1/content`.
+
+<Warning>
+Pinned items are still subject to all other visibility filters (suppression, publish window, expiry window, `status == "ready"`). A pinned but suppressed item will not appear in the feed.
+</Warning>
+
+Pinning does not exempt an item from pagination. If a pinned item falls outside the current page window, it will not be returned on that page.
+
+## Suppressing content
+
+Hide a content item from the feed without deleting it:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"isSuppressed": true}'
+```
+
+The item is immediately excluded from all feed responses. It remains accessible via `GET /v1/content/{id}` and the content list endpoint, so you can inspect or restore it at any time.
+
+To restore:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"isSuppressed": false}'
+```
+
+Suppression vs. deletion: `DELETE /v1/content/{id}` sets `status` to `"archived"`, which also removes the item from the feed. Use suppression when you want to hide an item temporarily while keeping it in `ready` state.
+
+## Scheduled publishing
+
+Control when content enters and leaves the feed using `publishAt` and `expiresAt`:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/sk_content_abc123 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publishAt": "2026-03-15T09:00:00Z",
+    "expiresAt": "2026-04-15T23:59:59Z"
+  }'
+```
+
+| Field | Effect |
+|-------|--------|
+| `publishAt` | Content is hidden from feeds until this time. Set to `null` to publish immediately. |
+| `expiresAt` | Content is hidden from feeds after this time. Set to `null` for no expiration. |
+
+Both fields accept ISO 8601 datetime strings. Always include a timezone offset or trailing `Z`.
+
+There are no background jobs. Filtering happens at query time -- on every feed request, the server checks whether `now` falls within the content's publish/expiry window. Changes take effect on the next feed request.
+
+<Note>
+An item with `publishAt` in the future is still accessible via `GET /v1/content/{id}`. The time filters only apply to feed endpoints.
+</Note>
+
+Both fields can also be set at creation time via `POST /v1/content`.
+
+## Survey placement
+
+Surveys are injected into the feed after the content query but before ad interleaving. Create a survey with placement rules to control where and how often it appears.
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/surveys \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "NPS Survey",
+    "question": "How likely are you to recommend us?",
+    "status": "active",
+    "priority": 10,
+    "options": [
+      {"text": "Very likely", "position": 0},
+      {"text": "Somewhat likely", "position": 1},
+      {"text": "Not likely", "position": 2}
+    ],
+    "placementRules": [
+      {"ruleType": "min_videos_before", "ruleValue": {"n": 3}},
+      {"ruleType": "once_per_user", "ruleValue": {}},
+      {"ruleType": "max_per_session", "ruleValue": {"n": 1}}
+    ]
+  }'
+```
+
+### Placement rules
+
+| Rule | Value | Behavior |
+|------|-------|----------|
+| `min_videos_before` | `{"n": 3}` | Insert the survey after position 3 in the feed. **Required on every survey.** |
+| `once_per_user` | `{}` | Skip if this user (identified by `X-User-Id` header) has already responded. |
+| `once_per_session` | `{}` | Skip if this session (identified by `X-Session-Id` header) has already responded. |
+| `max_per_session` | `{"n": 1}` | Cap total surveys injected per feed request to `n`. |
+
+`min_videos_before` is required. The API returns a `400` if it is missing.
+
+### Priority
+
+When multiple active surveys target the same position, only the highest-priority survey wins that slot. The lower-priority survey is dropped.
+
+To reorder priorities across all surveys at once:
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/surveys/priorities \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"surveyIds": ["sk_survey_important", "sk_survey_secondary"]}'
+```
+
+Surveys are assigned descending priority values based on array order -- the first entry gets the highest priority.
+
+## Ad frequency
+
+Ad slots are interleaved as the last step in feed assembly, after pagination cursors have been computed. Configure ad pacing with `PUT /v1/ad-config` (secret key auth required):
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/ad-config \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "firstAdOffset": 3,
+    "frequency": 4,
+    "maxPerPage": 2
+  }'
+```
+
+| Field | Type | Default | Effect |
+|-------|------|---------|--------|
+| `enabled` | bool | `false` | Master switch. No ad slots appear when `false`. |
+| `firstAdOffset` | int | `3` | Insert the first ad after this many content items. |
+| `frequency` | int | `5` | After the first ad, insert one every N content items. |
+| `maxPerPage` | int | `3` | Maximum ad slots per feed page. |
+
+With `firstAdOffset: 3` and `frequency: 4`, ads appear after content items 3, 7, 11, and so on -- capped by `maxPerPage`.
+
+Ad slots are injected after cursor computation, so they do not affect pagination stability or the number of content items per page. Ad slots count content items only, not surveys — a survey injected between content items 2 and 3 does not shift the ad offset counter. Ad config is a singleton per organization; `GET /v1/ad-config` returns default values if no config has been persisted yet.
+
+## Feed visibility summary
+
+A content item appears in the feed only when all four conditions are true:
+
+| Condition | Check |
+|-----------|-------|
+| Status is `ready` | Videos transition to `ready` after encoding completes. Carousels are `ready` immediately. |
+| Not suppressed | `isSuppressed` is `false` (the default). |
+| Within publish window | `publishAt` is `null` or in the past. |
+| Within expiry window | `expiresAt` is `null` or in the future. |
+
+If any condition fails, the item is excluded from feed responses but remains accessible via the content API (`GET /v1/content/{id}`).

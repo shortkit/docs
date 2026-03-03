@@ -1,0 +1,365 @@
+---
+title: "Embeds"
+description: "Create and manage embed configurations for web widgets and players."
+keywords: ["embeds", "widget", "player", "web embed", "API", "CRUD"]
+---
+
+The Embeds API lets you create, retrieve, update, and delete embed configurations. Each embed defines how ShortKit content is displayed when embedded on a web page -- its display mode, playback settings, and video source.
+
+## Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/embeds` | Secret key or portal JWT | Create an embed |
+| `GET` | `/v1/embeds` | Secret key or portal JWT | List all embeds |
+| `GET` | `/v1/embeds/{id}` | Secret key or portal JWT | Get an embed by ID |
+| `PUT` | `/v1/embeds/{id}` | Secret key or portal JWT | Update an embed |
+| `DELETE` | `/v1/embeds/{id}` | Secret key or portal JWT | Delete an embed |
+
+---
+
+## Embed object
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Homepage Widget",
+  "mode": "widget",
+  "settings": {
+    "autoplay": true,
+    "muted": true
+  },
+  "videoSource": {
+    "type": "feed",
+    "limit": 5
+  },
+  "createdAt": "2026-02-10T14:30:00Z",
+  "updatedAt": "2026-02-10T14:30:00Z"
+}
+```
+
+### Field reference
+
+<ResponseField name="id" type="string">
+  Unique embed identifier (UUID).
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name for this embed configuration. Defaults to `"Untitled Embed"` if not provided.
+</ResponseField>
+
+<ResponseField name="mode" type="string">
+  Embed display mode. Defaults to `"widget"`.
+</ResponseField>
+
+<ResponseField name="settings" type="object">
+  Playback and display settings for the embed (e.g., `autoplay`, `muted`). Stored as a JSON object.
+</ResponseField>
+
+<ResponseField name="videoSource" type="object">
+  Defines which content the embed displays. Contains `type` (e.g., `"feed"`) and source-specific parameters (e.g., `limit`).
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  Creation timestamp (ISO 8601).
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  Last modification timestamp (ISO 8601).
+</ResponseField>
+
+---
+
+## Create embed
+
+Creates a new embed configuration.
+
+```bash
+POST /v1/embeds
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Request body
+
+<ParamField body="name" type="string">
+  Display name. Defaults to `"Untitled Embed"` if omitted.
+</ParamField>
+
+<ParamField body="mode" type="string">
+  Embed display mode. Defaults to `"widget"` if omitted.
+</ParamField>
+
+<ParamField body="settings" type="object">
+  Playback and display settings (e.g., `{ "autoplay": true, "muted": true }`).
+</ParamField>
+
+<ParamField body="videoSource" type="object">
+  Defines the content source. Example: `{ "type": "feed", "limit": 5 }`.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/embeds \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Homepage Widget",
+    "mode": "widget",
+    "settings": { "autoplay": true, "muted": true },
+    "videoSource": { "type": "feed", "limit": 5 }
+  }'
+```
+
+### Response (201)
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Homepage Widget",
+    "mode": "widget",
+    "settings": { "autoplay": true, "muted": true },
+    "videoSource": { "type": "feed", "limit": 5 },
+    "createdAt": "2026-02-10T14:30:00Z",
+    "updatedAt": "2026-02-10T14:30:00Z"
+  },
+  "meta": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+---
+
+## List embeds
+
+Returns all embeds for your organization, ordered by creation date (newest first).
+
+```bash
+GET /v1/embeds
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/embeds \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Homepage Widget",
+      "mode": "widget",
+      "settings": { "autoplay": true, "muted": true },
+      "videoSource": { "type": "feed", "limit": 5 },
+      "createdAt": "2026-02-10T14:30:00Z",
+      "updatedAt": "2026-02-10T14:30:00Z"
+    },
+    {
+      "id": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+      "name": "Article Player",
+      "mode": "player",
+      "settings": { "autoplay": false, "muted": false },
+      "videoSource": { "type": "feed", "limit": 1 },
+      "createdAt": "2026-02-08T09:15:00Z",
+      "updatedAt": "2026-02-09T11:00:00Z"
+    }
+  ],
+  "meta": {
+    "request_id": "req_def456"
+  }
+}
+```
+
+---
+
+## Get embed
+
+Retrieves a single embed by ID.
+
+```bash
+GET /v1/embeds/{id}
+```
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Embed ID (UUID).
+</ParamField>
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/embeds/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Homepage Widget",
+    "mode": "widget",
+    "settings": { "autoplay": true, "muted": true },
+    "videoSource": { "type": "feed", "limit": 5 },
+    "createdAt": "2026-02-10T14:30:00Z",
+    "updatedAt": "2026-02-10T14:30:00Z"
+  },
+  "meta": {
+    "request_id": "req_ghi789"
+  }
+}
+```
+
+---
+
+## Update embed
+
+Updates an embed configuration. This is a sparse update -- only include the fields you want to change.
+
+```bash
+PUT /v1/embeds/{id}
+```
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Embed ID (UUID).
+</ParamField>
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Request body
+
+All fields are optional. Only provided fields are updated.
+
+<ParamField body="name" type="string">
+  Updated display name.
+</ParamField>
+
+<ParamField body="mode" type="string">
+  Updated display mode.
+</ParamField>
+
+<ParamField body="settings" type="object">
+  Updated playback and display settings. Replaces the existing `settings` object entirely.
+</ParamField>
+
+<ParamField body="videoSource" type="object">
+  Updated content source configuration. Replaces the existing `videoSource` object entirely.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/embeds/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Homepage Widget v2",
+    "settings": { "autoplay": true, "muted": false }
+  }'
+```
+
+### Response
+
+Returns the full updated embed object:
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Homepage Widget v2",
+    "mode": "widget",
+    "settings": { "autoplay": true, "muted": false },
+    "videoSource": { "type": "feed", "limit": 5 },
+    "createdAt": "2026-02-10T14:30:00Z",
+    "updatedAt": "2026-02-10T16:45:00Z"
+  },
+  "meta": {
+    "request_id": "req_jkl012"
+  }
+}
+```
+
+<Note>
+  `settings` and `videoSource` are replaced entirely when provided, not merged. If you want to change one setting while keeping others, include the full settings object in your request.
+</Note>
+
+---
+
+## Delete embed
+
+Permanently deletes an embed configuration. This is a hard delete -- the embed cannot be recovered.
+
+```bash
+DELETE /v1/embeds/{id}
+```
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Embed ID (UUID).
+</ParamField>
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/embeds/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "deleted": true
+  },
+  "meta": {
+    "request_id": "req_mno345"
+  }
+}
+```
+
+<Warning>
+  Deleting an embed is permanent. Any web pages using this embed's configuration will stop displaying content. Remove the embed code from your site before deleting.
+</Warning>
+
+---
+
+## Error responses
+
+| HTTP Status | Error code | Cause |
+|-------------|------------|-------|
+| `400` | `invalid_request` | Invalid embed ID format (not a valid UUID) |
+| `401` | `invalid_api_key` | Missing or invalid authentication |
+| `404` | `not_found` | Embed does not exist or belongs to a different organization |
+
+---

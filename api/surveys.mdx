@@ -1,0 +1,661 @@
+---
+title: "Surveys"
+description: "Create in-feed surveys, control placement rules, manage priorities, and collect user responses."
+keywords: ["surveys", "API", "CRUD", "placement rules", "responses", "in-feed", "polling"]
+---
+
+The Surveys API lets you create short polls that are injected directly into the content feed. Surveys appear between videos based on placement rules you define. The SDK collects responses and reports them back through a separate, publishable-key-authenticated endpoint.
+
+## Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/v1/surveys` | Secret key / Portal JWT | Create a survey |
+| `GET` | `/v1/surveys` | Secret key / Portal JWT | List surveys |
+| `GET` | `/v1/surveys/{id}` | Secret key / Portal JWT | Get a survey |
+| `PUT` | `/v1/surveys/{id}` | Secret key / Portal JWT | Update a survey |
+| `DELETE` | `/v1/surveys/{id}` | Secret key / Portal JWT | Delete (archive) a survey |
+| `PUT` | `/v1/surveys/priorities` | Secret key / Portal JWT | Reorder survey priorities |
+| `POST` | `/v1/surveys/{id}/responses` | Publishable key | Submit a response (SDK-facing) |
+
+---
+
+## Survey object
+
+```json
+{
+  "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+  "title": "User Feedback",
+  "question": "How did you discover this content?",
+  "status": "active",
+  "priority": 10,
+  "autoAdvanceDelay": 3.0,
+  "options": [
+    {
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+      "text": "Social media",
+      "position": 0,
+      "responseCount": 42,
+      "createdAt": "2026-02-10T09:00:00Z"
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8b9c-0d1e-f2a3b4c5d6e7",
+      "text": "Search",
+      "position": 1,
+      "responseCount": 28,
+      "createdAt": "2026-02-10T09:00:00Z"
+    },
+    {
+      "id": "c3d4e5f6-a7b8-9c0d-1e2f-a3b4c5d6e7f8",
+      "text": "Friend",
+      "position": 2,
+      "responseCount": 15,
+      "createdAt": "2026-02-10T09:00:00Z"
+    }
+  ],
+  "placementRules": [
+    {
+      "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+      "ruleType": "min_videos_before",
+      "ruleValue": { "n": 3 },
+      "createdAt": "2026-02-10T09:00:00Z"
+    },
+    {
+      "id": "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c",
+      "ruleType": "once_per_user",
+      "ruleValue": {},
+      "createdAt": "2026-02-10T09:00:00Z"
+    }
+  ],
+  "totalResponses": 85,
+  "createdAt": "2026-02-10T09:00:00Z",
+  "updatedAt": "2026-02-12T14:30:00Z"
+}
+```
+
+### Field reference
+
+<ResponseField name="id" type="string">
+  UUID identifying the survey.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Internal title for organizing surveys in the dashboard. Not shown to end users.
+</ResponseField>
+
+<ResponseField name="question" type="string">
+  The question text displayed to end users in the feed.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current lifecycle status. One of: `draft`, `active`, `paused`, `archived`. Only `active` surveys are injected into the feed.
+</ResponseField>
+
+<ResponseField name="priority" type="integer">
+  Determines display order when multiple surveys compete for the same feed slot. Higher values take precedence.
+</ResponseField>
+
+<ResponseField name="autoAdvanceDelay" type="number | null">
+  Seconds to wait after a user responds before automatically advancing to the next feed item. `null` disables auto-advance.
+</ResponseField>
+
+<ResponseField name="options" type="array">
+  The answer choices. Each option has `id` (UUID), `text` (max 200 characters), `position` (integer sort order), `responseCount` (total responses for this option), and `createdAt`.
+</ResponseField>
+
+<ResponseField name="placementRules" type="array">
+  Rules that control when and how often the survey appears in the feed. See [Placement rules](#placement-rules) below.
+</ResponseField>
+
+<ResponseField name="totalResponses" type="integer">
+  Sum of all option response counts.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  Creation timestamp (ISO 8601).
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  Last modification timestamp (ISO 8601).
+</ResponseField>
+
+---
+
+## Status lifecycle
+
+| Status | Feed visibility | Description |
+|--------|-----------------|-------------|
+| `draft` | No | Initial state. Use this while composing the survey. |
+| `active` | Yes | Survey is live and will be injected into the feed based on placement rules. |
+| `paused` | No | Temporarily removed from the feed. Existing response data is preserved. Can be reactivated. |
+| `archived` | No | Permanently retired. This is the terminal state set by `DELETE`. |
+
+Transition between any non-archived status by updating the `status` field with `PUT /v1/surveys/{id}`. The `DELETE` endpoint is the only way to move a survey to `archived`.
+
+---
+
+## Placement rules
+
+Placement rules control where in the feed a survey appears and how often a user sees it. Every survey must include at least a `min_videos_before` rule.
+
+| Rule type | `ruleValue` | Behavior |
+|-----------|-------------|----------|
+| `min_videos_before` | `{ "n": 3 }` | The user must scroll past at least `n` videos before the survey is eligible to appear. **Required on every survey.** |
+| `once_per_user` | `{}` | A user who has already responded will never see this survey again. |
+| `once_per_session` | `{}` | The survey appears at most once per session, regardless of whether the user responded. |
+| `max_per_session` | `{ "n": 1 }` | The survey can appear up to `n` times in a single session. |
+
+The feed endpoint evaluates placement rules using the `X-User-Id` and `X-Session-Id` headers sent by the SDK. If these headers are missing, per-user and per-session rules are skipped.
+
+When multiple active surveys are eligible for the same position, the survey with the highest `priority` value wins.
+
+---
+
+## Create survey
+
+```bash
+POST /v1/surveys
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Request body
+
+<ParamField body="title" type="string" required>
+  Internal title (max 200 characters).
+</ParamField>
+
+<ParamField body="question" type="string" required>
+  Question text shown to end users (max 500 characters).
+</ParamField>
+
+<ParamField body="status" type="string" default="draft">
+  Initial status. One of: `draft`, `active`, `paused`, `archived`.
+</ParamField>
+
+<ParamField body="priority" type="integer" default={0}>
+  Display priority. Higher values take precedence.
+</ParamField>
+
+<ParamField body="autoAdvanceDelay" type="number">
+  Seconds before auto-advancing after a response. Omit or set to `null` to disable.
+</ParamField>
+
+<ParamField body="options" type="array" required>
+  Answer choices. Each object must include `text` (string, max 200 characters) and `position` (integer).
+</ParamField>
+
+<ParamField body="placementRules" type="array" required>
+  Array of placement rule objects. Each must include `ruleType` (string) and `ruleValue` (object). Must contain at least one `min_videos_before` rule with a non-negative integer `n`.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/surveys \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Content Discovery",
+    "question": "How did you discover this content?",
+    "status": "draft",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "text": "Social media", "position": 0 },
+      { "text": "Search", "position": 1 },
+      { "text": "Friend", "position": 2 }
+    ],
+    "placementRules": [
+      { "ruleType": "min_videos_before", "ruleValue": { "n": 3 } },
+      { "ruleType": "once_per_user", "ruleValue": {} }
+    ]
+  }'
+```
+
+### Response (201)
+
+```json
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "title": "Content Discovery",
+    "question": "How did you discover this content?",
+    "status": "draft",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "id": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6", "text": "Social media", "position": 0, "responseCount": 0, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "b2c3d4e5-f6a7-8b9c-0d1e-f2a3b4c5d6e7", "text": "Search", "position": 1, "responseCount": 0, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "c3d4e5f6-a7b8-9c0d-1e2f-a3b4c5d6e7f8", "text": "Friend", "position": 2, "responseCount": 0, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "placementRules": [
+      { "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b", "ruleType": "min_videos_before", "ruleValue": { "n": 3 }, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c", "ruleType": "once_per_user", "ruleValue": {}, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "totalResponses": 0,
+    "createdAt": "2026-02-10T09:00:00Z",
+    "updatedAt": "2026-02-10T09:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv001"
+  }
+}
+```
+
+### Validation errors
+
+| Condition | Status | Message |
+|-----------|--------|---------|
+| Missing `min_videos_before` rule | 400 | `placement_rules must include a min_videos_before rule` |
+| `min_videos_before.n` is not a non-negative integer | 400 | `min_videos_before rule_value.n must be a non-negative integer` |
+| Unknown `ruleType` | 400 | `Invalid rule_type: {value}` |
+| Unknown `status` | 400 | `Invalid status: {value}` |
+
+---
+
+## List surveys
+
+```bash
+GET /v1/surveys
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Query parameters
+
+<ParamField query="status" type="string">
+  Filter by status: `draft`, `active`, `paused`, `archived`.
+</ParamField>
+
+### Example request
+
+```bash
+curl "https://api.shortkit.dev/v1/surveys?status=active" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+Returns all matching surveys ordered by `priority` descending. Each survey includes response counts per option and `totalResponses`.
+
+```json
+{
+  "data": [
+    {
+      "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "title": "Content Discovery",
+      "question": "How did you discover this content?",
+      "status": "active",
+      "priority": 10,
+      "autoAdvanceDelay": 3.0,
+      "options": [
+        { "id": "a1b2c3d4-...", "text": "Social media", "position": 0, "responseCount": 42, "createdAt": "2026-02-10T09:00:00Z" },
+        { "id": "b2c3d4e5-...", "text": "Search", "position": 1, "responseCount": 28, "createdAt": "2026-02-10T09:00:00Z" }
+      ],
+      "placementRules": [
+        { "id": "e5f6a7b8-...", "ruleType": "min_videos_before", "ruleValue": { "n": 3 }, "createdAt": "2026-02-10T09:00:00Z" }
+      ],
+      "totalResponses": 70,
+      "createdAt": "2026-02-10T09:00:00Z",
+      "updatedAt": "2026-02-12T14:30:00Z"
+    }
+  ],
+  "meta": {
+    "request_id": "req_srv002"
+  }
+}
+```
+
+---
+
+## Get survey
+
+```bash
+GET /v1/surveys/{id}
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+### Example request
+
+```bash
+curl https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+Returns the full survey object with options, placement rules, and response counts.
+
+```json
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "title": "Content Discovery",
+    "question": "How did you discover this content?",
+    "status": "active",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "id": "a1b2c3d4-...", "text": "Social media", "position": 0, "responseCount": 42, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "b2c3d4e5-...", "text": "Search", "position": 1, "responseCount": 28, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "c3d4e5f6-...", "text": "Friend", "position": 2, "responseCount": 15, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "placementRules": [
+      { "id": "e5f6a7b8-...", "ruleType": "min_videos_before", "ruleValue": { "n": 3 }, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "f6a7b8c9-...", "ruleType": "once_per_user", "ruleValue": {}, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "totalResponses": 85,
+    "createdAt": "2026-02-10T09:00:00Z",
+    "updatedAt": "2026-02-12T14:30:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv003"
+  }
+}
+```
+
+---
+
+## Update survey
+
+Full replacement of the survey. Options and placement rules are replaced entirely when provided. Fields that are omitted are left unchanged.
+
+```bash
+PUT /v1/surveys/{id}
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+### Request body
+
+All fields are optional. Only include the fields you want to change.
+
+<ParamField body="title" type="string">
+  Updated title (max 200 characters).
+</ParamField>
+
+<ParamField body="question" type="string">
+  Updated question text (max 500 characters).
+</ParamField>
+
+<ParamField body="status" type="string">
+  New status. One of: `draft`, `active`, `paused`, `archived`.
+</ParamField>
+
+<ParamField body="priority" type="integer">
+  Updated priority value.
+</ParamField>
+
+<ParamField body="autoAdvanceDelay" type="number">
+  Updated auto-advance delay in seconds.
+</ParamField>
+
+<ParamField body="options" type="array">
+  Replaces all existing options. Each object must include `text` and `position`. Existing response data is preserved (responses reference option IDs, and old option IDs are deleted).
+</ParamField>
+
+<ParamField body="placementRules" type="array">
+  Replaces all existing placement rules. Each object must include `ruleType` and `ruleValue`.
+</ParamField>
+
+<Warning>
+  When you provide `options` or `placementRules`, the entire set is replaced -- not merged. Omit these fields to leave them unchanged.
+</Warning>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Where did you first hear about us?",
+    "status": "active",
+    "options": [
+      { "text": "Social media", "position": 0 },
+      { "text": "Search engine", "position": 1 },
+      { "text": "Word of mouth", "position": 2 },
+      { "text": "Other", "position": 3 }
+    ]
+  }'
+```
+
+### Response
+
+Returns the full updated survey object with response counts.
+
+```json
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "title": "Content Discovery",
+    "question": "Where did you first hear about us?",
+    "status": "active",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "id": "new-uuid-1", "text": "Social media", "position": 0, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" },
+      { "id": "new-uuid-2", "text": "Search engine", "position": 1, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" },
+      { "id": "new-uuid-3", "text": "Word of mouth", "position": 2, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" },
+      { "id": "new-uuid-4", "text": "Other", "position": 3, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" }
+    ],
+    "placementRules": [
+      { "id": "e5f6a7b8-...", "ruleType": "min_videos_before", "ruleValue": { "n": 3 }, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "f6a7b8c9-...", "ruleType": "once_per_user", "ruleValue": {}, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "totalResponses": 0,
+    "createdAt": "2026-02-10T09:00:00Z",
+    "updatedAt": "2026-02-12T14:30:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv004"
+  }
+}
+```
+
+---
+
+## Delete survey
+
+Archives a survey. Archived surveys are removed from the feed but their response data is preserved.
+
+```bash
+DELETE /v1/surveys/{id}
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "deleted": true
+  },
+  "meta": {
+    "request_id": "req_srv005"
+  }
+}
+```
+
+<Note>
+  Deleting a survey sets its status to `archived`. Response data is preserved and
+  the survey can still be retrieved via `GET /v1/surveys/{id}`.
+</Note>
+
+---
+
+## Reorder priorities
+
+Sets the priority of multiple surveys in one call. The first ID in the array gets the highest priority, the last gets the lowest.
+
+```bash
+PUT /v1/surveys/priorities
+```
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Request body
+
+<ParamField body="surveyIds" type="string[]" required>
+  Ordered array of survey UUIDs. The first element receives the highest priority value (equal to the array length), the second receives length minus one, and so on.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/surveys/priorities \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "surveyIds": [
+      "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+      "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c"
+    ]
+  }'
+```
+
+Given this input, the surveys receive priorities `3`, `2`, and `1` respectively.
+
+### Response
+
+```json
+{
+  "data": {
+    "updated": true
+  },
+  "meta": {
+    "request_id": "req_srv006"
+  }
+}
+```
+
+### Errors
+
+| Condition | Status | Message |
+|-----------|--------|---------|
+| Invalid UUID in array | 400 | `Invalid survey ID: {value}` |
+| Survey not found or belongs to another org | 404 | `Survey not found: {id}` |
+
+---
+
+## Submit response (SDK-facing)
+
+Called by the SDK when a user taps a survey option. This is the only survey endpoint that uses publishable key authentication.
+
+```bash
+POST /v1/surveys/{id}/responses
+```
+
+### Authentication
+
+Requires a **publishable key** via the `X-API-Key` header.
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+### Request body
+
+<ParamField body="optionId" type="string" required>
+  UUID of the selected option. Must belong to this survey.
+</ParamField>
+
+<ParamField body="userId" type="string" required>
+  The user identifier (device ID or resolved user ID).
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Current session identifier.
+</ParamField>
+
+<ParamField body="deviceInfo" type="object">
+  Freeform device metadata (e.g., `{ "os": "iOS", "model": "iPhone 15" }`).
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a/responses \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+    "userId": "user_123",
+    "sessionId": "sess_abc",
+    "deviceInfo": { "os": "iOS", "model": "iPhone 15" }
+  }'
+```
+
+### Response (201)
+
+```json
+{
+  "data": {
+    "id": "7a8b9c0d-e1f2-3a4b-5c6d-7e8f9a0b1c2d",
+    "surveyId": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+    "userId": "user_123",
+    "respondedAt": "2026-02-12T15:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv007"
+  }
+}
+```
+
+### Errors
+
+| Condition | Status | Message |
+|-----------|--------|---------|
+| Survey not found | 404 | `Survey not found` |
+| Survey is not `active` | 400 | `Survey is not active` |
+| Option does not belong to survey | 400 | `Option does not belong to this survey` |
+| User already responded to this survey | 409 | `User has already responded to this survey` |
+
+Each user can respond to a given survey exactly once. The uniqueness constraint is on the `(survey_id, user_id)` pair. Duplicate submissions return `409 Conflict`.
+
+---

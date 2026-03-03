@@ -1,36 +1,108 @@
 ---
 title: "Events"
-description: "Batch ingestion endpoint for engagement and quality events."
-keywords: ["events", "analytics", "tracking", "engagement", "batch"]
+description: "Ingest analytics events from SDK clients. The events endpoint accepts batched event payloads and powers the ShortKit analytics pipeline."
+keywords: ["events", "analytics", "tracking", "viewEnd", "video views", "engagement", "API"]
 ---
 
-The Events API receives engagement and quality signals from your application. The SDK collects events locally and sends them in batches to a single endpoint. These events power analytics dashboards, feed ranking, and data exports.
+The Events API ingests analytics events from SDK clients. Events are sent in batches and stored for the V1 analytics pipeline. `viewEnd` events additionally create `VideoView` rows that power the V2 metrics system.
+
+<Note>
+  The ShortKit SDK calls this endpoint automatically. You only need to use it directly if you are building a custom client without the SDK.
+</Note>
 
 ## Endpoint
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| `POST` | `/v1/events` | Publishable key | Ingest a batch of events |
+| `POST` | `/v1/events` | Publishable key | Ingest a batch of analytics events |
 
-All events are sent as an array in a single `POST` request. There is no separate single-event endpoint -- even a single event is sent as a one-element array.
+---
 
-## Authentication
+## Ingest events
 
-Include your publishable key in the `X-API-Key` header. The publishable key is safe to embed in client-side code.
-
-```
-X-API-Key: pk_live_your_publishable_key
-```
-
-## Request format
-
-Send an array of event objects in the request body. Each event follows a common schema with event-specific fields in the `data` object.
+Send a batch of up to 100 analytics events in a single request.
 
 ```bash
 POST /v1/events
 ```
 
+### Authentication
+
+Pass your publishable key via the `X-API-Key` header.
+
+```bash
+X-API-Key: pk_live_your_publishable_key
+```
+
 ### Request body
+
+The request body contains a single `events` array. Each element is an event envelope.
+
+```json
+{
+  "events": [
+    {
+      "type": "impression",
+      "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+      "userId": "user_123",
+      "sessionId": "sess_abc",
+      "viewSessionId": "vsess_xyz",
+      "timestamp": "2026-03-01T12:00:00Z",
+      "data": {
+        "positionInFeed": 0
+      }
+    },
+    {
+      "type": "playStart",
+      "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+      "userId": "user_123",
+      "sessionId": "sess_abc",
+      "viewSessionId": "vsess_xyz",
+      "timestamp": "2026-03-01T12:00:01Z",
+      "data": {
+        "startupTimeMs": 850,
+        "initialRendition": "auto"
+      }
+    }
+  ]
+}
+```
+
+The `events` array accepts a maximum of **100 events** per request.
+
+### Event envelope
+
+Every event shares the same envelope structure.
+
+<ParamField body="type" type="string" required>
+  The event type. Must be one of the valid event types listed below.
+</ParamField>
+
+<ParamField body="contentId" type="string">
+  The content item ID this event relates to. Null for feed-level events (`feedEntry`, `feedExit`) and ad events.
+</ParamField>
+
+<ParamField body="userId" type="string">
+  The user ID. Either an anonymous device UUID or an identified user ID set via `setUserId()`. Defaults to `"anonymous"` on the server if omitted.
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Feed session identifier. Reserved for future use.
+</ParamField>
+
+<ParamField body="viewSessionId" type="string">
+  A UUID that links all events from a single video view together. Created when a content item becomes active, and included on every event until the user navigates away.
+</ParamField>
+
+<ParamField body="timestamp" type="string" required>
+  ISO 8601 timestamp of when the event occurred on the client. Must be within the last 24 hours.
+</ParamField>
+
+<ParamField body="data" type="object">
+  Event-specific payload. The shape depends on the `type` field. Defaults to an empty object if omitted.
+</ParamField>
+
+### Example request
 
 ```bash
 curl -X POST https://api.shortkit.dev/v1/events \
@@ -40,632 +112,245 @@ curl -X POST https://api.shortkit.dev/v1/events \
     "events": [
       {
         "type": "impression",
-        "contentId": "sk_content_abc123",
-        "userId": "user_456",
-        "sessionId": "sess_xyz789",
-        "timestamp": "2026-02-05T12:00:00Z",
-        "data": {
-          "position": 0,
-          "entryPoint": "feed"
-        }
-      },
-      {
-        "type": "playStart",
-        "contentId": "sk_content_abc123",
-        "userId": "user_456",
-        "sessionId": "sess_xyz789",
-        "timestamp": "2026-02-05T12:00:01Z",
-        "data": {
-          "startupTimeMs": 245,
-          "initialRendition": "720p"
-        }
-      },
-      {
-        "type": "completion",
-        "contentId": "sk_content_abc123",
-        "userId": "user_456",
-        "sessionId": "sess_xyz789",
-        "timestamp": "2026-02-05T12:00:34Z",
-        "data": {
-          "watchTime": 32.5,
-          "looped": false
-        }
+        "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+        "userId": "user_123",
+        "viewSessionId": "vsess_xyz",
+        "timestamp": "2026-03-01T12:00:00Z",
+        "data": { "positionInFeed": 0 }
       }
     ]
   }'
 ```
-
-### Common event fields
-
-Every event in the array includes these fields:
-
-<ParamField body="type" type="string" required>
-  Event type. One of the types listed in the event types table below.
-</ParamField>
-
-<ParamField body="contentId" type="string" required>
-  The ShortKit content ID this event relates to.
-</ParamField>
-
-<ParamField body="userId" type="string">
-  Identified user ID from your application (if available). If omitted, the event is attributed to the anonymous device.
-</ParamField>
-
-<ParamField body="sessionId" type="string">
-  Session identifier that groups events from a single viewing session. Generated by the SDK.
-</ParamField>
-
-<ParamField body="timestamp" type="string" required>
-  ISO 8601 timestamp of when the event occurred on the client. Example: `2026-02-05T12:00:00Z`.
-</ParamField>
-
-<ParamField body="data" type="object">
-  Event-specific fields. The schema depends on the event `type`. See the sections below for each type.
-</ParamField>
 
 ### Response
 
 ```json
 {
   "data": {
-    "received": 3,
+    "received": 5,
     "failed": 0
   },
   "meta": {
-    "request_id": "req_xyz789"
+    "request_id": "req_8f3a2b1c"
   }
 }
 ```
 
-The response indicates how many events were accepted and how many were rejected due to validation errors. Failed events in a batch do not affect other events.
+<ResponseField name="data.received" type="integer">
+  Number of events that passed validation and were stored.
+</ResponseField>
 
-### Limits
+<ResponseField name="data.failed" type="integer">
+  Number of events that failed validation. Failed events are silently dropped -- they do not cause the request to return an error status.
+</ResponseField>
 
-| Limit | Value |
-|-------|-------|
-| Max events per request | 100 |
-| Max timestamp age | 24 hours |
+---
 
-## Event types
+## Valid event types
 
-### Engagement events
+There are 21 valid event types across six categories.
 
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `impression` | Content appears in viewport | `position`, `entryPoint` |
-| `playStart` | Playback begins | `startupTimeMs`, `initialRendition` |
-| `watchProgress` | Periodic progress update (every ~1s) | `currentTime`, `totalDuration`, `percentComplete` |
-| `completion` | Video reaches end | `watchTime`, `looped` |
-| `swipe` | User swipes to next content | `fromContentId`, `toContentId`, `watchTimeOnPrevious` |
-| `like` | User likes content | _(none)_ |
-| `share` | User shares content | `platform` |
-| `save` | User saves content | _(none)_ |
+### Core playback
 
-### Feed navigation events
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `impression` | Content item became the active item in the feed | `positionInFeed` |
+| `firstFrame` | First video frame rendered on screen | `ttffMs` |
+| `playStart` | Player buffered enough to begin playback | `startupTimeMs`, `initialRendition` |
+| `watchProgress` | Emitted once per second during playback | `currentTime`, `totalDuration`, `percentComplete`, `currentBitrate` |
+| `completion` | Video reached its natural end | `totalWatchTime`, `didLoop`, `loopCount` |
 
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `feedEntry` | User enters the feed view | _(none)_ |
-| `feedExit` | User exits the feed view | `watchTime` |
-| `interaction` | Generic user interaction | `action` |
+### Navigation
 
-### Ad events
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `swipe` | User navigated between content items | `toContentId`, `watchTimeOnFrom`, `direction` |
+| `feedEntry` | Feed view appeared on screen | `entryPoint` |
+| `feedExit` | Feed view disappeared | `totalSessionTime`, `videosWatched` |
 
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `adRequest` | SDK calls `loadAd` on the ad provider | `slotId`, `filled`, `errorReason` |
-| `adImpression` | Ad cell becomes visible and first frame renders | `slotId`, `adUnitId`, `creativeId`, `position` |
-| `adStart` | Ad video begins playback | `slotId`, `adUnitId`, `creativeId`, `position` |
-| `adProgress` | Ad reaches a quartile mark (25%, 50%, 75%) | `slotId`, `quartile` |
-| `adComplete` | Ad video reaches the end without being skipped | `slotId`, `adUnitId`, `creativeId` |
-| `adSkip` | User swiped past the ad after the skip delay | `slotId`, `watchTime` |
+### Engagement
 
-### Quality events
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `like` | User liked the content | -- |
+| `share` | User shared the content | -- |
+| `save` | User saved the content | -- |
+| `interaction` | Generic UI interaction (play/pause, mute, captions, seek) | `interactionType`, `value` |
+| `contentSignal` | Positive or negative signal for recommendation tuning | `signal` |
 
-| Event type | Trigger | Event-specific fields |
-|------------|---------|----------------------|
-| `rebuffer` | Playback stalls for buffering | `durationMs`, `currentTime` |
-| `qualityChange` | Rendition changes | `fromRendition`, `toRendition` |
-| `error` | Playback error | `errorCode`, `errorMessage` |
+### Quality of experience
 
-## Event data schemas
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `rebuffer` | Rebuffering episode ended | `currentTime`, `rebufferDurationMs`, `networkType` |
+| `qualityChange` | HLS rendition switch | `fromRendition`, `toRendition` |
+| `error` | Playback failure | `errorCode`, `errorMessage`, `errorType` |
 
-### impression
+### Ads
 
-Sent when a content item becomes visible in the feed viewport.
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `adRequest` | Ad load completed (success or failure) | `slotId`, `filled`, `errorReason` |
+| `adImpression` | Ad became visible in the feed | `slotId`, `adUnitId`, `position` |
+| `adStart` | Ad playback began | `slotId`, `adUnitId`, `position` |
+| `adProgress` | Ad reached a VAST quartile marker | `slotId`, `quartile`, `position` |
+| `adComplete` | Ad played to completion | `slotId`, `position` |
+| `adSkip` | User skipped the ad | `slotId`, `watchTime`, `position` |
 
-```json
-{
-  "type": "impression",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:00Z",
-  "data": {
-    "position": 0,
-    "entryPoint": "feed"
-  }
-}
-```
+### Analytics V2
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `position` | integer | Zero-indexed position in the feed |
-| `entryPoint` | string | How the user reached this content: `feed`, `direct`, `share` |
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `viewEnd` | Full summary of a single video view session | See [viewEnd event](#viewend-event) below |
 
-### playStart
+---
 
-Sent when video playback begins (first frame rendered).
+## Validation rules
 
-```json
-{
-  "type": "playStart",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:01Z",
-  "data": {
-    "startupTimeMs": 245,
-    "initialRendition": "720p"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `startupTimeMs` | integer | Milliseconds from play intent to first frame |
-| `initialRendition` | string | Initial quality rendition (e.g., `720p`, `1080p`) |
-
-### watchProgress
-
-Sent periodically during playback (approximately every 1 second).
-
-```json
-{
-  "type": "watchProgress",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:10Z",
-  "data": {
-    "currentTime": 9.0,
-    "totalDuration": 32.5,
-    "percentComplete": 0.277
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `currentTime` | number | Current playback position in seconds |
-| `totalDuration` | number | Total video duration in seconds |
-| `percentComplete` | number | Fraction of video watched (0.0 to 1.0) |
-
-### completion
-
-Sent when the video reaches the end of playback.
-
-```json
-{
-  "type": "completion",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:34Z",
-  "data": {
-    "watchTime": 32.5,
-    "looped": false
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `watchTime` | number | Total seconds of video watched |
-| `looped` | boolean | Whether the video looped back to the beginning |
-
-### swipe
-
-Sent when the user swipes from one content item to the next.
-
-```json
-{
-  "type": "swipe",
-  "contentId": "sk_content_def456",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:15Z",
-  "data": {
-    "fromContentId": "sk_content_abc123",
-    "toContentId": "sk_content_def456",
-    "watchTimeOnPrevious": 14.2
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `fromContentId` | string | Content ID the user swiped away from |
-| `toContentId` | string | Content ID the user swiped to |
-| `watchTimeOnPrevious` | number | Seconds spent on the previous content before swiping |
-
-### like
-
-Sent when the user likes a content item.
-
-```json
-{
-  "type": "like",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:00Z",
-  "data": {}
-}
-```
-
-No event-specific fields.
-
-### share
-
-Sent when the user shares a content item.
-
-```json
-{
-  "type": "share",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:05Z",
-  "data": {
-    "platform": "messages"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `platform` | string | Share target: `messages`, `twitter`, `copy_link`, `other` |
-
-### save
-
-Sent when the user saves a content item.
-
-```json
-{
-  "type": "save",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:10Z",
-  "data": {}
-}
-```
-
-No event-specific fields.
-
-### feedEntry
-
-Sent when the user enters the feed view.
-
-```json
-{
-  "type": "feedEntry",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:00Z",
-  "data": {}
-}
-```
-
-No event-specific fields.
-
-### feedExit
-
-Sent when the user exits the feed view.
-
-```json
-{
-  "type": "feedExit",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:05:00Z",
-  "data": {
-    "watchTime": 300.0
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `watchTime` | number | Total seconds spent in the feed view |
-
-### interaction
-
-Sent for generic user interactions not covered by other event types.
-
-```json
-{
-  "type": "interaction",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:01:15Z",
-  "data": {
-    "action": "tap_metadata"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `action` | string | The interaction type (e.g., `tap_metadata`, `long_press`, `double_tap`) |
-
-### rebuffer
-
-Sent when playback stalls due to buffering.
-
-```json
-{
-  "type": "rebuffer",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:12Z",
-  "data": {
-    "durationMs": 1200,
-    "currentTime": 11.0
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `durationMs` | integer | Duration of the stall in milliseconds |
-| `currentTime` | number | Playback position when the stall occurred |
-
-### qualityChange
-
-Sent when the player switches between renditions.
-
-```json
-{
-  "type": "qualityChange",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:08Z",
-  "data": {
-    "fromRendition": "480p",
-    "toRendition": "720p"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `fromRendition` | string | Previous rendition |
-| `toRendition` | string | New rendition |
-
-### error
-
-Sent when a playback error occurs.
-
-```json
-{
-  "type": "error",
-  "contentId": "sk_content_abc123",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:05Z",
-  "data": {
-    "errorCode": "MEDIA_ERR_NETWORK",
-    "errorMessage": "A network error caused the media download to fail."
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `errorCode` | string | Machine-readable error code |
-| `errorMessage` | string | Human-readable error description |
-
-## Ad event data schemas
-
-Ad events use the same common fields (`type`, `userId`, `sessionId`, `timestamp`) as content events. The `contentId` field is omitted since ad events are identified by `slotId` instead. Ad events are batched and delivered alongside content events in the same `POST /v1/events` requests.
-
-### adRequest
-
-Sent when the SDK calls `loadAd` on the ad provider. Records whether the ad request was filled.
-
-```json
-{
-  "type": "adRequest",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:30Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "filled": true
-  }
-}
-```
-
-On failure, the `errorReason` field is included:
-
-```json
-{
-  "type": "adRequest",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:30Z",
-  "data": {
-    "slotId": "ad_slot_002",
-    "filled": false,
-    "errorReason": "no_fill"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `filled` | boolean | Whether the ad request was filled successfully |
-| `errorReason` | string | Reason for failure (e.g., `no_fill`, `timeout`). Present only when `filled` is `false` |
-
-### adImpression
-
-Sent when the ad cell becomes visible and the first frame renders.
-
-```json
-{
-  "type": "adImpression",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:32Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "adUnitId": "/1234/shortkit-feed",
-    "creativeId": "cr_xyz",
-    "position": 3
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `adUnitId` | string | Ad unit identifier |
-| `creativeId` | string | Creative identifier from the ad provider |
-| `position` | integer | Position of the ad in the feed |
-
-### adStart
-
-Sent when the ad video begins playback.
-
-```json
-{
-  "type": "adStart",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:33Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "adUnitId": "/1234/shortkit-feed",
-    "creativeId": "cr_xyz",
-    "position": 3
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `adUnitId` | string | Ad unit identifier |
-| `creativeId` | string | Creative identifier from the ad provider |
-| `position` | integer | Position of the ad in the feed |
-
-### adProgress
-
-Sent at the 25%, 50%, and 75% quartile marks during ad playback.
-
-```json
-{
-  "type": "adProgress",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:40Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "quartile": "midpoint"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `quartile` | string | The quartile reached: `first` (25%), `midpoint` (50%), or `third` (75%) |
-
-### adComplete
-
-Sent when the ad video reaches the end without being skipped.
-
-```json
-{
-  "type": "adComplete",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:55Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "adUnitId": "/1234/shortkit-feed",
-    "creativeId": "cr_xyz"
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `adUnitId` | string | Ad unit identifier |
-| `creativeId` | string | Creative identifier from the ad provider |
-
-### adSkip
-
-Sent when the user swipes past the ad after the skip delay has elapsed.
-
-```json
-{
-  "type": "adSkip",
-  "userId": "user_456",
-  "sessionId": "sess_xyz789",
-  "timestamp": "2026-02-05T12:00:45Z",
-  "data": {
-    "slotId": "ad_slot_001",
-    "watchTime": 6.2
-  }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `slotId` | string | Server-assigned ad slot identifier |
-| `watchTime` | number | Seconds the user watched the ad before skipping |
-
-## SDK batching behavior
-
-The SDK collects events locally and flushes them in batches to reduce network overhead. You do not need to call this endpoint directly unless you are building a custom integration.
-
-| Behavior | Default |
-|----------|---------|
-| Events per flush | 10 |
-| Max interval between flushes | 5 seconds |
-| Flush on app background | Yes |
-| Offline queueing | Yes (events are queued and sent when connectivity returns) |
-
-## Validation
-
-Events are validated server-side before ingestion:
+Each event in the batch is validated independently. Invalid events increment the `failed` count but do not cause the entire request to fail.
 
 | Rule | Behavior |
 |------|----------|
-| Missing required fields (`type`, `contentId`, `timestamp`) | Event rejected |
-| Unknown event `type` | Event rejected |
-| Timestamp older than 24 hours | Event rejected |
-| Timestamp more than 5 minutes in the future | Timestamp adjusted to server time |
+| **Event type** | `type` must be one of the valid types listed above. Unknown types are rejected. |
+| **Timestamp age** | `timestamp` must parse as a valid ISO 8601 datetime and fall within the last 24 hours. Events older than 24 hours or with unparseable timestamps are rejected. |
+| **Batch size** | The `events` array accepts at most 100 elements. Requests exceeding this limit are rejected with a `422` response before any events are processed. |
 
-Failed events do not affect other events in the same batch.
+A request with 10 events where 2 fail validation returns HTTP 200 with `{ "received": 8, "failed": 2 }`.
 
-## Next steps
+---
 
-<Columns cols={2}>
-  <Card title="Analytics API" icon="chart-bar" href="/api/analytics">
-    Query aggregated metrics derived from events.
-  </Card>
-  <Card title="Data export" icon="download" href="/api/export">
-    Export raw event data for custom analysis.
-  </Card>
-</Columns>
+## viewEnd event
+
+The `viewEnd` event is the most important event for analytics. It fires when a view session ends (user swipes away, feed disappears, or app backgrounds) and contains the full accumulated metrics for one video view.
+
+On the server, each `viewEnd` event creates a `VideoView` row in the database. The V2 metrics endpoints (`/v1/metrics/*`) query these rows. This means `viewEnd` is the bridge between raw event ingestion and the structured analytics pipeline.
+
+### viewEnd data fields
+
+```json
+{
+  "type": "viewEnd",
+  "contentId": "d7f2a9b1-c3e4-4a5b-8f6d-1e2a3b4c5d6e",
+  "userId": "user_123",
+  "viewSessionId": "vsess_xyz",
+  "timestamp": "2026-03-01T12:00:30Z",
+  "data": {
+    "viewSessionId": "vsess_xyz",
+    "viewStart": "2026-03-01T12:00:00Z",
+    "watchTimeMs": 15000,
+    "playingTimeMs": 14500,
+    "completed": true,
+    "looped": false,
+    "loopCount": 0,
+    "exitBeforeStart": false,
+    "videoStartupTimeMs": 850,
+    "rebufferCount": 1,
+    "rebufferDurationMs": 200,
+    "seekCount": 0,
+    "seekDurationMs": 0,
+    "avgBitrateBps": 2500000,
+    "renditionChangeCount": 2,
+    "renditionUpshiftCount": 1,
+    "renditionDownshiftCount": 1,
+    "captionsEnabled": false,
+    "clientAppName": "MyApp",
+    "clientAppVersion": "1.2.0",
+    "deviceInfo": {
+      "deviceCategory": "phone",
+      "deviceManufacturer": "Apple",
+      "deviceModel": "iPhone15,3",
+      "deviceName": "iPhone 15 Pro Max",
+      "osName": "iOS",
+      "osVersion": "18.2",
+      "connectionType": "wifi",
+      "userAgent": "ShortKit/0.1.0 iOS/18.2"
+    },
+    "customDimensions": {
+      "custom_1": "sports",
+      "custom_2": "premium_user"
+    }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `viewSessionId` | `string` | UUID identifying this specific view. Matches the envelope-level `viewSessionId`. |
+| `viewStart` | `string` | ISO 8601 timestamp of when the view began. |
+| `watchTimeMs` | `integer` | Wall-clock time from view start to end, in milliseconds. |
+| `playingTimeMs` | `integer` | Actual playing time accumulated at 1 Hz, in milliseconds. |
+| `completed` | `boolean` | Whether the video played to its natural end at least once. |
+| `looped` | `boolean` | Whether the video looped at least once. |
+| `loopCount` | `integer` | Total number of completions. 0 if the video never reached the end. |
+| `exitBeforeStart` | `boolean` | Whether the user left before the player reached `readyToPlay`. |
+| `videoStartupTimeMs` | `integer \| null` | Time from impression to `readyToPlay` in milliseconds. Null if the player never started. |
+| `rebufferCount` | `integer` | Number of rebuffering episodes during the view. |
+| `rebufferDurationMs` | `integer` | Total rebuffer duration in milliseconds. |
+| `seekCount` | `integer` | Number of seek operations. |
+| `seekDurationMs` | `integer` | Total time spent seeking in milliseconds. |
+| `avgBitrateBps` | `integer \| null` | Weighted average bitrate in bits per second. Null if no samples were collected. |
+| `renditionChangeCount` | `integer` | Total HLS rendition switches. |
+| `renditionUpshiftCount` | `integer` | Switches to a higher-quality rendition. |
+| `renditionDownshiftCount` | `integer` | Switches to a lower-quality rendition. |
+| `captionsEnabled` | `boolean` | Whether captions were enabled during this view. |
+| `clientAppName` | `string \| null` | App name passed at SDK initialization. |
+| `clientAppVersion` | `string \| null` | App version passed at SDK initialization. |
+| `deviceInfo` | `object` | Device and connection metadata. See below. |
+| `customDimensions` | `object` | Custom dimension key-value pairs (`custom_1` through `custom_5`). |
+
+### deviceInfo object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `deviceCategory` | `string` | `"phone"`, `"tablet"`, or `"other"`. |
+| `deviceManufacturer` | `string` | Device manufacturer (e.g., `"Apple"`). |
+| `deviceModel` | `string` | Hardware identifier (e.g., `"iPhone15,3"`). |
+| `deviceName` | `string` | Human-readable device name. |
+| `osName` | `string` | Operating system name (e.g., `"iOS"`). |
+| `osVersion` | `string` | OS version string (e.g., `"18.2"`). |
+| `connectionType` | `string` | `"wifi"`, `"cellular"`, `"wired"`, or `"unknown"`. |
+| `userAgent` | `string` | SDK user agent string (e.g., `"ShortKit/0.1.0 iOS/18.2"`). |
+
+### Server-side enrichment
+
+When processing a `viewEnd` event, the server enriches the `VideoView` row with data not present in the client payload:
+
+| Field | Source |
+|-------|--------|
+| `video_title` | Looked up from the `Content` table using `contentId`. |
+| `video_duration_ms` | Looked up from the `Content` table using `contentId`. |
+| `viewer_ip` | Captured from the HTTP request. |
+
+---
+
+## SDK behavior
+
+The ShortKit SDK handles event collection and delivery automatically. Understanding the SDK's behavior is useful for interpreting your analytics data.
+
+### Batching
+
+Events are queued in memory and flushed every 30 seconds. Before sending, the batch is persisted to disk so events survive app termination. Failed sends are retried up to 3 times with the next flush cycle. After 3 failures, the batch is discarded.
+
+### Automatic events
+
+Most events fire without any developer action. The SDK tracks impressions, playback starts, watch progress, completions, swipes, rebuffers, errors, and view sessions automatically. Ad events fire through the ad provider delegate callbacks.
+
+### When viewEnd fires
+
+A `viewEnd` event is emitted when:
+- The user swipes to a different content item
+- The feed view disappears (e.g., the user navigates away)
+- The app enters the background
+
+Each `viewEnd` contains the accumulated metrics for the entire view session, from impression to departure.
+
+---
+
+## Error responses
+
+| HTTP Status | Error code | Description |
+|-------------|------------|-------------|
+| 401 | `invalid_api_key` | The `X-API-Key` header is missing or the key is not valid. |
+| 422 | `invalid_request` | The request body failed schema validation (e.g., `events` array exceeds 100 elements). |
+| 429 | `rate_limited` | Too many requests. Retry after the duration in the `Retry-After` header. |
+| 500 | `internal_error` | An unexpected error occurred. Contact support with the `request_id`. |

@@ -1,0 +1,460 @@
+---
+title: "Upload Content"
+description: "End-to-end workflows for uploading videos and creating carousels, from the first API call to content appearing in the feed."
+keywords: ["upload", "video", "carousel", "content", "processing", "captions", "metadata"]
+---
+
+ShortKit supports two content types -- videos and carousels -- each with a distinct upload path. Videos go through an asynchronous processing pipeline (transcoding, caption generation, search indexing). Carousels are ready immediately.
+
+## Video upload workflow
+
+A video upload follows a simple flow: create the upload session, PUT the file to the signed URL, and poll until processing completes.
+
+### Create an upload session
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/uploads \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "title": "Product Launch Teaser",
+        "description": "30-second preview of the new lineup",
+        "tags": ["product", "launch"],
+        "generateSubtitles": true,
+        "customMetadata": {
+          "campaignId": "spring-2026"
+        }
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    resp = requests.post(
+        "https://api.shortkit.dev/v1/uploads",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "title": "Product Launch Teaser",
+            "description": "30-second preview of the new lineup",
+            "tags": ["product", "launch"],
+            "generateSubtitles": True,
+            "customMetadata": {"campaignId": "spring-2026"},
+        },
+    )
+
+    data = resp.json()["data"]
+    content_id = data["id"]
+    upload_url = data["uploadUrl"]
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const response = await fetch("https://api.shortkit.dev/v1/uploads", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "Product Launch Teaser",
+        description: "30-second preview of the new lineup",
+        tags: ["product", "launch"],
+        generateSubtitles: true,
+        customMetadata: { campaignId: "spring-2026" },
+      }),
+    });
+
+    const { data } = await response.json();
+    const { id: contentId, uploadUrl } = data;
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `title` | string | Yes | -- | Max 200 characters |
+| `description` | string | No | `null` | Max 2000 characters |
+| `tags` | string[] | No | `[]` | |
+| `generateSubtitles` | boolean | No | `true` | Auto-generate English captions via speech-to-text |
+| `customMetadata` | object | No | `{}` | Arbitrary key-value pairs passed through to the SDK |
+| `section` | string | No | `null` | Grouping label for filtering |
+| `author` | string | No | `null` | Author name |
+
+The response contains the content `id` and a signed `uploadUrl`:
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "uploadUrl": "https://storage.shortkit.dev/uploads/...",
+    "status": "waiting_for_upload",
+    "title": "Product Launch Teaser",
+    "tags": ["product", "launch"],
+    "customMetadata": { "campaignId": "spring-2026" },
+    "createdAt": "2026-03-02T12:00:00+00:00"
+  }
+}
+```
+
+### Upload the video file
+
+PUT the raw video bytes to the signed URL. This goes directly to storage -- it does not pass through the ShortKit API.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X PUT "${uploadUrl}" \
+      -H "Content-Type: video/mp4" \
+      --data-binary @video.mp4
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    with open("video.mp4", "rb") as f:
+        requests.put(
+            upload_url,
+            headers={"Content-Type": "video/mp4"},
+            data=f,
+        )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { readFileSync } from "fs";
+
+    await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "video/mp4" },
+      body: readFileSync("video.mp4"),
+    });
+    ```
+  </Tab>
+</Tabs>
+
+
+Once the file lands, processing starts automatically. The video is encoded into HLS adaptive bitrate renditions and the content status moves from `waiting_for_upload` to `processing`. If `generateSubtitles` was `true`, a speech-to-text caption track is also generated and embedded in the HLS manifest — this typically finishes a few minutes after the video is ready. When transcoding completes, the status transitions to `ready` and the content becomes eligible for the feed.
+
+### Poll for status
+
+Check processing progress with the upload status endpoint:
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl https://api.shortkit.dev/v1/uploads/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+      -H "Authorization: Bearer sk_live_your_secret_key"
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import time
+
+    while True:
+        resp = requests.get(
+            f"https://api.shortkit.dev/v1/uploads/{content_id}",
+            headers={"Authorization": "Bearer sk_live_your_secret_key"},
+        )
+        status = resp.json()["data"]["status"]
+        print(f"Status: {status}")
+
+        if status in ("ready", "error"):
+            break
+        time.sleep(5)
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    async function pollUntilReady(contentId) {
+      while (true) {
+        const resp = await fetch(
+          `https://api.shortkit.dev/v1/uploads/${contentId}`,
+          { headers: { "Authorization": "Bearer sk_live_your_secret_key" } }
+        );
+        const { data } = await resp.json();
+        console.log(`Status: ${data.status}`);
+
+        if (data.status === "ready" || data.status === "error") return data;
+        await new Promise((r) => setTimeout(r, 5000));
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+When the status reaches `ready`, the response includes streaming and thumbnail URLs:
+
+```json
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "status": "ready",
+    "title": "Product Launch Teaser",
+    "duration": 32.5,
+    "streamingUrl": "https://stream.shortkit.dev/{playbackId}.m3u8",
+    "thumbnailUrl": "https://image.shortkit.dev/{playbackId}/thumbnail.jpg?time=0"
+  }
+}
+```
+
+The content now appears in the feed (`GET /v1/feed`), subject to scheduling and editorial controls.
+
+## Carousel creation workflow
+
+Carousels skip the processing pipeline entirely. They are `ready` the moment you create them.
+
+### Create the carousel
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "carousel",
+        "title": "Spring Collection",
+        "description": "Preview our new arrivals",
+        "tags": ["fashion", "spring"],
+        "caption": "Swipe to explore the collection",
+        "autoScrollInterval": 5.0,
+        "section": "Style",
+        "author": "Editorial Team"
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    resp = requests.post(
+        "https://api.shortkit.dev/v1/content",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "contentType": "carousel",
+            "title": "Spring Collection",
+            "description": "Preview our new arrivals",
+            "tags": ["fashion", "spring"],
+            "caption": "Swipe to explore the collection",
+            "autoScrollInterval": 5.0,
+            "section": "Style",
+            "author": "Editorial Team",
+        },
+    )
+
+    carousel_id = resp.json()["data"]["id"]
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const response = await fetch("https://api.shortkit.dev/v1/content", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contentType: "carousel",
+        title: "Spring Collection",
+        description: "Preview our new arrivals",
+        tags: ["fashion", "spring"],
+        caption: "Swipe to explore the collection",
+        autoScrollInterval: 5.0,
+        section: "Style",
+        author: "Editorial Team",
+      }),
+    });
+
+    const { data } = await response.json();
+    const carouselId = data.id;
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `contentType` | string | Yes | `"video"` | Must be `"carousel"` |
+| `title` | string | Yes | -- | Max 200 characters |
+| `caption` | string | No | `null` | Text displayed below images (max 500 characters) |
+| `autoScrollInterval` | float | No | `null` | Seconds between auto-scroll; `null` for manual swiping only |
+| `pinPosition` | integer | No | `null` | Pin to a specific feed position |
+| `publishAt` | string | No | `null` | ISO-8601 datetime; hides from feed until this time |
+| `expiresAt` | string | No | `null` | ISO-8601 datetime; auto-archives after this time |
+
+The response comes back with `status: "ready"` immediately. No polling needed.
+
+### Upload images
+
+Add images one at a time using multipart form data. Each carousel supports up to 10 images.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.shortkit.dev/v1/content/${carouselId}/images" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -F "file=@photo1.jpg" \
+      -F "position=0" \
+      -F "altText=Model wearing spring jacket"
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    for i, (filename, alt) in enumerate([
+        ("photo1.jpg", "Model wearing spring jacket"),
+        ("photo2.jpg", "Close-up of fabric texture"),
+        ("photo3.jpg", "Full outfit on runway"),
+    ]):
+        with open(filename, "rb") as f:
+            requests.post(
+                f"https://api.shortkit.dev/v1/content/{carousel_id}/images",
+                headers={"Authorization": "Bearer sk_live_your_secret_key"},
+                files={"file": (filename, f, "image/jpeg")},
+                data={"position": i, "altText": alt},
+            )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { createReadStream } from "fs";
+
+    const images = [
+      { file: "photo1.jpg", alt: "Model wearing spring jacket" },
+      { file: "photo2.jpg", alt: "Close-up of fabric texture" },
+      { file: "photo3.jpg", alt: "Full outfit on runway" },
+    ];
+
+    for (let i = 0; i < images.length; i++) {
+      const form = new FormData();
+      form.append("file", createReadStream(images[i].file));
+      form.append("position", i.toString());
+      form.append("altText", images[i].alt);
+
+      await fetch(
+        `https://api.shortkit.dev/v1/content/${carouselId}/images`,
+        {
+          method: "POST",
+          headers: { "Authorization": "Bearer sk_live_your_secret_key" },
+          body: form,
+        }
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `file` | File | Yes | -- | JPEG, PNG, or WebP |
+| `position` | integer | No | `0` | 0-based position in the carousel |
+| `altText` | string | No | `null` | Accessibility description |
+
+### Reorder images
+
+Pass all image IDs in the desired order. Each image's position is set to its index in the array.
+
+```bash
+curl -X PUT "https://api.shortkit.dev/v1/content/${carouselId}/images/order" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageIds": ["img-uuid-3", "img-uuid-1", "img-uuid-2"]
+  }'
+```
+
+The carousel's thumbnail in feed responses is automatically set to the first image (position 0).
+
+## Post-creation management
+
+These operations apply to both videos and carousels.
+
+### Update metadata
+
+Use `PATCH /v1/content/{contentId}` to update any metadata field after creation. All fields are optional -- only include the ones you want to change.
+
+```bash
+curl -X PATCH "https://api.shortkit.dev/v1/content/${contentId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated Title",
+    "tags": ["breaking", "politics"],
+    "section": "Politics",
+    "publishAt": "2026-03-05T09:00:00Z",
+    "expiresAt": "2026-04-05T09:00:00Z",
+    "customMetadata": {
+      "campaignId": "updated-123",
+      "newField": "added",
+      "obsoleteField": null
+    }
+  }'
+```
+
+`customMetadata` uses **shallow merge** semantics: new keys are added, existing keys are overwritten, and keys set to `null` are removed. Other fields are replaced outright.
+
+### Add captions
+
+Upload a VTT or SRT caption file for video content:
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/captions" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -F "file=@subtitles-es.vtt" \
+      -F "language=es" \
+      -F "label=Spanish"
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    with open("subtitles-es.vtt", "rb") as f:
+        requests.post(
+            f"https://api.shortkit.dev/v1/content/{content_id}/captions",
+            headers={"Authorization": "Bearer sk_live_your_secret_key"},
+            files={"file": ("subtitles-es.vtt", f, "text/vtt")},
+            data={"language": "es", "label": "Spanish"},
+        )
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `file` | File | Yes | -- | `.vtt` or `.srt` file |
+| `language` | string | No | `"en"` | BCP-47 language code |
+| `label` | string | No | `"English"` | Human-readable label shown in the player |
+
+External captions are immediately `ready` -- no processing delay. They appear alongside any auto-generated tracks in feed responses and the SDK renders them automatically.
+
+### Add publication URLs
+
+Attach external links to content (e.g., the source article, a product page). The first URL (position 0) is surfaced as `publisherUrl` in the feed.
+
+```bash
+curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/article/spring-launch",
+    "label": "Read the full article",
+    "position": 0
+  }'
+```
+
+Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`. See the [API reference](/api/content) for details.
+
+### Archive content
+
+Soft-delete content by sending a DELETE. The content is set to `archived` status and removed from all feeds, but the record is preserved.
+
+```bash
+curl -X DELETE "https://api.shortkit.dev/v1/content/${contentId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+

@@ -16,11 +16,11 @@
   },
   "fonts": {
     "heading": {
-      "family": "Public Sans",
+      "family": "Inter",
       "weight": 600
     },
     "body": {
-      "family": "Public Sans",
+      "family": "Inter",
       "weight": 400
     }
   },
@@ -28,160 +28,78 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Overview",
-        "icon": "sparkles",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "index",
-              "quickstart",
-              "core-concepts",
-              "architecture"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "SDK",
-        "icon": "puzzle-piece",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "sdk/overview",
-              "sdk/installation"
-            ]
-          },
-          {
-            "group": "Platforms & SDKs",
-            "pages": [
-              "sdk/ios",
-              "sdk/android",
-              "sdk/react-native"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
-              "sdk/configuration",
-              "sdk/theming",
-
-              "sdk/engagement-signals"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Guides",
+        "tab": "Docs",
         "icon": "book-open",
         "groups": [
           {
-            "group": "Platform",
+            "group": "Getting Started",
             "pages": [
-              "guides/platform/content-pipeline",
-              "guides/platform/transcoding",
-              "guides/platform/cdn-delivery",
-              "guides/platform/feed-ranking"
+              "quickstart"
             ]
           },
           {
-            "group": "Integration",
+            "group": "ShortKit SDK",
             "pages": [
-              "guides/integration/identity-management",
-              "guides/integration/ad-integration",
-              "guides/integration/webhooks",
-              "guides/integration/data-export",
-              "guides/integration/playback-security"
+              "sdk/installation",
+              "sdk/configuration",
+              "sdk/feed",
+              "sdk/player",
+              "sdk/overlays",
+              "sdk/ads",
+              "sdk/analytics",
+              "sdk/identity"
+            ]
+          },
+          {
+            "group": "Developer Guides",
+            "pages": [
+              "guides/content-types",
+              "guides/captions",
+              "guides/upload-pipeline",
+              "guides/feed-customization"
             ]
           }
         ]
       },
       {
-        "tab": "Portal",
-        "icon": "gauge",
+        "tab": "API Reference",
+        "icon": "square-terminal",
         "groups": [
           {
             "group": "Getting Started",
             "pages": [
-              "portal/overview"
+              "api/common-workflows"
             ]
           },
           {
             "group": "Content",
             "pages": [
-              "portal/content-management"
-            ]
-          },
-          {
-            "group": "Feed",
-            "pages": [
-              "portal/feed-configuration",
-              "portal/ab-testing"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "pages": [
-              "portal/analytics"
-            ]
-          },
-          {
-            "group": "Monetization",
-            "pages": [
-              "portal/ad-management"
-            ]
-          },
-          {
-            "group": "Settings",
-            "pages": [
-              "portal/settings"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API",
-        "icon": "terminal",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "api/introduction",
-              "api/authentication",
-              "api/errors"
-            ]
-          },
-          {
-            "group": "Content",
-            "pages": [
-              "api/uploads",
               "api/content",
-              "api/bulk-operations"
+              "api/uploads",
+              "api/feed"
             ]
           },
           {
-            "group": "Feed",
-            "pages": [
-              "api/feed",
-              "api/configuration"
-            ]
-          },
-          {
-            "group": "Analytics",
+            "group": "Engagement",
             "pages": [
               "api/events",
               "api/analytics",
-              "api/export"
+              "api/views"
             ]
           },
           {
             "group": "Configuration",
             "pages": [
-              "api/ranking",
               "api/ad-config",
-              "api/experiments",
-              "api/webhooks"
+              "api/surveys",
+              "api/embeds"
+            ]
+          },
+          {
+            "group": "Organization",
+            "pages": [
+              "api/authentication",
+              "api/organization"
             ]
           }
         ]
@@ -221,17 +139,12 @@
       "vscode"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/shortkit",
-      "github": "https://github.com/shortkit"
-    }
-  },
+  "footer": {},
   "styling": {
     "codeblocks": {
       "theme": {
-        "light": "github-light",
-        "dark": "one-dark-pro"
+        "light": "catppuccin-latte",
+        "dark": "tokyo-night"
       }
     }
   }

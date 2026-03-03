@@ -122,6 +122,48 @@ nav .active,
    SIDEBAR - Clean with subtle active state
    ======================================== */
 
+/* Replace sidebar expand/collapse arrows with plus/minus square icons */
+/* Hide default chevron SVGs in sidebar group buttons (not top-level nav tabs) */
+#sidebar-content button[aria-expanded] svg,
+#sidebar-content [data-state] > svg {
+  display: none !important;
+}
+
+/* Make sidebar group buttons use row-reverse so the ::before icon appears on the left */
+#sidebar-content button[aria-expanded] {
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100%;
+}
+
+/* Plus in square icon - collapsed (on left side via ::before) */
+#sidebar-content button[aria-expanded]::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='12' y1='8' x2='12' y2='16'/%3E%3Cline x1='8' y1='12' x2='16' y2='12'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='12' y1='8' x2='12' y2='16'/%3E%3Cline x1='8' y1='12' x2='16' y2='12'/%3E%3C/svg%3E");
+  margin-right: 6px;
+}
+
+/* Minus in square icon - expanded */
+#sidebar-content button[aria-expanded="true"]::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='8' y1='12' x2='16' y2='12'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='8' y1='12' x2='16' y2='12'/%3E%3C/svg%3E");
+}
+
 #sidebar,
 #sidebar-content {
   background: #fafafa !important;
@@ -155,6 +197,11 @@ html[class*="dark"] #sidebar-content {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #71717a;
+}
+
+/* Indent page links under sidebar group headers */
+#sidebar-content a {
+  padding-left: 1.5rem !important;
 }
 
 /* Active sidebar item - lavender background like fal.ai */
@@ -226,12 +273,15 @@ html[class*="dark"] .card {
 }
 
 /* ========================================
-   CODE BLOCKS
+   CODE BLOCKS - Clean, developer-focused
    ======================================== */
 
+/* Code block container */
 .code-block,
 pre {
-  background: #fafafa !important;
+  background: #f8f8f8 !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 6px !important;
 }
 
 .dark .code-block,
@@ -241,6 +291,210 @@ html.dark pre,
 html[class*="dark"] .code-block,
 html[class*="dark"] pre {
   background: #1a1a1e !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Code block tab bar (language selector) */
+.code-group-tabs,
+[role="tablist"]:has(+ pre),
+[role="tablist"]:has(+ .code-block),
+.code-block [role="tablist"],
+pre + [role="tablist"],
+div:has(> pre) > [role="tablist"],
+.code-header,
+.code-block-header {
+  background: #f0f0f2 !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+  border-radius: 6px 6px 0 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.dark .code-group-tabs,
+.dark .code-header,
+.dark .code-block-header,
+html.dark .code-group-tabs,
+html[class*="dark"] .code-group-tabs {
+  background: #141417 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Individual code tabs */
+.code-group-tabs button,
+.code-group-tabs [role="tab"],
+.code-header button,
+.code-block-header button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: #71717a !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  font-family: 'Roboto Mono', monospace !important;
+  padding: 0.5rem 0.875rem !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transition: color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Active code tab */
+.code-group-tabs button[data-state="active"],
+.code-group-tabs [role="tab"][aria-selected="true"],
+.code-group-tabs [role="tab"][data-state="active"],
+.code-header button[data-state="active"],
+.code-block-header button[data-state="active"] {
+  background: transparent !important;
+  color: #18181b !important;
+  border-bottom: 2px solid #FF6600 !important;
+  box-shadow: none !important;
+}
+
+.dark .code-group-tabs button[data-state="active"],
+.dark .code-group-tabs [role="tab"][aria-selected="true"],
+html.dark .code-group-tabs button[data-state="active"],
+html[class*="dark"] .code-group-tabs button[data-state="active"] {
+  color: #e4e4e7 !important;
+  border-bottom: 2px solid #FF6600 !important;
+}
+
+/* Code tab hover */
+.code-group-tabs button:hover,
+.code-group-tabs [role="tab"]:hover,
+.code-header button:hover {
+  color: #18181b !important;
+  background: transparent !important;
+}
+
+.dark .code-group-tabs button:hover,
+html.dark .code-group-tabs button:hover,
+html[class*="dark"] .code-group-tabs button:hover {
+  color: #e4e4e7 !important;
+}
+
+/* ----------------------------------------
+   Platform/language tab list above code blocks
+   (Mintlify <Tabs> component: ul[role="tablist"] > li[role="tab"])
+   ---------------------------------------- */
+
+/* Tab bar container */
+ul[role="tablist"][data-component-part="tabs-list"] {
+  border-bottom: 1px solid #e4e4e7 !important;
+  gap: 0 !important;
+  padding-left: 0.25rem !important;
+}
+
+.dark ul[role="tablist"][data-component-part="tabs-list"],
+html.dark ul[role="tablist"][data-component-part="tabs-list"],
+html[class*="dark"] ul[role="tablist"][data-component-part="tabs-list"] {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* All tab buttons */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"] {
+  font-family: 'Roboto Mono', monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  color: #a1a1aa !important;
+  border-bottom: 2px solid transparent !important;
+  border-color: transparent !important;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0 !important;
+  transition: color 0.15s ease, border-color 0.15s ease !important;
+}
+
+ul[role="tablist"] li[role="tab"] {
+  border-radius: 0 !important;
+}
+
+/* Active tab */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"] {
+  color: #18181b !important;
+  border-bottom: 2px solid #FF6600 !important;
+  border-color: #FF6600 !important;
+}
+
+.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"],
+html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"],
+html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"] {
+  color: #e4e4e7 !important;
+  border-bottom: 2px solid #FF6600 !important;
+  border-color: #FF6600 !important;
+}
+
+/* Inactive tab hover */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover {
+  color: #52525b !important;
+  border-color: #d4d4d8 !important;
+}
+
+.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover,
+html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover,
+html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover {
+  color: #a1a1aa !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Inactive tab - override Tailwind classes */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"] {
+  color: #a1a1aa !important;
+  border-color: transparent !important;
+}
+
+.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"],
+html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"],
+html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"] {
+  color: #52525b !important;
+}
+
+/* Code block title/filename bar */
+.code-block-title,
+[data-rehype-pretty-code-title] {
+  background: #f0f0f2 !important;
+  color: #52525b !important;
+  font-family: 'Roboto Mono', monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+  padding: 0.5rem 0.875rem !important;
+  border-radius: 6px 6px 0 0 !important;
+}
+
+.dark .code-block-title,
+.dark [data-rehype-pretty-code-title],
+html.dark .code-block-title,
+html[class*="dark"] [data-rehype-pretty-code-title] {
+  background: #141417 !important;
+  color: #a1a1aa !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Code text styling */
+pre code {
+  font-family: 'Roboto Mono', monospace !important;
+  font-size: 0.85rem !important;
+  line-height: 1.6 !important;
+  padding: 1rem 1.25rem !important;
+  display: block !important;
+}
+
+pre {
+  padding: 0 !important;
+}
+
+/* Copy button in code blocks */
+.code-block button[aria-label*="copy"],
+.code-block button[aria-label*="Copy"],
+pre + button,
+.copy-button {
+  opacity: 0.4 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.code-block:hover button[aria-label*="copy"],
+.code-block:hover button[aria-label*="Copy"],
+pre:hover + button,
+.code-block:hover .copy-button {
+  opacity: 0.7 !important;
 }
 
 /* ========================================
@@ -297,27 +551,14 @@ html[class*="dark"] ::-webkit-scrollbar-thumb:hover {
    PAGINATION
    ======================================== */
 
-.pagination-next,
-.pagination-prev {
-  background: #ffffff !important;
-  border: 1px solid #e4e4e7 !important;
-  transition: all 0.15s ease;
+#pagination {
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
 }
 
-.dark .pagination-next,
-.dark .pagination-prev,
-html.dark .pagination-next,
-html.dark .pagination-prev,
-html[class*="dark"] .pagination-next,
-html[class*="dark"] .pagination-prev {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.pagination-next:hover,
-.pagination-prev:hover {
-  border-color: #FF6600 !important;
-}
+/* Lone next link (has ml-auto) stays right — no override needed */
+/* Lone prev link (no ml-auto) stays left — no override needed */
 
 /* ========================================
    ACCORDION
@@ -442,36 +683,7 @@ html[class*="dark"] button[aria-label*="theme"] {
 }
 
 /* Custom home icon for Home tab */
-.nav-tabs-item[href="/"] svg,
-.nav-tabs-item:first-child svg,
-.nav-tabs .icon,
-.nav-tabs-item .icon {
-  display: none !important;
-}
-
-.nav-tabs-item[href="/"]::before,
-.nav-tabs-item:first-child::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  -webkit-mask-image: url('/images/home.svg');
-  mask-image: url('/images/home.svg');
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  background-color: currentColor;
-  margin-right: 0;
-}
-
-/* Home icon - orange when selected */
-.nav-tabs-item[href="/"].\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\]::before,
-.nav-tabs-item:first-child.\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\]::before {
-  background-color: #FF6600 !important;
-}
+/* Custom home icon override removed — all tabs use their docs.json icon */
 
 /* Keep search bar clean */
 .relative.lg\:flex.items-center.flex-1.z-20.justify-center,
@@ -509,6 +721,9 @@ html[class*="dark"] button[aria-label*="theme"] {
   background: #ffffff !important;
   border: 1px solid #e4e4e7 !important;
   border-radius: 4px !important;
+  min-width: 350px !important;
+  width: 100% !important;
+  max-width: 500px !important;
 }
 
 .dark #search-bar-entry,
@@ -517,4 +732,152 @@ html.dark #search-bar-entry,
 html[class*="dark"] #search-bar-entry {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ========================================
+   CHANGELOG PAGE
+   ======================================== */
+
+/* Hide sidebar on changelog page */
+body:has(.changelog-wrapper) #sidebar-content,
+body:has(.changelog-wrapper) #sidebar {
+  display: none !important;
+}
+
+/* Hide page title, subtitle, and TOC on changelog page */
+body:has(.changelog-wrapper) #table-of-contents,
+body:has(.changelog-wrapper) #table-of-contents-content {
+  display: none !important;
+}
+
+/* Hide the auto-generated page heading and description */
+body:has(.changelog-wrapper) article > h1:first-of-type,
+body:has(.changelog-wrapper) .page-header,
+body:has(.changelog-wrapper) article > p:first-of-type {
+  display: none !important;
+}
+
+/* Changelog wrapper */
+.changelog-wrapper {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+/* Individual entry — timeline style */
+.changelog-entry {
+  border-left: 2px solid #e4e4e7;
+  padding: 0 0 2.5rem 1.5rem;
+  position: relative;
+}
+
+.changelog-entry:last-child {
+  padding-bottom: 0;
+}
+
+/* Timeline dot */
+.changelog-entry::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50% !important;
+  background: #FF6600;
+}
+
+/* Header row — date + tags */
+.changelog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+/* Date */
+.changelog-date {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.8rem;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+/* Tags row */
+.changelog-tags-row {
+  display: flex;
+  gap: 0.375rem;
+}
+
+/* Tag pill */
+.changelog-tag {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  background: #f4f4f5;
+  padding: 0.125rem 0.5rem;
+  border-radius: 2px !important;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+/* Entry title */
+.changelog-entry h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.375rem 0;
+  color: #18181b;
+}
+
+/* Entry description */
+.changelog-entry p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #71717a;
+  margin: 0;
+}
+
+/* Inline code inside changelog */
+.changelog-entry code {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.8rem;
+  background: #f4f4f5 !important;
+  padding: 0.1rem 0.35rem !important;
+  border-radius: 3px !important;
+  color: #18181b !important;
+}
+
+/* ---- Dark mode ---- */
+
+.dark .changelog-entry,
+html.dark .changelog-entry,
+html[class*="dark"] .changelog-entry {
+  border-left-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .changelog-tag,
+html.dark .changelog-tag,
+html[class*="dark"] .changelog-tag {
+  background: rgba(255, 255, 255, 0.06);
+  color: #71717a;
+}
+
+.dark .changelog-entry h3,
+html.dark .changelog-entry h3,
+html[class*="dark"] .changelog-entry h3 {
+  color: #e4e4e7;
+}
+
+.dark .changelog-entry p,
+html.dark .changelog-entry p,
+html[class*="dark"] .changelog-entry p {
+  color: #71717a;
+}
+
+.dark .changelog-entry code,
+html.dark .changelog-entry code,
+html[class*="dark"] .changelog-entry code {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e4e4e7 !important;
 }
