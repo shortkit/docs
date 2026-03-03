@@ -103,18 +103,6 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "Changelog",
-        "icon": "list-check",
-        "groups": [
-          {
-            "group": "Changelog",
-            "pages": [
-              "changelog"
-            ]
-          }
-        ]
       }
     ],
     "global": {
