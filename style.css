@@ -374,6 +374,76 @@ html[class*="dark"] .code-group-tabs button:hover {
   color: #e4e4e7 !important;
 }
 
+/* ----------------------------------------
+   Platform/language tab list above code blocks
+   (Mintlify <Tabs> component: ul[role="tablist"] > li[role="tab"])
+   ---------------------------------------- */
+
+/* Tab bar container */
+ul[role="tablist"][data-component-part="tabs-list"] {
+  border-bottom: 1px solid #e4e4e7 !important;
+  gap: 0 !important;
+  padding-left: 0.25rem !important;
+}
+
+.dark ul[role="tablist"][data-component-part="tabs-list"],
+html.dark ul[role="tablist"][data-component-part="tabs-list"],
+html[class*="dark"] ul[role="tablist"][data-component-part="tabs-list"] {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* All tab buttons */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"] {
+  font-family: 'Roboto Mono', monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  color: #a1a1aa !important;
+  border-bottom: 2px solid transparent !important;
+  border-color: transparent !important;
+  padding: 0.5rem 0.75rem !important;
+  transition: color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Active tab */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"] {
+  color: #18181b !important;
+  border-bottom: 2px solid #FF6600 !important;
+  border-color: #FF6600 !important;
+}
+
+.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"],
+html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"],
+html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"] {
+  color: #e4e4e7 !important;
+  border-bottom: 2px solid #FF6600 !important;
+  border-color: #FF6600 !important;
+}
+
+/* Inactive tab hover */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover {
+  color: #52525b !important;
+  border-color: #d4d4d8 !important;
+}
+
+.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover,
+html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover,
+html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover {
+  color: #a1a1aa !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Inactive tab - override Tailwind classes */
+ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"] {
+  color: #a1a1aa !important;
+  border-color: transparent !important;
+}
+
+.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"],
+html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"],
+html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"] {
+  color: #52525b !important;
+}
+
 /* Code block title/filename bar */
 .code-block-title,
 [data-rehype-pretty-code-title] {
