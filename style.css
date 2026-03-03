@@ -276,12 +276,15 @@ html[class*="dark"] .card {
 }
 
 /* ========================================
-   CODE BLOCKS
+   CODE BLOCKS - Clean, developer-focused
    ======================================== */
 
+/* Code block container */
 .code-block,
 pre {
-  background: #fafafa !important;
+  background: #f8f8f8 !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 6px !important;
 }
 
 .dark .code-block,
@@ -291,6 +294,129 @@ html.dark pre,
 html[class*="dark"] .code-block,
 html[class*="dark"] pre {
   background: #1a1a1e !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Code block tab bar (language selector) */
+.code-group-tabs,
+[role="tablist"]:has(+ pre),
+[role="tablist"]:has(+ .code-block),
+.code-block [role="tablist"],
+pre + [role="tablist"],
+div:has(> pre) > [role="tablist"],
+.code-header,
+.code-block-header {
+  background: #f0f0f2 !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+  border-radius: 6px 6px 0 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.dark .code-group-tabs,
+.dark .code-header,
+.dark .code-block-header,
+html.dark .code-group-tabs,
+html[class*="dark"] .code-group-tabs {
+  background: #141417 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Individual code tabs */
+.code-group-tabs button,
+.code-group-tabs [role="tab"],
+.code-header button,
+.code-block-header button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: #71717a !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  font-family: 'Roboto Mono', monospace !important;
+  padding: 0.5rem 0.875rem !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transition: color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Active code tab */
+.code-group-tabs button[data-state="active"],
+.code-group-tabs [role="tab"][aria-selected="true"],
+.code-group-tabs [role="tab"][data-state="active"],
+.code-header button[data-state="active"],
+.code-block-header button[data-state="active"] {
+  background: transparent !important;
+  color: #18181b !important;
+  border-bottom: 2px solid #FF6600 !important;
+  box-shadow: none !important;
+}
+
+.dark .code-group-tabs button[data-state="active"],
+.dark .code-group-tabs [role="tab"][aria-selected="true"],
+html.dark .code-group-tabs button[data-state="active"],
+html[class*="dark"] .code-group-tabs button[data-state="active"] {
+  color: #e4e4e7 !important;
+  border-bottom: 2px solid #FF6600 !important;
+}
+
+/* Code tab hover */
+.code-group-tabs button:hover,
+.code-group-tabs [role="tab"]:hover,
+.code-header button:hover {
+  color: #18181b !important;
+  background: transparent !important;
+}
+
+.dark .code-group-tabs button:hover,
+html.dark .code-group-tabs button:hover,
+html[class*="dark"] .code-group-tabs button:hover {
+  color: #e4e4e7 !important;
+}
+
+/* Code block title/filename bar */
+.code-block-title,
+[data-rehype-pretty-code-title] {
+  background: #f0f0f2 !important;
+  color: #52525b !important;
+  font-family: 'Roboto Mono', monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+  padding: 0.5rem 0.875rem !important;
+  border-radius: 6px 6px 0 0 !important;
+}
+
+.dark .code-block-title,
+.dark [data-rehype-pretty-code-title],
+html.dark .code-block-title,
+html[class*="dark"] [data-rehype-pretty-code-title] {
+  background: #141417 !important;
+  color: #a1a1aa !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Code text styling */
+pre code {
+  font-family: 'Roboto Mono', monospace !important;
+  font-size: 0.85rem !important;
+  line-height: 1.6 !important;
+}
+
+/* Copy button in code blocks */
+.code-block button[aria-label*="copy"],
+.code-block button[aria-label*="Copy"],
+pre + button,
+.copy-button {
+  opacity: 0.4 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.code-block:hover button[aria-label*="copy"],
+.code-block:hover button[aria-label*="Copy"],
+pre:hover + button,
+.code-block:hover .copy-button {
+  opacity: 0.7 !important;
 }
 
 /* ========================================
