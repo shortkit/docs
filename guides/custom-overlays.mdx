@@ -8,12 +8,12 @@ The built-in overlay templates (like `.news`) cover common layouts. When your pr
 
 ## Disable the built-in overlay
 
-Set `overlay: .none` in your `FeedConfig`. The SDK renders raw video with no UI layer on top.
+Set `videoOverlay: .none` in your `FeedConfig`. The SDK renders raw video with no UI layer on top.
 
 <Tabs>
   <Tab title="Swift (UIKit)">
     ```swift
-    let config = FeedConfig(overlay: .none)
+    let config = FeedConfig(videoOverlay: .none)
     let shortKit = ShortKit(apiKey: "pk_live_...", config: config)
 
     let feedVC = ShortKitFeedViewController(shortKit: shortKit)
@@ -21,7 +21,7 @@ Set `overlay: .none` in your `FeedConfig`. The SDK renders raw video with no UI 
   </Tab>
   <Tab title="Swift (SwiftUI)">
     ```swift
-    let config = FeedConfig(overlay: .none)
+    let config = FeedConfig(videoOverlay: .none)
     let shortKit = ShortKit(apiKey: "pk_live_...", config: config)
 
     ShortKitFeedView(shortKit: shortKit)
@@ -29,7 +29,7 @@ Set `overlay: .none` in your `FeedConfig`. The SDK renders raw video with no UI 
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
-    val config = FeedConfig(overlay = OverlayMode.None)
+    val config = FeedConfig(videoOverlay = VideoOverlayMode.None)
     val shortKit = ShortKit(apiKey = "pk_live_...", config = config)
 
     val feedFragment = ShortKitFeedFragment(shortKit)
@@ -37,15 +37,14 @@ Set `overlay: .none` in your `FeedConfig`. The SDK renders raw video with no UI 
   </Tab>
   <Tab title="React Native">
     ```tsx
-    <ShortKitFeed
-      apiKey="pk_live_..."
-      config={{ overlay: "none" }}
-    />
+    <ShortKitProvider apiKey="pk_live_..." config={{ videoOverlay: 'none' }}>
+      <ShortKitFeed />
+    </ShortKitProvider>
     ```
   </Tab>
 </Tabs>
 
-With `overlay: .none`, your code is responsible for all playback controls, metadata display, and action handling.
+With `videoOverlay: .none`, your code is responsible for all playback controls, metadata display, and action handling.
 
 ## Subscribe to player publishers
 
@@ -55,7 +54,7 @@ With `overlay: .none`, your code is responsible for all playback controls, metad
   <Tab title="Swift">
     ```swift
     import Combine
-    import ShortKit
+    import ShortKitSDK
 
     let player = shortKit.player
     var cancellables = Set<AnyCancellable>()
@@ -151,7 +150,7 @@ With `overlay: .none`, your code is responsible for all playback controls, metad
   </Tab>
   <Tab title="React Native">
     ```tsx
-    import { useShortKitPlayer } from "@shortkit/react-native";
+    import { useShortKitPlayer } from "@shortkitsdk/react-native";
 
     function CustomOverlay() {
       const { time, playerState, currentItem, isMuted } = useShortKitPlayer();
@@ -251,7 +250,7 @@ Call methods on `ShortKitPlayer` to control playback from your overlay's gesture
   </Tab>
   <Tab title="React Native">
     ```tsx
-    import { useShortKitPlayer } from "@shortkit/react-native";
+    import { useShortKitPlayer } from "@shortkitsdk/react-native";
 
     function Controls() {
       const { play, pause, seek, setMuted, skipToNext } = useShortKitPlayer();
@@ -288,101 +287,6 @@ Call methods on `ShortKitPlayer` to control playback from your overlay's gesture
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code. |
 | `seekThumbnail(at:)` | Returns a storyboard thumbnail `UIImage` at the given time, or `nil` if unavailable. |
 
-## Handle overlay actions
-
-When your custom overlay includes share, like, article, or other semantic actions, implement `OverlayActionDelegate` to handle them. The SDK routes calls from both built-in and custom overlays through this delegate.
-
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    class MyViewController: UIViewController, OverlayActionDelegate {
-
-        func setup() {
-            shortKit.overlayActionDelegate = self
-        }
-
-        func overlayDidTapShare(for item: ContentItem) {
-            let activityVC = UIActivityViewController(
-                activityItems: [item.title],
-                applicationActivities: nil
-            )
-            present(activityVC, animated: true)
-        }
-
-        func overlayDidTapArticle(for item: ContentItem) {
-            guard let urlString = item.articleUrl,
-                  let url = URL(string: urlString) else { return }
-            let safariVC = SFSafariViewController(url: url)
-            present(safariVC, animated: true)
-        }
-
-        func overlayDidTapLike(for item: ContentItem) {
-            LikeService.shared.toggle(contentId: item.id)
-        }
-
-        // Also available: overlayDidTapComment(for:), overlayDidTapSave(for:)
-        // All methods have default empty implementations -- implement only what you need.
-    }
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    class MyActivity : AppCompatActivity(), OverlayActionDelegate {
-
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
-            shortKit.overlayActionDelegate = this
-        }
-
-        override fun overlayDidTapShare(item: ContentItem) {
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, item.title)
-            }
-            startActivity(Intent.createChooser(intent, "Share"))
-        }
-
-        override fun overlayDidTapArticle(item: ContentItem) {
-            item.articleUrl?.let { url ->
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            }
-        }
-
-        override fun overlayDidTapLike(item: ContentItem) {
-            LikeService.toggle(item.id)
-        }
-    }
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```tsx
-    <ShortKitFeed
-      apiKey="pk_live_..."
-      config={{ overlay: "none" }}
-      onOverlayAction={(action, item) => {
-        if (action === "share") {
-          Share.share({ message: item.title });
-        } else if (action === "article") {
-          Linking.openURL(item.articleUrl);
-        }
-      }}
-    />
-    ```
-  </Tab>
-</Tabs>
-
-### Delegate methods
-
-| Method | Trigger |
-|---|---|
-| `overlayDidTapArticle(for:)` | User tapped a "read more" or article button. |
-| `overlayDidTapComment(for:)` | User tapped a comment icon. |
-| `overlayDidTapShare(for:)` | User tapped a share icon. |
-| `overlayDidTapSave(for:)` | User tapped a save/bookmark icon. |
-| `overlayDidTapLike(for:)` | User tapped a like/heart icon. |
-
-All methods have default empty implementations. Implement only the actions your UI exposes.
-
 ## Full example: custom overlay with play/pause and progress bar
 
 This self-contained `UIView` subclass shows a centered play/pause button and a bottom-edge progress bar. It subscribes to `ShortKitPlayer` publishers for state and issues commands from a tap gesture.
@@ -391,7 +295,7 @@ This self-contained `UIView` subclass shows a centered play/pause button and a b
   <Tab title="Swift">
     ```swift
     import Combine
-    import ShortKit
+    import ShortKitSDK
     import UIKit
 
     final class MinimalOverlayView: UIView {
@@ -594,7 +498,7 @@ This self-contained `UIView` subclass shows a centered play/pause button and a b
   </Tab>
   <Tab title="React Native">
     ```tsx
-    import { useShortKitPlayer } from "@shortkit/react-native";
+    import { useShortKitPlayer } from "@shortkitsdk/react-native";
     import { Pressable, StyleSheet, Text, View } from "react-native";
 
     export function MinimalOverlay() {
@@ -635,7 +539,7 @@ Custom overlays follow the same unidirectional data flow as the built-in templat
 
 1. **State flows down** -- subscribe to `ShortKitPlayer` publishers (`time`, `playerState`, `currentItem`, `isMuted`, etc.) and update your UI in each sink.
 2. **Commands flow up** -- call `ShortKitPlayer` methods (`play()`, `pause()`, `seek(to:)`, `setMuted(_:)`, etc.) from gesture handlers and button actions.
-3. **Semantic actions flow out** -- implement `OverlayActionDelegate` for app-level actions like share, article navigation, and likes.
+3. **Semantic actions flow out** -- use `sendContentSignal()` for app-level actions like share, article navigation, and likes.
 
 All publisher subscriptions should dispatch to the main queue via `.receive(on: DispatchQueue.main)` and be stored in a `Set<AnyCancellable>` that is cleaned up when your overlay is deallocated.
 

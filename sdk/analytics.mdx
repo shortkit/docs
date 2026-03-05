@@ -101,18 +101,26 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_...',
-      config: { feedHeight: 'fullscreen' },
-      clientAppName: 'MyNewsApp',
-      clientAppVersion: '2.1.0',
-      customDimensions: {
-        custom_1: 'sports',
-        custom_2: 'premium_user',
-        custom_3: 'experiment_hero_v2',
-      },
-    });
+    ```tsx
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+
+    function App() {
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_..."
+          config={{}}
+          clientAppName="MyNewsApp"
+          clientAppVersion="2.1.0"
+          customDimensions={{
+            custom_1: 'sports',
+            custom_2: 'premium_user',
+            custom_3: 'experiment_hero_v2',
+          }}
+        >
+          <ShortKitFeed />
+        </ShortKitProvider>
+      );
+    }
     ```
   </Tab>
 </Tabs>
@@ -141,9 +149,19 @@ Custom dimensions are immutable after init. To change them (for example, after a
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    shortKit.player.sendContentSignal('positive');
-    shortKit.player.sendContentSignal('negative');
+    ```tsx
+    import { useShortKitPlayer } from '@shortkitsdk/react-native';
+
+    function SignalButtons() {
+      const { sendContentSignal } = useShortKitPlayer();
+
+      return (
+        <>
+          <Button title="Like" onPress={() => sendContentSignal('positive')} />
+          <Button title="Dislike" onPress={() => sendContentSignal('negative')} />
+        </>
+      );
+    }
     ```
   </Tab>
 </Tabs>
@@ -173,50 +191,21 @@ Call `setUserId()` to switch to identified mode. This links the anonymous device
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    shortKit.setUserId('user_12345');
-    shortKit.clearUserId();
-    ```
-  </Tab>
-</Tabs>
+    ```tsx
+    import { useShortKit } from '@shortkitsdk/react-native';
 
-## Overlay actions
+    function IdentityManager() {
+      const { setUserId, clearUserId } = useShortKit();
 
-The overlay action buttons (like, share, save, comment, article link) are **not** tracked as analytics events by the SDK. They are host-app callbacks. Implement `OverlayActionDelegate` to handle them in your app.
+      // Associate events with a known user
+      setUserId('user_12345');
 
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    class MyHandler: OverlayActionDelegate {
-        func overlayDidTapShare(for item: ContentItem) {
-            // Present your share sheet, fire your own analytics
-        }
-    }
-
-    shortKit.overlayActionDelegate = MyHandler()
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    shortKit.overlayActionDelegate = object : OverlayActionDelegate {
-        override fun overlayDidTapShare(item: ContentItem) {
-            // Handle share
-        }
+      // Revert to anonymous tracking
+      clearUserId();
     }
     ```
   </Tab>
-  <Tab title="React Native">
-    ```typescript
-    shortKit.on('overlayAction', (action, item) => {
-      if (action === 'share') {
-        // Handle share
-      }
-    });
-    ```
-  </Tab>
 </Tabs>
-
-If you want to track overlay interactions in ShortKit analytics, call `sendContentSignal()` from within your delegate handler.
 
 ## Querying analytics data
 

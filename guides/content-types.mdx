@@ -327,37 +327,7 @@ Surveys display a single-question poll. After the user selects an option, the SD
 
 ### Receiving survey responses
 
-The SDK delivers the user's selection through `ShortKitDelegate`:
-
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    extension MyController: ShortKitDelegate {
-        func shortKit(_ shortKit: ShortKit, didRespondToSurvey surveyId: String, with option: SurveyOption) {
-            print("User selected \(option.text) for survey \(surveyId)")
-        }
-    }
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    shortKit.delegate = object : ShortKitDelegate {
-        override fun onSurveyResponse(surveyId: String, option: SurveyOption) {
-            Log.d("Survey", "User selected ${option.text} for survey $surveyId")
-        }
-    }
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```tsx
-    <ShortKitFeed
-      onSurveyResponse={(surveyId, option) => {
-        console.log(`User selected ${option.text} for survey ${surveyId}`);
-      }}
-    />
-    ```
-  </Tab>
-</Tabs>
+Survey responses are delivered through the `SurveyOverlay` protocol's `onSurveyResponse` callback. When using a custom survey overlay, the SDK sets this callback on your overlay instance. Call it when the user selects an option. See [Overlays — Survey overlay](/sdk/overlays#survey-overlay) for the full protocol reference.
 
 ---
 
@@ -432,7 +402,7 @@ The SDK wraps all four content types in a single discriminated union. The API re
 
 ## Handling each type in a custom UI
 
-When you set `overlay: .none`, `carouselMode: .none`, and `surveyMode: .none`, the SDK renders raw content without any overlay UI. You build your own by switching on `FeedItem` and using the data available on each model.
+When you set `videoOverlay: .none`, `carouselOverlay: .none`, and `surveyOverlay: .none`, the SDK renders raw content without any overlay UI. You build your own by switching on `FeedItem` and using the data available on each model.
 
 <Tabs>
   <Tab title="Swift">

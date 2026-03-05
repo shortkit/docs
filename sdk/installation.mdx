@@ -38,6 +38,24 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     Most integrations only need `dev.shortkit:shortkit`. Add `dev.shortkit:shortkit-google-ads` if you want to monetize with Google IMA VAST or Google Ad Manager native ads. Transitive dependencies are resolved automatically by Gradle.
   </Tab>
+  <Tab title="React Native">
+    The SDK ships as a single npm package that includes native modules for both platforms:
+
+    | Package | Purpose | Key dependencies |
+    |---|---|---|
+    | `@shortkitsdk/react-native` | Core SDK: feed, player, overlays, analytics, captions | Native iOS and Android SDKs (bundled), React Native 0.76+ |
+
+    The package provides the following exports:
+
+    | Export | Type | Purpose |
+    |---|---|---|
+    | `ShortKitProvider` | Component | Wraps the feed and supplies API key, embed ID, and configuration |
+    | `ShortKitFeed` | Component | Renders the video feed (must be inside a `ShortKitProvider`) |
+    | `useShortKitPlayer()` | Hook | Access player state and controls (play, pause, seek, captions, etc.) |
+    | `useShortKit()` | Hook | Access SDK-level methods (`setUserId`, `clearUserId`) |
+
+    Import from `@shortkitsdk/react-native` in your code.
+  </Tab>
 </Tabs>
 
 ## Package installation
@@ -392,15 +410,17 @@ Build and run this minimal example to confirm the import resolves and the SDK in
   <Tab title="React Native">
     ```tsx App.tsx
     import React from 'react';
-    import { ShortKit, ShortKitFeed } from '@shortkitsdk/react-native';
-
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-      config: { feedHeight: 'fullscreen' }
-    });
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
     export default function App() {
-      return <ShortKitFeed style={{ flex: 1 }} />;
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={{ feedHeight: { type: 'fullscreen' } }}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
+      );
     }
     ```
   </Tab>
@@ -413,15 +433,17 @@ Build and run this minimal example to confirm the import resolves and the SDK in
 
     ```tsx App.tsx
     import React from 'react';
-    import { ShortKit, ShortKitFeed } from '@shortkitsdk/react-native';
-
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-      config: { feedHeight: 'fullscreen' }
-    });
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
     export default function App() {
-      return <ShortKitFeed style={{ flex: 1 }} />;
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={{ feedHeight: { type: 'fullscreen' } }}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
+      );
     }
     ```
   </Tab>

@@ -1,7 +1,7 @@
 ---
 title: "Configuration"
 description: "Complete reference for all ShortKit SDK configuration options."
-keywords: ["configuration", "config", "options", "settings", "SDK", "FeedConfig", "Environment"]
+keywords: ["configuration", "config", "options", "settings", "SDK", "FeedConfig"]
 ---
 
 Every configuration field has a sensible default. `FeedConfig()` with no arguments produces a working feed.
@@ -15,12 +15,13 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
         public init(
             apiKey: String,
             config: FeedConfig,
+            embedId: String? = nil,
             userId: String? = nil,
-            environment: Environment = .production,
             adProvider: ShortKitAdProvider? = nil,
             clientAppName: String? = nil,
             clientAppVersion: String? = nil,
-            customDimensions: [String: String]? = nil
+            customDimensions: [String: String]? = nil,
+            playbackIds: [String]? = nil
         )
     }
     ```
@@ -30,27 +31,30 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
     class ShortKit(
         apiKey: String,
         config: FeedConfig,
+        embedId: String? = null,
         userId: String? = null,
-        environment: Environment = Environment.Production,
         adProvider: ShortKitAdProvider? = null,
         clientAppName: String? = null,
         clientAppVersion: String? = null,
-        customDimensions: Map<String, String>? = null
+        customDimensions: Map<String, String>? = null,
+        playbackIds: List<String>? = null
     )
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
-    ShortKit.initialize(options: {
+    import { ShortKitProvider } from '@shortkitsdk/react-native';
+
+    interface ShortKitProviderProps {
       apiKey: string;
-      config?: FeedConfig;
+      config: FeedConfig;
+      embedId?: string;
       userId?: string;
-      environment?: 'production' | 'staging' | 'development' | { custom: string };
-      adProvider?: ShortKitAdProvider;
       clientAppName?: string;
       clientAppVersion?: string;
       customDimensions?: Record<string, string>;
-    })
+      children: React.ReactNode;
+    }
     ```
   </Tab>
 </Tabs>
@@ -59,12 +63,13 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
 |-----------|------|---------|-------------|
 | `apiKey` | `String` | **required** | Your publishable API key. Starts with `pk_live_` or `pk_test_`. |
 | `config` | `FeedConfig` | **required** | Feed layout and behavior configuration. See [FeedConfig](#feedconfig) below. |
+| `embedId` | `String?` | `nil` | Embed ID to scope content delivery and analytics. Created in the [portal](/portal/feed-configuration). |
 | `userId` | `String?` | `nil` | Known user ID. When provided, the SDK starts in identified mode immediately, skipping the anonymous-first flow. |
-| `environment` | `Environment` | `.production` | API environment. Controls endpoint routing. See [Environment](#environment). |
 | `adProvider` | `ShortKitAdProvider?` | `nil` | Ad provider for monetization. Pass `nil` to disable ads. See [Ad integration](/sdk/ads). |
 | `clientAppName` | `String?` | `nil` | App name included in analytics metadata. |
 | `clientAppVersion` | `String?` | `nil` | App version included in analytics metadata. |
 | `customDimensions` | `[String: String]?` | `nil` | Custom key-value pairs for analytics segmentation. Keys must be `"custom_1"` through `"custom_5"`. |
+| `playbackIds` | `[String]?` | `nil` | Mux playback IDs to preload when using custom feed mode (`feedSource: .custom`). |
 
 On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN connection, and begins HLS preroll for the first video. The feed view controller can render immediately without a loading spinner.
 
@@ -80,14 +85,18 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         public var surveyOverlay: SurveyOverlayMode
         public var adOverlay: AdOverlayMode
         public var muteOnStart: Bool
+        public var feedSource: FeedSource
+        public var liveStream: LiveStreamConfig?
 
         public init(
             feedHeight: FeedHeight = .fullscreen,
             videoOverlay: VideoOverlayMode = .none,
-            carouselOverlay: CarouselOverlayMode = .template(.default),
-            surveyOverlay: SurveyOverlayMode = .template(.default),
-            adOverlay: AdOverlayMode = .template(.default),
-            muteOnStart: Bool = true
+            carouselOverlay: CarouselOverlayMode = .none,
+            surveyOverlay: SurveyOverlayMode = .none,
+            adOverlay: AdOverlayMode = .none,
+            muteOnStart: Bool = true,
+            feedSource: FeedSource = .algorithmic,
+            liveStream: LiveStreamConfig? = nil
         )
     }
     ```
@@ -97,23 +106,30 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     data class FeedConfig(
         val feedHeight: FeedHeight = FeedHeight.Fullscreen,
         val videoOverlay: VideoOverlayMode = VideoOverlayMode.None,
-        val carouselOverlay: CarouselOverlayMode = CarouselOverlayMode.Template(CarouselTemplate.Default),
-        val surveyOverlay: SurveyOverlayMode = SurveyOverlayMode.Template(SurveyTemplate.Default),
-        val adOverlay: AdOverlayMode = AdOverlayMode.Template(AdOverlayTemplate.Default),
-        val muteOnStart: Boolean = true
+        val carouselOverlay: CarouselOverlayMode = CarouselOverlayMode.None,
+        val surveyOverlay: SurveyOverlayMode = SurveyOverlayMode.None,
+        val adOverlay: AdOverlayMode = AdOverlayMode.None,
+        val muteOnStart: Boolean = true,
+        val feedSource: FeedSource = FeedSource.Algorithmic,
+        val liveStream: LiveStreamConfig? = null
     )
     ```
   </Tab>
   <Tab title="React Native">
     ```typescript
     interface FeedConfig {
-      feedHeight?: 'fullscreen' | { percentage: number };
-      videoOverlay?: 'none' | { template: string } | { custom: ComponentType };
-      carouselOverlay?: 'none' | { template: 'default' } | { custom: ComponentType };
-      surveyOverlay?: 'none' | { template: 'default' } | { custom: ComponentType };
-      adOverlay?: 'none' | { template: 'default' } | { custom: ComponentType };
+      feedHeight?: FeedHeight;
+      videoOverlay?: OverlayConfig;
+      carouselOverlay?: OverlayConfig;
+      surveyOverlay?: OverlayConfig;
+      adOverlay?: OverlayConfig;
       muteOnStart?: boolean;
+      feedSource?: 'algorithmic' | 'custom';
+      liveStream?: { streamingUrl: string; thumbnailUrl: string; position?: number };
     }
+
+    type FeedHeight = { type: 'fullscreen' } | { type: 'percentage'; value: number };
+    type OverlayConfig = 'none' | { type: 'custom'; component: React.ComponentType };
     ```
   </Tab>
 </Tabs>
@@ -121,13 +137,13 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `feedHeight` | `FeedHeight` | `.fullscreen` | `.fullscreen` fills the entire screen. `.percentage(CGFloat)` sets a fraction of screen height (e.g. `0.85` for 85%). |
-| `videoOverlay` | `VideoOverlayMode` | `.none` | `.none` disables built-in overlays. `.template(...)` renders a pre-built overlay with action icons, progress bar, and content metadata. `.custom { ... }` provides a developer-built overlay managed by the SDK. See [Overlays](/sdk/overlays). |
-| `carouselOverlay` | `CarouselOverlayMode` | `.template(.default)` | `.none` disables built-in carousel UI. `.template(.default)` renders horizontal paged images with page dots, caption, and auto-scroll. `.custom { ... }` provides a developer-built carousel overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). |
-| `surveyOverlay` | `SurveyOverlayMode` | `.template(.default)` | `.none` disables built-in survey UI. `.template(.default)` renders a styled survey with question label, option buttons, and auto-advance after selection. `.custom { ... }` provides a developer-built survey overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). Responses are delivered via `ShortKitDelegate.shortKit(_:didRespondToSurvey:with:)`. |
-| `adOverlay` | `AdOverlayMode` | `.template(.default)` | `.none` disables built-in native ad overlays. `.template(.default)` renders the "Ad" badge, AdChoices icon, sponsor logo, headline, and CTA button. `.custom { ... }` provides a developer-built ad overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). Only applies to native ads; system-defined ads (IMA/VAST) are unaffected. |
+| `videoOverlay` | `VideoOverlayMode` | `.none` | `.none` disables overlays. `.custom { ... }` provides a developer-built overlay managed by the SDK. See [Overlays](/sdk/overlays). |
+| `carouselOverlay` | `CarouselOverlayMode` | `.none` | `.none` disables carousel UI. `.custom { ... }` provides a developer-built carousel overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). |
+| `surveyOverlay` | `SurveyOverlayMode` | `.none` | `.none` disables survey UI. `.custom { ... }` provides a developer-built survey overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). |
+| `adOverlay` | `AdOverlayMode` | `.none` | `.none` disables native ad overlays. `.custom { ... }` provides a developer-built ad overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). Only applies to native ads; system-defined ads (IMA/VAST) are unaffected. |
 | `muteOnStart` | `Bool` | `true` | Whether video starts muted. Once the user unmutes, the unmuted state persists for the session. |
-
-When using a built-in overlay template, set `overlayActionDelegate` on the `ShortKit` instance to handle user taps on overlay buttons. See [Overlays](/sdk/overlays) for details.
+| `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided Mux playback IDs (pass via `playbackIds` on `ShortKit.init`). |
+| `liveStream` | `LiveStreamConfig?` | `nil` | When set, injects a live stream into the feed at the specified position. Requires `streamingUrl`, `thumbnailUrl`, and an optional `position` (default 3). |
 
 <Tabs>
   <Tab title="Swift">
@@ -143,49 +159,17 @@ When using a built-in overlay template, set `overlayActionDelegate` on the `Shor
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
+    ```tsx
     // 70% of screen height, leaving room for a tab bar
-    const config = { feedHeight: { percentage: 0.7 } };
+    <ShortKitProvider
+      apiKey="pk_live_your_publishable_key"
+      config={{ feedHeight: { type: 'percentage', value: 0.7 } }}
+    >
+      <ShortKitFeed style={{ flex: 1 }} />
+    </ShortKitProvider>
     ```
   </Tab>
 </Tabs>
-
-## `Environment`
-
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    public enum Environment: Sendable {
-        case production
-        case staging
-        case development
-        case custom(URL)
-    }
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    sealed class Environment {
-        object Production : Environment()
-        object Staging : Environment()
-        object Development : Environment()
-        data class Custom(val url: String) : Environment()
-    }
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    type Environment = 'production' | 'staging' | 'development' | { custom: string };
-    ```
-  </Tab>
-</Tabs>
-
-| Case | Base URL |
-|------|----------|
-| `.production` | `https://api.shortkit.dev` |
-| `.staging` | `https://api.staging.shortkit.dev` |
-| `.development` | `https://api.dev.shortkit.dev` |
-| `.custom(URL)` | Any URL you provide. Useful for local development or proxy setups. |
 
 ## Complete example
 
@@ -195,7 +179,7 @@ A full initialization with all configuration options set explicitly.
   <Tab title="Swift (SwiftUI)">
     ```swift App.swift
     import SwiftUI
-    import ShortKit
+    import ShortKitSDK
 
     @main
     struct MyApp: App {
@@ -205,24 +189,17 @@ A full initialization with all configuration options set explicitly.
             let config = FeedConfig(
                 feedHeight: .fullscreen,
                 videoOverlay: .none,
-                carouselOverlay: .template(.default),
-                surveyOverlay: .template(.default),
-                adOverlay: .template(.default),
                 muteOnStart: true
             )
 
             shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
                 config: config,
-                userId: nil,
-                environment: .production,
+                embedId: "emb_your_embed_id",
                 clientAppName: "MyNewsApp",
                 clientAppVersion: "2.4.1",
                 customDimensions: ["custom_1": "sports"]
             )
-
-            shortKit.delegate = self
-            shortKit.overlayActionDelegate = self
         }
 
         var body: some Scene {
@@ -237,7 +214,7 @@ A full initialization with all configuration options set explicitly.
   <Tab title="Swift (UIKit)">
     ```swift ViewController.swift
     import UIKit
-    import ShortKit
+    import ShortKitSDK
 
     class FeedViewController: UIViewController {
         private var shortKit: ShortKit!
@@ -248,24 +225,17 @@ A full initialization with all configuration options set explicitly.
             let config = FeedConfig(
                 feedHeight: .fullscreen,
                 videoOverlay: .none,
-                carouselOverlay: .template(.default),
-                surveyOverlay: .template(.default),
-                adOverlay: .template(.default),
                 muteOnStart: true
             )
 
             shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
                 config: config,
-                userId: nil,
-                environment: .production,
+                embedId: "emb_your_embed_id",
                 clientAppName: "MyNewsApp",
                 clientAppVersion: "2.4.1",
                 customDimensions: ["custom_1": "sports"]
             )
-
-            shortKit.delegate = self
-            shortKit.overlayActionDelegate = self
 
             let feedVC = ShortKitFeedViewController(shortKit: shortKit)
             addChild(feedVC)
@@ -285,14 +255,6 @@ A full initialization with all configuration options set explicitly.
     import dev.shortkit.FeedConfig
     import dev.shortkit.FeedHeight
     import dev.shortkit.VideoOverlayMode
-    import dev.shortkit.OverlayTemplate
-    import dev.shortkit.CarouselOverlayMode
-    import dev.shortkit.CarouselTemplate
-    import dev.shortkit.SurveyOverlayMode
-    import dev.shortkit.SurveyTemplate
-    import dev.shortkit.AdOverlayMode
-    import dev.shortkit.AdOverlayTemplate
-    import dev.shortkit.Environment
     import dev.shortkit.ShortKitFeedView
 
     class MainActivity : AppCompatActivity() {
@@ -302,17 +264,13 @@ A full initialization with all configuration options set explicitly.
             val config = FeedConfig(
                 feedHeight = FeedHeight.Fullscreen,
                 videoOverlay = VideoOverlayMode.None,
-                carouselOverlay = CarouselOverlayMode.Template(CarouselTemplate.Default),
-                surveyOverlay = SurveyOverlayMode.Template(SurveyTemplate.Default),
-                adOverlay = AdOverlayMode.Template(AdOverlayTemplate.Default),
                 muteOnStart = true
             )
 
             val shortKit = ShortKit(
                 apiKey = "pk_live_your_publishable_key",
                 config = config,
-                userId = null,
-                environment = Environment.Production,
+                embedId = "emb_your_embed_id",
                 clientAppName = "MyNewsApp",
                 clientAppVersion = "2.4.1",
                 customDimensions = mapOf("custom_1" to "sports")
@@ -327,26 +285,27 @@ A full initialization with all configuration options set explicitly.
   <Tab title="React Native">
     ```tsx App.tsx
     import React from 'react';
-    import { ShortKit, ShortKitFeed } from '@shortkit/react-native';
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+    import type { FeedConfig } from '@shortkitsdk/react-native';
 
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-      config: {
-        feedHeight: 'fullscreen',
-        videoOverlay: 'none',
-        carouselOverlay: { template: 'default' },
-        surveyOverlay: { template: 'default' },
-        adOverlay: { template: 'default' },
-        muteOnStart: true,
-      },
-      environment: 'production',
-      clientAppName: 'MyNewsApp',
-      clientAppVersion: '2.4.1',
-      customDimensions: { custom_1: 'sports' },
-    });
+    const config: FeedConfig = {
+      feedHeight: { type: 'fullscreen' },
+      videoOverlay: 'none',
+      muteOnStart: true,
+    };
 
     export default function App() {
-      return <ShortKitFeed style={{ flex: 1 }} />;
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={config}
+          clientAppName="MyNewsApp"
+          clientAppVersion="2.4.1"
+          customDimensions={{ custom_1: 'sports' }}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
+      );
     }
     ```
   </Tab>

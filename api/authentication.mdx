@@ -93,7 +93,7 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 | `/v1/feed/videos` | GET | Fetch video-only feed |
 | `/v1/events` | POST | Ingest analytics events |
 | `/v1/identity/resolve` | POST | Link anonymous device to known user |
-| `/v1/surveys/{id}/respond` | POST | Submit survey response |
+| `/v1/surveys/{id}/responses` | POST | Submit survey response |
 
 ### Secret key or portal JWT (`Authorization: Bearer` header)
 
@@ -144,7 +144,7 @@ curl -X POST https://api.shortkit.dev/v1/org/rotate-secret-key \
 ```json
 {
   "data": {
-    "secret_key": "sk_live_d4e5f6_NewKeyRandomPartHere..."
+    "secretKey": "sk_live_d4e5f6_NewKeyRandomPartHere..."
   },
   "meta": {
     "request_id": "req_8f3a2b1c"
@@ -164,10 +164,6 @@ Update your server environment variables with the new key before discarding the 
 ## Key expiration
 
 API keys do not expire automatically. Both publishable and secret keys remain valid until the secret key is manually rotated. There is no time-based expiration policy -- you control the key lifecycle through rotation.
-
-## Rate limiting
-
-All API requests are rate-limited to **120 requests per minute** per key/IP combination, using a sliding 60-second window. When exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header.
 
 ## Authentication errors
 

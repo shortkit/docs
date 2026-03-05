@@ -22,7 +22,7 @@ public class ShortKitFeedViewController: UIViewController {
     Push onto a `UINavigationController`:
 
     ```swift ViewController.swift
-    import ShortKit
+    import ShortKitSDK
 
     class ViewController: UIViewController {
         private var shortKit: ShortKit!
@@ -67,14 +67,17 @@ public class ShortKitFeedViewController: UIViewController {
   <Tab title="React Native">
     ```tsx FeedScreen.tsx
     import React from 'react';
-    import { ShortKit, ShortKitFeed } from '@shortkit/react-native';
-
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-    });
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
     export default function FeedScreen() {
-      return <ShortKitFeed style={{ flex: 1 }} />;
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={{}}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
+      );
     }
     ```
   </Tab>
@@ -111,7 +114,7 @@ public struct ShortKitFeedView: UIViewControllerRepresentable {
   <Tab title="iOS (SwiftUI)">
     ```swift ContentView.swift
     import SwiftUI
-    import ShortKit
+    import ShortKitSDK
 
     struct ContentView: View {
         let shortKit = ShortKit(
@@ -148,14 +151,17 @@ public struct ShortKitFeedView: UIViewControllerRepresentable {
   <Tab title="React Native">
     ```tsx
     import React from 'react';
-    import { ShortKit, ShortKitFeed } from '@shortkit/react-native';
-
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key',
-    });
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
     export default function App() {
-      return <ShortKitFeed style={{ flex: 1 }} />;
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={{}}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
+      );
     }
     ```
   </Tab>

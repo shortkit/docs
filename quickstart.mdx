@@ -146,8 +146,8 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
     struct FeedScreen: View {
         let shortKit = ShortKit(
             apiKey: "pk_live_your_publishable_key",
-            embedId: "emb_your_embed_id",
-            config: FeedConfig()
+            config: FeedConfig(),
+            embedId: "emb_your_embed_id"
         )
 
         var body: some View {
@@ -168,8 +168,8 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
 
             let shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
-                embedId: "emb_your_embed_id",
-                config: FeedConfig()
+                config: FeedConfig(),
+                embedId: "emb_your_embed_id"
             )
             let feedVC = ShortKitFeedViewController(shortKit: shortKit)
             addChild(feedVC)
@@ -208,30 +208,34 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
   </Tab>
   <Tab title="React Native">
     ```tsx
-    import { ShortKitFeed } from "@shortkitsdk/react-native";
+    import { ShortKitProvider, ShortKitFeed } from "@shortkitsdk/react-native";
 
     export default function FeedPage() {
       return (
-        <ShortKitFeed
+        <ShortKitProvider
           apiKey="pk_live_your_publishable_key"
           embedId="emb_your_embed_id"
-          style={{ width: "100%", height: "100vh" }}
-        />
+          config={{ feedHeight: { type: "fullscreen" } }}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
       );
     }
     ```
   </Tab>
   <Tab title="Expo">
     ```tsx
-    import { ShortKitFeed } from "@shortkitsdk/react-native";
+    import { ShortKitProvider, ShortKitFeed } from "@shortkitsdk/react-native";
 
     export default function FeedPage() {
       return (
-        <ShortKitFeed
+        <ShortKitProvider
           apiKey="pk_live_your_publishable_key"
           embedId="emb_your_embed_id"
-          style={{ width: "100%", height: "100vh" }}
-        />
+          config={{ feedHeight: { type: "fullscreen" } }}
+        >
+          <ShortKitFeed style={{ flex: 1 }} />
+        </ShortKitProvider>
       );
     }
     ```
