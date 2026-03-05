@@ -13,7 +13,7 @@ Pass an `adProvider` to the `ShortKit` initializer. When `adProvider` is `nil` (
 <Tabs>
   <Tab title="iOS">
     ```swift
-    import ShortKit
+    import ShortKitSDK
     import ShortKitGoogleAds
 
     let shortKit = ShortKit(
@@ -37,16 +37,7 @@ Pass an `adProvider` to the `ShortKit` initializer. When `adProvider` is `nil` (
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    import { ShortKit } from '@shortkit/react-native';
-    import { GoogleAdsProvider } from '@shortkit/react-native/ads';
-
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_...',
-      config: {},
-      adProvider: new GoogleAdsProvider()
-    });
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -97,14 +88,7 @@ The waterfall path is driven by the `adFormat` field on each ad slot (set server
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    new GoogleAdsProvider({
-      nativeLoadTimeout: 6.0,
-      imaLoadTimeout: 8.0,
-      language: null,
-      enableDebugMode: false
-    })
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -141,13 +125,7 @@ Use this provider directly if you only want VAST ads and do not need the native 
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    new GoogleIMAAdProvider({
-      loadTimeout: 8.0,
-      language: null,
-      enableDebugMode: false
-    })
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -274,13 +252,7 @@ Implement the `ShortKitAdProvider` protocol to integrate any ad SDK.
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    interface ShortKitAdProvider {
-      loadAd(slot: AdSlot): Promise<PreparedAd>;
-      displayAd(ad: PreparedAd, containerId: string, delegate: ShortKitAdDelegate): void;
-      dismissAd(ad: PreparedAd): void;
-    }
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -319,14 +291,7 @@ Returned by `loadAd` on success. Carries the loaded ad data for later display.
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    interface PreparedAd {
-      slotId: string;
-      skipPolicy: SkipPolicy;
-      providerData: unknown;
-      nativeContent?: NativeAdContent;
-    }
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -372,21 +337,7 @@ Populate this struct to have ShortKit render a custom native ad using its own pl
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    interface NativeAdContent {
-      videoUrl: string;
-      headline?: string;
-      body?: string;
-      callToAction?: string;
-      advertiser?: string;
-      sponsorIconUri?: string;
-      adChoicesIconUri?: string;
-      onAdChoicesClick?: () => void;
-      onCtaClick?: () => void;
-      onRecordImpression?: () => void;
-      aspectRatio?: number;
-    }
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -471,16 +422,7 @@ The `ShortKitAdDelegate` protocol receives lifecycle callbacks from ad providers
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    interface ShortKitAdDelegate {
-      onAdStart(ad: PreparedAd): void;
-      onAdQuartile(ad: PreparedAd, quartile: AdQuartile): void;
-      onAdComplete(ad: PreparedAd): void;
-      onAdSkipped(ad: PreparedAd, watchTime: number): void;
-      onAdFail(ad: PreparedAd, error: AdError): void;
-      onAdClick(ad: PreparedAd): void;
-    }
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -541,7 +483,7 @@ If you are using `GoogleAdsProvider` or `GoogleIMAAdProvider`, complete the foll
         .target(
             name: "YourApp",
             dependencies: [
-                .product(name: "ShortKit", package: "shortkit-ios"),
+                .product(name: "ShortKitSDK", package: "shortkit-ios"),
                 .product(name: "ShortKitGoogleAds", package: "shortkit-ios")
             ]
         )
@@ -565,13 +507,7 @@ If you are using `GoogleAdsProvider` or `GoogleIMAAdProvider`, complete the foll
     ```
   </Tab>
   <Tab title="React Native">
-    Install the ads companion package:
-
-    ```bash
-    npm install @shortkit/react-native-google-ads
-    ```
-
-    For iOS, run `cd ios && pod install` after installation.
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 
@@ -631,11 +567,7 @@ Call `MobileAds.shared.start()` at app launch, before initializing ShortKit. Thi
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript App.tsx
-    import { MobileAds } from '@shortkit/react-native-google-ads';
-
-    MobileAds.initialize();
-    ```
+    Ad integration for React Native is coming soon. Ads are currently supported on iOS and Android native SDKs only.
   </Tab>
 </Tabs>
 

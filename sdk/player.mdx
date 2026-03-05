@@ -47,27 +47,18 @@ Publishers emit values whenever the corresponding state changes. Subscribe to re
     ```
   </Tab>
   <Tab title="React Native">
-    The React Native SDK provides an event emitter and React hooks.
+    The React Native SDK exposes all player state reactively through the `useShortKitPlayer()` hook. State updates trigger re-renders automatically.
 
-    ```typescript
-    import { usePlayerState } from '@shortkit/react-native';
+    ```tsx
+    import { useShortKitPlayer } from '@shortkitsdk/react-native';
 
     function MyOverlay() {
-      const state = usePlayerState();
-      return <Text>{state}</Text>;
+      const { playerState } = useShortKitPlayer();
+      return <Text>{playerState}</Text>;
     }
     ```
 
-    For non-React contexts, use the event emitter directly:
-
-    ```typescript
-    const subscription = shortKit.player.on('playerState', (state) => {
-      console.log('State:', state);
-    });
-
-    // Clean up when done
-    subscription.remove();
-    ```
+    The hook returns a single object containing every publisher value and every command. Destructure what you need — your component re-renders when any included value changes.
   </Tab>
 </Tabs>
 
@@ -106,9 +97,12 @@ For cases where you need a point-in-time read without setting up a subscription,
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    const item = shortKit.player.getCurrentItem();    // ContentItem | null
-    const rate = shortKit.player.getPlaybackRate();   // number
+    The React Native SDK does not have separate synchronous accessors. The `useShortKitPlayer()` hook provides reactive state that is always current:
+
+    ```tsx
+    import { useShortKitPlayer } from '@shortkitsdk/react-native';
+
+    const { currentItem, playbackRate } = useShortKitPlayer();
     ```
   </Tab>
 </Tabs>
@@ -163,21 +157,29 @@ Commands are fire-and-forget methods that control playback. The SDK routes each 
     ```
   </Tab>
   <Tab title="React Native">
-    ```typescript
-    shortKit.player.play();
-    shortKit.player.pause();
-    shortKit.player.seek(15.0);
-    shortKit.player.seekAndPlay(15.0);
-    shortKit.player.setMuted(false);
-    shortKit.player.skipToNext();
-    shortKit.player.skipToPrevious();
-    shortKit.player.setPlaybackRate(1.5);
-    shortKit.player.sendContentSignal('positive');
-    shortKit.player.setMaxBitrate(2_000_000);
-    shortKit.player.setCaptionsEnabled(true);
-    shortKit.player.selectCaptionTrack('en');
+    ```tsx
+    import { useShortKitPlayer } from '@shortkitsdk/react-native';
 
-    const thumbnail: string | null = shortKit.player.seekThumbnail(30.0);
+    const {
+      play, pause, seek, seekAndPlay,
+      setMuted, skipToNext, skipToPrevious,
+      setPlaybackRate, sendContentSignal,
+      setMaxBitrate, setCaptionsEnabled,
+      selectCaptionTrack,
+    } = useShortKitPlayer();
+
+    play();
+    pause();
+    seek(15.0);
+    seekAndPlay(15.0);
+    setMuted(false);
+    skipToNext();
+    skipToPrevious();
+    setPlaybackRate(1.5);
+    sendContentSignal('positive');
+    setMaxBitrate(2_000_000);
+    setCaptionsEnabled(true);
+    selectCaptionTrack('en');
     ```
   </Tab>
 </Tabs>
@@ -460,25 +462,20 @@ This example builds a minimal custom overlay that shows a play/pause button and 
     ```tsx
     import React from 'react';
     import { View, Text, TouchableOpacity } from 'react-native';
-    import {
-      usePlayerState,
-      usePlayerTime,
-      useCurrentItem,
-      useShortKitPlayer
-    } from '@shortkit/react-native';
+    import { useShortKitPlayer } from '@shortkitsdk/react-native';
 
     export function MinimalOverlay() {
-      const player = useShortKitPlayer();
-      const state = usePlayerState();
-      const time = usePlayerTime();
-      const item = useCurrentItem();
+      const {
+        playerState, time, currentItem,
+        play, pause,
+      } = useShortKitPlayer();
 
       const progress = time.duration > 0 ? time.current / time.duration : 0;
 
       return (
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
           <Text style={{ color: 'white', fontSize: 16, marginBottom: 8 }}>
-            {item?.title}
+            {currentItem?.title}
           </Text>
 
           <View style={{ height: 3, backgroundColor: '#333', borderRadius: 1.5 }}>
@@ -491,11 +488,11 @@ This example builds a minimal custom overlay that shows a play/pause button and 
           </View>
 
           <TouchableOpacity
-            onPress={() => state === 'playing' ? player.pause() : player.play()}
+            onPress={() => playerState === 'playing' ? pause() : play()}
             style={{ marginTop: 12, alignSelf: 'center' }}
           >
             <Text style={{ color: 'white', fontSize: 24 }}>
-              {state === 'playing' ? '⏸' : '▶'}
+              {playerState === 'playing' ? '⏸' : '▶'}
             </Text>
           </TouchableOpacity>
         </View>
