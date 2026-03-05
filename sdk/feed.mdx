@@ -1,10 +1,9 @@
 ---
-title: "Feed"
-description: "Display and configure the ShortKit video feed. Covers UIKit and SwiftUI components, feed item types, pagination, and delegate callbacks."
+title: "Embedding a Feed"
 keywords: ["feed", "video feed", "ShortKitFeedViewController", "ShortKitFeedView", "FeedItem", "delegate", "pagination"]
 ---
 
-The feed is the core UI surface of ShortKit -- a vertically-snapping, full-screen video player that handles pagination, player pooling, ads, overlays, captions, and engagement tracking. You create a `ShortKit` instance and hand it to one of two feed components depending on your UI framework.
+To embed a video feed, create a `ShortKit` instance and hand it to one of two feed components depending on your UI framework. The feed supports four item types: video, image carousel, survey, and ad slot. For full model definitions, field descriptions, and usage examples across all platforms, see the [Content Types](/guides/content-types) guide.
 
 ## ShortKitFeedViewController (UIKit)
 
@@ -182,111 +181,5 @@ var body: some View {
         CustomBottomBar()
     }
 }
-```
-
-## Feed item types
-
-The feed is a sequence of `FeedItem` values. Each item is a discriminated union (tagged enum) that the SDK decodes from the API response and renders with the appropriate cell type.
-
-```swift
-public enum FeedItem: Sendable, Hashable, Codable {
-    case content(ContentItem)
-    case imageCarousel(ImageCarouselItem)
-    case survey(SurveyItem)
-    case adSlot(AdSlot)
-
-    public var id: String
-}
-```
-
-### `.content(ContentItem)`
-
-A short-form video. This is the primary feed item type. Contains the HLS streaming URL, thumbnail, caption tracks, and optional news metadata (author, article URL, comment count).
-
-```swift
-public struct ContentItem: Codable, Equatable, Sendable {
-    public let id: String
-    public let title: String
-    public let description: String?
-    public let duration: Double
-    public let streamingUrl: String
-    public let thumbnailUrl: String
-    public let captionTracks: [CaptionTrack]
-    public let customMetadata: [String: JSONValue]?
-    public let author: String?
-    public let articleUrl: String?
-    public let commentCount: Int?
-}
-```
-
-See the [Player](/sdk/reference) documentation for controlling video playback via `shortKit.player`.
-
-### `.imageCarousel(ImageCarouselItem)`
-
-A horizontally-paged set of images with optional auto-scroll. Rendered inline in the feed between videos. Configure the carousel UI with `FeedConfig.carouselMode`.
-
-```swift
-public struct ImageCarouselItem: Codable, Equatable, Sendable {
-    public let id: String
-    public let images: [CarouselImage]
-    public let autoScrollInterval: Double?
-    public let caption: String?
-    public let title: String?
-    public let description: String?
-    public let author: String?
-    public let section: String?
-    public let articleUrl: String?
-}
-```
-
-Each `CarouselImage` has a `url` and optional `alt` text.
-
-### `.survey(SurveyItem)`
-
-An inline poll or question with tappable options. After the user selects an option, the SDK fires the `didRespondToSurvey` delegate callback and auto-advances to the next item after `autoAdvanceDelay` seconds. Configure the survey UI with `FeedConfig.surveyMode`.
-
-```swift
-public struct SurveyItem: Codable, Equatable, Sendable {
-    public let id: String
-    public let question: String
-    public let options: [SurveyOption]
-    public let autoAdvanceDelay: Double?
-}
-```
-
-Each `SurveyOption` has an `id` and display `text`.
-
-### `.adSlot(AdSlot)`
-
-A placeholder for a monetization unit. The SDK calls your `ShortKitAdProvider` to load and display an ad when this slot enters the viewport. Ad slots are inserted by the backend at configured intervals. See the [Ad Integration](/sdk/ads) guide for setup.
-
-```swift
-public struct AdSlot: Codable, Sendable, Equatable {
-    public let id: String
-    public let position: Int
-    public let adTagUrl: String?
-    public let adUnitId: String?
-    public let targeting: [String: String]
-    public let skipPolicy: SkipPolicy
-}
-```
-
-### Convenience accessors
-
-Every `FeedItem` exposes type-check booleans and unwrap accessors:
-
-```swift
-let item: FeedItem = ...
-
-item.isContent        // true if .content
-item.isImageCarousel  // true if .imageCarousel
-item.isSurvey         // true if .survey
-item.isAdSlot         // true if .adSlot
-item.isNonVideo       // true for carousel, survey, and ad items
-
-item.contentItem          // ContentItem? -- nil unless .content
-item.imageCarouselItem    // ImageCarouselItem? -- nil unless .imageCarousel
-item.surveyItem           // SurveyItem? -- nil unless .survey
-item.adSlot               // AdSlot? -- nil unless .adSlot
 ```
 
