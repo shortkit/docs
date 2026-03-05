@@ -8,40 +8,25 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
 ## Requirements
 
-<Tabs>
-  <Tab title="Swift">
-    - iOS 16.0+
-    - Xcode 15+
-    - Swift 5.9+
-  </Tab>
-  <Tab title="Kotlin">
-    - Android API 24+ (Android 7.0)
-    - Kotlin 1.9+
-    - Android Studio Hedgehog+
-  </Tab>
-  <Tab title="React Native">
-    - React Native 0.72+
-    - iOS 16.0+ / Android API 24+
-    - Expo SDK 50+ (if using Expo)
-  </Tab>
-  <Tab title="Web">
-    - Any modern browser (Chrome 80+, Safari 14+, Firefox 78+, Edge 80+)
-    - Node.js 16+ (if using npm)
-  </Tab>
-</Tabs>
+| Platform | Minimum requirements |
+|---|---|
+| **iOS** | iOS 16.0+, Xcode 15+, Swift 5.9+ |
+| **Android** | Android API 24+ (Android 7.0), Kotlin 1.9+, Android Studio Hedgehog+ |
+| **React Native** | React Native 0.76+, iOS 16.0+, Android API 24+ |
+| **Expo** | Expo SDK 52+, React Native 0.76+, iOS 16.0+, Android API 24+ |
+| **Web** | Chrome 80+, Safari 14+, Firefox 78+, Edge 80+, Node.js 16+ (if using npm) |
 
 ## Package structure
 
 <Tabs>
   <Tab title="Swift">
-    The SDK ships two library products:
+    The SDK ships as a pre-compiled binary XCFramework via Swift Package Manager:
 
     | Product | Purpose | External dependencies |
     |---|---|---|
-    | `ShortKit` | Core SDK: feed, player, overlays, analytics, captions | **None.** Uses only Foundation, UIKit, AVFoundation, and SwiftUI. |
-    | `ShortKitGoogleAds` | Google ad adapters (`GoogleAdsProvider`, `GoogleIMAAdProvider`) | `GoogleInteractiveMediaAds` >= 3.23.0, `GoogleMobileAds` >= 12.0.0 |
+    | `ShortKitSDK` | Core SDK: feed, player, overlays, analytics, captions | **None.** Uses only Foundation, UIKit, AVFoundation, and SwiftUI. |
 
-    Most integrations only need `ShortKit`. Add `ShortKitGoogleAds` if you want to monetize with Google IMA VAST or Google Ad Manager native ads.
+    Import the module in your code with `import ShortKitSDK`.
   </Tab>
   <Tab title="Kotlin">
     The SDK ships two Maven artifacts:
@@ -73,10 +58,10 @@ Get ShortKit installed and verified in your app. Choose your platform below.
         ```
       </Step>
       <Step title="Select your version rule">
-        Choose **Up to Next Major Version** and set the minimum to `1.0.0`. Click **Add Package**.
+        Choose **Up to Next Major Version** and set the minimum to `0.1.0`. Click **Add Package**.
       </Step>
       <Step title="Add to your target">
-        Select the `ShortKit` library product and add it to your app target. If you need Google ad support, also select `ShortKitGoogleAds`.
+        Select the `ShortKitSDK` library product and add it to your app target. If you need Google ad support, also select `ShortKitGoogleAds`.
       </Step>
     </Steps>
 
@@ -86,7 +71,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     ```swift Package.swift
     dependencies: [
-        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "1.0.0")
+        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.1.0")
     ]
     ```
 
@@ -97,7 +82,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
         .target(
             name: "YourApp",
             dependencies: [
-                .product(name: "ShortKit", package: "shortkit-ios"),
+                .product(name: "ShortKitSDK", package: "shortkit-ios"),
                 // Optional: add only if you need Google ad support
                 .product(name: "ShortKitGoogleAds", package: "shortkit-ios")
             ]
@@ -112,7 +97,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     ```kotlin build.gradle.kts
     dependencies {
-        implementation("dev.shortkit:shortkit:1.0.0")
+        implementation("dev.shortkit:shortkit:0.1.0")
     }
     ```
 
@@ -126,29 +111,68 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     <CodeGroup>
 
     ```bash npm
-    npm install @shortkit/react-native
+    npm install @shortkitsdk/react-native
     ```
 
     ```bash yarn
-    yarn add @shortkit/react-native
-    ```
-
-    ```bash expo
-    npx expo install @shortkit/react-native
+    yarn add @shortkitsdk/react-native
     ```
 
     </CodeGroup>
 
-    ### iOS pod install (React Native CLI only)
-
-    If you are using the React Native CLI (not Expo), install the iOS native dependencies:
+    Then install the iOS native dependencies:
 
     ```bash
     cd ios && pod install
     ```
+  </Tab>
+  <Tab title="Expo">
+    Install the package using the Expo CLI:
+
+    ```bash
+    npx expo install @shortkitsdk/react-native
+    ```
+
+    ### Add the config plugin
+
+    Add `@shortkitsdk/react-native` to the `plugins` array in your `app.json` (or `app.config.js`):
+
+    ```json app.json
+    {
+      "expo": {
+        "plugins": [
+          "@shortkitsdk/react-native"
+        ]
+      }
+    }
+    ```
+
+    The plugin automatically sets the iOS deployment target to 16.0 and the Android `minSdkVersion` to 24.
+
+    ### Rebuild native projects
+
+    After adding the plugin, regenerate the native projects:
+
+    ```bash
+    npx expo prebuild --clean
+    ```
+
+    Then build and run:
+
+    <CodeGroup>
+
+    ```bash iOS
+    npx expo run:ios
+    ```
+
+    ```bash Android
+    npx expo run:android
+    ```
+
+    </CodeGroup>
 
     <Note>
-      Expo managed workflow projects do not need to run `pod install`. The native modules are linked automatically during the Expo prebuild step.
+      If you use [EAS Build](https://docs.expo.dev/build/introduction/), the config plugin runs automatically during the cloud build — no need to run `prebuild` locally.
     </Note>
   </Tab>
   <Tab title="Web">
@@ -204,7 +228,7 @@ This section applies only if you added the `ShortKitGoogleAds` product (Swift) o
     ### 3. Pass a Google ad provider to ShortKit
 
     ```swift
-    import ShortKit
+    import ShortKitSDK
     import ShortKitGoogleAds
 
     let shortKit = ShortKit(
@@ -230,8 +254,8 @@ This section applies only if you added the `ShortKitGoogleAds` product (Swift) o
 
     ```kotlin build.gradle.kts
     dependencies {
-        implementation("dev.shortkit:shortkit:1.0.0")
-        implementation("dev.shortkit:shortkit-google-ads:1.0.0")
+        implementation("dev.shortkit:shortkit:0.1.0")
+        implementation("dev.shortkit:shortkit-google-ads:0.1.0")
     }
     ```
 
@@ -296,7 +320,7 @@ Build and run this minimal example to confirm the import resolves and the SDK in
   <Tab title="Swift (SwiftUI)">
     ```swift App.swift
     import SwiftUI
-    import ShortKit
+    import ShortKitSDK
 
     @main
     struct MyApp: App {
@@ -317,7 +341,7 @@ Build and run this minimal example to confirm the import resolves and the SDK in
   <Tab title="Swift (UIKit)">
     ```swift ViewController.swift
     import UIKit
-    import ShortKit
+    import ShortKitSDK
 
     class ViewController: UIViewController {
         override func viewDidLoad() {
@@ -368,7 +392,28 @@ Build and run this minimal example to confirm the import resolves and the SDK in
   <Tab title="React Native">
     ```tsx App.tsx
     import React from 'react';
-    import { ShortKit, ShortKitFeed } from '@shortkit/react-native';
+    import { ShortKit, ShortKitFeed } from '@shortkitsdk/react-native';
+
+    const shortKit = ShortKit.initialize({
+      apiKey: 'pk_live_your_publishable_key',
+      config: { feedHeight: 'fullscreen' }
+    });
+
+    export default function App() {
+      return <ShortKitFeed style={{ flex: 1 }} />;
+    }
+    ```
+  </Tab>
+  <Tab title="Expo">
+    The same React Native code works in Expo. Ensure you have added the config plugin to `app.json` as described in the installation step above, then run:
+
+    ```bash
+    npx expo run:ios
+    ```
+
+    ```tsx App.tsx
+    import React from 'react';
+    import { ShortKit, ShortKitFeed } from '@shortkitsdk/react-native';
 
     const shortKit = ShortKit.initialize({
       apiKey: 'pk_live_your_publishable_key',
@@ -420,7 +465,7 @@ If you have content uploaded to your ShortKit account, you should see a vertical
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="iOS: 'No such module ShortKit'">
+  <Accordion title="iOS: 'No such module ShortKitSDK'">
     This means Xcode has not resolved the Swift Package dependency.
 
     1. Verify the package URL is exactly `https://github.com/shortkit/shortkit-ios`
@@ -435,6 +480,13 @@ If you have content uploaded to your ShortKit account, you should see a vertical
     1. Select your project in the Xcode navigator
     2. Under the **General** tab, set **Minimum Deployments** to iOS 16.0 or higher
     3. If you have multiple targets, update each one
+  </Accordion>
+  <Accordion title="iOS: XCFramework download fails or checksum mismatch">
+    ShortKitSDK is distributed as a pre-compiled XCFramework. If the download fails:
+
+    1. Check your internet connection — the binary is downloaded from GitHub Releases
+    2. Go to **File** then **Packages** then **Reset Package Caches** and resolve again
+    3. If you see a checksum mismatch, ensure you are on the latest version of the package
   </Accordion>
   <Accordion title="iOS: Google Ads linker errors">
     If you see undefined symbol errors related to Google SDKs after adding `ShortKitGoogleAds`:
@@ -461,9 +513,16 @@ If you have content uploaded to your ShortKit account, you should see a vertical
     If you see an error about `ShortKit` not being found at runtime:
 
     - **React Native CLI:** Run `cd ios && pod install` and rebuild
-    - **Expo:** Run `npx expo prebuild --clean` and rebuild
     - Verify autolinking is enabled (check `react-native.config.js` is not excluding the package)
     - Clear the Metro cache: `npx react-native start --reset-cache`
+  </Accordion>
+  <Accordion title="Expo: Config plugin not applied / pod install fails">
+    If the native build fails after adding the package:
+
+    1. Confirm `"@shortkitsdk/react-native"` is in the `plugins` array in your `app.json` or `app.config.js`
+    2. Run `npx expo prebuild --clean` to regenerate native projects from scratch
+    3. If using EAS Build, ensure `@shortkitsdk/react-native` is listed in your `package.json` dependencies (not just devDependencies)
+    4. Clear the Metro cache: `npx expo start --clear`
   </Accordion>
   <Accordion title="Web: ShortKit is not defined">
     If you are using the CDN script tag and see `ShortKit is not defined`:

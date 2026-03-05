@@ -1,54 +1,54 @@
 ---
 title: "Overlays"
-description: "Configure the UI layer on top of ShortKit's video player -- use a built-in template or build your own with the FeedOverlay protocol."
-keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "player", "publishers", "commands"]
+description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, SurveyOverlay, and AdOverlay protocols."
+keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
 
-## Overlay modes
+## Video overlay modes
 
-`OverlayMode` controls what UI the SDK renders on top of video content. Set it via `FeedConfig`:
+`VideoOverlayMode` controls what UI the SDK renders on top of video content. Set it via `FeedConfig`:
 
 <Tabs>
   <Tab title="Swift">
     ```swift
     // Built-in template
-    let config = FeedConfig(overlay: .template(.news))
+    let config = FeedConfig(videoOverlay: .template(.news))
 
     // Custom overlay -- you provide the UI, SDK manages the lifecycle
-    let config = FeedConfig(overlay: .custom {
+    let config = FeedConfig(videoOverlay: .custom {
         MyOverlay(theme: .dark)
     })
 
     // No overlay -- bare video, no UI
-    let config = FeedConfig(overlay: .none)
+    let config = FeedConfig(videoOverlay: .none)
     ```
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
     // Built-in template
-    val config = FeedConfig(overlay = OverlayMode.Template(OverlayTemplate.NEWS))
+    val config = FeedConfig(videoOverlay = VideoOverlayMode.Template(OverlayTemplate.NEWS))
 
     // Custom overlay
-    val config = FeedConfig(overlay = OverlayMode.Custom {
+    val config = FeedConfig(videoOverlay = VideoOverlayMode.Custom {
         MyOverlay(theme = Theme.Dark)
     })
 
     // No overlay
-    val config = FeedConfig(overlay = OverlayMode.None)
+    val config = FeedConfig(videoOverlay = VideoOverlayMode.None)
     ```
   </Tab>
   <Tab title="React Native">
     ```tsx
     // Built-in template
-    <ShortKitFeed overlay={{ mode: "template", template: "news" }} />
+    <ShortKitFeed videoOverlay={{ mode: "template", template: "news" }} />
 
     // Custom overlay
-    <ShortKitFeed overlay={{ mode: "custom", component: MyOverlay }} />
+    <ShortKitFeed videoOverlay={{ mode: "custom", component: MyOverlay }} />
 
     // No overlay
-    <ShortKitFeed overlay={{ mode: "none" }} />
+    <ShortKitFeed videoOverlay={{ mode: "none" }} />
     ```
   </Tab>
 </Tabs>
@@ -59,7 +59,7 @@ Overlays are full-screen views layered on top of the video player in each feed c
 | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You build the UI, the SDK handles when to configure, activate, and transition it. |
 | `.none` | SDK renders only the raw video. No overlay, no controls. |
 
-## Custom overlays
+## Custom video overlays
 
 When the built-in template doesn't fit your product -- custom controls, branded UI, domain-specific actions -- use `.custom` to provide your own overlay. The SDK manages per-cell creation, content binding, and transition lifecycle exactly as it does for built-in templates. You own the UI; the SDK owns the lifecycle.
 
@@ -114,7 +114,7 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
 <Tabs>
   <Tab title="Swift">
     ```swift
-    let config = FeedConfig(overlay: .custom {
+    let config = FeedConfig(videoOverlay: .custom {
         MyOverlay(theme: .dark, analytics: myTracker)
     })
 
@@ -123,7 +123,7 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
-    val config = FeedConfig(overlay = OverlayMode.Custom {
+    val config = FeedConfig(videoOverlay = VideoOverlayMode.Custom {
         MyOverlay(context, theme = Theme.Dark, analytics = myTracker)
     })
 
@@ -134,7 +134,7 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
     ```tsx
     <ShortKitFeed
       apiKey="pk_live_..."
-      overlay={{ mode: "custom", component: MyOverlay }}
+      videoOverlay={{ mode: "custom", component: MyOverlay }}
     />
     ```
   </Tab>
@@ -948,35 +948,38 @@ When your custom overlay includes actions like likes, shares, or saves, report t
 
 `OverlayActionDelegate` is not wired for custom overlays -- it is specific to built-in templates. Custom overlays handle their own user interaction callbacks and report engagement through content signals.
 
-## Carousel and survey modes
+## Carousel, survey, and ad overlay modes
 
-Image carousels and surveys follow the same overlay pattern as video content. Each has a mode enum with `.none`, `.template(...)`, and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
+Image carousels, surveys, and native ads follow the same overlay pattern as video content. Each has a mode enum with `.none`, `.template(...)`, and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
 
 <Tabs>
   <Tab title="Swift">
     ```swift
     let config = FeedConfig(
-        overlay: .custom { MyVideoOverlay() },
-        carouselMode: .custom { MyCarouselOverlay() },
-        surveyMode: .custom { MySurveyOverlay() }
+        videoOverlay: .custom { MyVideoOverlay() },
+        carouselOverlay: .custom { MyCarouselOverlay() },
+        surveyOverlay: .custom { MySurveyOverlay() },
+        adOverlay: .custom { MyAdOverlay() }
     )
     ```
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
     val config = FeedConfig(
-        overlay = OverlayMode.Custom { MyVideoOverlay(context) },
-        carouselMode = CarouselMode.Custom { MyCarouselOverlay(context) },
-        surveyMode = SurveyMode.Custom { MySurveyOverlay(context) }
+        videoOverlay = VideoOverlayMode.Custom { MyVideoOverlay(context) },
+        carouselOverlay = CarouselOverlayMode.Custom { MyCarouselOverlay(context) },
+        surveyOverlay = SurveyOverlayMode.Custom { MySurveyOverlay(context) },
+        adOverlay = AdOverlayMode.Custom { MyAdOverlay(context) }
     )
     ```
   </Tab>
   <Tab title="React Native">
     ```tsx
     <ShortKitFeed
-      overlay={{ mode: "custom", component: MyVideoOverlay }}
-      carouselMode={{ mode: "custom", component: MyCarouselOverlay }}
-      surveyMode={{ mode: "custom", component: MySurveyOverlay }}
+      videoOverlay={{ mode: "custom", component: MyVideoOverlay }}
+      carouselOverlay={{ mode: "custom", component: MyCarouselOverlay }}
+      surveyOverlay={{ mode: "custom", component: MySurveyOverlay }}
+      adOverlay={{ mode: "custom", component: MyAdOverlay }}
     />
     ```
   </Tab>
@@ -984,12 +987,15 @@ Image carousels and surveys follow the same overlay pattern as video content. Ea
 
 | Mode | Options | Behavior |
 |------|---------|----------|
-| `CarouselMode` | `.template(.default)` | Paged image gallery with page dots, text panel, action buttons, and "Read more" link. |
+| `CarouselOverlayMode` | `.template(.default)` | Paged image gallery with page dots, text panel, action buttons, and "Read more" link. |
 | | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the entire carousel UI. |
 | | `.none` | No carousel UI. Developer accesses raw `ImageCarouselItem` data. |
-| `SurveyMode` | `.template(.default)` | Centered question with styled option buttons, haptic feedback, and auto-advance after selection. |
+| `SurveyOverlayMode` | `.template(.default)` | Centered question with styled option buttons, haptic feedback, and auto-advance after selection. |
 | | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the survey UI and report responses via callbacks. |
 | | `.none` | No survey UI. Developer accesses raw `SurveyItem` data. |
+| `AdOverlayMode` | `.template(.default)` | Built-in native ad overlay: "Ad" badge, AdChoices icon, sponsor logo, headline, and CTA button. |
+| | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the ad UI and must handle policy compliance. |
+| | `.none` | No ad overlay UI. Developer accesses raw `NativeAdContent` data. |
 
 ### Custom carousel overlays
 
@@ -1066,3 +1072,55 @@ Custom survey overlays conform to `SurveyOverlay`. The protocol includes two cal
 | `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
 | `onSurveyResponse` | Set by SDK after creation. | Call this with the survey ID and selected option when the user taps an answer. The SDK forwards it to `ShortKitDelegate`. |
 | `onAutoAdvance` | Set by SDK after creation. | Call this after a short delay following selection (e.g. 500ms). The SDK scrolls to the next feed item. |
+
+### Custom ad overlays
+
+Custom ad overlays conform to `AdOverlay`. They apply to native ads only -- ads where the video plays through ShortKit's own `PlayerPool` and the SDK provides creative metadata via `NativeAdContent`. System-defined ads (IMA/VAST) render their own UI through the ad provider and are unaffected by this setting.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public protocol AdOverlay: AnyObject {
+        func configure(with content: NativeAdContent)
+        func resetState()
+        func fadeOutForTransition()
+        func restoreFromTransition()
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    interface AdOverlay {
+        fun configure(content: NativeAdContent)
+        fun resetState()
+        fun fadeOutForTransition()
+        fun restoreFromTransition()
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure(with:)` | A cell receives native ad content. | Display the headline, sponsor logo, CTA button, Ad badge, and AdChoices icon from the `NativeAdContent`. Call `content.recordImpression?()` when the ad becomes visible. |
+| `resetState()` | The cell is being prepared for new content. | Clear creative assets, reset impression state. |
+| `fadeOutForTransition()` | The user begins swiping to the next feed item. | Dim or hide your overlay during the transition. |
+| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
+
+`NativeAdContent` provides all creative assets and action handlers:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `headline` | `String?` | Ad headline text. |
+| `body` | `String?` | Description text. |
+| `callToAction` | `String?` | CTA label (e.g. "Learn More", "Shop Now"). |
+| `advertiser` | `String?` | Advertiser or sponsor name. |
+| `sponsorIcon` | `UIImage?` | Sponsor logo. |
+| `adChoicesIcon` | `UIImage?` | AdChoices icon from the ad SDK. |
+| `ctaClickHandler` | `(() -> Void)?` | Call when the user taps the CTA. |
+| `adChoicesClickHandler` | `(() -> Void)?` | Call when the user taps the AdChoices icon. |
+| `recordImpression` | `(() -> Void)?` | Call when the ad becomes visible. |
+
+<Warning>
+**Ad policy compliance.** When building a custom ad overlay, you are responsible for rendering the required policy elements: an "Ad" badge and a tappable AdChoices icon (minimum 15x15pt). The built-in `.template(.default)` handles these automatically. If you use `.custom`, verify your implementation meets your ad provider's display requirements.
+</Warning>
