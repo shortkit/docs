@@ -43,6 +43,7 @@
               "sdk/installation",
               "sdk/configuration",
               "sdk/feed",
+              "sdk/player-and-widget",
               "sdk/player",
               "sdk/overlays",
               "sdk/ads",

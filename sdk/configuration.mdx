@@ -15,7 +15,6 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
         public init(
             apiKey: String,
             config: FeedConfig,
-            embedId: String? = nil,
             userId: String? = nil,
             adProvider: ShortKitAdProvider? = nil,
             clientAppName: String? = nil,
@@ -31,7 +30,6 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
     class ShortKit(
         apiKey: String,
         config: FeedConfig,
-        embedId: String? = null,
         userId: String? = null,
         adProvider: ShortKitAdProvider? = null,
         clientAppName: String? = null,
@@ -48,7 +46,6 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
     interface ShortKitProviderProps {
       apiKey: string;
       config: FeedConfig;
-      embedId?: string;
       userId?: string;
       clientAppName?: string;
       clientAppVersion?: string;
@@ -63,7 +60,6 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
 |-----------|------|---------|-------------|
 | `apiKey` | `String` | **required** | Your publishable API key. Starts with `pk_live_` or `pk_test_`. |
 | `config` | `FeedConfig` | **required** | Feed layout and behavior configuration. See [FeedConfig](#feedconfig) below. |
-| `embedId` | `String?` | `nil` | Embed ID to scope content delivery and analytics. Created in the [portal](/portal/feed-configuration). |
 | `userId` | `String?` | `nil` | Known user ID. When provided, the SDK starts in identified mode immediately, skipping the anonymous-first flow. |
 | `adProvider` | `ShortKitAdProvider?` | `nil` | Ad provider for monetization. Pass `nil` to disable ads. See [Ad integration](/sdk/ads). |
 | `clientAppName` | `String?` | `nil` | App name included in analytics metadata. |
@@ -119,18 +115,22 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```typescript
     interface FeedConfig {
       feedHeight?: FeedHeight;
-      videoOverlay?: OverlayConfig;
-      carouselOverlay?: OverlayConfig;
-      surveyOverlay?: OverlayConfig;
-      adOverlay?: OverlayConfig;
+      overlay?: OverlayConfig;
+      carouselOverlay?: CarouselOverlayConfig;
+      surveyMode?: SurveyMode;
       muteOnStart?: boolean;
       feedSource?: 'algorithmic' | 'custom';
-      liveStream?: { streamingUrl: string; thumbnailUrl: string; position?: number };
     }
 
     type FeedHeight = { type: 'fullscreen' } | { type: 'percentage'; value: number };
     type OverlayConfig = 'none' | { type: 'custom'; component: React.ComponentType };
+    type CarouselOverlayConfig = 'none' | { type: 'custom'; component: React.ComponentType };
+    type SurveyMode = 'none' | { type: 'template'; name: 'default' };
     ```
+
+    <Note>
+      React Native uses different property names than the native SDKs: `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. See [Overlays](/sdk/overlays) for details.
+    </Note>
   </Tab>
 </Tabs>
 
@@ -195,7 +195,6 @@ A full initialization with all configuration options set explicitly.
             shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
                 config: config,
-                embedId: "emb_your_embed_id",
                 clientAppName: "MyNewsApp",
                 clientAppVersion: "2.4.1",
                 customDimensions: ["custom_1": "sports"]
@@ -231,7 +230,6 @@ A full initialization with all configuration options set explicitly.
             shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
                 config: config,
-                embedId: "emb_your_embed_id",
                 clientAppName: "MyNewsApp",
                 clientAppVersion: "2.4.1",
                 customDimensions: ["custom_1": "sports"]
@@ -270,7 +268,6 @@ A full initialization with all configuration options set explicitly.
             val shortKit = ShortKit(
                 apiKey = "pk_live_your_publishable_key",
                 config = config,
-                embedId = "emb_your_embed_id",
                 clientAppName = "MyNewsApp",
                 clientAppVersion = "2.4.1",
                 customDimensions = mapOf("custom_1" to "sports")
@@ -290,7 +287,7 @@ A full initialization with all configuration options set explicitly.
 
     const config: FeedConfig = {
       feedHeight: { type: 'fullscreen' },
-      videoOverlay: 'none',
+      overlay: 'none',
       muteOnStart: true,
     };
 

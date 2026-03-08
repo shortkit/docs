@@ -98,7 +98,25 @@ feedVC.didMove(toParent: self)
 
 ### Lifecycle
 
-`ShortKitFeedViewController` responds to standard UIKit lifecycle events. Playback pauses automatically when the view controller disappears and resumes when it reappears. You do not need to call `play()` or `pause()` manually during navigation transitions.
+<Tabs>
+  <Tab title="iOS">
+    `ShortKitFeedViewController` responds to standard UIKit lifecycle events. Playback pauses automatically when the view controller disappears and resumes when it reappears. You do not need to call `play()` or `pause()` manually during navigation transitions.
+  </Tab>
+  <Tab title="Android">
+    `ShortKitFeedFragment` manages playback lifecycle automatically — no manual calls needed. Resources are released when the Activity is destroyed.
+
+    If you embed the fragment inside a Compose `AndroidView` with tab-based visibility (where the fragment stays mounted but hidden), call `shortKit.pause()` and `shortKit.resume()` to stop playback on the hidden tab:
+
+    ```kotlin
+    LaunchedEffect(isVisible) {
+        if (isVisible) shortKit.resume() else shortKit.pause()
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    The React Native SDK automatically pauses and resumes playback when the app moves to and from the background using `AppState` listeners. No manual lifecycle management is needed.
+  </Tab>
+</Tabs>
 
 ## ShortKitFeedView (SwiftUI)
 

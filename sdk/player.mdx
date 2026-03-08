@@ -66,7 +66,7 @@ Publishers emit values whenever the corresponding state changes. Subscribe to re
 
 | Publisher | Type | Description |
 |---|---|---|
-| `time` | `PlayerTime` | Fires at ~10 Hz while playing. Contains `current`, `duration`, and `buffered` in seconds. Use for scrubber UI and caption sync. |
+| `time` | `PlayerTime` | Fires at ~10 Hz while playing. Contains `current`, `duration`, and `buffered`. Values are in **seconds** on iOS and React Native, and **milliseconds** on Android. Use for scrubber UI and caption sync. |
 | `playerState` | `PlayerState` | Fires on every playback state transition. See [Player state machine](#player-state-machine) below. |
 | `currentItem` | `ContentItem?` | Metadata for the active content item. `nil` when no content is loaded. |
 | `didLoop` | `LoopEvent` | Fires each time the current video loops back to the beginning. |
@@ -249,15 +249,30 @@ any state -> error                                         (unrecoverable failur
 
 Emitted by the `time` publisher at ~10 Hz during playback.
 
-```swift
-public struct PlayerTime: Equatable, Sendable {
-    public let current: Double   // Current playback position in seconds
-    public let duration: Double  // Total duration in seconds
-    public let buffered: Double  // Buffered position in seconds
-}
-```
+<Tabs>
+  <Tab title="iOS / React Native">
+    ```swift
+    public struct PlayerTime: Equatable, Sendable {
+        public let current: Double   // Current playback position in seconds
+        public let duration: Double  // Total duration in seconds
+        public let buffered: Double  // Buffered position in seconds
+    }
+    ```
 
-Compute progress as a fraction: `time.current / time.duration` (guard against `duration == 0`).
+    Compute progress as a fraction: `time.current / time.duration` (guard against `duration == 0`).
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    data class PlayerTime(
+        val currentMs: Long = 0,   // Current playback position in milliseconds
+        val durationMs: Long = 0,  // Total duration in milliseconds
+        val bufferedMs: Long = 0,  // Buffered position in milliseconds
+    )
+    ```
+
+    Compute progress as a fraction: `time.currentMs.toFloat() / time.durationMs` (guard against `durationMs == 0`).
+  </Tab>
+</Tabs>
 
 ### LoopEvent
 

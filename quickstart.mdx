@@ -28,7 +28,7 @@ Get your API key, upload a video, and display a feed.
 
     ```swift Package.swift
     dependencies: [
-        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.1.0")
+        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.2.3")
     ]
     ```
 
@@ -39,7 +39,7 @@ Get your API key, upload a video, and display a feed.
 
     ```kotlin build.gradle.kts
     dependencies {
-        implementation("dev.shortkit:shortkit:0.1.0")
+        implementation("dev.shortkit:shortkit:0.2.1")
     }
     ```
 
@@ -74,7 +74,7 @@ Get your API key, upload a video, and display a feed.
     ```
   </Tab>
   <Tab title="Web">
-    No installation needed. Add the script tag in step 5.
+    No installation needed. Add the script tag in step 3.
   </Tab>
 </Tabs>
 
@@ -105,37 +105,9 @@ Processing takes a few seconds. The video status changes from `waiting_for_uploa
   See the [upload pipeline guide](/guides/upload-pipeline) for details on metadata, captions, and carousel content.
 </Info>
 
-## 3. Create an embed
+## 3. Display the feed
 
-An embed defines which content appears in your feed and how it behaves. Create one in the portal or via the API.
-
-**Option A: Portal** — Go to **Embeds** in the [admin portal](https://portal.shortkit.dev), click **New Embed**, choose the **Feed** mode, and save. Copy the embed ID (`emb_...`) from the page header.
-
-**Option B: API**:
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/embeds \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My App Feed", "mode": "feed"}'
-```
-
-The response includes the embed ID:
-
-```json
-{
-  "data": {
-    "id": "emb_abc123",
-    "name": "My App Feed",
-    "mode": "feed",
-    ...
-  }
-}
-```
-
-## 4. Display the feed
-
-Pass your publishable key and embed ID to the SDK to render a full-screen video feed.
+Pass your publishable key to the SDK to render a full-screen video feed.
 
 <Tabs>
   <Tab title="SwiftUI">
@@ -146,8 +118,7 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
     struct FeedScreen: View {
         let shortKit = ShortKit(
             apiKey: "pk_live_your_publishable_key",
-            config: FeedConfig(),
-            embedId: "emb_your_embed_id"
+            config: FeedConfig()
         )
 
         var body: some View {
@@ -168,8 +139,7 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
 
             let shortKit = ShortKit(
                 apiKey: "pk_live_your_publishable_key",
-                config: FeedConfig(),
-                embedId: "emb_your_embed_id"
+                config: FeedConfig()
             )
             let feedVC = ShortKitFeedViewController(shortKit: shortKit)
             addChild(feedVC)
@@ -195,7 +165,6 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
             val shortKit = ShortKit(
                 context = this,
                 apiKey = "pk_live_your_publishable_key",
-                embedId = "emb_your_embed_id",
                 config = FeedConfig()
             )
 
@@ -214,7 +183,7 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
       return (
         <ShortKitProvider
           apiKey="pk_live_your_publishable_key"
-          embedId="emb_your_embed_id"
+
           config={{ feedHeight: { type: "fullscreen" } }}
         >
           <ShortKitFeed style={{ flex: 1 }} />
@@ -231,7 +200,7 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
       return (
         <ShortKitProvider
           apiKey="pk_live_your_publishable_key"
-          embedId="emb_your_embed_id"
+
           config={{ feedHeight: { type: "fullscreen" } }}
         >
           <ShortKitFeed style={{ flex: 1 }} />
@@ -248,8 +217,7 @@ Pass your publishable key and embed ID to the SDK to render a full-screen video 
     <script src="https://cdn.shortkit.dev/sdk/feed.js"></script>
     <script>
       ShortKit.feed('#shortkit-feed', {
-        apiKey: 'pk_live_your_publishable_key',
-        embedId: 'emb_your_embed_id'
+        apiKey: 'pk_live_your_publishable_key'
       });
     </script>
     ```

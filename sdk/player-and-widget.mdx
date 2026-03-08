@@ -1,0 +1,424 @@
+---
+title: "Widgets & Entry Points"
+description: "Embed individual videos or horizontal video carousels anywhere in your app."
+keywords: ["player", "widget", "single player", "carousel", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "fetchContent"]
+---
+
+The player and widget components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews) and the **widget** for a horizontal carousel of video cards (home screens, dashboards, discovery surfaces).
+
+Both components require content fetched via `fetchContent()`.
+
+## Fetching content
+
+Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    let items = try await shortKit.fetchContent(limit: 5)
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    val items = shortKit.fetchContent(limit = 5) // suspend fun
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { fetchContent } = useShortKit();
+    const items = await fetchContent(5);
+    ```
+  </Tab>
+</Tabs>
+
+`fetchContent()` returns an array of resolved `ContentItem` objects with streaming URLs, metadata, and captions. For full model definitions see the [Content Types](/guides/content-types) guide.
+
+---
+
+## Single player
+
+### PlayerConfig
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cornerRadius` | `CGFloat` / `Float` / `number` | `12` | Corner radius of the player view in points. |
+| `clickAction` | `PlayerClickAction` | `.feed` / `FEED` / `'feed'` | What happens when the user taps the player. See [click actions](#click-actions). |
+| `autoplay` | `Bool` / `Boolean` / `boolean` | `true` | Start playback automatically when a content item is set. |
+| `loop` | `Bool` / `Boolean` / `boolean` | `true` | Restart playback from the beginning when the video ends. |
+| `muteOnStart` | `Bool` / `Boolean` / `boolean` | `true` | Begin playback muted. |
+| `videoOverlay` | `VideoOverlayMode` / `OverlayConfig` | `.none` / `'none'` | Overlay rendered on top of the video. On React Native the property is named `overlay`. |
+
+### Embedding a player
+
+<Tabs>
+  <Tab title="iOS (UIKit)">
+    ```swift ViewController.swift
+    import ShortKitSDK
+
+    class ViewController: UIViewController {
+        private var shortKit: ShortKit!
+        private var playerVC: ShortKitPlayerViewController!
+
+        override func viewDidLoad() {
+            super.viewDidLoad()
+
+            shortKit = ShortKit(
+                apiKey: "pk_live_your_publishable_key",
+                config: FeedConfig()
+            )
+
+            let config = PlayerConfig(
+                cornerRadius: 16,
+                clickAction: .feed,
+                muteOnStart: true
+            )
+
+            playerVC = ShortKitPlayerViewController(shortKit: shortKit, config: config)
+            addChild(playerVC)
+            playerVC.view.frame = CGRect(x: 16, y: 100, width: 200, height: 350)
+            view.addSubview(playerVC.view)
+            playerVC.didMove(toParent: self)
+
+            Task {
+                let items = try await shortKit.fetchContent(limit: 5)
+                if let first = items.first {
+                    playerVC.configure(with: first)
+                    playerVC.activate()
+                }
+            }
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            playerVC.deactivate()
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="iOS (SwiftUI)">
+    ```swift ContentView.swift
+    import SwiftUI
+    import ShortKitSDK
+
+    struct ContentView: View {
+        let shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig()
+        )
+
+        @State private var item: ContentItem?
+
+        var body: some View {
+            VStack {
+                if let item {
+                    ShortKitPlayerView(
+                        shortKit: shortKit,
+                        config: PlayerConfig(
+                            cornerRadius: 16,
+                            clickAction: .feed
+                        )
+                    )
+                    .frame(width: 200, height: 350)
+                }
+            }
+            .task {
+                let items = try? await shortKit.fetchContent(limit: 5)
+                item = items?.first
+            }
+        }
+    }
+    ```
+
+    <Warning>
+      Store the `ShortKit` instance outside the view body. Creating it inside the `body` property causes re-initialization on every SwiftUI render pass.
+    </Warning>
+  </Tab>
+  <Tab title="Android">
+    ```kotlin MainActivity.kt
+    import dev.shortkit.ShortKit
+    import dev.shortkit.PlayerConfig
+    import dev.shortkit.PlayerClickAction
+    import dev.shortkit.ShortKitPlayerView
+
+    class MainActivity : AppCompatActivity() {
+        private lateinit var playerView: ShortKitPlayerView
+
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            setContentView(R.layout.activity_main)
+
+            val shortKit = ShortKit(
+                context = this,
+                apiKey = "pk_live_your_publishable_key",
+                config = FeedConfig()
+            )
+
+            val config = PlayerConfig(
+                cornerRadius = 16f,
+                clickAction = PlayerClickAction.FEED,
+                muteOnStart = true
+            )
+
+            playerView = findViewById(R.id.player_view)
+            playerView.initialize(shortKit, config)
+
+            lifecycleScope.launch {
+                val items = shortKit.fetchContent(limit = 5)
+                items.firstOrNull()?.let { item ->
+                    playerView.setItem(item)
+                    playerView.activate()
+                }
+            }
+        }
+    }
+    ```
+
+    Add the player view to your layout:
+
+    ```xml activity_main.xml
+    <dev.shortkit.ShortKitPlayerView
+        android:id="@+id/player_view"
+        android:layout_width="200dp"
+        android:layout_height="350dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="100dp" />
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx PlayerScreen.tsx
+    import React, { useEffect, useState } from 'react';
+    import {
+      ShortKitProvider,
+      ShortKitPlayer,
+      useShortKit,
+    } from '@shortkitsdk/react-native';
+    import type { ContentItem } from '@shortkitsdk/react-native';
+
+    function Player() {
+      const { fetchContent } = useShortKit();
+      const [item, setItem] = useState<ContentItem | null>(null);
+
+      useEffect(() => {
+        fetchContent(5).then((items) => {
+          if (items.length > 0) setItem(items[0]);
+        });
+      }, []);
+
+      if (!item) return null;
+
+      return (
+        <ShortKitPlayer
+          contentItem={item}
+          config={{
+            cornerRadius: 16,
+            clickAction: 'feed',
+            muteOnStart: true,
+          }}
+          style={{ width: 200, height: 350 }}
+        />
+      );
+    }
+
+    export default function PlayerScreen() {
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={{}}
+        >
+          <Player />
+        </ShortKitProvider>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Activate and deactivate
+
+The player does not manage its own visibility lifecycle. Call `activate()` when the player is on screen and `deactivate()` when it leaves. This gives you full control over playback in scroll views, tab bars, and navigation stacks.
+
+| Method | Effect |
+| --- | --- |
+| `activate()` | Starts or resumes playback (respects `autoplay` and `muteOnStart`). |
+| `deactivate()` | Pauses playback and releases the active player resources. |
+
+On React Native, use the `active` prop instead of method calls. It defaults to the value of `config.autoplay` (which is `true` by default). Set it to `false` to pause and `true` to resume.
+
+```tsx
+<ShortKitPlayer
+  contentItem={item}
+  active={isVisible}
+  config={{ clickAction: 'mute' }}
+  style={{ width: 200, height: 350 }}
+/>
+```
+
+---
+
+## Widget
+
+The widget displays a horizontal carousel of video cards with muted autoplay and automatic rotation. Tapping a card opens the feed by default.
+
+### WidgetConfig
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cardCount` | integer | `3` | Number of video cards visible in the carousel. |
+| `cardSpacing` | float | `8` | Horizontal spacing between cards, in points (iOS) or dp (Android/RN). |
+| `cornerRadius` | float | `12` | Corner radius applied to each card. |
+| `autoplay` | boolean | `true` | Whether the visible card plays automatically. |
+| `muteOnStart` | boolean | `true` | Whether playback starts muted. |
+| `loop` | boolean | `true` | Whether each card loops when it reaches the end. |
+| `rotationInterval` | number | `10` | Time before the carousel advances to the next card. **iOS uses seconds (`10`). Android and React Native use milliseconds (`10_000`).** |
+| `clickAction` | enum | `.feed` | Action performed when a card is tapped. See [click actions](#click-actions). |
+| `cardOverlay` / `overlay` | enum | `.none` | Overlay rendered on top of each card. The React Native prop is named `overlay`; iOS and Android use `cardOverlay`. |
+
+### Embedding a widget
+
+<Tabs>
+  <Tab title="iOS (UIKit)">
+    ```swift ViewController.swift
+    import ShortKitSDK
+
+    class ViewController: UIViewController {
+        private var shortKit: ShortKit!
+
+        override func viewDidLoad() {
+            super.viewDidLoad()
+
+            shortKit = ShortKit(
+                apiKey: "pk_live_your_publishable_key",
+                config: FeedConfig()
+            )
+
+            let widgetVC = ShortKitWidgetViewController(
+                shortKit: shortKit,
+                config: WidgetConfig(
+                    cardCount: 3,
+                    rotationInterval: 10 // seconds
+                )
+            )
+
+            addChild(widgetVC)
+            widgetVC.view.frame = CGRect(x: 0, y: 100, width: view.bounds.width, height: 280)
+            widgetVC.view.autoresizingMask = [.flexibleWidth]
+            view.addSubview(widgetVC.view)
+            widgetVC.didMove(toParent: self)
+
+            Task {
+                let items = try await shortKit.fetchContent(limit: 5)
+                widgetVC.configure(with: items)
+            }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Add the view to your layout:
+
+    ```xml activity_main.xml
+    <dev.shortkit.ShortKitWidgetView
+        android:id="@+id/widget"
+        android:layout_width="match_parent"
+        android:layout_height="280dp" />
+    ```
+
+    Then initialize it in your activity:
+
+    ```kotlin MainActivity.kt
+    import dev.shortkit.ShortKit
+    import dev.shortkit.FeedConfig
+    import dev.shortkit.ShortKitWidgetView
+    import dev.shortkit.WidgetConfig
+
+    class MainActivity : AppCompatActivity() {
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            setContentView(R.layout.activity_main)
+
+            val shortKit = ShortKit(
+                context = this,
+                apiKey = "pk_live_your_publishable_key",
+                config = FeedConfig()
+            )
+
+            val widget = findViewById<ShortKitWidgetView>(R.id.widget)
+            widget.initialize(
+                shortKit = shortKit,
+                config = WidgetConfig(
+                    cardCount = 3,
+                    rotationInterval = 10_000L // milliseconds
+                )
+            )
+
+            lifecycleScope.launch {
+                val items = shortKit.fetchContent(limit = 5)
+                widget.configure(items)
+            }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx WidgetScreen.tsx
+    import React, { useEffect, useState } from 'react';
+    import {
+      ShortKitProvider,
+      ShortKitWidget,
+      useShortKit,
+    } from '@shortkitsdk/react-native';
+    import type { ContentItem } from '@shortkitsdk/react-native';
+
+    function Widget() {
+      const { fetchContent } = useShortKit();
+      const [items, setItems] = useState<ContentItem[]>([]);
+
+      useEffect(() => {
+        fetchContent(5).then(setItems);
+      }, []);
+
+      return (
+        <ShortKitWidget
+          config={{
+            cardCount: 3,
+            rotationInterval: 10000, // milliseconds
+          }}
+          items={items}
+          style={{ height: 280 }}
+        />
+      );
+    }
+
+    export default function WidgetScreen() {
+      return (
+        <ShortKitProvider
+          apiKey="pk_live_your_publishable_key"
+          config={{}}
+        >
+          <Widget />
+        </ShortKitProvider>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Auto-rotation
+
+When `autoplay` and `loop` are both `true` (the defaults), the widget advances to the next card after the `rotationInterval` elapses. Rotation pauses while the user is actively swiping and resumes once the gesture ends. When the carousel reaches the last card it wraps back to the first.
+
+<Warning>
+  The `rotationInterval` unit differs across platforms. iOS expects seconds (e.g. `10`), while Android and React Native expect milliseconds (e.g. `10_000` / `10000`). Using the wrong unit will result in rotation that is either too fast or too slow.
+</Warning>
+
+---
+
+## Click actions
+
+Both `PlayerConfig.clickAction` and `WidgetConfig.clickAction` accept the same values:
+
+| Value | Behavior |
+| --- | --- |
+| `.feed` / `PlayerClickAction.FEED` / `'feed'` | Opens the full-screen feed starting at the tapped item. This is the default. |
+| `.mute` / `PlayerClickAction.MUTE` / `'mute'` | Toggles audio mute. |
+| `.none` / `PlayerClickAction.NONE` / `'none'` | No action. Useful when you handle taps yourself. |
