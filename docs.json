@@ -43,12 +43,12 @@
               "sdk/installation",
               "sdk/configuration",
               "sdk/feed",
-              "sdk/player-and-widget",
               "sdk/player",
               "sdk/overlays",
               "sdk/ads",
               "sdk/analytics",
-              "sdk/identity"
+              "sdk/identity",
+              "sdk/player-and-widget"
             ]
           },
           {
