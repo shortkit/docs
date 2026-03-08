@@ -76,14 +76,12 @@
             "group": "Content",
             "pages": [
               "api/content",
-              "api/uploads",
-              "api/feed"
+              "api/uploads"
             ]
           },
           {
-            "group": "Engagement",
+            "group": "Analytics",
             "pages": [
-              "api/events",
               "api/analytics",
               "api/views"
             ]
@@ -92,8 +90,7 @@
             "group": "Configuration",
             "pages": [
               "api/ad-config",
-              "api/surveys",
-              "api/embeds"
+              "api/surveys"
             ]
           },
           {
