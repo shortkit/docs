@@ -1,7 +1,7 @@
 ---
 title: "Feed Ranking"
-description: ""
-keywords: ["feed", "pinning", "suppression", "scheduling", "surveys", "ads", "feed ordering"]
+description: "Control feed ordering via pinning, suppression, scheduling, surveys, ads, and client-side content selection."
+keywords: ["feed", "pinning", "suppression", "scheduling", "surveys", "ads", "feed ordering", "custom feed", "feedSource", "setFeedItems", "appendFeedItems", "FeedInput"]
 ---
 
 <Note>
@@ -182,3 +182,184 @@ A content item appears in the feed only when all four conditions are true:
 | Within expiry window | `expiresAt` is `null` or in the future. |
 
 If any condition fails, the item is excluded from feed responses but remains accessible via the content API (`GET /v1/content/{id}`).
+
+## Client-side feed ranking
+
+The controls above (pinning, suppression, scheduling) are all server-side -- they configure how ShortKit's API assembles the feed. If your app needs full control over which content appears and in what order, you can handle ranking yourself and pass content IDs directly to the SDK. ShortKit still handles all media playback, rendering, prefetching, and analytics.
+
+Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking. In this mode, the SDK will not fetch content on its own -- it waits for you to provide items.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let shortKit = ShortKit(
+        apiKey: "pk_live_...",
+        config: FeedConfig(feedSource: .custom)
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val shortKit = ShortKit(
+        context = this,
+        apiKey = "pk_live_...",
+        config = FeedConfig(feedSource = FeedSource.CUSTOM)
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitProvider
+      apiKey="pk_live_..."
+      config={{ feedSource: 'custom' }}
+    >
+      <FeedScreen />
+    </ShortKitProvider>
+    ```
+  </Tab>
+</Tabs>
+
+### FeedInput
+
+`FeedInput` describes what should appear in the feed. It supports two cases: video (identified by playback ID) and image carousel.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public enum FeedInput {
+        case video(playbackId: String)
+        case imageCarousel(ImageCarouselItem)
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    sealed class FeedInput {
+        data class Video(val playbackId: String) : FeedInput()
+        data class ImageCarousel(val item: ImageCarouselItem) : FeedInput()
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    type FeedInput =
+      | { type: 'video'; playbackId: string }
+      | { type: 'imageCarousel'; item: ImageCarouselItem };
+    ```
+  </Tab>
+</Tabs>
+
+| Case | Description |
+|---|---|
+| `video` | A video identified by its playback ID. ShortKit resolves the full `ContentItem` (streaming URL, metadata, captions) automatically. |
+| `imageCarousel` | An image carousel you construct directly. See [Content Types -- Image carousel](/guides/content-types#image-carousel) for the `ImageCarouselItem` model. |
+
+### setFeedItems -- replace the entire feed
+
+Call `setFeedItems()` to replace all items in the feed. The feed reloads from position zero. Use this for initial load, full refreshes, or when the user switches categories.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.setFeedItems([
+        .video(playbackId: "abc123"),
+        .video(playbackId: "def456"),
+        .imageCarousel(ImageCarouselItem(
+            id: "carousel-1",
+            images: [CarouselImage(url: "https://...")]
+        ))
+    ])
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.setFeedItems(listOf(
+        FeedInput.Video("abc123"),
+        FeedInput.Video("def456"),
+        FeedInput.ImageCarousel(ImageCarouselItem(
+            id = "carousel-1",
+            images = listOf(CarouselImage(url = "https://..."))
+        ))
+    ))
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { setFeedItems } = useShortKit();
+
+    setFeedItems([
+      { type: 'video', playbackId: 'abc123' },
+      { type: 'video', playbackId: 'def456' },
+      { type: 'imageCarousel', item: { id: 'carousel-1', images: [{ url: 'https://...' }] } }
+    ]);
+    ```
+  </Tab>
+</Tabs>
+
+### appendFeedItems -- add more items
+
+Call `appendFeedItems()` to add items to the end of the current feed without disrupting the user's scroll position. Use this for pagination or lazy loading.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.appendFeedItems([.video(playbackId: "ghi789")])
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.appendFeedItems(listOf(FeedInput.Video("ghi789")))
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { appendFeedItems } = useShortKit();
+
+    appendFeedItems([{ type: 'video', playbackId: 'ghi789' }]);
+    ```
+  </Tab>
+</Tabs>
+
+### Delegate callbacks
+
+When using client-side ranking, implement the delegate to respond to pull-to-refresh and content taps.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    protocol ShortKitDelegate: AnyObject {
+        func shortKitDidRequestRefresh(_ shortKit: ShortKit)
+        func shortKit(_ shortKit: ShortKit, didTapContent contentId: String, at index: Int)
+    }
+
+    shortKit.delegate = self
+    ```
+
+    In your `shortKitDidRequestRefresh` implementation, fetch fresh data from your backend and call `setFeedItems()` with the updated list.
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.delegate = object : ShortKitDelegate {
+        override fun onRefreshRequested() {
+            // Fetch fresh data, then call shortKit.setFeedItems(...)
+        }
+
+        override fun onContentTapped(contentId: String, index: Int) {
+            // Navigate to detail screen
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    React Native uses props on `ShortKitFeed` instead of a delegate:
+
+    ```tsx
+    <ShortKitFeed
+      style={{ flex: 1 }}
+      onContentTapped={(contentId, index) => {
+        navigation.navigate('Detail', { contentId });
+      }}
+    />
+    ```
+  </Tab>
+</Tabs>

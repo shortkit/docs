@@ -49,7 +49,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     | Export | Type | Purpose |
     |---|---|---|
-    | `ShortKitProvider` | Component | Wraps the feed and supplies API key, embed ID, and configuration |
+    | `ShortKitProvider` | Component | Wraps the feed and supplies API key and configuration |
     | `ShortKitFeed` | Component | Renders the video feed (must be inside a `ShortKitProvider`) |
     | `useShortKitPlayer()` | Hook | Access player state and controls (play, pause, seek, captions, etc.) |
     | `useShortKit()` | Hook | Access SDK-level methods (`setUserId`, `clearUserId`) |
@@ -76,7 +76,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
         ```
       </Step>
       <Step title="Select your version rule">
-        Choose **Up to Next Major Version** and set the minimum to `0.1.0`. Click **Add Package**.
+        Choose **Up to Next Major Version** and set the minimum to `0.2.3`. Click **Add Package**.
       </Step>
       <Step title="Add to your target">
         Select the `ShortKitSDK` library product and add it to your app target. If you need Google ad support, also select `ShortKitGoogleAds`.
@@ -89,7 +89,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     ```swift Package.swift
     dependencies: [
-        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.1.0")
+        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.2.3")
     ]
     ```
 
@@ -115,7 +115,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     ```kotlin build.gradle.kts
     dependencies {
-        implementation("dev.shortkit:shortkit:0.1.0")
+        implementation("dev.shortkit:shortkit:0.2.1")
     }
     ```
 
@@ -272,8 +272,8 @@ This section applies only if you added the `ShortKitGoogleAds` product (Swift) o
 
     ```kotlin build.gradle.kts
     dependencies {
-        implementation("dev.shortkit:shortkit:0.1.0")
-        implementation("dev.shortkit:shortkit-google-ads:0.1.0")
+        implementation("dev.shortkit:shortkit:0.2.1")
+        implementation("dev.shortkit:shortkit-google-ads:0.2.1")
     }
     ```
 

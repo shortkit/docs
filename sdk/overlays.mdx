@@ -38,15 +38,19 @@ Overlays are full-screen views layered on top of the video player in each feed c
     import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
     // Custom overlay -- pass a React component that uses useShortKitPlayer()
-    <ShortKitProvider config={{ videoOverlay: { mode: "custom", component: MyOverlay } }}>
+    <ShortKitProvider config={{ overlay: { type: "custom", component: MyOverlay } }}>
       <ShortKitFeed />
     </ShortKitProvider>
 
     // No overlay
-    <ShortKitProvider config={{ videoOverlay: "none" }}>
+    <ShortKitProvider config={{ overlay: "none" }}>
       <ShortKitFeed />
     </ShortKitProvider>
     ```
+
+    <Note>
+      React Native uses `overlay` (not `videoOverlay`) in the `FeedConfig`.
+    </Note>
   </Tab>
 </Tabs>
 
@@ -982,15 +986,18 @@ Image carousels, surveys, and native ads follow the same overlay pattern as vide
 
     <ShortKitProvider
       config={{
-        videoOverlay: { mode: "custom", component: MyVideoOverlay },
-        carouselOverlay: { mode: "custom", component: MyCarouselOverlay },
-        surveyOverlay: { mode: "custom", component: MySurveyOverlay },
-        adOverlay: { mode: "custom", component: MyAdOverlay },
+        overlay: { type: "custom", component: MyVideoOverlay },
+        carouselOverlay: { type: "custom", component: MyCarouselOverlay },
+        surveyMode: { type: "template", name: "default" },
       }}
     >
       <ShortKitFeed />
     </ShortKitProvider>
     ```
+
+    <Note>
+      React Native uses `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. Survey overlays in React Native only support a built-in template — custom survey components are available on iOS and Android only.
+    </Note>
   </Tab>
 </Tabs>
 
