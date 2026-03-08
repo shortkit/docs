@@ -29,14 +29,13 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     Import the module in your code with `import ShortKitSDK`.
   </Tab>
   <Tab title="Kotlin">
-    The SDK ships two Maven artifacts:
+    The SDK ships as a Maven artifact:
 
     | Artifact | Purpose | Key dependencies |
     |---|---|---|
     | `dev.shortkit:shortkit` | Core SDK: feed, player, overlays, analytics, captions | Media3 (ExoPlayer), OkHttp, AndroidX Fragment, ViewPager2 |
-    | `dev.shortkit:shortkit-google-ads` | Google ad adapters (`GoogleAdsProvider`) | Google Play Services Ads >= 23.6.0, Google IMA SDK >= 3.35.1 |
 
-    Most integrations only need `dev.shortkit:shortkit`. Add `dev.shortkit:shortkit-google-ads` if you want to monetize with Google IMA VAST or Google Ad Manager native ads. Transitive dependencies are resolved automatically by Gradle.
+    Transitive dependencies are resolved automatically by Gradle.
   </Tab>
   <Tab title="React Native">
     The SDK ships as a single npm package that includes native modules for both platforms:
@@ -79,7 +78,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
         Choose **Up to Next Major Version** and set the minimum to `0.2.3`. Click **Add Package**.
       </Step>
       <Step title="Add to your target">
-        Select the `ShortKitSDK` library product and add it to your app target. If you need Google ad support, also select `ShortKitGoogleAds`.
+        Select the `ShortKitSDK` library product and add it to your app target.
       </Step>
     </Steps>
 
@@ -93,16 +92,14 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     ]
     ```
 
-    Then add the products you need to your target:
+    Then add it to your target:
 
     ```swift Package.swift
     targets: [
         .target(
             name: "YourApp",
             dependencies: [
-                .product(name: "ShortKitSDK", package: "shortkit-ios"),
-                // Optional: add only if you need Google ad support
-                .product(name: "ShortKitGoogleAds", package: "shortkit-ios")
+                .product(name: "ShortKitSDK", package: "shortkit-ios")
             ]
         )
     ]
@@ -212,123 +209,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
   </Tab>
 </Tabs>
 
-## Google Ads setup
-
-This section applies only if you added the `ShortKitGoogleAds` product (Swift) or `dev.shortkit:shortkit-google-ads` artifact (Kotlin). Skip it if you are not serving ads.
-
-<Tabs>
-  <Tab title="Swift">
-    ### 1. Add your Google app ID to Info.plist
-
-    ```xml Info.plist
-    <key>GADApplicationIdentifier</key>
-    <string>ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY</string>
-    ```
-
-    Replace the value with your real Google Ad Manager or AdMob application ID.
-
-    ### 2. Initialize the Google Mobile Ads SDK at launch
-
-    ```swift AppDelegate.swift
-    import GoogleMobileAds
-
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-    ) -> Bool {
-        MobileAds.shared.start()
-        return true
-    }
-    ```
-
-    Call `MobileAds.shared.start()` once, before creating any `ShortKit` instance with a Google ad provider. Calling it in `application(_:didFinishLaunchingWithOptions:)` is the standard approach.
-
-    ### 3. Pass a Google ad provider to ShortKit
-
-    ```swift
-    import ShortKitSDK
-    import ShortKitGoogleAds
-
-    let shortKit = ShortKit(
-        apiKey: "pk_live_...",
-        config: FeedConfig(),
-        adProvider: GoogleAdsProvider()
-    )
-    ```
-
-    `GoogleAdsProvider` runs a waterfall: custom native, then system-defined native, then IMA VAST, then no-fill. For VAST-only integrations, use `GoogleIMAAdProvider()` instead.
-
-    ### Dependencies pulled by ShortKitGoogleAds
-
-    | Dependency | Minimum version | Purpose |
-    |---|---|---|
-    | `GoogleInteractiveMediaAds` | 3.23.0 | IMA SDK for VAST/VPAID video ads |
-    | `GoogleMobileAds` | 12.0.0 | Google Mobile Ads SDK for native ad formats |
-
-    These are resolved automatically by SPM when you add the `ShortKitGoogleAds` product.
-  </Tab>
-  <Tab title="Kotlin">
-    ### 1. Add the Google Ads dependency
-
-    ```kotlin build.gradle.kts
-    dependencies {
-        implementation("dev.shortkit:shortkit:0.2.1")
-        implementation("dev.shortkit:shortkit-google-ads:0.2.1")
-    }
-    ```
-
-    ### 2. Add your Google app ID to AndroidManifest.xml
-
-    ```xml AndroidManifest.xml
-    <application>
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY" />
-    </application>
-    ```
-
-    Replace the value with your real Google Ad Manager or AdMob application ID.
-
-    ### 3. Initialize the Google Mobile Ads SDK at launch
-
-    ```kotlin Application.kt
-    import com.google.android.gms.ads.MobileAds
-
-    class MyApplication : Application() {
-        override fun onCreate() {
-            super.onCreate()
-            MobileAds.initialize(this)
-        }
-    }
-    ```
-
-    Call `MobileAds.initialize()` once, before creating any `ShortKit` instance with a Google ad provider.
-
-    ### 4. Pass a Google ad provider to ShortKit
-
-    ```kotlin
-    import com.shortkit.sdk.ShortKit
-    import com.shortkit.sdk.config.FeedConfig
-    import com.shortkit.ads.GoogleAdsProvider
-
-    val shortKit = ShortKit(
-        context = this,
-        apiKey = "pk_live_...",
-        config = FeedConfig(),
-        adProvider = GoogleAdsProvider(this)
-    )
-    ```
-
-    ### Dependencies pulled by shortkit-google-ads
-
-    | Dependency | Minimum version | Purpose |
-    |---|---|---|
-    | `com.google.android.gms:play-services-ads` | 23.6.0 | Google Mobile Ads SDK for native ad formats |
-    | `com.google.ads.interactivemedia.v3:interactivemedia` | 3.35.1 | IMA SDK for VAST/VPAID video ads |
-
-    These are resolved automatically by Gradle when you add the `dev.shortkit:shortkit-google-ads` dependency.
-  </Tab>
-</Tabs>
+{/* Google Ads setup section removed for now. To restore, see git history. */}
 
 ## Verify installation
 
@@ -509,13 +390,6 @@ If you have content uploaded to your ShortKit account, you should see a vertical
     1. Check your internet connection — the binary is downloaded from GitHub Releases
     2. Go to **File** then **Packages** then **Reset Package Caches** and resolve again
     3. If you see a checksum mismatch, ensure you are on the latest version of the package
-  </Accordion>
-  <Accordion title="iOS: Google Ads linker errors">
-    If you see undefined symbol errors related to Google SDKs after adding `ShortKitGoogleAds`:
-
-    1. Verify the `-ObjC` linker flag is present. SPM sets this automatically, but if you use a wrapper Xcode project, add `-ObjC` under **Build Settings** then **Other Linker Flags**.
-    2. Confirm you called `MobileAds.shared.start()` in your app delegate before creating a `GoogleAdsProvider`.
-    3. Clean the build folder and resolve packages again.
   </Accordion>
   <Accordion title="Android: Dependency resolution failed">
     If Gradle cannot resolve the ShortKit dependency:
