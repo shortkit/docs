@@ -1,0 +1,107 @@
+---
+title: "Submit Response"
+api: "POST /v1/surveys/{id}/responses"
+description: "Submit a user's response to a survey. Uses publishable key auth — called by the SDK automatically."
+---
+
+This endpoint is called by the SDK when a user answers a survey. It uses **publishable key** authentication, making it safe for client-side use.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+## Request body
+
+<ParamField body="optionId" type="string" required>
+  UUID of the selected answer option.
+</ParamField>
+
+<ParamField body="userId" type="string" required>
+  Identifier for the responding user.
+</ParamField>
+
+<ParamField body="sessionId" type="string">
+  Current session identifier.
+</ParamField>
+
+<ParamField body="deviceInfo" type="object">
+  Optional device metadata (OS, app version, etc.).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a/responses" \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+    "userId": "user_abc123",
+    "sessionId": "sess_xyz789"
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a/responses",
+    headers={
+        "X-API-Key": "pk_live_your_publishable_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+        "userId": "user_abc123",
+        "sessionId": "sess_xyz789",
+    },
+)
+response = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a/responses",
+  {
+    method: "POST",
+    headers: {
+      "X-API-Key": "pk_live_your_publishable_key",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      optionId: "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+      userId: "user_abc123",
+      sessionId: "sess_xyz789",
+    }),
+  }
+);
+const { data: response } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201
+{
+  "data": {
+    "id": "g7h8i9j0-k1l2-3m4n-5o6p-7q8r9s0t1u2v",
+    "surveyId": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+    "userId": "user_abc123",
+    "respondedAt": "2026-02-12T15:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv006"
+  }
+}
+```
+</ResponseExample>
+
+## Errors
+
+| Condition | Status | Description |
+|-----------|--------|-------------|
+| Survey not found | 404 | The survey does not exist or does not belong to your organization. |
+| Survey not active | 400 | Only surveys with status `active` accept responses. |
+| Option not in survey | 400 | The `optionId` does not belong to this survey. |
+| User already responded | 409 | Each user can only respond once per survey. |

@@ -1,0 +1,162 @@
+---
+title: "Update Content"
+api: "PATCH /v1/content/{id}"
+description: "Update fields on a content item. Only the fields you include in the request body are modified."
+---
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The content item's UUID.
+</ParamField>
+
+## Request body
+
+All fields are optional — include only the fields you want to change.
+
+<ParamField body="title" type="string">
+  Display title. Max 200 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description. Max 2000 characters.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Replaces existing tags entirely.
+</ParamField>
+
+<ParamField body="section" type="string">
+  Editorial section. Max 200 characters.
+</ParamField>
+
+<ParamField body="author" type="string">
+  Content author name. Max 200 characters.
+</ParamField>
+
+<ParamField body="publishStatus" type="string">
+  Set to `"published"` or `"unpublished"` to control feed visibility. Only applies when `uploadStatus` is `ready`.
+</ParamField>
+
+<ParamField body="publishAt" type="string">
+  ISO 8601 timestamp. Content won't appear in the feed before this time.
+</ParamField>
+
+<ParamField body="expiresAt" type="string">
+  ISO 8601 timestamp. Content is removed from the feed after this time.
+</ParamField>
+
+<ParamField body="autoScrollInterval" type="number">
+  Carousel auto-scroll interval in seconds. Only applies to carousels.
+</ParamField>
+
+<ParamField body="customMetadata" type="object">
+  Merged with existing metadata. To remove a key, set it to `null`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated: Weather Alert Downgraded",
+    "tags": ["weather", "update"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-update",
+      "priority": null
+    }
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.patch(
+    "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851",
+    headers={
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "title": "Updated: Weather Alert Downgraded",
+        "tags": ["weather", "update"],
+        "customMetadata": {
+            "articleUrl": "https://example.com/weather-update",
+            "priority": None,
+        },
+    },
+)
+content = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851",
+  {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer sk_live_your_secret_key",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: "Updated: Weather Alert Downgraded",
+      tags: ["weather", "update"],
+      customMetadata: {
+        articleUrl: "https://example.com/weather-update",
+        priority: null,
+      },
+    }),
+  }
+);
+const { data: content } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "contentType": "video",
+    "title": "Updated: Weather Alert Downgraded",
+    "description": "Severe thunderstorm warning for the metro area",
+    "uploadStatus": "ready",
+    "publishStatus": "published",
+    "duration": 32.5,
+    "streamingUrl": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8",
+    "thumbnailUrl": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?time=0",
+    "section": "Weather",
+    "author": "Jane Doe",
+    "tags": ["weather", "update"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-update"
+    },
+    "captionTracks": [],
+    "images": [],
+    "publishAt": null,
+    "expiresAt": null,
+    "width": 1080,
+    "height": 1920,
+    "aspectRatio": "9:16",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:05:30Z"
+  },
+  "meta": {
+    "request_id": "req_update001"
+  }
+}
+```
+</ResponseExample>
+
+## Metadata merge behavior
+
+`customMetadata` uses merge semantics — new keys are added, existing keys are updated, and keys set to `null` are removed. Other fields (like `tags`) are replaced entirely.
+
+```json
+// Before: {"articleUrl": "...", "priority": "high", "campaign": "summer"}
+
+// Request: {"customMetadata": {"priority": null, "campaign": "fall"}}
+
+// After:  {"articleUrl": "...", "campaign": "fall"}
+```

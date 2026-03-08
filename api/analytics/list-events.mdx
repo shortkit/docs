@@ -1,0 +1,119 @@
+---
+title: "List Events"
+api: "GET /v1/events"
+description: "Query raw events with filtering by type, content, user, and time range."
+---
+
+Returns a paginated list of raw events. Use filters to narrow results by event type, content, user, or time range.
+
+## Query parameters
+
+<ParamField query="type" type="string">
+  Filter by event type (e.g., `playStart`, `completion`, `like`).
+</ParamField>
+
+<ParamField query="contentId" type="string">
+  Filter by content ID.
+</ParamField>
+
+<ParamField query="userId" type="string">
+  Filter by user ID.
+</ParamField>
+
+<ParamField query="startDate" type="string">
+  ISO 8601 start of time range (inclusive).
+</ParamField>
+
+<ParamField query="endDate" type="string">
+  ISO 8601 end of time range (exclusive).
+</ParamField>
+
+<ParamField query="limit" type="integer" default={50}>
+  Items per page. Min 1, max 100.
+</ParamField>
+
+<ParamField query="cursor" type="string">
+  Pagination cursor from a previous response's `meta.nextCursor`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/events?type=playStart&contentId=d290f1ee-6c54-4b01-90e6-d701748f0851&limit=20" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/events",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    params={
+        "type": "playStart",
+        "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+        "limit": 20,
+    },
+)
+events = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/events?type=playStart&contentId=d290f1ee-6c54-4b01-90e6-d701748f0851&limit=20",
+  {
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+const { data: events, meta } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": [
+    {
+      "id": "e8f9a0b1-c2d3-4e5f-6a7b-8c9d0e1f2a3b",
+      "type": "playStart",
+      "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "userId": "user_abc123",
+      "sessionId": "sess_xyz789",
+      "viewSessionId": "vs_a1b2c3d4",
+      "timestamp": "2026-03-01T12:00:00Z",
+      "receivedAt": "2026-03-01T12:00:01Z",
+      "data": {}
+    },
+    {
+      "id": "f0a1b2c3-d4e5-6f7a-8b9c-0d1e2f3a4b5c",
+      "type": "playStart",
+      "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "userId": "user_def456",
+      "sessionId": "sess_abc012",
+      "viewSessionId": "vs_e5f6g7h8",
+      "timestamp": "2026-03-01T12:05:30Z",
+      "receivedAt": "2026-03-01T12:05:31Z",
+      "data": {}
+    }
+  ],
+  "meta": {
+    "nextCursor": "eyJ0cyI6IjIwMjYtMDMtMDFUMTI6MDU6MzBaIiwiaWQiOiJmMGExYjJjMyJ9",
+    "request_id": "req_evt001"
+  }
+}
+```
+</ResponseExample>
+
+## Pagination
+
+Uses cursor-based pagination. When more results exist, `meta.nextCursor` contains an opaque token — pass it as the `cursor` query parameter to fetch the next page. Results are ordered by timestamp descending (newest first).
+
+## Filtering by time range
+
+Combine `startDate` and `endDate` to query a specific window:
+
+```bash
+curl "https://api.shortkit.dev/v1/events?type=completion&startDate=2026-03-01T00:00:00Z&endDate=2026-03-02T00:00:00Z" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+When omitted, defaults to the last 7 days.

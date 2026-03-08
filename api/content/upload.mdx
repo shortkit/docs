@@ -1,0 +1,231 @@
+---
+title: "Upload Content"
+api: "POST /v1/content/upload"
+description: "Upload a video or carousel directly. Returns signed URLs for the client to upload media files to."
+---
+
+This is the primary way to get content into ShortKit. Send metadata and get back signed upload URLs — your client uploads files directly to cloud storage, no proxying through your server.
+
+This endpoint accepts both **publishable keys** and **secret keys**, making it safe to call directly from mobile apps and browsers.
+
+<Info>
+  **Building client-side uploads?** A guide for integrating direct uploads into your app is coming soon.
+</Info>
+
+## Request body
+
+<ParamField body="contentType" type="string" required>
+  `"video"` or `"carousel"`.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Display title. Max 200 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description. Max 2000 characters.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Tags for categorization and filtering.
+</ParamField>
+
+<ParamField body="section" type="string">
+  Editorial section (e.g., `"Sports"`, `"News"`). Max 200 characters.
+</ParamField>
+
+<ParamField body="author" type="string">
+  Content author name. Max 200 characters.
+</ParamField>
+
+<ParamField body="customMetadata" type="object">
+  Arbitrary key-value pairs passed through to the feed.
+</ParamField>
+
+<ParamField body="generateSubtitles" type="boolean" default={false}>
+  When `true`, auto-generates English captions after the video is processed. Only applies to videos.
+</ParamField>
+
+<ParamField body="publishAt" type="string">
+  ISO 8601 timestamp. Content won't appear in the feed before this time.
+</ParamField>
+
+<ParamField body="expiresAt" type="string">
+  ISO 8601 timestamp. Content is removed from the feed after this time.
+</ParamField>
+
+<ParamField body="images" type="object[]">
+  **Carousel only.** Defines the image slots for the carousel. Each object can include:
+  - `position` (integer) — Display order (0-indexed). Defaults to array index.
+  - `altText` (string) — Accessibility text for the image.
+
+  The number of objects in this array determines how many signed upload URLs you receive.
+</ParamField>
+
+<ParamField body="autoScrollInterval" type="number">
+  **Carousel only.** Seconds between automatic image transitions.
+</ParamField>
+
+---
+
+## Uploading a video
+
+Send a `POST` with `contentType: "video"` and your metadata. The response includes a signed `uploadUrl` — your client `PUT`s the video file directly to that URL.
+
+<Tabs>
+  <Tab title="1. Create upload">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/upload \
+      -H "X-API-Key: pk_live_your_publishable_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "video",
+        "title": "Morning Headlines",
+        "section": "News",
+        "tags": ["news", "morning"],
+        "generateSubtitles": true
+      }'
+    ```
+
+    ```json
+    {
+      "data": {
+        "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+        "contentType": "video",
+        "uploadUrl": "https://uploads.shortkit.dev/direct/abc123...?token=eyJhbG...",
+        "uploadStatus": "pending",
+        "title": "Morning Headlines",
+        "section": "News",
+        "tags": ["news", "morning"],
+        "createdAt": "2026-02-05T12:00:00Z"
+      },
+      "meta": {
+        "request_id": "req_upload001"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="2. Upload the file">
+    ```bash
+    # PUT the video file directly to the signed URL
+    curl -X PUT "https://uploads.shortkit.dev/direct/abc123...?token=eyJhbG..." \
+      -H "Content-Type: video/mp4" \
+      --data-binary @video.mp4
+    ```
+
+    Once the upload completes, ShortKit automatically begins processing. The content's `uploadStatus` transitions from `pending` → `processing` → `ready`.
+  </Tab>
+</Tabs>
+
+---
+
+## Uploading a carousel
+
+For carousels, specify the image slots you need in the `images` array. The response returns a signed upload URL for each slot.
+
+<Tabs>
+  <Tab title="1. Create upload">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/upload \
+      -H "X-API-Key: pk_live_your_publishable_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "carousel",
+        "title": "Top 5 Weekend Destinations",
+        "section": "Travel",
+        "autoScrollInterval": 5.0,
+        "images": [
+          {"position": 0, "altText": "Beach sunset"},
+          {"position": 1, "altText": "Mountain vista"},
+          {"position": 2, "altText": "City skyline"}
+        ]
+      }'
+    ```
+
+    ```json
+    {
+      "data": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "contentType": "carousel",
+        "uploadStatus": "pending",
+        "title": "Top 5 Weekend Destinations",
+        "imageSlots": [
+          {
+            "position": 0,
+            "uploadUrl": "https://storage.googleapis.com/shortkit-images/.../0?signature=...",
+            "maxSizeBytes": 10485760
+          },
+          {
+            "position": 1,
+            "uploadUrl": "https://storage.googleapis.com/shortkit-images/.../1?signature=...",
+            "maxSizeBytes": 10485760
+          },
+          {
+            "position": 2,
+            "uploadUrl": "https://storage.googleapis.com/shortkit-images/.../2?signature=...",
+            "maxSizeBytes": 10485760
+          }
+        ]
+      },
+      "meta": {
+        "request_id": "req_upload002"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="2. Upload each image">
+    ```bash
+    # Upload each image to its signed URL
+    curl -X PUT "https://storage.googleapis.com/shortkit-images/.../0?signature=..." \
+      -H "Content-Type: image/jpeg" \
+      --data-binary @beach.jpg
+
+    curl -X PUT "https://storage.googleapis.com/shortkit-images/.../1?signature=..." \
+      -H "Content-Type: image/jpeg" \
+      --data-binary @mountain.jpg
+
+    curl -X PUT "https://storage.googleapis.com/shortkit-images/.../2?signature=..." \
+      -H "Content-Type: image/jpeg" \
+      --data-binary @city.jpg
+    ```
+
+    Images can be uploaded in parallel. Max 10 MB per image. Once all images are uploaded, the carousel is automatically validated and marked as `ready`.
+  </Tab>
+</Tabs>
+
+---
+
+## Uploading in bulk
+
+There is no batch upload endpoint — each content item requires its own `POST /v1/content/upload` call. To upload many items, make requests in parallel:
+
+```python
+import asyncio
+import httpx
+
+items = [
+    {"contentType": "video", "title": "Video 1", "tags": ["batch"]},
+    {"contentType": "video", "title": "Video 2", "tags": ["batch"]},
+    {"contentType": "video", "title": "Video 3", "tags": ["batch"]},
+]
+
+async def upload_one(client, item):
+    resp = await client.post(
+        "https://api.shortkit.dev/v1/content/upload",
+        headers={"Authorization": "Bearer sk_live_your_secret_key"},
+        json=item,
+    )
+    return resp.json()["data"]
+
+async def main():
+    async with httpx.AsyncClient() as client:
+        results = await asyncio.gather(*[upload_one(client, i) for i in items])
+        for r in results:
+            print(f"{r['title']}: {r['uploadUrl']}")
+
+asyncio.run(main())
+```
+
+<Tip>
+  For bulk server-side ingestion from URLs (cloud storage, CMS, etc.), use [Import](/api/content/import) instead — it accepts up to 100 items in a single request.
+</Tip>

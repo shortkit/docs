@@ -1,0 +1,152 @@
+---
+title: "Update Ad Config"
+api: "PUT /v1/ad-config"
+description: "Update ad configuration settings. Only the fields you include are changed."
+---
+
+This is a **sparse update** — only the fields you include in the request body are changed. Omitted fields retain their current values.
+
+## Request body
+
+All fields are optional.
+
+<ParamField body="enabled" type="boolean">
+  Enable or disable ad slot injection.
+</ParamField>
+
+<ParamField body="frequency" type="integer">
+  Content items between ads after the first ad.
+</ParamField>
+
+<ParamField body="firstAdOffset" type="integer">
+  Content position of the first ad.
+</ParamField>
+
+<ParamField body="maxPerPage" type="integer">
+  Maximum ad slots per feed page.
+</ParamField>
+
+<ParamField body="adTagUrl" type="string | null">
+  VAST/VMAP ad tag URL.
+</ParamField>
+
+<ParamField body="adUnitId" type="string | null">
+  Default ad unit identifier.
+</ParamField>
+
+<ParamField body="skipPolicy" type="string">
+  Skip behavior string passed to the SDK.
+</ParamField>
+
+<ParamField body="skipDelaySeconds" type="integer">
+  Seconds before the skip button appears.
+</ParamField>
+
+<ParamField body="defaultTargeting" type="object">
+  Default targeting key-value pairs.
+</ParamField>
+
+<ParamField body="nativeEnabled" type="boolean">
+  Enable native ad format.
+</ParamField>
+
+<ParamField body="nativeFormatId" type="string | null">
+  Native ad format template identifier.
+</ParamField>
+
+<ParamField body="nativeAdUnitId" type="string | null">
+  Ad unit ID for native ad slots.
+</ParamField>
+
+<ParamField body="nativeVideoUrlKey" type="string">
+  Asset key for video URL in native ad responses.
+</ParamField>
+
+<ParamField body="nativeHeadlineKey" type="string">
+  Asset key for headline text.
+</ParamField>
+
+<ParamField body="nativeCtaKey" type="string">
+  Asset key for CTA text.
+</ParamField>
+
+<ParamField body="nativeSponsorKey" type="string">
+  Asset key for sponsor name.
+</ParamField>
+
+<ParamField body="nativeSponsorLogoKey" type="string">
+  Asset key for sponsor logo URL.
+</ParamField>
+
+<RequestExample>
+```bash Enable VAST ads
+curl -X PUT "https://api.shortkit.dev/v1/ad-config" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "adTagUrl": "https://ads.example.com/vast?placement=shortkit",
+    "frequency": 4,
+    "firstAdOffset": 2,
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 3,
+    "defaultTargeting": {
+      "content_type": "news",
+      "audience": "general"
+    }
+  }'
+```
+
+```bash Enable native ads
+curl -X PUT "https://api.shortkit.dev/v1/ad-config" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nativeEnabled": true,
+    "nativeFormatId": "vertical_video_card",
+    "nativeAdUnitId": "/12345/native-feed",
+    "nativeVideoUrlKey": "media_url",
+    "nativeHeadlineKey": "title",
+    "nativeCtaKey": "call_to_action"
+  }'
+```
+
+```bash Disable ads
+curl -X PUT "https://api.shortkit.dev/v1/ad-config" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "enabled": false }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "enabled": true,
+    "frequency": 4,
+    "firstAdOffset": 2,
+    "maxPerPage": 3,
+    "adTagUrl": "https://ads.example.com/vast?placement=shortkit",
+    "adUnitId": null,
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 3,
+    "defaultTargeting": {
+      "content_type": "news",
+      "audience": "general"
+    },
+    "nativeEnabled": false,
+    "nativeFormatId": null,
+    "nativeAdUnitId": null,
+    "nativeVideoUrlKey": "video_url",
+    "nativeHeadlineKey": "headline",
+    "nativeCtaKey": "cta_text",
+    "nativeSponsorKey": "sponsor_name",
+    "nativeSponsorLogoKey": "sponsor_logo"
+  },
+  "meta": {
+    "request_id": "req_def456"
+  }
+}
+```
+</ResponseExample>

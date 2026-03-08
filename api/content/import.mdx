@@ -1,0 +1,198 @@
+---
+title: "Import Content"
+api: "POST /v1/content/import"
+description: "Import content from URLs in bulk. ShortKit fetches and processes the media for you."
+---
+
+Import up to 100 content items in a single request. Provide source URLs (cloud storage, CDN, public URLs) and ShortKit downloads, processes, and creates the content.
+
+Use this when you have media hosted elsewhere — migrating from another platform, importing from a CMS, or pulling from cloud storage.
+
+## Request body
+
+<ParamField body="items" type="object[]" required>
+  Array of content items to import. Min 1, max 100 per request.
+
+  Each item accepts the same metadata fields as [Upload](/api/content/upload) (title, description, tags, section, author, customMetadata, publishAt, expiresAt, generateSubtitles, autoScrollInterval), plus source URL fields:
+
+  **For videos:**
+  - `sourceUrl` (string, required) — URL to the video file.
+
+  **For carousels:**
+  - `images` (object[], required) — Array of image objects, each with:
+    - `sourceUrl` (string, required) — URL to the image file.
+    - `altText` (string) — Accessibility text.
+    - `position` (integer) — Display order (0-indexed).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.shortkit.dev/v1/content/import \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "contentType": "video",
+        "title": "Quarterly Recap",
+        "sourceUrl": "https://storage.example.com/videos/recap-q1.mp4",
+        "tags": ["recap", "quarterly"],
+        "generateSubtitles": true
+      },
+      {
+        "contentType": "video",
+        "title": "Product Launch",
+        "sourceUrl": "https://storage.example.com/videos/launch.mp4",
+        "section": "Product"
+      },
+      {
+        "contentType": "carousel",
+        "title": "Team Photos",
+        "images": [
+          {"sourceUrl": "https://storage.example.com/photos/team-1.jpg", "altText": "Engineering team"},
+          {"sourceUrl": "https://storage.example.com/photos/team-2.jpg", "altText": "Design team"}
+        ]
+      }
+    ]
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/content/import",
+    headers={
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "items": [
+            {
+                "contentType": "video",
+                "title": "Quarterly Recap",
+                "sourceUrl": "https://storage.example.com/videos/recap-q1.mp4",
+                "tags": ["recap", "quarterly"],
+                "generateSubtitles": True,
+            },
+            {
+                "contentType": "video",
+                "title": "Product Launch",
+                "sourceUrl": "https://storage.example.com/videos/launch.mp4",
+                "section": "Product",
+            },
+        ],
+    },
+)
+result = resp.json()
+print(f"Imported {result['summary']['succeeded']} of {result['summary']['total']}")
+```
+
+```javascript Node.js
+const resp = await fetch("https://api.shortkit.dev/v1/content/import", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk_live_your_secret_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    items: [
+      {
+        contentType: "video",
+        title: "Quarterly Recap",
+        sourceUrl: "https://storage.example.com/videos/recap-q1.mp4",
+        tags: ["recap", "quarterly"],
+        generateSubtitles: true,
+      },
+      {
+        contentType: "video",
+        title: "Product Launch",
+        sourceUrl: "https://storage.example.com/videos/launch.mp4",
+        section: "Product",
+      },
+    ],
+  }),
+});
+const { data, summary } = await resp.json();
+console.log(`Imported ${summary.succeeded} of ${summary.total}`);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201
+{
+  "data": [
+    {
+      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "contentType": "video",
+      "title": "Quarterly Recap",
+      "uploadStatus": "processing",
+      "error": null
+    },
+    {
+      "id": "e3a1b2c3-d4e5-6789-abcd-ef0123456789",
+      "contentType": "video",
+      "title": "Product Launch",
+      "uploadStatus": "processing",
+      "error": null
+    },
+    {
+      "id": "f4b2c3d4-e5f6-7890-bcde-f01234567890",
+      "contentType": "carousel",
+      "title": "Team Photos",
+      "uploadStatus": "ready",
+      "error": null,
+      "images": [
+        {"position": 0, "imageUrl": "https://...", "altText": "Engineering team"},
+        {"position": 1, "imageUrl": "https://...", "altText": "Design team"}
+      ]
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "succeeded": 3,
+    "failed": 0
+  },
+  "meta": {
+    "request_id": "req_import001"
+  }
+}
+```
+</ResponseExample>
+
+## Processing behavior
+
+- **Videos** are queued for async processing. They start with `uploadStatus: "processing"` and transition to `ready` once transcoding completes. This typically takes 30–120 seconds depending on file size.
+- **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
+
+If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
+
+## Platform imports
+
+ShortKit can import content directly from social platforms. These endpoints automatically extract metadata from the source — you don't need to provide title, description, or author manually.
+
+| Endpoint | Platform | Accepts |
+|----------|----------|---------|
+| `POST /v1/content/import/tiktok` | TikTok | Video URLs or profile URLs (auto-expands up to 50 recent videos) |
+| `POST /v1/content/import/instagram` | Instagram | Reel and video URLs |
+
+### Auto-populated metadata
+
+When importing from a social platform, ShortKit extracts and fills in the following fields automatically:
+
+| Field | TikTok | Instagram |
+|-------|--------|-----------|
+| `title` | Video title (or first 200 chars of caption) | Post title (or first 200 chars of caption) |
+| `description` | Full caption text | Full caption text |
+| `author` | Creator username | Channel handle |
+| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments` | `instagram_id`, `instagram_url`, `instagram_likes`, `instagram_comments` |
+
+You can always update these fields after import using the [Update Content](/api/content/update) endpoint.
+
+<Warning>
+  **Content rights.** Only import content you have the rights to use. ShortKit does not verify content ownership or licensing — you are responsible for ensuring you have authorization to redistribute any imported media.
+</Warning>
+
+<Note>
+  Platform imports rely on third-party platform availability and may be affected by changes those platforms make to their systems. We recommend using them for initial content migration rather than as a continuous ingestion pipeline. For ongoing content workflows, use [Upload](/api/content/upload) or the standard [Import](/api/content/import) endpoint with your own hosted URLs.
+</Note>

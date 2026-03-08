@@ -1,0 +1,121 @@
+---
+title: "The Event Object"
+description: "Events represent user interactions with your content — views, engagement, playback quality, and ad lifecycle."
+---
+
+Events are created automatically by the SDK as users interact with your feed. Each event captures a specific interaction — a video impression, a like, a share, or detailed playback telemetry like rebuffering and quality changes.
+
+You don't need to create events manually. The SDK batches and sends them to `POST /v1/events` using your publishable key. This reference documents the event shape and types so you can query and filter them via the API.
+
+## The event object
+
+```json
+{
+  "id": "e8f9a0b1-c2d3-4e5f-6a7b-8c9d0e1f2a3b",
+  "type": "playStart",
+  "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "userId": "user_abc123",
+  "sessionId": "sess_xyz789",
+  "viewSessionId": "vs_a1b2c3d4",
+  "timestamp": "2026-03-01T12:00:00Z",
+  "receivedAt": "2026-03-01T12:00:01Z",
+  "data": {}
+}
+```
+
+---
+
+## Attributes
+
+<ResponseField name="id" type="string">
+  Unique event identifier (UUID).
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Event type. See the full list below.
+</ResponseField>
+
+<ResponseField name="contentId" type="string | null">
+  Content ID this event relates to. Null for feed-level events like `feedEntry`.
+</ResponseField>
+
+<ResponseField name="userId" type="string">
+  User identifier. Defaults to `"anonymous"` if the SDK has no identity set.
+</ResponseField>
+
+<ResponseField name="sessionId" type="string | null">
+  Session identifier grouping events within a single app session.
+</ResponseField>
+
+<ResponseField name="viewSessionId" type="string | null">
+  View session identifier grouping all events for a single content view (from impression through exit).
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  ISO 8601 timestamp of when the event occurred on the client.
+</ResponseField>
+
+<ResponseField name="receivedAt" type="string">
+  ISO 8601 timestamp of when the server received the event.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Event-specific payload. Shape varies by event type.
+</ResponseField>
+
+---
+
+## Event types
+
+### Engagement
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `impression` | Content entered the viewport | — |
+| `playStart` | Video playback began | — |
+| `watchProgress` | Periodic heartbeat during playback | `watchTimeMs`, `playingTimeMs` |
+| `completion` | Video played to the end | `watchTimeMs` |
+| `like` | User liked the content | — |
+| `share` | User shared the content | `shareMethod` |
+| `save` | User saved/bookmarked the content | — |
+| `swipe` | User swiped to the next item | `direction` |
+| `interaction` | Generic UI interaction | `action` |
+
+### Playback quality
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `firstFrame` | First video frame rendered | `startupTimeMs` |
+| `rebuffer` | Playback stalled for buffering | `durationMs` |
+| `qualityChange` | Adaptive bitrate switch | `fromBitrate`, `toBitrate` |
+| `error` | Playback error | `errorCode`, `errorMessage` |
+
+### Feed navigation
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `feedEntry` | User entered the feed | — |
+| `feedExit` | User left the feed | `itemsViewed`, `durationMs` |
+
+### View lifecycle
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `viewEnd` | User finished viewing a content item | Full playback summary (see below) |
+
+The `viewEnd` event carries the richest payload — a complete summary of the viewing session including watch time, completion status, loop count, rebuffer stats, seek behavior, and device info. The server uses `viewEnd` events to populate the **video views** table that powers the metrics system.
+
+### Ad lifecycle
+
+| Type | Description | Key `data` fields |
+|------|-------------|-------------------|
+| `adRequest` | Ad was requested from the ad server | `adUnitId` |
+| `adImpression` | Ad creative rendered | `adUnitId`, `adFormat` |
+| `adStart` | Ad playback began | `adUnitId` |
+| `adProgress` | Ad playback progress checkpoint | `adUnitId`, `percentComplete` |
+| `adComplete` | Ad played to completion | `adUnitId` |
+| `adSkip` | User skipped the ad | `adUnitId`, `skipTimeSeconds` |
+
+<Note>
+  Event types are not restricted to this list. The SDK may send custom event types, and they are stored and queryable like any other event.
+</Note>

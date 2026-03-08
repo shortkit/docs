@@ -1,0 +1,65 @@
+---
+title: "API Introduction"
+description: "The ShortKit API lets you manage content, uploads, surveys, analytics, and ad configuration for your short-form video feeds."
+---
+
+The ShortKit API is organized around REST. It uses standard HTTP methods, returns JSON responses, and uses conventional HTTP status codes to indicate success or failure.
+
+## Base URL
+
+All API requests use the following base URL:
+
+```
+https://api.shortkit.dev/v1
+```
+
+All requests must be made over HTTPS.
+
+## Authentication
+
+Every request requires an API key. See [Authentication](/api/authentication) for key types and usage.
+
+## Response envelope
+
+Every response is wrapped in a standard envelope:
+
+```json
+{
+  "data": { ... },
+  "meta": {
+    "request_id": "req_abc123def456"
+  }
+}
+```
+
+- **`data`** — The requested resource or array of resources. `null` on errors.
+- **`meta`** — Always includes `request_id`. May include pagination fields like `nextCursor`.
+- **`errors`** — Present only on error responses. See [Errors](/api/errors) for status codes and handling.
+
+## Pagination
+
+List endpoints use cursor-based pagination. The response includes a `nextCursor` field in `meta` when more results are available.
+
+```bash
+# First page
+curl "https://api.shortkit.dev/v1/content?limit=20" \
+  -H "Authorization: Bearer sk_live_..."
+
+# Next page
+curl "https://api.shortkit.dev/v1/content?limit=20&cursor=eyJjYSI6..." \
+  -H "Authorization: Bearer sk_live_..."
+```
+
+When `meta.nextCursor` is absent, you've reached the last page.
+
+<Warning>
+  Cursor tokens are opaque — they may change format at any time. Do not parse, decode, or construct them manually.
+</Warning>
+
+## Request IDs
+
+Every response includes a `request_id` in `meta`. Include this when contacting support about a specific request.
+
+## Environments
+
+API keys encode their environment (`live` or `test`) in the prefix. These environments are completely isolated — a `live` key cannot access `test` data, and vice versa. See [Authentication](/api/authentication#environment-isolation) for details.
