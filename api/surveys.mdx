@@ -4,7 +4,7 @@ description: "Create in-feed surveys, control placement rules, manage priorities
 keywords: ["surveys", "API", "CRUD", "placement rules", "responses", "in-feed", "polling"]
 ---
 
-The Surveys API lets you create short polls that are injected directly into the content feed. Surveys appear between videos based on placement rules you define. The SDK collects responses and reports them back through a separate, publishable-key-authenticated endpoint.
+The Surveys API lets you create short polls that are injected directly into the content feed. Surveys appear between videos based on placement rules you define. The SDK handles collecting and submitting responses automatically.
 
 ## Endpoints
 
@@ -15,8 +15,6 @@ The Surveys API lets you create short polls that are injected directly into the 
 | `GET` | `/v1/surveys/{id}` | Secret key / Portal JWT | Get a survey |
 | `PUT` | `/v1/surveys/{id}` | Secret key / Portal JWT | Update a survey |
 | `DELETE` | `/v1/surveys/{id}` | Secret key / Portal JWT | Delete (archive) a survey |
-| `PUT` | `/v1/surveys/priorities` | Secret key / Portal JWT | Reorder survey priorities |
-| `POST` | `/v1/surveys/{id}/responses` | Publishable key | Submit a response (SDK-facing) |
 
 ---
 
@@ -523,139 +521,5 @@ curl -X DELETE https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5
 
 ---
 
-## Reorder priorities
-
-Sets the priority of multiple surveys in one call. The first ID in the array gets the highest priority, the last gets the lowest.
-
-```bash
-PUT /v1/surveys/priorities
-```
-
-### Authentication
-
-Requires a **secret key** or **portal JWT** via the `Authorization` header.
-
-### Request body
-
-<ParamField body="surveyIds" type="string[]" required>
-  Ordered array of survey UUIDs. The first element receives the highest priority value (equal to the array length), the second receives length minus one, and so on.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/surveys/priorities \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "surveyIds": [
-      "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
-      "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
-      "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c"
-    ]
-  }'
-```
-
-Given this input, the surveys receive priorities `3`, `2`, and `1` respectively.
-
-### Response
-
-```json
-{
-  "data": {
-    "updated": true
-  },
-  "meta": {
-    "request_id": "req_srv006"
-  }
-}
-```
-
-### Errors
-
-| Condition | Status | Message |
-|-----------|--------|---------|
-| Invalid UUID in array | 400 | `Invalid survey ID: {value}` |
-| Survey not found or belongs to another org | 404 | `Survey not found: {id}` |
-
 ---
 
-## Submit response (SDK-facing)
-
-Called by the SDK when a user taps a survey option. This is the only survey endpoint that uses publishable key authentication.
-
-```bash
-POST /v1/surveys/{id}/responses
-```
-
-### Authentication
-
-Requires a **publishable key** via the `X-API-Key` header.
-
-### Path parameters
-
-<ParamField path="id" type="string" required>
-  Survey UUID.
-</ParamField>
-
-### Request body
-
-<ParamField body="optionId" type="string" required>
-  UUID of the selected option. Must belong to this survey.
-</ParamField>
-
-<ParamField body="userId" type="string" required>
-  The user identifier (device ID or resolved user ID).
-</ParamField>
-
-<ParamField body="sessionId" type="string">
-  Current session identifier.
-</ParamField>
-
-<ParamField body="deviceInfo" type="object">
-  Freeform device metadata (e.g., `{ "os": "iOS", "model": "iPhone 15" }`).
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a/responses \
-  -H "X-API-Key: pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
-    "userId": "user_123",
-    "sessionId": "sess_abc",
-    "deviceInfo": { "os": "iOS", "model": "iPhone 15" }
-  }'
-```
-
-### Response (201)
-
-```json
-{
-  "data": {
-    "id": "7a8b9c0d-e1f2-3a4b-5c6d-7e8f9a0b1c2d",
-    "surveyId": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
-    "optionId": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
-    "userId": "user_123",
-    "respondedAt": "2026-02-12T15:00:00Z"
-  },
-  "meta": {
-    "request_id": "req_srv007"
-  }
-}
-```
-
-### Errors
-
-| Condition | Status | Message |
-|-----------|--------|---------|
-| Survey not found | 404 | `Survey not found` |
-| Survey is not `active` | 400 | `Survey is not active` |
-| Option does not belong to survey | 400 | `Option does not belong to this survey` |
-| User already responded to this survey | 409 | `User has already responded to this survey` |
-
-Each user can respond to a given survey exactly once. The uniqueness constraint is on the `(survey_id, user_id)` pair. Duplicate submissions return `409 Conflict`.
-
----

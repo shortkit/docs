@@ -19,6 +19,8 @@ Both systems require a secret key or portal JWT (`Authorization: Bearer sk_...` 
 | `GET` | `/v1/metrics/{metric}` | V2 | Scalar or time-grouped metric |
 | `GET` | `/v1/metrics/{metric}/breakdown` | V2 | Metric broken down by dimension |
 | `GET` | `/v1/metrics/{metric}/timeseries` | V2 | Auto-granularity time series |
+| `GET` | `/v1/metrics/{metric}/heatmap` | V2 | Metric by hour-of-day and day-of-week |
+| `POST` | `/v1/metrics/batch` | V2 | Execute multiple metric queries in one request |
 | `GET` | `/v1/dimensions/{dimension}/values` | V2 | Unique values for a dimension |
 | `GET` | `/v1/views` | V2 | List individual view records |
 | `GET` | `/v1/views/{view_id}` | V2 | Single view detail |
@@ -439,6 +441,118 @@ curl "https://api.shortkit.dev/v1/metrics/views/timeseries?timeframe[]=30:days&f
   ],
   "timeframe": [1738368000, 1740960000],
   "meta": { "request_id": "req_ts001" }
+}
+```
+
+---
+
+## Get metric heatmap
+
+```bash
+GET /v1/metrics/{metric}/heatmap
+```
+
+Returns metric values grouped by hour-of-day (0--23) and day-of-week (0=Monday, 6=Sunday). Useful for identifying peak engagement windows.
+
+<ParamField path="metric" type="string" required>
+  One of the valid metrics listed above.
+</ParamField>
+
+<ParamField query="measurement" type="string">
+  Aggregation function: `sum`, `avg`, or `count`.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string">
+  Time range. Default: `30:days`.
+</ParamField>
+
+<ParamField query="filters[]" type="string">
+  Dimension filters in `dimension:value` format.
+</ParamField>
+
+### Example: views by hour and day of week
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views/heatmap?timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    { "hour": 8, "day": 0, "value": 245 },
+    { "hour": 9, "day": 0, "value": 312 },
+    { "hour": 12, "day": 2, "value": 520 },
+    { "hour": 18, "day": 4, "value": 890 }
+  ],
+  "timeframe": [1738368000, 1740960000],
+  "meta": { "request_id": "req_hm001" }
+}
+```
+
+The `day` field uses ISO weekday numbering: 0 = Monday, 1 = Tuesday, ..., 6 = Sunday.
+
+---
+
+## Batch metrics
+
+```bash
+POST /v1/metrics/batch
+```
+
+Execute multiple metric queries in a single request. This is more efficient than making individual requests when you need several metrics for a dashboard or report.
+
+### Authentication
+
+Requires a **secret key** or **portal JWT** via the `Authorization` header.
+
+### Request body
+
+<ParamField body="queries" type="array" required>
+  Array of metric queries (1--20). Each query must include `metric` (string) and optionally `measurement` (string).
+</ParamField>
+
+<ParamField body="timeframe" type="string[]">
+  Time range applied to all queries. Default: `["7:days"]`.
+</ParamField>
+
+<ParamField body="filters" type="string[]">
+  Dimension filters applied to all queries. Format: `["dimension:value"]`.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/metrics/batch \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "queries": [
+      { "metric": "views" },
+      { "metric": "unique_viewers" },
+      { "metric": "completions" },
+      { "metric": "watch_time", "measurement": "sum" },
+      { "metric": "video_startup_time", "measurement": "avg" }
+    ],
+    "timeframe": ["7:days"]
+  }'
+```
+
+### Response
+
+Each metric is returned as a key in the response object. When the same metric appears with different measurements, the key uses `metric__measurement` format.
+
+```json
+{
+  "data": {
+    "views": { "value": 12450, "total_views": 12450 },
+    "unique_viewers": { "value": 3100, "total_views": 12450 },
+    "completions": { "value": 4200, "total_views": 12450 },
+    "watch_time": { "value": 89400000, "total_views": 12450 },
+    "video_startup_time": { "value": 342.5, "total_views": 12450 }
+  },
+  "timeframe": [1740700800, 1741305600],
+  "meta": { "request_id": "req_batch001" }
 }
 ```
 
