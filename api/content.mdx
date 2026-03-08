@@ -1,10 +1,10 @@
 ---
 title: "Content"
-description: "Create, list, update, search, and delete content items. Manage carousel images, caption tracks, and publication URLs."
-keywords: ["content", "videos", "carousel", "API", "CRUD", "metadata", "captions", "publication URLs"]
+description: "Create, list, update, search, and delete content items. Manage carousel images and caption tracks."
+keywords: ["content", "videos", "carousel", "API", "CRUD", "metadata", "captions"]
 ---
 
-The Content API manages your video and carousel library. Use it to create content items, attach images and captions, set editorial controls, search by natural language, and archive items you no longer need.
+The Content API manages your video and carousel library. Use it to create content items, attach carousel images and caption tracks, set editorial controls, search by natural language, and archive items you no longer need.
 
 ## Endpoints
 
@@ -21,10 +21,6 @@ The Content API manages your video and carousel library. Use it to create conten
 | `PUT` | [`/v1/content/{id}/images/order`](#reorder-carousel-images) | Reorder carousel images |
 | `POST` | [`/v1/content/{id}/captions`](#upload-caption-track) | Upload a caption track (VTT/SRT) |
 | `DELETE` | [`/v1/content/{id}/captions/{track_id}`](#delete-caption-track) | Delete a caption track |
-| `POST` | [`/v1/content/{id}/publication-urls`](#add-publication-url) | Add a publication URL |
-| `PUT` | [`/v1/content/{id}/publication-urls/{url_id}`](#update-publication-url) | Update a publication URL |
-| `DELETE` | [`/v1/content/{id}/publication-urls/{url_id}`](#delete-publication-url) | Delete a publication URL |
-| `PUT` | [`/v1/content/{id}/publication-urls/order`](#reorder-publication-urls) | Reorder publication URLs |
 
 All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **portal JWT** (`Authorization: Bearer <jwt>`).
 
@@ -59,15 +55,6 @@ All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **p
       "muxTrackId": "cc1",
       "status": "ready",
       "createdAt": "2026-02-05T12:03:45Z"
-    }
-  ],
-  "publicationUrls": [
-    {
-      "id": "f4e5d6c7-...",
-      "url": "https://example.com/weather-alert",
-      "label": "Read article",
-      "position": 0,
-      "createdAt": "2026-02-05T12:05:00Z"
     }
   ],
   "images": [],
@@ -141,10 +128,6 @@ All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **p
 
 <ResponseField name="captionTracks" type="array">
   Caption tracks attached to this content. Each track has `id`, `language` (ISO 639-1), `label`, `source` (`"generated"`, `"embedded"`, or `"external"`), `url`, `muxTrackId`, `status`, and `createdAt`.
-</ResponseField>
-
-<ResponseField name="publicationUrls" type="array">
-  Ordered list of publication URLs. Each entry has `id`, `url`, `label`, `position`, and `createdAt`.
 </ResponseField>
 
 <ResponseField name="images" type="array">
@@ -940,216 +923,6 @@ curl -X DELETE https://api.shortkit.dev/v1/content/d290f1ee-.../captions/b2c3d4e
 
 ---
 
-## Publication URLs
-
-Attach links to a content item -- article pages, related resources, or any URL you want to surface alongside the content in the feed. Publication URLs are ordered by `position` and returned in the `publicationUrls` array of the content object.
-
-### Add publication URL
-
-```bash
-POST /v1/content/{id}/publication-urls
-```
-
-### Authentication
-
-Secret key or portal JWT via the `Authorization` header.
-
-### Path parameters
-
-<ParamField path="id" type="string" required>
-  Content UUID.
-</ParamField>
-
-### Request body
-
-<ParamField body="url" type="string" required>
-  The URL to link.
-</ParamField>
-
-<ParamField body="label" type="string">
-  Display label (e.g., `"Read article"`, `"Visit website"`).
-</ParamField>
-
-<ParamField body="position" type="integer" default={0}>
-  Sort order among this content's publication URLs.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com/weather-alert",
-    "label": "Read full article",
-    "position": 0
-  }'
-```
-
-### Response (201)
-
-```json
-{
-  "data": {
-    "id": "f4e5d6c7-a8b9-0123-cdef-456789abcdef",
-    "url": "https://example.com/weather-alert",
-    "label": "Read full article",
-    "position": 0,
-    "createdAt": "2026-02-05T14:00:00Z"
-  },
-  "meta": {
-    "request_id": "req_puburl001"
-  }
-}
-```
-
-### Update publication URL
-
-```bash
-PUT /v1/content/{id}/publication-urls/{url_id}
-```
-
-### Authentication
-
-Secret key or portal JWT via the `Authorization` header.
-
-### Path parameters
-
-<ParamField path="id" type="string" required>
-  Content UUID.
-</ParamField>
-
-<ParamField path="url_id" type="string" required>
-  Publication URL UUID.
-</ParamField>
-
-### Request body
-
-<ParamField body="url" type="string">
-  Updated URL.
-</ParamField>
-
-<ParamField body="label" type="string">
-  Updated label.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls/f4e5d6c7-... \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com/updated-article",
-    "label": "Updated article link"
-  }'
-```
-
-### Response
-
-Returns the updated publication URL object.
-
-```json
-{
-  "data": {
-    "id": "f4e5d6c7-a8b9-0123-cdef-456789abcdef",
-    "url": "https://example.com/updated-article",
-    "label": "Updated article link",
-    "position": 0,
-    "createdAt": "2026-02-05T14:00:00Z"
-  },
-  "meta": {
-    "request_id": "req_puburlupd001"
-  }
-}
-```
-
-### Delete publication URL
-
-```bash
-DELETE /v1/content/{id}/publication-urls/{url_id}
-```
-
-### Authentication
-
-Secret key or portal JWT via the `Authorization` header.
-
-### Path parameters
-
-<ParamField path="id" type="string" required>
-  Content UUID.
-</ParamField>
-
-<ParamField path="url_id" type="string" required>
-  Publication URL UUID.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X DELETE https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls/f4e5d6c7-... \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response
-
-```json
-{
-  "data": { "deleted": true },
-  "meta": { "request_id": "req_puburldel001" }
-}
-```
-
-### Reorder publication URLs
-
-Sets the display order of all publication URLs on a content item.
-
-```bash
-PUT /v1/content/{id}/publication-urls/order
-```
-
-### Authentication
-
-Secret key or portal JWT via the `Authorization` header.
-
-### Path parameters
-
-<ParamField path="id" type="string" required>
-  Content UUID.
-</ParamField>
-
-### Request body
-
-<ParamField body="urlIds" type="string[]" required>
-  Ordered array of publication URL UUIDs. Each URL's `position` is set to its index in this array.
-</ParamField>
-
-### Example request
-
-```bash
-curl -X PUT https://api.shortkit.dev/v1/content/d290f1ee-.../publication-urls/order \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urlIds": ["url-uuid-2", "url-uuid-1"]
-  }'
-```
-
-### Response
-
-Returns the reordered publication URL array:
-
-```json
-{
-  "data": [
-    { "id": "url-uuid-2", "url": "https://...", "label": "...", "position": 0, "createdAt": "..." },
-    { "id": "url-uuid-1", "url": "https://...", "label": "...", "position": 1, "createdAt": "..." }
-  ],
-  "meta": { "request_id": "req_puburlreorder001" }
-}
-```
-
 ---
 
 ## Editorial controls
@@ -1174,7 +947,7 @@ All content endpoints return errors in the standard envelope format:
 | `400` | `invalid_request` | Invalid content ID, missing required fields, invalid `contentType`, unsupported file format |
 | `401` | `invalid_api_key` | Missing or invalid API key |
 | `403` | `forbidden` | Publishable key used on a secret-key endpoint |
-| `404` | `not_found` | Content, image, caption track, or publication URL not found |
+| `404` | `not_found` | Content, image, or caption track not found |
 | `429` | `rate_limited` | Too many requests |
 
 ```json

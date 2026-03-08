@@ -58,7 +58,7 @@ Collected once per view and attached automatically.
 | Metric | Type | Description |
 |--------|------|-------------|
 | `captionsEnabled` | `Bool` | Whether captions were enabled during the view. |
-| `deviceInfo` | `Object` | Device and connection metadata: OS, device model, connection type. See the [Events API reference](/api/events#deviceinfo-object) for the full field list. |
+| `deviceInfo` | `Object` | Device and connection metadata: OS, device model, connection type. Includes `osName`, `osVersion`, `deviceCategory`, `deviceManufacturer`, `deviceModel`, `connectionType`. |
 | `clientAppName` | `String?` | App name passed at SDK init. |
 | `clientAppVersion` | `String?` | App version passed at SDK init. |
 | `customDimensions` | `Object?` | Custom dimensions (`custom_1` through `custom_5`), if set at init. |

@@ -1,17 +1,16 @@
 ---
 title: "Organization"
-description: "Retrieve organization details and rotate secret keys."
-keywords: ["organization", "org", "secret key", "rotation", "API key", "security"]
+description: "Retrieve organization details."
+keywords: ["organization", "org", "API"]
 ---
 
-The Organization API returns information about your organization and provides secret key rotation. These endpoints are used by the portal dashboard and server-side integrations.
+The Organization API returns information about your organization.
 
 ## Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | `/v1/org` | Secret key or portal JWT | Get organization info |
-| `POST` | `/v1/org/rotate-secret-key` | Secret key or portal JWT | Rotate the secret key |
 
 ---
 
@@ -77,99 +76,6 @@ curl https://api.shortkit.dev/v1/org \
 <ResponseField name="createdAt" type="string">
   Organization creation timestamp (ISO 8601).
 </ResponseField>
-
----
-
-## Rotate secret key
-
-Generates a new secret key and immediately invalidates the old one. Use this when a key is compromised, when team members with key access leave, or as part of a regular rotation policy.
-
-```bash
-POST /v1/org/rotate-secret-key
-```
-
-### Authentication
-
-Requires a **secret key** or **portal JWT** via the `Authorization` header.
-
-You can rotate using the current secret key (which invalidates itself) or a portal JWT (which does not depend on the secret key at all).
-
-### Example request
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/org/rotate-secret-key \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
-
-### Response
-
-```json
-{
-  "data": {
-    "secretKey": "sk_live_d4e5f6_NewKeyRandomPartHere...",
-    "message": "Secret key rotated. The old key is immediately invalidated. Store this key securely -- it will not be shown again."
-  },
-  "meta": {
-    "request_id": "req_def456"
-  }
-}
-```
-
-### Field reference
-
-<ResponseField name="secretKey" type="string">
-  The new plaintext secret key. This is the only time it will be returned. The server stores only a bcrypt hash.
-</ResponseField>
-
-<ResponseField name="message" type="string">
-  Confirmation message describing the rotation result.
-</ResponseField>
-
-### How rotation works
-
-1. A new `key_id` and random part are generated. The new key follows the format `sk_{env}_{key_id}_{random}`.
-2. The new key is bcrypt-hashed and stored, replacing the old hash and key ID on the organization record.
-3. The plaintext new key is returned in the response -- this is the only time it will be visible.
-4. The old key is immediately invalidated. Any in-flight or subsequent requests using the old key will receive a `401`.
-
-<Warning>
-  Save the new key from the response before doing anything else. It cannot be retrieved again. If you lose it, you must rotate again (using a portal JWT, since the secret key is lost).
-</Warning>
-
----
-
-## Security considerations
-
-### Immediate invalidation
-
-Rotation is not gradual. The old key stops working the instant the new one is created. Plan your deployment accordingly:
-
-1. Call `POST /v1/org/rotate-secret-key`.
-2. Update the secret key in your environment variables or secrets manager.
-3. Restart or redeploy services that use the key.
-
-Any requests made with the old key between steps 1 and 3 will fail with `401`. To minimize downtime, prepare your deployment pipeline to update the key quickly.
-
-### Rotating via portal JWT
-
-If the secret key is compromised or lost, you can still rotate by authenticating with a portal JWT instead. Portal JWTs are issued through the magic link login flow and do not depend on the secret key.
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/org/rotate-secret-key \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
-```
-
-This is the recovery path when the secret key is unavailable.
-
-### When to rotate
-
-| Scenario | Action |
-|----------|--------|
-| Team member with key access leaves | Rotate immediately |
-| Key committed to a public repository | Rotate immediately |
-| Key exposed in client-side code or logs | Rotate immediately |
-| Regular security hygiene | Rotate on a schedule (e.g., quarterly) |
-| Key suspected of unauthorized use | Rotate immediately, then investigate |
 
 ---
 

@@ -41,18 +41,7 @@ The `key_id` segment lets the server look up your organization directly by index
 
 Publishable keys are designed to be embedded in client applications. They provide **read-only** access to public-facing endpoints.
 
-Send the key in the `X-API-Key` header:
-
-```bash
-curl https://api.shortkit.dev/v1/feed?limit=10 \
-  -H "X-API-Key: pk_live_a1b2c3d4e5f6g7h8i9j0..."
-```
-
-Publishable keys are stored as plaintext on the server because they are intended to be public. Lookup is a direct indexed query -- no hashing involved.
-
-### SDK initialization
-
-Pass your publishable key when creating a ShortKit instance:
+Publishable keys are used by the ShortKit SDK. Pass your publishable key when initializing the SDK:
 
 ```swift
 let shortKit = ShortKit(
@@ -62,7 +51,7 @@ let shortKit = ShortKit(
 )
 ```
 
-The SDK attaches the key to every request automatically via the `X-API-Key` header. You never use a secret key in the SDK.
+The SDK attaches the key to every request automatically via the `X-API-Key` header. You never use a secret key in the SDK, and you don't need to call any publishable-key endpoints directly -- the SDK handles all communication with the ShortKit API.
 
 ## Secret keys
 
@@ -85,16 +74,6 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 
 ## Endpoints by key type
 
-### Publishable key (`X-API-Key` header)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/feed` | GET | Fetch paginated feed |
-| `/v1/feed/videos` | GET | Fetch video-only feed |
-| `/v1/events` | POST | Ingest analytics events |
-| `/v1/identity/resolve` | POST | Link anonymous device to known user |
-| `/v1/surveys/{id}/responses` | POST | Submit survey response |
-
 ### Secret key or portal JWT (`Authorization: Bearer` header)
 
 | Endpoint | Method | Description |
@@ -102,14 +81,11 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 | `/v1/content/*` | GET / POST / PATCH / DELETE | Content management |
 | `/v1/uploads` | POST | Create upload sessions |
 | `/v1/surveys/*` | GET / POST / PUT / DELETE | Survey management (CRUD, not submission) |
-| `/v1/embeds/*` | GET / POST / PUT / DELETE | Embed configuration |
-| `/v1/projects/*` | GET / POST / PATCH / DELETE | Video editor projects |
 | `/v1/analytics/*` | GET | Analytics overview and timeseries |
 | `/v1/metrics/*` | GET | Analytics V2 metrics |
 | `/v1/views/*` | GET | Analytics V2 views |
 | `/v1/dimensions/*` | GET | Analytics V2 dimension values |
 | `/v1/org` | GET | Organization info |
-| `/v1/org/rotate-secret-key` | POST | Rotate the secret key |
 
 ### Secret key only (`Authorization: Bearer` header)
 
@@ -134,32 +110,7 @@ A `live` key cannot access `test` data, and a `test` key cannot access `live` da
 
 ## Secret key rotation
 
-Rotate a compromised or aging secret key by calling `POST /v1/org/rotate-secret-key`. This endpoint accepts either the current secret key or a portal JWT.
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/org/rotate-secret-key \
-  -H "Authorization: Bearer sk_live_a1b2c3_FgHiJkLmNoPqRsTuVwXyZ..."
-```
-
-```json
-{
-  "data": {
-    "secretKey": "sk_live_d4e5f6_NewKeyRandomPartHere..."
-  },
-  "meta": {
-    "request_id": "req_8f3a2b1c"
-  }
-}
-```
-
-The rotation flow:
-
-1. A new `key_id` and random part are generated.
-2. The new key is bcrypt-hashed and stored, replacing the old hash and key ID.
-3. The plaintext new key is returned in the response -- shown once only.
-4. The old key is **immediately invalidated**. Any in-flight requests using the old key will fail.
-
-Update your server environment variables with the new key before discarding the response.
+If you need to rotate a compromised or aging secret key, use the ShortKit portal. The old key is immediately invalidated when a new one is generated.
 
 ## Key expiration
 
@@ -175,7 +126,7 @@ API keys do not expire automatically. Both publishable and secret keys remain va
 ### Example: missing API key
 
 ```bash
-curl https://api.shortkit.dev/v1/feed
+curl https://api.shortkit.dev/v1/content
 ```
 
 ```json
