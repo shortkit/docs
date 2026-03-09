@@ -1,0 +1,243 @@
+---
+title: "The Content Object"
+description: "A content item represents a video or image carousel in your feed. This page covers the object structure, upload and publish lifecycle, and how content reaches your users."
+---
+
+A content item is the core resource in ShortKit. It represents either a **video** or an **image carousel** that appears in your feed.
+
+## Creating content
+
+Content is not created directly — instead, you create content by uploading or importing media:
+
+- **[Upload](/api/content/upload)** — You have a video file. Upload it directly from a client or server. Best for user-generated content or files on disk.
+- **[Import](/api/content/import)** — You have a URL (cloud storage, TikTok, Instagram, etc.). ShortKit fetches and processes the media for you. Best for migrating existing content or server-side workflows.
+
+Both methods accept metadata (title, description, tags, etc.) alongside the media, and return a content object. Once created, use the content endpoints to [list](/api/content/list), update, or delete content.
+
+---
+
+## The content object
+
+```json
+{
+  "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "contentType": "video",
+  "title": "Breaking: Weather Alert",
+  "description": "Severe thunderstorm warning for the metro area",
+  "uploadStatus": "ready",
+  "publishStatus": "published",
+  "duration": 32.5,
+  "streamingUrl": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8",
+  "thumbnailUrl": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?time=0",
+  "section": "Weather",
+  "author": "Jane Doe",
+  "tags": ["weather", "severe", "breaking"],
+  "customMetadata": {
+    "articleUrl": "https://example.com/weather-alert"
+  },
+  "captionTracks": [],
+  "images": [],
+  "publishAt": null,
+  "expiresAt": null,
+  "width": 1080,
+  "height": 1920,
+  "aspectRatio": "9:16",
+  "maxFrameRate": 60,
+  "videoQuality": "plus",
+  "resolutionTier": "HD",
+  "createdAt": "2026-02-05T12:00:00Z",
+  "updatedAt": "2026-02-05T12:03:45Z"
+}
+```
+
+---
+
+## Attributes
+
+<ResponseField name="id" type="string">
+  Unique identifier (UUID) for the content item.
+</ResponseField>
+
+<ResponseField name="contentType" type="string">
+  Either `"video"` or `"carousel"`.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title shown in the feed. Max 200 characters.
+</ResponseField>
+
+<ResponseField name="description" type="string | null">
+  Optional longer description. Max 2000 characters.
+</ResponseField>
+
+<ResponseField name="uploadStatus" type="string">
+  Tracks media processing. One of `pending`, `processing`, `ready`, or `error`. See [Upload lifecycle](#upload-lifecycle) below.
+</ResponseField>
+
+<ResponseField name="publishStatus" type="string">
+  Controls whether content appears in the feed. Either `published` or `unpublished`. See [Publish lifecycle](#publish-lifecycle) below.
+</ResponseField>
+
+<ResponseField name="duration" type="number | null">
+  Video duration in seconds. Set automatically when processing completes. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="streamingUrl" type="string | null">
+  HLS streaming URL for video playback. Available once `uploadStatus` is `ready`. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="thumbnailUrl" type="string | null">
+  Thumbnail image URL. For videos, auto-generated from the first frame. For carousels, the first image.
+</ResponseField>
+
+<ResponseField name="section" type="string | null">
+  Editorial section (e.g., `"Sports"`, `"News"`). Max 200 characters. Passed through to the feed for use in your UI.
+</ResponseField>
+
+<ResponseField name="author" type="string | null">
+  Content author name. Max 200 characters. Passed through to the feed for use in your UI.
+</ResponseField>
+
+<ResponseField name="tags" type="string[]">
+  Tags for categorization and filtering. Use these to filter content in the [List Content](/api/content/list) endpoint.
+</ResponseField>
+
+<ResponseField name="customMetadata" type="object">
+  Arbitrary key-value pairs passed through to the feed. Use this for article URLs, campaign IDs, deep links, or any app-specific data your client needs at render time.
+</ResponseField>
+
+<ResponseField name="captionTracks" type="object[]">
+  Caption tracks attached to this content. Each track contains:
+  - `id` — Unique identifier
+  - `language` — ISO 639-1 code (e.g., `"en"`)
+  - `label` — Display name (e.g., `"English CC"`)
+  - `source` — Either `"generated"` (auto-generated) or `"uploaded"`
+  - `url` — URL to the caption file
+  - `trackId` — Track identifier (used to resolve the caption URL)
+  - `status` — `"preparing"` or `"ready"`
+  - `createdAt` — ISO 8601 timestamp
+</ResponseField>
+
+<ResponseField name="images" type="object[]">
+  Carousel images. Each image contains:
+  - `id` — Unique identifier
+  - `imageUrl` — URL to the image
+  - `altText` — Accessibility text
+  - `position` — Display order (0-indexed)
+  - `createdAt` — ISO 8601 timestamp
+
+  Empty array for videos.
+</ResponseField>
+
+<ResponseField name="publishAt" type="string | null">
+  ISO 8601 timestamp. Content won't appear in the feed before this time, even if `publishStatus` is `published`. `null` means no scheduling constraint.
+</ResponseField>
+
+<ResponseField name="expiresAt" type="string | null">
+  ISO 8601 timestamp. Content is automatically removed from the feed after this time. `null` means no expiration.
+</ResponseField>
+
+<ResponseField name="width" type="integer | null">
+  Video width in pixels. Set automatically after processing. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="height" type="integer | null">
+  Video height in pixels. Set automatically after processing. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="aspectRatio" type="string | null">
+  Aspect ratio string (e.g., `"9:16"`, `"16:9"`). Set automatically after processing. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="maxFrameRate" type="number | null">
+  Maximum frame rate of the video (e.g., `30`, `60`). Set automatically after processing. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="videoQuality" type="string | null">
+  Video quality tier. Either `"basic"` or `"plus"`. Set automatically after processing. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="resolutionTier" type="string | null">
+  Maximum resolution tier. One of `"audio-only"`, `"SD"`, `"HD"`, `"FHD"`, or `"UHD"`. Set automatically after processing. `null` for carousels.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 creation timestamp.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of the last modification.
+</ResponseField>
+
+### Carousel-specific attributes
+
+These fields are only present on carousel content items.
+
+<ResponseField name="autoScrollInterval" type="number | null">
+  Seconds between automatic image transitions. When set, the carousel advances automatically. `null` means manual swipe only.
+</ResponseField>
+
+---
+
+## Upload lifecycle
+
+The `uploadStatus` field tracks media processing — from the moment you initiate an upload or import to when the media is playable.
+
+| Upload status | Description |
+|---------------|-------------|
+| `pending` | Upload or import initiated, media not yet received or not yet processing |
+| `processing` | Media is being transcoded, thumbnails and captions are being generated |
+| `ready` | Processing complete, media is playable |
+| `error` | Processing failed |
+
+**Videos** move through the full lifecycle: `pending` → `processing` → `ready`.
+
+**Carousels** skip processing entirely — images are served directly, so carousels are `ready` immediately after creation.
+
+<Note>
+  `uploadStatus` only tracks whether the media file is processed. It does not control whether content appears in your feed — that's handled by `publishStatus`.
+</Note>
+
+---
+
+## Publish lifecycle
+
+The `publishStatus` field controls whether content is visible in your feed. It is independent of `uploadStatus` — content must be both `ready` **and** `published` to appear.
+
+| Publish status | Description |
+|----------------|-------------|
+| `published` | Content is live and eligible to appear in the feed |
+| `unpublished` | Content exists but is hidden from the feed |
+
+### Auto-publish
+
+By default, organizations have **auto-publish** enabled. When auto-publish is on, content is automatically set to `published` as soon as its `uploadStatus` reaches `ready`. This means uploaded content appears in the feed without any additional API calls.
+
+If you turn auto-publish off (via organization settings), new content starts as `unpublished`. You then publish it manually by updating the content item:
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/{id} \
+  -H "Authorization: Bearer sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"publishStatus": "published"}'
+```
+
+### Scheduling and expiration
+
+Even when `publishStatus` is `published`, content only appears in the feed when the current time falls within its schedule window:
+
+- **`publishAt`** — If set, content is held back until this time. Useful for embargo or coordinated launches.
+- **`expiresAt`** — If set, content is automatically pulled from the feed after this time. Useful for time-sensitive promotions or breaking news.
+
+Content appears in the feed when **all** of these are true:
+
+1. `uploadStatus` is `ready`
+2. `publishStatus` is `published`
+3. `publishAt` is `null` or in the past
+4. `expiresAt` is `null` or in the future
+
+---
+
+## Deletion
+
+Deleting a content item via `DELETE /v1/content/{id}` archives it. Archived content is immediately removed from the feed and excluded from list results by default. The underlying media assets are cleaned up asynchronously.

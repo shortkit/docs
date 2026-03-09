@@ -1,0 +1,142 @@
+---
+title: "The Survey Object"
+description: "Surveys are short polls injected directly into the content feed. This page covers the object structure, status lifecycle, and placement rules."
+---
+
+Surveys are short polls that appear between content items in the feed. The SDK handles rendering and collecting responses automatically — you define the question, options, and rules for when it shows up.
+
+## The survey object
+
+```json
+{
+  "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+  "title": "User Feedback",
+  "question": "How did you discover this content?",
+  "status": "active",
+  "priority": 10,
+  "autoAdvanceDelay": 3.0,
+  "options": [
+    {
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6",
+      "text": "Social media",
+      "position": 0,
+      "responseCount": 42,
+      "createdAt": "2026-02-10T09:00:00Z"
+    },
+    {
+      "id": "b2c3d4e5-f6a7-8b9c-0d1e-f2a3b4c5d6e7",
+      "text": "Search",
+      "position": 1,
+      "responseCount": 28,
+      "createdAt": "2026-02-10T09:00:00Z"
+    },
+    {
+      "id": "c3d4e5f6-a7b8-9c0d-1e2f-a3b4c5d6e7f8",
+      "text": "Friend",
+      "position": 2,
+      "responseCount": 15,
+      "createdAt": "2026-02-10T09:00:00Z"
+    }
+  ],
+  "placementRules": [
+    {
+      "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+      "ruleType": "min_videos_before",
+      "ruleValue": { "n": 3 },
+      "createdAt": "2026-02-10T09:00:00Z"
+    },
+    {
+      "id": "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0b1c",
+      "ruleType": "once_per_user",
+      "ruleValue": {},
+      "createdAt": "2026-02-10T09:00:00Z"
+    }
+  ],
+  "totalResponses": 85,
+  "createdAt": "2026-02-10T09:00:00Z",
+  "updatedAt": "2026-02-12T14:30:00Z"
+}
+```
+
+---
+
+## Attributes
+
+<ResponseField name="id" type="string">
+  UUID identifying the survey.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Internal title for organizing surveys in the dashboard. Not shown to end users.
+</ResponseField>
+
+<ResponseField name="question" type="string">
+  The question text displayed to end users in the feed.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current lifecycle status. One of: `draft`, `active`, `paused`, `archived`. Only `active` surveys are injected into the feed.
+</ResponseField>
+
+<ResponseField name="priority" type="integer">
+  Determines display order when multiple surveys compete for the same feed slot. Higher values take precedence.
+</ResponseField>
+
+<ResponseField name="autoAdvanceDelay" type="number | null">
+  Seconds to wait after a user responds before automatically advancing to the next feed item. `null` disables auto-advance.
+</ResponseField>
+
+<ResponseField name="options" type="object[]">
+  The answer choices. Each option contains:
+  - `id` — UUID
+  - `text` — Answer text (max 200 characters)
+  - `position` — Display order (integer)
+  - `responseCount` — Total responses for this option
+  - `createdAt` — ISO 8601 timestamp
+</ResponseField>
+
+<ResponseField name="placementRules" type="object[]">
+  Rules that control when and how often the survey appears. See [Placement rules](#placement-rules) below.
+</ResponseField>
+
+<ResponseField name="totalResponses" type="integer">
+  Sum of all option response counts.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 creation timestamp.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 last modification timestamp.
+</ResponseField>
+
+---
+
+## Status lifecycle
+
+| Status | In feed? | Description |
+|--------|----------|-------------|
+| `draft` | No | Initial state. Use while composing the survey. |
+| `active` | Yes | Live — injected into the feed based on placement rules. |
+| `paused` | No | Temporarily removed from the feed. Response data is preserved. |
+| `archived` | No | Permanently retired. Set by `DELETE`. |
+
+Transition between any non-archived status by [updating](/api/surveys/update) the `status` field. [Deleting](/api/surveys/delete) a survey is the only way to move it to `archived`.
+
+---
+
+## Placement rules
+
+Placement rules control where in the feed a survey appears and how often a user sees it. Every survey must include at least a `min_videos_before` rule.
+
+| Rule type | `ruleValue` | Behavior |
+|-----------|-------------|----------|
+| `min_videos_before` | `{ "n": 3 }` | User must scroll past at least `n` content items before the survey can appear. **Required.** |
+| `once_per_user` | `{}` | A user who has already responded will never see this survey again. |
+| `once_per_session` | `{}` | The survey appears at most once per session, regardless of response. |
+| `max_per_session` | `{ "n": 1 }` | The survey can appear up to `n` times in a single session. |
+
+The feed evaluates placement rules using the `X-User-Id` and `X-Session-Id` headers sent by the SDK. If these headers are missing, per-user and per-session rules are skipped.
+
+When multiple active surveys are eligible for the same position, the survey with the highest `priority` wins.

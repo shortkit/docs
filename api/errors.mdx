@@ -1,0 +1,104 @@
+---
+title: "Errors"
+description: "HTTP status codes, error codes, and rate limiting behavior for the ShortKit API."
+---
+
+The ShortKit API uses conventional HTTP status codes and returns structured error responses in the standard [response envelope](/api/overview#response-envelope).
+
+## Error response format
+
+```json
+{
+  "data": null,
+  "meta": {
+    "request_id": "req_abc123def456"
+  },
+  "errors": [
+    {
+      "code": "not_found",
+      "message": "Content not found"
+    }
+  ]
+}
+```
+
+Each error object contains:
+
+<ResponseField name="code" type="string">
+  Machine-readable error code. Use this for programmatic error handling.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable description of what went wrong.
+</ResponseField>
+
+## HTTP status codes
+
+| Status | Error code | Description |
+|--------|-----------|-------------|
+| **400** | `invalid_request` | The request was malformed — missing required fields, invalid parameter values, or unsupported formats. |
+| **401** | `invalid_api_key` | Authentication failed — missing, malformed, or revoked API key. |
+| **403** | `forbidden` | The API key doesn't have permission for this endpoint. Typically a publishable key used on a secret-key endpoint. |
+| **404** | `not_found` | The requested resource doesn't exist, or doesn't belong to your organization. |
+| **409** | `conflict` | The request conflicts with existing state — for example, a duplicate survey response. |
+| **429** | `rate_limited` | Too many requests. Back off and retry. |
+| **500** | `internal_error` | Something went wrong on our end. If this persists, contact support with the `request_id`. |
+
+## Error handling
+
+We recommend handling errors by `code` rather than by HTTP status:
+
+```python
+response = requests.post(f"{API_BASE}/v1/content", headers=headers, json=body)
+
+if response.status_code >= 400:
+    error = response.json()["errors"][0]
+
+    if error["code"] == "invalid_request":
+        # Fix the request and retry
+        print(f"Bad request: {error['message']}")
+    elif error["code"] == "rate_limited":
+        # Back off and retry
+        time.sleep(5)
+    elif error["code"] == "invalid_api_key":
+        # Check your API key configuration
+        raise Exception("Authentication failed")
+    else:
+        # Log and alert
+        print(f"Unexpected error: {error['code']} — {error['message']}")
+```
+
+## Rate limiting
+
+Secret key requests are limited to **120 requests per minute** using a sliding window.
+
+When you exceed the limit, the API returns a `429` status:
+
+```json
+{
+  "data": null,
+  "meta": {
+    "request_id": "req_rate001"
+  },
+  "errors": [
+    {
+      "code": "rate_limited",
+      "message": "Too many requests. Please retry later."
+    }
+  ]
+}
+```
+
+<Tip>
+  If you need higher rate limits, [contact us](https://calendly.com/michael-shortkit/20-min-meeting).
+</Tip>
+
+### Retry strategy
+
+For `429` responses, implement exponential backoff:
+
+1. Wait 1 second, then retry.
+2. If still rate-limited, wait 2 seconds.
+3. Double the wait time on each subsequent retry, up to a maximum of 30 seconds.
+
+For `500` errors, retry once or twice with a brief delay. If the error persists, the issue is on our end — contact support with the `request_id`.

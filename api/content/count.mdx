@@ -1,0 +1,52 @@
+---
+title: "Get Content Count"
+api: "GET /v1/content/count"
+description: "Returns the total number of content items, optionally filtered by upload status."
+---
+
+## Query parameters
+
+<ParamField query="uploadStatus" type="string">
+  Filter by upload status: `pending`, `processing`, `ready`, or `error`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/content/count?uploadStatus=ready" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/content/count",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    params={"uploadStatus": "ready"},
+)
+count = resp.json()["data"]["count"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/count?uploadStatus=ready",
+  {
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+const { count } = (await resp.json()).data;
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "count": 142
+  },
+  "meta": {
+    "request_id": "req_count001"
+  }
+}
+```
+</ResponseExample>

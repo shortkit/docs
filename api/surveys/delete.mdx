@@ -1,0 +1,53 @@
+---
+title: "Delete Survey"
+api: "DELETE /v1/surveys/{id}"
+description: "Archive a survey. Archived surveys are removed from the feed but response data is preserved."
+---
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+Deleting a survey sets its status to `archived`. The survey is immediately removed from the feed, but all response data is preserved. Archived surveys can still be retrieved via [Get Survey](/api/surveys/get).
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.delete(
+    "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+  {
+    method: "DELETE",
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "deleted": true
+  },
+  "meta": {
+    "request_id": "req_srv005"
+  }
+}
+```
+</ResponseExample>

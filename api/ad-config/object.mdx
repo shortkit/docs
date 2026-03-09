@@ -1,0 +1,180 @@
+---
+title: "The Ad Config Object"
+description: "Ad configuration controls how ad slots are interleaved into your content feed — placement frequency, skip behavior, targeting, and native ad format mapping."
+---
+
+The Ad Configuration controls how ad slots are inserted into your feed responses. When ads are enabled, the server automatically interleaves `ad_slot` items between your content based on these settings. The SDK receives ad slots as part of the feed and handles rendering.
+
+Both endpoints require a **secret key** only — portal JWTs are not accepted.
+
+## The ad config object
+
+```json
+{
+  "enabled": false,
+  "frequency": 5,
+  "firstAdOffset": 3,
+  "maxPerPage": 3,
+  "adTagUrl": null,
+  "adUnitId": null,
+  "skipPolicy": "skippable_after",
+  "skipDelaySeconds": 5,
+  "defaultTargeting": {},
+  "nativeEnabled": false,
+  "nativeFormatId": null,
+  "nativeAdUnitId": null,
+  "nativeVideoUrlKey": "video_url",
+  "nativeHeadlineKey": "headline",
+  "nativeCtaKey": "cta_text",
+  "nativeSponsorKey": "sponsor_name",
+  "nativeSponsorLogoKey": "sponsor_logo"
+}
+```
+
+---
+
+## Attributes
+
+### Placement
+
+<ResponseField name="enabled" type="boolean" default={false}>
+  Master switch. When `false`, no ad slots are injected into the feed.
+</ResponseField>
+
+<ResponseField name="frequency" type="integer" default={5}>
+  Number of content items between consecutive ad slots after the first ad.
+</ResponseField>
+
+<ResponseField name="firstAdOffset" type="integer" default={3}>
+  Position of the first ad slot, counted in content items. A value of `3` means the first ad appears after the third content item.
+</ResponseField>
+
+<ResponseField name="maxPerPage" type="integer" default={3}>
+  Maximum number of ad slots injected per feed page.
+</ResponseField>
+
+### Ad source
+
+<ResponseField name="adTagUrl" type="string | null">
+  VAST/VMAP ad tag URL. Passed through to the SDK in each ad slot so the client-side ad player can request creatives from your ad server.
+</ResponseField>
+
+<ResponseField name="adUnitId" type="string | null">
+  Ad unit identifier from your ad platform (e.g., Google Ad Manager, AppLovin). When `nativeAdUnitId` is set, native ad slots use that value instead.
+</ResponseField>
+
+### Skip behavior
+
+<ResponseField name="skipPolicy" type="string" default="skippable_after">
+  Controls whether users can skip ads. Passed through to the SDK — set it to whatever your ad rendering layer expects (e.g., `"skippable_after"`, `"non_skippable"`, `"always_skippable"`).
+</ResponseField>
+
+<ResponseField name="skipDelaySeconds" type="integer" default={5}>
+  Seconds the user must watch before a skip button appears. Only relevant when `skipPolicy` allows skipping.
+</ResponseField>
+
+### Targeting
+
+<ResponseField name="defaultTargeting" type="object" default="{}">
+  Key-value pairs passed through in every ad slot's `targeting` field. Use this for default targeting signals (content category, audience segment, etc.).
+</ResponseField>
+
+### Native ads
+
+These fields configure native ad rendering. When `nativeEnabled` is `true`, ad slots include `adFormat: "native"` and a `nativeAssetKeys` object mapping your ad platform's response keys to the fields the SDK expects.
+
+<ResponseField name="nativeEnabled" type="boolean" default={false}>
+  When `true`, ad slots are served as native ads instead of VAST video ads.
+</ResponseField>
+
+<ResponseField name="nativeFormatId" type="string | null">
+  Identifier for your native ad format template.
+</ResponseField>
+
+<ResponseField name="nativeAdUnitId" type="string | null">
+  Ad unit ID used specifically for native ad slots. Overrides `adUnitId` for native ads.
+</ResponseField>
+
+<ResponseField name="nativeVideoUrlKey" type="string" default="video_url">
+  Key in your native ad response containing the video creative URL.
+</ResponseField>
+
+<ResponseField name="nativeHeadlineKey" type="string" default="headline">
+  Key for the ad headline text.
+</ResponseField>
+
+<ResponseField name="nativeCtaKey" type="string" default="cta_text">
+  Key for the call-to-action button text.
+</ResponseField>
+
+<ResponseField name="nativeSponsorKey" type="string" default="sponsor_name">
+  Key for the sponsor/advertiser name.
+</ResponseField>
+
+<ResponseField name="nativeSponsorLogoKey" type="string" default="sponsor_logo">
+  Key for the sponsor logo image URL.
+</ResponseField>
+
+---
+
+## How ads appear in the feed
+
+When `enabled` is `true`, the server inserts `ad_slot` items into feed responses. The placement algorithm:
+
+1. **First ad** — inserted after position `firstAdOffset`
+2. **Recurring** — another ad every `frequency` content items
+3. **Page cap** — no more than `maxPerPage` per page
+
+```
+Content 1
+Content 2
+Content 3
+  — Ad slot 1 (firstAdOffset: 3) —
+Content 4
+Content 5
+Content 6
+Content 7
+Content 8
+  — Ad slot 2 (frequency: 5) —
+Content 9
+...
+```
+
+### Ad slot shape
+
+Each ad slot in the feed contains everything the client needs to request and render an ad:
+
+```json
+{
+  "type": "ad_slot",
+  "id": "ad_slot_p0_3_0",
+  "position": 3,
+  "adTagUrl": "https://ads.example.com/vast?placement=shortkit",
+  "adUnitId": null,
+  "targeting": { "content_type": "news" },
+  "skipPolicy": "skippable_after",
+  "skipDelaySeconds": 3,
+  "adFormat": null,
+  "nativeFormatId": null,
+  "nativeAssetKeys": null
+}
+```
+
+When `nativeEnabled` is `true`, ad slots include native-specific fields:
+
+```json
+{
+  "type": "ad_slot",
+  "adFormat": "native",
+  "nativeFormatId": "vertical_video_card",
+  "nativeAssetKeys": {
+    "videoUrl": "media_url",
+    "headline": "title",
+    "ctaText": "call_to_action",
+    "sponsorName": "advertiser_name",
+    "sponsorLogo": "icon_url"
+  }
+}
+```
+
+When `enabled` is `false`, no ad slots appear in the feed. You can update other config fields while ads are disabled — they take effect when you re-enable.

@@ -1,0 +1,86 @@
+---
+title: "Get Metric Timeseries"
+api: "GET /v1/metrics/{metric}/timeseries"
+description: "Returns time-bucketed metric values for charting."
+---
+
+Returns metric values bucketed over time. Granularity is automatic: hourly for ranges of 24 hours or less, daily otherwise.
+
+## Path parameters
+
+<ParamField path="metric" type="string" required>
+  Metric to query. See [Metrics Overview](/api/analytics/metrics) for the full list.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="measurement" type="string">
+  Aggregation function: `sum` or `avg`. Only applies to aggregate metrics. Count metrics ignore this parameter.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string" default="7:days">
+  Time range. Relative (`7:days`, `24:hours`) or absolute (two Unix timestamps).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/metrics/views/timeseries?timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/metrics/views/timeseries",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    params={"timeframe[]": "30:days"},
+)
+timeseries = resp.json()["data"]
+for point in timeseries:
+    print(f"{point['date']}: {point['value']}")
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/metrics/views/timeseries?timeframe[]=30:days",
+  {
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+const { data: timeseries } = await resp.json();
+timeseries.forEach(({ date, value }) => console.log(`${date}: ${value}`));
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": [
+    { "date": "2026-02-01T00:00:00Z", "value": 1823 },
+    { "date": "2026-02-02T00:00:00Z", "value": 2105 },
+    { "date": "2026-02-03T00:00:00Z", "value": 1950 },
+    { "date": "2026-02-04T00:00:00Z", "value": 2340 },
+    { "date": "2026-02-05T00:00:00Z", "value": 2180 }
+  ],
+  "timeframe": [1738368000, 1740960000],
+  "meta": {
+    "request_id": "req_m002"
+  }
+}
+```
+</ResponseExample>
+
+## Examples
+
+**Hourly completions over 24 hours:**
+```bash
+curl "https://api.shortkit.dev/v1/metrics/completions/timeseries?timeframe[]=24:hours" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+**Daily total watch time over 7 days:**
+```bash
+curl "https://api.shortkit.dev/v1/metrics/watch_time/timeseries?measurement=sum&timeframe[]=7:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```

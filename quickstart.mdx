@@ -4,17 +4,19 @@ description: "Get a short-form video feed running in your app in under 5 minutes
 keywords: ["quickstart", "getting started", "installation", "setup", "tutorial"]
 ---
 
-Get your API key, upload a video, and display a feed.
+Get your API key, install the SDK, and display a feed. Your account comes with demo content so you can see results immediately.
 
 ## Prerequisites
 
 | Requirement | Details |
 |---|---|
 | ShortKit account | Sign up at [portal.shortkit.dev](https://portal.shortkit.dev) or [contact us](https://calendly.com/michael-shortkit/20-min-meeting) |
-| API keys | Publishable key (`pk_live_...`) from **Settings > API Keys** in the portal |
-| Platform | iOS 16+, Android 8+ (API 24), React Native 0.76+, Expo SDK 52+, or any modern browser |
+| Publishable key | `pk_live_...` from **Settings > API Keys** in the portal |
+| SDK installed | Follow the [Installation](/sdk/installation) guide for your platform |
 
 ## 1. Install the SDK
+
+If you haven't already, add ShortKit to your project. See [Installation](/sdk/installation) for full details and troubleshooting.
 
 <Tabs>
   <Tab title="Swift">
@@ -24,18 +26,10 @@ Get your API key, upload a video, and display a feed.
     https://github.com/shortkit/shortkit-ios
     ```
 
-    Or add to your `Package.swift`:
-
-    ```swift Package.swift
-    dependencies: [
-        .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.2.7")
-    ]
-    ```
-
-    Add `ShortKitSDK` to your target's dependencies.
+    Select the `ShortKitSDK` product and add it to your app target.
   </Tab>
   <Tab title="Kotlin">
-    Add the dependency to your app-level `build.gradle.kts`:
+    Add to your app-level `build.gradle.kts`:
 
     ```kotlin build.gradle.kts
     dependencies {
@@ -43,11 +37,12 @@ Get your API key, upload a video, and display a feed.
     }
     ```
 
-    Sync your project. No custom repository URL is needed — ShortKit is published to Maven Central.
+    Sync your project.
   </Tab>
   <Tab title="React Native">
     ```bash
     npm install @shortkitsdk/react-native
+    cd ios && pod install
     ```
   </Tab>
   <Tab title="Expo">
@@ -74,44 +69,21 @@ Get your API key, upload a video, and display a feed.
     ```
   </Tab>
   <Tab title="Web">
-    No installation needed. Add the script tag in step 3.
+    Add the script tag to your HTML:
+
+    ```html
+    <script src="https://cdn.shortkit.dev/v1/shortkit.min.js"></script>
+    ```
   </Tab>
 </Tabs>
 
-## 2. Upload a video
+## 2. Display the feed
 
-Your feed needs content. Upload a video through the portal or the API.
-
-**Option A: Portal** — Go to **Content** in the [admin portal](https://portal.shortkit.dev) and upload a video file.
-
-**Option B: API** — Create an upload session and PUT your file to the signed URL:
-
-```bash
-# Create an upload session
-curl -X POST https://api.shortkit.dev/v1/uploads \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "My First Video"}'
-
-# Upload the file to the signed URL returned in the response
-curl -X PUT "<uploadUrl from response>" \
-  -H "Content-Type: video/mp4" \
-  --data-binary @video.mp4
-```
-
-Processing takes a few seconds. The video status changes from `waiting_for_upload` to `processing` to `ready`. You can poll `GET /v1/uploads/{id}` to check, or watch the status in the portal.
-
-<Info>
-  See the [upload pipeline guide](/guides/upload-pipeline) for details on metadata, captions, and carousel content.
-</Info>
-
-## 3. Display the feed
-
-Pass your publishable key to the SDK to render a full-screen video feed.
+Every new account is seeded with demo videos, so your feed has content right away. Create a new view (or add to an existing one) and pass your publishable key:
 
 <Tabs>
   <Tab title="SwiftUI">
-    ```swift
+    ```swift FeedScreen.swift
     import SwiftUI
     import ShortKitSDK
 
@@ -127,20 +99,23 @@ Pass your publishable key to the SDK to render a full-screen video feed.
         }
     }
     ```
+
+    Add `FeedScreen()` to your app's navigation or set it as your root view.
   </Tab>
   <Tab title="UIKit">
-    ```swift
+    ```swift FeedViewController.swift
     import UIKit
     import ShortKitSDK
 
     class FeedViewController: UIViewController {
+        private let shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig()
+        )
+
         override func viewDidLoad() {
             super.viewDidLoad()
 
-            let shortKit = ShortKit(
-                apiKey: "pk_live_your_publishable_key",
-                config: FeedConfig()
-            )
             let feedVC = ShortKitFeedViewController(shortKit: shortKit)
             addChild(feedVC)
             feedVC.view.frame = view.bounds
@@ -150,9 +125,13 @@ Pass your publishable key to the SDK to render a full-screen video feed.
         }
     }
     ```
+
+    Present or push `FeedViewController` from your navigation stack.
   </Tab>
   <Tab title="Kotlin">
-    ```kotlin
+    ```kotlin FeedActivity.kt
+    import android.os.Bundle
+    import androidx.appcompat.app.AppCompatActivity
     import com.shortkit.sdk.ShortKit
     import com.shortkit.sdk.config.FeedConfig
     import com.shortkit.sdk.feed.ShortKitFeedFragment
@@ -168,24 +147,33 @@ Pass your publishable key to the SDK to render a full-screen video feed.
                 config = FeedConfig()
             )
 
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.container, ShortKitFeedFragment.newInstance(shortKit))
-                .commit()
+            if (savedInstanceState == null) {
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.feed_container, ShortKitFeedFragment.newInstance(shortKit))
+                    .commit()
+            }
         }
     }
     ```
+
+    Your layout needs a container for the fragment:
+
+    ```xml res/layout/activity_feed.xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/feed_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    ```
   </Tab>
   <Tab title="React Native">
-    ```tsx
-    import { ShortKitProvider, ShortKitFeed } from "@shortkitsdk/react-native";
+    ```tsx FeedScreen.tsx
+    import React from 'react';
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
-    export default function FeedPage() {
+    export default function FeedScreen() {
       return (
-        <ShortKitProvider
-          apiKey="pk_live_your_publishable_key"
-
-          config={{ feedHeight: { type: "fullscreen" } }}
-        >
+        <ShortKitProvider apiKey="pk_live_your_publishable_key" config={{}}>
           <ShortKitFeed style={{ flex: 1 }} />
         </ShortKitProvider>
       );
@@ -193,44 +181,67 @@ Pass your publishable key to the SDK to render a full-screen video feed.
     ```
   </Tab>
   <Tab title="Expo">
-    ```tsx
-    import { ShortKitProvider, ShortKitFeed } from "@shortkitsdk/react-native";
+    ```tsx FeedScreen.tsx
+    import React from 'react';
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
 
-    export default function FeedPage() {
+    export default function FeedScreen() {
       return (
-        <ShortKitProvider
-          apiKey="pk_live_your_publishable_key"
-
-          config={{ feedHeight: { type: "fullscreen" } }}
-        >
+        <ShortKitProvider apiKey="pk_live_your_publishable_key" config={{}}>
           <ShortKitFeed style={{ flex: 1 }} />
         </ShortKitProvider>
       );
     }
     ```
 
-    Build and run with `npx expo run:ios` or `npx expo run:android`.
+    Run with `npx expo run:ios` or `npx expo run:android`.
   </Tab>
   <Tab title="Web">
-    ```html
-    <div id="shortkit-feed" style="width: 100%; height: 100vh"></div>
-    <script src="https://cdn.shortkit.dev/sdk/feed.js"></script>
-    <script>
-      ShortKit.feed('#shortkit-feed', {
-        apiKey: 'pk_live_your_publishable_key'
-      });
-    </script>
+    ```html index.html
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>ShortKit Feed</title>
+      <style>
+        body { margin: 0; }
+        #feed { width: 100%; height: 100vh; }
+      </style>
+    </head>
+    <body>
+      <div id="feed"></div>
+      <script src="https://cdn.shortkit.dev/v1/shortkit.min.js"></script>
+      <script>
+        var shortKit = ShortKit.initialize({
+          apiKey: 'pk_live_your_publishable_key'
+        });
+        shortKit.mount('#feed');
+      </script>
+    </body>
+    </html>
     ```
   </Tab>
 </Tabs>
 
-Run your app. You should see a vertically-scrolling video feed with your uploaded content.
+Run your app. You should see a full-screen, vertically-scrolling video feed with the demo content.
+
+## Adding your own content
+
+The demo videos are there to get you started. When you're ready to add your own content, you have three options:
+
+- **Portal upload.** Go to **Content** in the [admin portal](https://portal.shortkit.dev) and upload video files directly.
+- **Server-side import.** Use the [Import API](/api/content/import) to bulk import from URLs (S3, GCS, your CDN, or even TikTok/Instagram).
+- **Direct upload.** Use the [Upload API](/api/content/upload) to get signed URLs for client-side or server-side file uploads.
+
+See the [Upload Pipeline](/guides/upload-pipeline) guide for the full walkthrough.
 
 ## Next steps
 
-You have a working feed. Here's where to go from here:
+Now that you have a working feed with demo content, here's the typical path forward:
 
-- **Add an overlay** — Display titles, descriptions, and action buttons on top of your videos. See [Overlays](/sdk/overlays) and [Custom overlays](/guides/custom-overlays).
-- **Configure feed behavior** — Adjust height, mute behavior, carousel and survey modes. See [Configuration](/sdk/configuration).
-- **Track engagement** — Pass custom dimensions and query analytics. See [Analytics](/sdk/analytics).
-- **Identify users** — Link feed activity to your logged-in users with `setUserId`. See [User identity](/sdk/identity).
+1. **Upload your own content.** Replace the demo videos with your own. You can [upload through the portal](/guides/upload-pipeline), [import from URLs](/api/content/import) (including TikTok and Instagram), or [upload directly](/api/content/upload) from your server or client app.
+2. **Build an overlay.** Add your own UI on top of the video player: titles, like buttons, share sheets, author info. See [Overlays](/sdk/overlays).
+3. **Configure the feed.** Adjust feed height, mute behavior, and feed source. See [Configuration](/sdk/configuration).
+4. **Identify users.** Link feed activity to your logged-in users with `setUserId` so analytics and future recommendations are per-user. See [Identity](/sdk/identity).
+5. **Track engagement.** Query watch time, completion rates, and custom events. See [Analytics](/sdk/analytics).

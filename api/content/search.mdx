@@ -1,0 +1,70 @@
+---
+title: "Search Content"
+api: "GET /v1/content/search"
+description: "Search content by title, description, tags, section, and author."
+---
+
+Search across your content library. Matches against `title`, `description`, `tags`, `section`, and `author` fields.
+
+## Query parameters
+
+<ParamField query="q" type="string" required>
+  Search query. Min 1, max 500 characters.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  Max results to return. Min 1, max 50.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/content/search?q=weather&limit=10" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/content/search",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    params={"q": "weather", "limit": 10},
+)
+results = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/search?q=weather&limit=10",
+  {
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+const { data: results } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": [
+    {
+      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "contentType": "video",
+      "title": "Breaking: Weather Alert",
+      "uploadStatus": "ready",
+      "publishStatus": "published",
+      "duration": 32.5,
+      "section": "Weather",
+      "author": "Jane Doe",
+      "tags": ["weather", "severe", "breaking"],
+      "createdAt": "2026-02-05T12:00:00Z",
+      "updatedAt": "2026-02-05T12:03:45Z"
+    }
+  ],
+  "meta": {
+    "request_id": "req_search001"
+  }
+}
+```
+</ResponseExample>

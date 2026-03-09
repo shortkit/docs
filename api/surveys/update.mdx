@@ -1,0 +1,143 @@
+---
+title: "Update Survey"
+api: "PUT /v1/surveys/{id}"
+description: "Update a survey's fields. Options and placement rules are replaced entirely when provided."
+---
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  Survey UUID.
+</ParamField>
+
+## Request body
+
+All fields are optional — include only the fields you want to change.
+
+<ParamField body="title" type="string">
+  Updated title (max 200 characters).
+</ParamField>
+
+<ParamField body="question" type="string">
+  Updated question text (max 500 characters).
+</ParamField>
+
+<ParamField body="status" type="string">
+  New status: `draft`, `active`, `paused`, or `archived`.
+</ParamField>
+
+<ParamField body="priority" type="integer">
+  Updated priority value.
+</ParamField>
+
+<ParamField body="autoAdvanceDelay" type="number">
+  Updated auto-advance delay in seconds.
+</ParamField>
+
+<ParamField body="options" type="object[]">
+  Replaces all existing options. Each must include `text` and `position`.
+</ParamField>
+
+<ParamField body="placementRules" type="object[]">
+  Replaces all existing placement rules. Each must include `ruleType` and `ruleValue`.
+</ParamField>
+
+<Warning>
+  When you provide `options` or `placementRules`, the entire set is replaced — not merged. Omit these fields to leave them unchanged.
+</Warning>
+
+<RequestExample>
+```bash cURL
+curl -X PUT "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Where did you first hear about us?",
+    "status": "active",
+    "options": [
+      { "text": "Social media", "position": 0 },
+      { "text": "Search engine", "position": 1 },
+      { "text": "Word of mouth", "position": 2 },
+      { "text": "Other", "position": 3 }
+    ]
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.put(
+    "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    headers={
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "question": "Where did you first hear about us?",
+        "status": "active",
+        "options": [
+            {"text": "Social media", "position": 0},
+            {"text": "Search engine", "position": 1},
+            {"text": "Word of mouth", "position": 2},
+            {"text": "Other", "position": 3},
+        ],
+    },
+)
+survey = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/surveys/d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+  {
+    method: "PUT",
+    headers: {
+      Authorization: "Bearer sk_live_your_secret_key",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      question: "Where did you first hear about us?",
+      status: "active",
+      options: [
+        { text: "Social media", position: 0 },
+        { text: "Search engine", position: 1 },
+        { text: "Word of mouth", position: 2 },
+        { text: "Other", position: 3 },
+      ],
+    }),
+  }
+);
+const { data: survey } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "title": "Content Discovery",
+    "question": "Where did you first hear about us?",
+    "status": "active",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "id": "new-uuid-1", "text": "Social media", "position": 0, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" },
+      { "id": "new-uuid-2", "text": "Search engine", "position": 1, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" },
+      { "id": "new-uuid-3", "text": "Word of mouth", "position": 2, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" },
+      { "id": "new-uuid-4", "text": "Other", "position": 3, "responseCount": 0, "createdAt": "2026-02-12T14:30:00Z" }
+    ],
+    "placementRules": [
+      { "id": "e5f6a7b8-...", "ruleType": "min_videos_before", "ruleValue": { "n": 3 }, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "f6a7b8c9-...", "ruleType": "once_per_user", "ruleValue": {}, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "totalResponses": 0,
+    "createdAt": "2026-02-10T09:00:00Z",
+    "updatedAt": "2026-02-12T14:30:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv004"
+  }
+}
+```
+</ResponseExample>

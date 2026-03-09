@@ -25,6 +25,17 @@
     }
   },
   "favicon": "/favicon.svg",
+  "api": {
+    "mdx": {
+      "server": "https://api.shortkit.dev",
+      "auth": {
+        "method": "bearer"
+      }
+    },
+    "playground": {
+      "display": "simple"
+    }
+  },
   "navigation": {
     "tabs": [
       {
@@ -32,32 +43,47 @@
         "icon": "book-open",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "Get Started",
             "pages": [
+              "introduction",
+              "sdk/installation",
               "quickstart"
             ]
           },
           {
-            "group": "ShortKit SDK",
+            "group": "Content",
             "pages": [
-              "sdk/installation",
-              "sdk/configuration",
-              "sdk/feed",
-              "sdk/player",
-              "sdk/overlays",
-              "sdk/ads",
-              "sdk/analytics",
-              "sdk/identity",
-              "sdk/player-and-widget"
+              "guides/content-types",
+              "guides/upload-pipeline"
             ]
           },
           {
-            "group": "Developer Guides",
+            "group": "Display",
             "pages": [
-              "guides/content-types",
-              "guides/captions",
-              "guides/upload-pipeline",
-              "guides/feed-customization"
+              "sdk/feed",
+              "sdk/player-and-widget",
+              "sdk/configuration"
+            ]
+          },
+          {
+            "group": "Build Your Experience",
+            "pages": [
+              "sdk/player",
+              "sdk/overlays",
+              "engagement-signals"
+            ]
+          },
+          {
+            "group": "Users & Data",
+            "pages": [
+              "sdk/identity",
+              "sdk/analytics"
+            ]
+          },
+          {
+            "group": "Roadmap",
+            "pages": [
+              "coming-soon"
             ]
           }
         ]
@@ -67,37 +93,64 @@
         "icon": "square-terminal",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "Overview",
             "pages": [
-              "api/common-workflows"
-            ]
-          },
-          {
-            "group": "Content",
-            "pages": [
-              "api/content",
-              "api/uploads"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "pages": [
-              "api/analytics",
-              "api/views"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
-              "api/ad-config",
-              "api/surveys"
-            ]
-          },
-          {
-            "group": "Organization",
-            "pages": [
+              "api/overview",
               "api/authentication",
-              "api/organization"
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              {
+                "group": "Content",
+                "expanded": true,
+                "pages": [
+                  "api/content/object",
+                  "api/content/upload",
+                  "api/content/import",
+                  "api/content/list",
+                  "api/content/get",
+                  "api/content/count",
+                  "api/content/search",
+                  "api/content/update",
+                  "api/content/delete"
+                ]
+              },
+              {
+                "group": "Surveys",
+                "expanded": true,
+                "pages": [
+                  "api/surveys/object",
+                  "api/surveys/create",
+                  "api/surveys/list",
+                  "api/surveys/get",
+                  "api/surveys/update",
+                  "api/surveys/delete",
+                  "api/surveys/submit-response"
+                ]
+              },
+              {
+                "group": "Analytics & Events",
+                "expanded": true,
+                "pages": [
+                  "api/analytics/event-object",
+                  "api/analytics/list-events",
+                  "api/analytics/metrics",
+                  "api/analytics/get-metric",
+                  "api/analytics/get-timeseries"
+                ]
+              },
+              {
+                "group": "Ad Configuration",
+                "expanded": true,
+                "pages": [
+                  "api/ad-config/object",
+                  "api/ad-config/get",
+                  "api/ad-config/update"
+                ]
+              }
             ]
           }
         ]

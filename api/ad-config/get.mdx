@@ -1,0 +1,60 @@
+---
+title: "Get Ad Config"
+api: "GET /v1/ad-config"
+description: "Returns the current ad configuration for your organization."
+---
+
+Returns the current ad configuration. If no configuration has been set, default values are returned.
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/ad-config" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/ad-config",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+config = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch("https://api.shortkit.dev/v1/ad-config", {
+  headers: { Authorization: "Bearer sk_live_your_secret_key" },
+});
+const { data: config } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "enabled": false,
+    "frequency": 5,
+    "firstAdOffset": 3,
+    "maxPerPage": 3,
+    "adTagUrl": null,
+    "adUnitId": null,
+    "skipPolicy": "skippable_after",
+    "skipDelaySeconds": 5,
+    "defaultTargeting": {},
+    "nativeEnabled": false,
+    "nativeFormatId": null,
+    "nativeAdUnitId": null,
+    "nativeVideoUrlKey": "video_url",
+    "nativeHeadlineKey": "headline",
+    "nativeCtaKey": "cta_text",
+    "nativeSponsorKey": "sponsor_name",
+    "nativeSponsorLogoKey": "sponsor_logo"
+  },
+  "meta": {
+    "request_id": "req_abc123"
+  }
+}
+```
+</ResponseExample>

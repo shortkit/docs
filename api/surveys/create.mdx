@@ -1,0 +1,148 @@
+---
+title: "Create Survey"
+api: "POST /v1/surveys"
+description: "Create a new in-feed survey with answer options and placement rules."
+---
+
+## Request body
+
+<ParamField body="title" type="string" required>
+  Internal title (max 200 characters).
+</ParamField>
+
+<ParamField body="question" type="string" required>
+  Question text shown to end users (max 500 characters).
+</ParamField>
+
+<ParamField body="status" type="string" default="draft">
+  Initial status: `draft`, `active`, `paused`, or `archived`.
+</ParamField>
+
+<ParamField body="priority" type="integer" default={0}>
+  Display priority. Higher values take precedence when multiple surveys compete.
+</ParamField>
+
+<ParamField body="autoAdvanceDelay" type="number">
+  Seconds before auto-advancing after a response. Omit or `null` to disable.
+</ParamField>
+
+<ParamField body="options" type="object[]" required>
+  Answer choices. Each must include `text` (string, max 200 chars) and `position` (integer).
+</ParamField>
+
+<ParamField body="placementRules" type="object[]" required>
+  Placement rules. Each must include `ruleType` and `ruleValue`. Must contain at least one `min_videos_before` rule with a non-negative integer `n`.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST https://api.shortkit.dev/v1/surveys \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Content Discovery",
+    "question": "How did you discover this content?",
+    "status": "draft",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "text": "Social media", "position": 0 },
+      { "text": "Search", "position": 1 },
+      { "text": "Friend", "position": 2 }
+    ],
+    "placementRules": [
+      { "ruleType": "min_videos_before", "ruleValue": { "n": 3 } },
+      { "ruleType": "once_per_user", "ruleValue": {} }
+    ]
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/surveys",
+    headers={
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "title": "Content Discovery",
+        "question": "How did you discover this content?",
+        "options": [
+            {"text": "Social media", "position": 0},
+            {"text": "Search", "position": 1},
+            {"text": "Friend", "position": 2},
+        ],
+        "placementRules": [
+            {"ruleType": "min_videos_before", "ruleValue": {"n": 3}},
+            {"ruleType": "once_per_user", "ruleValue": {}},
+        ],
+    },
+)
+survey = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch("https://api.shortkit.dev/v1/surveys", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk_live_your_secret_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    title: "Content Discovery",
+    question: "How did you discover this content?",
+    options: [
+      { text: "Social media", position: 0 },
+      { text: "Search", position: 1 },
+      { text: "Friend", position: 2 },
+    ],
+    placementRules: [
+      { ruleType: "min_videos_before", ruleValue: { n: 3 } },
+      { ruleType: "once_per_user", ruleValue: {} },
+    ],
+  }),
+});
+const { data: survey } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201
+{
+  "data": {
+    "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    "title": "Content Discovery",
+    "question": "How did you discover this content?",
+    "status": "draft",
+    "priority": 10,
+    "autoAdvanceDelay": 3.0,
+    "options": [
+      { "id": "a1b2c3d4-...", "text": "Social media", "position": 0, "responseCount": 0, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "b2c3d4e5-...", "text": "Search", "position": 1, "responseCount": 0, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "c3d4e5f6-...", "text": "Friend", "position": 2, "responseCount": 0, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "placementRules": [
+      { "id": "e5f6a7b8-...", "ruleType": "min_videos_before", "ruleValue": { "n": 3 }, "createdAt": "2026-02-10T09:00:00Z" },
+      { "id": "f6a7b8c9-...", "ruleType": "once_per_user", "ruleValue": {}, "createdAt": "2026-02-10T09:00:00Z" }
+    ],
+    "totalResponses": 0,
+    "createdAt": "2026-02-10T09:00:00Z",
+    "updatedAt": "2026-02-10T09:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_srv001"
+  }
+}
+```
+</ResponseExample>
+
+## Validation errors
+
+| Condition | Status | Message |
+|-----------|--------|---------|
+| Missing `min_videos_before` rule | 400 | `placement_rules must include a min_videos_before rule` |
+| `min_videos_before.n` is not a non-negative integer | 400 | `min_videos_before rule_value.n must be a non-negative integer` |
+| Unknown `ruleType` | 400 | `Invalid rule_type: {value}` |
+| Unknown `status` | 400 | `Invalid status: {value}` |

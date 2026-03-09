@@ -1,0 +1,40 @@
+---
+title: "Metrics Overview"
+description: "Aggregate engagement and quality metrics over flexible timeframes."
+---
+
+The metrics system aggregates video view data into high-level numbers for dashboards and reports. It queries the **video views** table — each row represents a complete viewing session, created automatically when the SDK sends a `viewEnd` event.
+
+All metrics endpoints require a **secret key**.
+
+## Timeframes
+
+Both endpoints accept a `timeframe[]` query parameter to control the time range.
+
+| Format | Example | Meaning |
+|--------|---------|---------|
+| Relative | `timeframe[]=7:days` | Last 7 days |
+| Relative | `timeframe[]=24:hours` | Last 24 hours |
+| Absolute | `timeframe[]=1709251200&timeframe[]=1709856000` | Unix timestamp range (start, end) |
+
+Default: `7:days`.
+
+## Available metrics
+
+### Count metrics
+
+| Metric | Description |
+|--------|-------------|
+| `views` | Total view sessions |
+| `unique_viewers` | Distinct viewer IDs |
+| `completions` | Views where the video played to the end |
+
+### Aggregate metrics
+
+These support a `measurement` parameter: `sum` or `avg`.
+
+| Metric | Default | Description |
+|--------|---------|-------------|
+| `watch_time` | `sum` | Wall-clock watch duration (ms) |
+| `playing_time` | `sum` | Actual playback time excluding buffering (ms) |
+| `video_startup_time` | `avg` | Time from impression to first frame (ms) |

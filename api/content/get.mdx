@@ -1,0 +1,76 @@
+---
+title: "Get Content"
+api: "GET /v1/content/{id}"
+description: "Retrieve a single content item by ID."
+---
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The content item's UUID.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+content = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851",
+  {
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+const { data: content } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "contentType": "video",
+    "title": "Breaking: Weather Alert",
+    "description": "Severe thunderstorm warning for the metro area",
+    "uploadStatus": "ready",
+    "publishStatus": "published",
+    "duration": 32.5,
+    "streamingUrl": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8",
+    "thumbnailUrl": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?time=0",
+    "section": "Weather",
+    "author": "Jane Doe",
+    "tags": ["weather", "severe", "breaking"],
+    "customMetadata": {
+      "articleUrl": "https://example.com/weather-alert"
+    },
+    "captionTracks": [],
+    "images": [],
+    "publishAt": null,
+    "expiresAt": null,
+    "width": 1080,
+    "height": 1920,
+    "aspectRatio": "9:16",
+    "createdAt": "2026-02-05T12:00:00Z",
+    "updatedAt": "2026-02-05T12:03:45Z"
+  },
+  "meta": {
+    "request_id": "req_get001"
+  }
+}
+```
+</ResponseExample>
+
+Returns a `404` if the content item does not exist or does not belong to your organization.

@@ -1,0 +1,80 @@
+---
+title: "Get Metric"
+api: "GET /v1/metrics/{metric}"
+description: "Returns a single aggregate value for a metric over a timeframe."
+---
+
+## Path parameters
+
+<ParamField path="metric" type="string" required>
+  Metric to query. See [Metrics Overview](/api/analytics/metrics) for the full list.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="measurement" type="string">
+  Aggregation function: `sum` or `avg`. Only applies to aggregate metrics (`watch_time`, `playing_time`, `video_startup_time`). Count metrics ignore this parameter.
+</ParamField>
+
+<ParamField query="timeframe[]" type="string" default="7:days">
+  Time range. Relative (`7:days`, `24:hours`) or absolute (two Unix timestamps).
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/metrics/views",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    params={"timeframe[]": "7:days"},
+)
+metric = resp.json()["data"]
+print(f"Views: {metric['value']}")
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days",
+  {
+    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+  }
+);
+const { data: metric } = await resp.json();
+console.log(`Views: ${metric.value}`);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "value": 12450,
+    "total_views": 12450
+  },
+  "timeframe": [1740700800, 1741305600],
+  "meta": {
+    "request_id": "req_m001"
+  }
+}
+```
+</ResponseExample>
+
+## Examples
+
+**Completions over 30 days:**
+```bash
+curl "https://api.shortkit.dev/v1/metrics/completions?timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+**Average startup time over 24 hours:**
+```bash
+curl "https://api.shortkit.dev/v1/metrics/video_startup_time?measurement=avg&timeframe[]=24:hours" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
