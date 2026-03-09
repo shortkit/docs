@@ -322,7 +322,7 @@ Call `appendFeedItems()` to add items to the end of the current feed without dis
 
 ### Delegate callbacks
 
-When using client-side ranking, implement the delegate to respond to pull-to-refresh and content taps.
+Implement the delegate to respond to feed lifecycle events. All methods are optional.
 
 <Tabs>
   <Tab title="Swift">
@@ -330,12 +330,31 @@ When using client-side ranking, implement the delegate to respond to pull-to-ref
     protocol ShortKitDelegate: AnyObject {
         func shortKitDidRequestRefresh(_ shortKit: ShortKit)
         func shortKit(_ shortKit: ShortKit, didTapContent contentId: String, at index: Int)
+        func shortKit(_ shortKit: ShortKit, didFetchContentItems items: [ContentItem])
     }
 
     shortKit.delegate = self
     ```
 
-    In your `shortKitDidRequestRefresh` implementation, fetch fresh data from your backend and call `setFeedItems()` with the updated list.
+    - `shortKitDidRequestRefresh` — Called when the user pulls to refresh in custom feed mode. Fetch fresh data from your backend and call `setFeedItems()` with the updated list.
+    - `didTapContent` — Called when a single player or widget card is tapped.
+    - `didFetchContentItems` — Called when the SDK fetches content from the algorithmic feed (initial load, pagination, and pull-to-refresh). Use this to pre-fetch your own metadata for the items so your custom overlay can display it. Only fires for algorithmic feeds — in custom feed mode you already know your own items.
+
+    ```swift
+    // Example: pre-fetch metadata for custom overlays
+    func shortKit(_ shortKit: ShortKit, didFetchContentItems items: [ContentItem]) {
+        let ids = items.map { $0.id }
+        MyAPI.fetchMetadata(for: ids) { metadata in
+            self.metadataStore.merge(metadata)
+        }
+    }
+
+    // Then in your FeedOverlay:
+    func configure(with item: ContentItem) {
+        let meta = metadataStore[item.id]
+        titleLabel.text = meta?.headline
+    }
+    ```
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
@@ -346,6 +365,10 @@ When using client-side ranking, implement the delegate to respond to pull-to-ref
 
         override fun onContentTapped(contentId: String, index: Int) {
             // Navigate to detail screen
+        }
+
+        override fun onContentItemsFetched(items: List<ContentItem>) {
+            // Pre-fetch your own metadata for custom overlays
         }
     }
     ```
@@ -358,6 +381,10 @@ When using client-side ranking, implement the delegate to respond to pull-to-ref
       style={{ flex: 1 }}
       onContentTapped={(contentId, index) => {
         navigation.navigate('Detail', { contentId });
+      }}
+      onContentItemsFetched={(items) => {
+        // Pre-fetch your own metadata for custom overlays
+        prefetchMetadata(items.map(i => i.id));
       }}
     />
     ```
