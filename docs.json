@@ -137,7 +137,6 @@
                 "pages": [
                   "api/analytics/event-object",
                   "api/analytics/list-events",
-                  "api/analytics/get-event",
                   "api/analytics/metrics",
                   "api/analytics/get-metric",
                   "api/analytics/get-timeseries"

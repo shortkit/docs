@@ -12,14 +12,14 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 ```json
 {
   "id": "e8f9a0b1-c2d3-4e5f-6a7b-8c9d0e1f2a3b",
-  "type": "playStart",
-  "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
-  "userId": "user_abc123",
-  "sessionId": "sess_xyz789",
-  "viewSessionId": "vs_a1b2c3d4",
-  "timestamp": "2026-03-01T12:00:00Z",
-  "receivedAt": "2026-03-01T12:00:01Z",
-  "data": {}
+  "event_type": "playStart",
+  "content_id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "user_id": "user_abc123",
+  "session_id": "sess_xyz789",
+  "view_session_id": "vs_a1b2c3d4",
+  "timestamp": "2026-03-01T12:00:00+00:00",
+  "received_at": "2026-03-01T12:00:01+00:00",
+  "event_data": {}
 }
 ```
 
@@ -31,23 +31,23 @@ You don't need to create events manually. The SDK batches and sends them to `POS
   Unique event identifier (UUID).
 </ResponseField>
 
-<ResponseField name="type" type="string">
+<ResponseField name="event_type" type="string">
   Event type. See the full list below.
 </ResponseField>
 
-<ResponseField name="contentId" type="string | null">
+<ResponseField name="content_id" type="string | null">
   Content ID this event relates to. Null for feed-level events like `feedEntry`.
 </ResponseField>
 
-<ResponseField name="userId" type="string">
+<ResponseField name="user_id" type="string">
   User identifier. Defaults to `"anonymous"` if the SDK has no identity set.
 </ResponseField>
 
-<ResponseField name="sessionId" type="string | null">
+<ResponseField name="session_id" type="string | null">
   Session identifier grouping events within a single app session.
 </ResponseField>
 
-<ResponseField name="viewSessionId" type="string | null">
+<ResponseField name="view_session_id" type="string | null">
   View session identifier grouping all events for a single content view (from impression through exit).
 </ResponseField>
 
@@ -55,11 +55,11 @@ You don't need to create events manually. The SDK batches and sends them to `POS
   ISO 8601 timestamp of when the event occurred on the client.
 </ResponseField>
 
-<ResponseField name="receivedAt" type="string">
+<ResponseField name="received_at" type="string">
   ISO 8601 timestamp of when the server received the event.
 </ResponseField>
 
-<ResponseField name="data" type="object">
+<ResponseField name="event_data" type="object">
   Event-specific payload. Shape varies by event type.
 </ResponseField>
 
@@ -69,7 +69,7 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 
 ### Engagement
 
-| Type | Description | Key `data` fields |
+| Type | Description | Key `event_data` fields |
 |------|-------------|-------------------|
 | `impression` | Content entered the viewport | — |
 | `playStart` | Video playback began | — |
@@ -83,7 +83,7 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 
 ### Playback quality
 
-| Type | Description | Key `data` fields |
+| Type | Description | Key `event_data` fields |
 |------|-------------|-------------------|
 | `firstFrame` | First video frame rendered | `startupTimeMs` |
 | `rebuffer` | Playback stalled for buffering | `durationMs` |
@@ -92,14 +92,14 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 
 ### Feed navigation
 
-| Type | Description | Key `data` fields |
+| Type | Description | Key `event_data` fields |
 |------|-------------|-------------------|
 | `feedEntry` | User entered the feed | — |
 | `feedExit` | User left the feed | `itemsViewed`, `durationMs` |
 
 ### View lifecycle
 
-| Type | Description | Key `data` fields |
+| Type | Description | Key `event_data` fields |
 |------|-------------|-------------------|
 | `viewEnd` | User finished viewing a content item | Full playback summary (see below) |
 
@@ -107,7 +107,7 @@ The `viewEnd` event carries the richest payload — a complete summary of the vi
 
 ### Ad lifecycle
 
-| Type | Description | Key `data` fields |
+| Type | Description | Key `event_data` fields |
 |------|-------------|-------------------|
 | `adRequest` | Ad was requested from the ad server | `adUnitId` |
 | `adImpression` | Ad creative rendered | `adUnitId`, `adFormat` |
