@@ -28,6 +28,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
     ```swift
     public struct ContentItem: Codable, Equatable, Sendable {
         public let id: String
+        public let playbackId: String?
         public let title: String
         public let description: String?
         public let duration: Double
@@ -47,6 +48,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
     ```kotlin
     data class ContentItem(
         val id: String,
+        val playbackId: String?,
         val title: String,
         val description: String?,
         val duration: Double,
@@ -64,6 +66,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
     ```typescript
     interface ContentItem {
       id: string;
+      playbackId?: string;
       title: string;
       description?: string;
       duration: number;
@@ -82,6 +85,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 | Field | Type | Description |
 |---|---|---|
 | `id` | `String` | Unique content identifier |
+| `playbackId` | `String?` | Playback ID for this content item. Used when referencing content in custom feeds via `FeedInput.video(playbackId:)`. |
 | `title` | `String` | Display title |
 | `description` | `String?` | Optional body text |
 | `duration` | `Double` | Video length in seconds |

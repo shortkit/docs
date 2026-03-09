@@ -13,9 +13,14 @@ Overlays are full-screen views layered on top of the video player in each feed c
 <Tabs>
   <Tab title="Swift">
     ```swift
-    // Custom overlay -- you provide the UI, SDK manages the lifecycle
+    // Custom UIKit overlay -- you provide the UI, SDK manages the lifecycle
     let config = FeedConfig(videoOverlay: .custom {
         MyOverlay(theme: .dark)
+    })
+
+    // SwiftUI overlay -- use @ViewBuilder with player and cell content
+    let config = FeedConfig(videoOverlay: .swiftUI { player, cellContent in
+        MySwiftUIOverlay(player: player, cellContent: cellContent)
     })
 
     // No overlay -- bare video, no UI
@@ -56,7 +61,8 @@ Overlays are full-screen views layered on top of the video player in each feed c
 
 | Mode | Behavior |
 |------|----------|
-| `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You build the UI, the SDK handles when to configure, activate, and transition it. |
+| `.custom { ... }` | Provide a UIKit `UIView` conforming to `FeedOverlay`. SDK creates your overlay per cell and manages its lifecycle. |
+| `.swiftUI { player, cellContent in ... }` | **(iOS only)** Provide a SwiftUI `View` via `@ViewBuilder`. Receives a `ShortKitPlayer` and a `CellContent` (an `ObservableObject` with a `@Published item: ContentItem?`). The SDK wraps it in a hosting view and manages the lifecycle. |
 | `.none` | SDK renders only the raw video. No overlay, no controls. |
 
 ## Custom video overlays
@@ -75,8 +81,6 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
         func configure(with item: ContentItem)
         func resetPlaybackProgress()
         func activatePlayback()
-        func fadeOutForTransition()
-        func restoreFromTransition()
     }
     ```
   </Tab>
@@ -87,8 +91,6 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
         fun configure(item: ContentItem)
         fun resetPlaybackProgress()
         fun activatePlayback()
-        fun fadeOutForTransition()
-        fun restoreFromTransition()
     }
     ```
   </Tab>
@@ -100,12 +102,10 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
 | `configure(with:)` | A cell receives a new content item (initial load or cell reuse). | Update labels, thumbnails, and metadata to reflect the new item. |
 | `resetPlaybackProgress()` | The cell is being prepared for new content. | Reset scrubber position, clear caption text, discard stale state from the previous item. |
 | `activatePlayback()` | The cell becomes the active playback cell. | Begin processing `player.time` updates to drive your scrubber, captions, and time-dependent UI. |
-| `fadeOutForTransition()` | The user begins swiping to the next video. | Dim or hide your overlay so it doesn't show at full opacity during the transition. |
-| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
 
 The SDK calls your factory closure once per cell, lazily on first use. Your overlay is added as a full-screen subview of the cell and persists across cell reuses. Immediately after creation, the SDK calls `attach(player:)` with its `ShortKitPlayer` instance -- this is where you store the player reference and subscribe to its reactive streams.
 
-From that point on, the SDK drives your overlay through the remaining protocol methods. When a cell is reused for new content, it calls `configure(with:)` followed by `resetPlaybackProgress()` so your overlay can update its metadata and clear stale state. When the cell becomes the active playback cell, it calls `activatePlayback()` -- your signal to start processing time updates. During swipes, it calls `fadeOutForTransition()` on the outgoing cell and `restoreFromTransition()` + `activatePlayback()` on the incoming cell.
+From that point on, the SDK drives your overlay through the remaining protocol methods. When a cell is reused for new content, it calls `configure(with:)` followed by `resetPlaybackProgress()` so your overlay can update its metadata and clear stale state. When the cell becomes the active playback cell, it calls `activatePlayback()` -- your signal to start processing time updates.
 
 ### Registering your overlay
 
@@ -148,6 +148,42 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
 
 The factory is your opportunity to inject your own dependencies -- themes, data services, feature flags -- at construction time. On iOS and Android, the SDK provides its dependency (the player) separately through `attach(player:)`. In React Native, your component accesses the player via the `useShortKitPlayer()` hook.
 
+### SwiftUI overlays
+
+If your iOS app uses SwiftUI, use `.swiftUI` instead of `.custom` to build your overlay as a SwiftUI `View`. The closure receives a `ShortKitPlayer` and a `CellContent` object:
+
+```swift
+let config = FeedConfig(videoOverlay: .swiftUI { player, cellContent in
+    MyOverlayView(player: player, cellContent: cellContent)
+})
+```
+
+`CellContent` is an `ObservableObject` with a single `@Published item: ContentItem?` property. The SDK updates it automatically as cells are reused. Use it in your SwiftUI view to reactively display content metadata:
+
+```swift
+import SwiftUI
+import ShortKitSDK
+
+struct MyOverlayView: View {
+    let player: ShortKitPlayer
+    @ObservedObject var cellContent: CellContent
+
+    var body: some View {
+        VStack {
+            Spacer()
+            if let item = cellContent.item {
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding()
+    }
+}
+```
+
+Under the hood, `.swiftUI` wraps your view in a `UIHostingController` and registers it as a `FeedOverlay`. You do not need to conform to the `FeedOverlay` protocol yourself.
+
 ## ShortKitPlayer
 
 `ShortKitPlayer` is the public interface to the video player. Both built-in templates and custom overlays use it the same way: subscribe to reactive streams for state, call methods for commands. Access it via `shortKit.player`.
@@ -168,6 +204,8 @@ Subscribe to these streams to keep your overlay in sync with playback state. Upd
 | `activeCue` | `VTTCue?` | The active caption cue at the current playback time. Contains `startTime`, `endTime`, and `text`. |
 | `didLoop` | `LoopEvent` | Fires each time the video loops. Contains `contentId` and `loopCount`. |
 | `feedTransition` | `FeedTransitionEvent` | Start and end of feed navigation. Contains `phase` (`.began`/`.ended`), `from`, `to`, `direction`. |
+| `feedScrollPhase` | `FeedScrollPhase` | Current scroll state: `.dragging(from: contentId)` or `.settled`. |
+| `feedReady` | `Void` | Fires once when the feed has loaded and assigned the first player. |
 
 Synchronous reads are available without subscribing via `currentItemValue` and `playbackRateValue`.
 
@@ -280,14 +318,6 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
         }
 
         func activatePlayback() { isActive = true }
-
-        func fadeOutForTransition() {
-            UIView.animate(withDuration: 0.15) { self.alpha = 0.3 }
-        }
-
-        func restoreFromTransition() {
-            UIView.animate(withDuration: 0.15) { self.alpha = 1.0 }
-        }
 
         // MARK: - Scrub gesture
 
@@ -402,14 +432,6 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
         }
 
         override fun activatePlayback() { isActive = true }
-
-        override fun fadeOutForTransition() {
-            animate().alpha(0.3f).setDuration(150).start()
-        }
-
-        override fun restoreFromTransition() {
-            animate().alpha(1.0f).setDuration(150).start()
-        }
 
         private fun handleTouch(event: MotionEvent): Boolean {
             val fraction = (event.x / track.width).coerceIn(0f, 1f).toDouble()
@@ -671,14 +693,6 @@ This example shows a caption label that follows the active cue and can be reposi
 
         func activatePlayback() { isActive = true }
 
-        func fadeOutForTransition() {
-            UIView.animate(withDuration: 0.15) { self.alpha = 0.3 }
-        }
-
-        func restoreFromTransition() {
-            UIView.animate(withDuration: 0.15) { self.alpha = 1.0 }
-        }
-
         // MARK: - Drag to reposition
 
         @objc private func handleDrag(_ gesture: UIPanGestureRecognizer) {
@@ -789,14 +803,6 @@ This example shows a caption label that follows the active cue and can be reposi
         }
 
         override fun activatePlayback() { isActive = true }
-
-        override fun fadeOutForTransition() {
-            animate().alpha(0.3f).setDuration(150).start()
-        }
-
-        override fun restoreFromTransition() {
-            animate().alpha(1.0f).setDuration(150).start()
-        }
     }
     ```
   </Tab>
@@ -1018,31 +1024,28 @@ Custom carousel overlays conform to `CarouselOverlay`. Unlike video overlays, th
   <Tab title="Swift">
     ```swift
     public protocol CarouselOverlay: AnyObject {
+        var cachedImage: ((String) -> UIImage?)? { get set }
         func configure(with item: ImageCarouselItem)
         func resetState()
-        func fadeOutForTransition()
-        func restoreFromTransition()
     }
     ```
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
     interface CarouselOverlay {
+        var cachedImage: ((url: String) -> Bitmap?)?
         fun configure(item: ImageCarouselItem)
         fun resetState()
-        fun fadeOutForTransition()
-        fun restoreFromTransition()
     }
     ```
   </Tab>
 </Tabs>
 
-| Method | When the SDK calls it | What your overlay should do |
+| Method / Property | When the SDK calls it | What your overlay should do |
 |--------|----------------------|----------------------------|
+| `cachedImage` | Set by the SDK before calling `configure(with:)`. | Use this closure to look up prefetched images by URL, avoiding redundant downloads. |
 | `configure(with:)` | A cell receives a new carousel item (initial load or cell reuse). | Load images, set up page indicators, populate text and metadata from the `ImageCarouselItem`. |
 | `resetState()` | The cell is being prepared for new content. | Cancel auto-scroll timers, clear images, reset page position and any expanded text state. |
-| `fadeOutForTransition()` | The user begins swiping to the next feed item. | Dim or hide your overlay during the transition. |
-| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
 
 The `ImageCarouselItem` provided in `configure(with:)` contains the carousel's images, metadata, and optional auto-scroll interval. Your overlay is responsible for displaying the images and handling all user interaction — paging, text expansion, action buttons — directly.
 
@@ -1058,8 +1061,6 @@ Custom survey overlays conform to `SurveyOverlay`. The protocol includes two cal
         var onAutoAdvance: (() -> Void)? { get set }
         func configure(with item: SurveyItem)
         func resetState()
-        func fadeOutForTransition()
-        func restoreFromTransition()
     }
     ```
   </Tab>
@@ -1070,8 +1071,6 @@ Custom survey overlays conform to `SurveyOverlay`. The protocol includes two cal
         var onAutoAdvance: (() -> Unit)?
         fun configure(item: SurveyItem)
         fun resetState()
-        fun fadeOutForTransition()
-        fun restoreFromTransition()
     }
     ```
   </Tab>
@@ -1081,8 +1080,6 @@ Custom survey overlays conform to `SurveyOverlay`. The protocol includes two cal
 |--------|----------------------|----------------------------|
 | `configure(with:)` | A cell receives a new survey item. | Display the question and option buttons from the `SurveyItem`. |
 | `resetState()` | The cell is being prepared for new content. | Cancel any pending auto-advance timers, clear selection state, reset button styling. |
-| `fadeOutForTransition()` | The user begins swiping to the next feed item. | Dim or hide your overlay during the transition. |
-| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
 | `onSurveyResponse` | Set by SDK after creation. | Call this with the survey ID and selected option when the user taps an answer. |
 | `onAutoAdvance` | Set by SDK after creation. | Call this after a short delay following selection (e.g. 500ms). The SDK scrolls to the next feed item. |
 
@@ -1096,8 +1093,6 @@ Custom ad overlays conform to `AdOverlay`. They apply to native ads only -- ads 
     public protocol AdOverlay: AnyObject {
         func configure(with content: NativeAdContent)
         func resetState()
-        func fadeOutForTransition()
-        func restoreFromTransition()
     }
     ```
   </Tab>
@@ -1106,8 +1101,6 @@ Custom ad overlays conform to `AdOverlay`. They apply to native ads only -- ads 
     interface AdOverlay {
         fun configure(content: NativeAdContent)
         fun resetState()
-        fun fadeOutForTransition()
-        fun restoreFromTransition()
     }
     ```
   </Tab>
@@ -1117,8 +1110,6 @@ Custom ad overlays conform to `AdOverlay`. They apply to native ads only -- ads 
 |--------|----------------------|----------------------------|
 | `configure(with:)` | A cell receives native ad content. | Display the headline, sponsor logo, CTA button, Ad badge, and AdChoices icon from the `NativeAdContent`. Call `content.recordImpression?()` when the ad becomes visible. |
 | `resetState()` | The cell is being prepared for new content. | Clear creative assets, reset impression state. |
-| `fadeOutForTransition()` | The user begins swiping to the next feed item. | Dim or hide your overlay during the transition. |
-| `restoreFromTransition()` | The user lands on this cell after a swipe. | Restore your overlay to full opacity. |
 
 `NativeAdContent` provides all creative assets and action handlers:
 
