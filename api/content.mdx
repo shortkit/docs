@@ -12,7 +12,7 @@ The Content API manages your video and carousel library. Use it to create conten
 |--------|----------|-------------|
 | `POST` | [`/v1/content`](#create-content) | Create a content item |
 | `GET` | [`/v1/content`](#list-content) | List content with filters |
-| `GET` | [`/v1/content/search`](#search-content) | Semantic search (Twelve Labs) |
+| `GET` | [`/v1/content/search`](#search-content) | Search content |
 | `GET` | [`/v1/content/{id}`](#get-content) | Get a single content item |
 | `PATCH` | [`/v1/content/{id}`](#update-content) | Update content fields |
 | `DELETE` | [`/v1/content/{id}`](#delete-content) | Archive a content item |
@@ -414,7 +414,7 @@ curl "https://api.shortkit.dev/v1/content?limit=20&cursor=eyJjYSI6IjIwMjYtMDIt..
 
 ## Search content
 
-Semantic video search powered by Twelve Labs. Returns content items ranked by relevance to a natural-language query.
+Search content by title, description, author, tags, and custom metadata. Returns content items matching all search terms.
 
 ```bash
 GET /v1/content/search
@@ -427,7 +427,7 @@ Secret key or portal JWT via the `Authorization` header.
 ### Query parameters
 
 <ParamField query="q" type="string" required>
-  Search query. 1--500 characters.
+  Search query. 1--500 characters. Multiple words are treated as separate terms — all must match.
 </ParamField>
 
 <ParamField query="limit" type="integer" default={20}>
@@ -437,13 +437,13 @@ Secret key or portal JWT via the `Authorization` header.
 ### Example request
 
 ```bash
-curl "https://api.shortkit.dev/v1/content/search?q=severe%20weather%20warning&limit=5" \
+curl "https://api.shortkit.dev/v1/content/search?q=weather%20alert&limit=5" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
 ### Response
 
-Each result includes the standard content object plus a `searchScore` field:
+Returns standard content objects ordered by creation date (newest first):
 
 ```json
 {
@@ -456,24 +456,18 @@ Each result includes the standard content object plus a `searchScore` field:
       "duration": 32.5,
       "streamingUrl": "https://stream.shortkit.dev/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe.m3u8",
       "thumbnailUrl": "https://image.shortkit.dev/DS00Spx1CV902MCtPj5WknGlR102V5HFkDe/thumbnail.jpg?time=0",
-      "searchScore": 92.4,
       "tags": ["weather", "severe"],
       "createdAt": "2026-02-05T12:00:00Z",
       "updatedAt": "2026-02-05T12:03:45Z"
     }
   ],
   "meta": {
-    "request_id": "req_search001",
-    "source": "twelve_labs"
+    "request_id": "req_search001"
   }
 }
 ```
 
-<Note>
-  Search requires Twelve Labs credentials configured on your organization. If Twelve Labs is not configured, this endpoint returns an empty `data` array with `meta.source` set to `"none"`.
-</Note>
-
-Results are deduplicated by video -- when multiple clips from the same video match, only the highest-scoring clip is returned.
+Search matches against title, description, author, tags, and custom metadata fields. Each search term must appear in at least one of these fields for a content item to be included.
 
 ---
 
