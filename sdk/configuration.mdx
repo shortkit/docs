@@ -20,7 +20,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
             clientAppName: String? = nil,
             clientAppVersion: String? = nil,
             customDimensions: [String: String]? = nil,
-            playbackIds: [String]? = nil
+            feedItems: [FeedInput]? = nil
         )
     }
     ```
@@ -35,7 +35,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
         clientAppName: String? = null,
         clientAppVersion: String? = null,
         customDimensions: Map<String, String>? = null,
-        playbackIds: List<String>? = null
+        feedItems: List<FeedInput>? = null
     )
     ```
   </Tab>
@@ -65,7 +65,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
 | `clientAppName` | `String?` | `nil` | App name included in analytics metadata. |
 | `clientAppVersion` | `String?` | `nil` | App version included in analytics metadata. |
 | `customDimensions` | `[String: String]?` | `nil` | Custom key-value pairs for analytics segmentation. Keys must be `"custom_1"` through `"custom_5"`. |
-| `playbackIds` | `[String]?` | `nil` | Playback IDs to preload when using custom feed mode (`feedSource: .custom`). |
+| `feedItems` | `[FeedInput]?` | `nil` | Content items to preload when using custom feed mode (`feedSource: .custom`). See [Feed Ranking — FeedInput](/guides/feed-customization#feedinput). |
 
 On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN connection, and begins HLS preroll for the first video. The feed view controller can render immediately without a loading spinner.
 
@@ -81,8 +81,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         public var surveyOverlay: SurveyOverlayMode
         public var adOverlay: AdOverlayMode
         public var muteOnStart: Bool
+        public var autoplay: Bool
         public var feedSource: FeedSource
-        public var liveStream: LiveStreamConfig?
 
         public init(
             feedHeight: FeedHeight = .fullscreen,
@@ -91,8 +91,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
             surveyOverlay: SurveyOverlayMode = .none,
             adOverlay: AdOverlayMode = .none,
             muteOnStart: Bool = true,
-            feedSource: FeedSource = .algorithmic,
-            liveStream: LiveStreamConfig? = nil
+            autoplay: Bool = true,
+            feedSource: FeedSource = .algorithmic
         )
     }
     ```
@@ -106,8 +106,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         val surveyOverlay: SurveyOverlayMode = SurveyOverlayMode.None,
         val adOverlay: AdOverlayMode = AdOverlayMode.None,
         val muteOnStart: Boolean = true,
-        val feedSource: FeedSource = FeedSource.Algorithmic,
-        val liveStream: LiveStreamConfig? = null
+        val autoplay: Boolean = true,
+        val feedSource: FeedSource = FeedSource.Algorithmic
     )
     ```
   </Tab>
@@ -119,6 +119,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       carouselOverlay?: CarouselOverlayConfig;
       surveyMode?: SurveyMode;
       muteOnStart?: boolean;
+      autoplay?: boolean;
       feedSource?: 'algorithmic' | 'custom';
     }
 
@@ -142,8 +143,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | `surveyOverlay` | `SurveyOverlayMode` | `.none` | `.none` disables survey UI. `.custom { ... }` provides a developer-built survey overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). |
 | `adOverlay` | `AdOverlayMode` | `.none` | `.none` disables native ad overlays. `.custom { ... }` provides a developer-built ad overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). Only applies to native ads; system-defined ads (IMA/VAST) are unaffected. |
 | `muteOnStart` | `Bool` | `true` | Whether video starts muted. Once the user unmutes, the unmuted state persists for the session. |
-| `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided playback IDs (pass via `playbackIds` on `ShortKit.init`). |
-| `liveStream` | `LiveStreamConfig?` | `nil` | When set, injects a live stream into the feed at the specified position. Requires `streamingUrl`, `thumbnailUrl`, and an optional `position` (default 3). |
+| `autoplay` | `Bool` | `true` | Whether video starts playing automatically when the feed loads or when the user swipes to a new item. |
+| `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided items (pass via `feedItems` on `ShortKit.init` or call `setFeedItems()` / `appendFeedItems()`). |
 
 <Tabs>
   <Tab title="Swift">

@@ -78,6 +78,9 @@ Publishers emit values whenever the corresponding state changes. Subscribe to re
 | `activeCaptionTrack` | `CaptionTrack?` | The currently selected caption track, or `nil` if none. |
 | `activeCue` | `VTTCue?` | The active caption cue at the current playback time, or `nil` between cues. |
 | `prefetchedAheadCount` | `Int` | Number of content items ahead that have preloaded thumbnails. Useful for building a "loading more" indicator. |
+| `remainingContentCount` | `Int` | Number of content items remaining ahead of the current position in the feed. |
+| `feedScrollPhase` | `FeedScrollPhase` | Current scroll state of the feed: `.dragging(from: contentId)` while the user is swiping, `.settled` when at rest. |
+| `feedReady` | `Void` | Fires once when the feed has loaded content and assigned the first player. Useful for hiding a loading screen. |
 
 ## Synchronous accessors
 
@@ -317,6 +320,17 @@ public struct FormatChangeEvent: Equatable, Sendable {
 }
 ```
 
+### FeedScrollPhase
+
+Emitted by the `feedScrollPhase` publisher to indicate the scroll state of the feed.
+
+```swift
+public enum FeedScrollPhase: Equatable, Sendable {
+    case dragging(from: String)  // User is actively swiping; `from` is the content ID being swiped away
+    case settled                 // Feed is at rest on a cell
+}
+```
+
 ### ContentSignal
 
 Passed to `sendContentSignal(_:)` to influence the recommendation engine.
@@ -337,7 +351,7 @@ This example builds a minimal custom overlay that shows a play/pause button and 
     ```swift
     import UIKit
     import Combine
-    import ShortKit
+    import ShortKitSDK
 
     final class MinimalOverlay: UIView {
 

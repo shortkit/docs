@@ -52,7 +52,7 @@ All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **p
       "label": "English",
       "source": "generated",
       "url": "https://stream.shortkit.dev/DS00Spx1.../text/cc1.vtt",
-      "muxTrackId": "cc1",
+      "trackId": "cc1",
       "status": "ready",
       "createdAt": "2026-02-05T12:03:45Z"
     }
@@ -66,7 +66,6 @@ All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **p
   "height": 1920,
   "aspectRatio": "9:16",
   "maxFrameRate": 30.0,
-  "videoQuality": "plus",
   "resolutionTier": "1080p",
   "carouselCaption": null,
   "autoScrollInterval": null,
@@ -127,7 +126,7 @@ All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **p
 </ResponseField>
 
 <ResponseField name="captionTracks" type="array">
-  Caption tracks attached to this content. Each track has `id`, `language` (ISO 639-1), `label`, `source` (`"generated"`, `"embedded"`, or `"external"`), `url`, `muxTrackId`, `status`, and `createdAt`.
+  Caption tracks attached to this content. Each track has `id`, `language` (ISO 639-1), `label`, `source` (`"generated"`, `"embedded"`, or `"external"`), `url`, `trackId`, `status`, and `createdAt`.
 </ResponseField>
 
 <ResponseField name="images" type="array">
@@ -164,10 +163,6 @@ All endpoints require a **secret key** (`Authorization: Bearer sk_...`) or a **p
 
 <ResponseField name="maxFrameRate" type="number | null">
   Maximum stored frame rate.
-</ResponseField>
-
-<ResponseField name="videoQuality" type="string | null">
-  Mux video quality tier (e.g., `"plus"`, `"basic"`).
 </ResponseField>
 
 <ResponseField name="resolutionTier" type="string | null">
@@ -320,7 +315,6 @@ curl -X POST https://api.shortkit.dev/v1/content \
     "height": null,
     "aspectRatio": null,
     "maxFrameRate": null,
-    "videoQuality": null,
     "resolutionTier": null,
     "views": 0,
     "createdAt": "2026-02-05T12:00:00Z",
@@ -813,7 +807,7 @@ Returns the reordered image array:
 
 ## Caption tracks
 
-Upload VTT or SRT caption files to any content item. Auto-generated captions (from Mux) appear automatically after video processing -- use these endpoints to add additional languages or replace generated tracks.
+Upload VTT or SRT caption files to any content item. Auto-generated captions appear automatically after video processing -- use these endpoints to add additional languages or replace generated tracks.
 
 ### Upload caption track
 
@@ -867,7 +861,7 @@ curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-.../captions \
     "label": "Spanish",
     "source": "external",
     "url": "https://storage.googleapis.com/shortkit-assets/orgs/.../captions_es.vtt",
-    "muxTrackId": null,
+    "trackId": null,
     "status": "ready",
     "createdAt": "2026-02-05T13:00:00Z"
   },

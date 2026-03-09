@@ -183,6 +183,8 @@ With `videoOverlay: .none`, your code is responsible for all playback controls, 
 | `activeCue` | `VTTCue?` | The active caption cue at the current playback time. |
 | `didLoop` | `LoopEvent` | Fires each time the video loops. Contains `contentId` and `loopCount`. |
 | `feedTransition` | `FeedTransitionEvent` | Start and end of feed navigation. Contains `phase`, `from`, `to`, `direction`. |
+| `feedScrollPhase` | `FeedScrollPhase` | Current scroll state: `.dragging(from: contentId)` or `.settled`. |
+| `feedReady` | `Void` | Fires once when the feed has loaded and assigned the first player. |
 
 Point-in-time reads are available without subscribing via `currentItemValue` and `playbackRateValue`.
 
