@@ -183,6 +183,76 @@ A content item appears in the feed only when all four conditions are true:
 
 If any condition fails, the item is excluded from feed responses but remains accessible via the content API (`GET /v1/content/{id}`).
 
+## Server-side feed filtering
+
+Use `FeedFilter` to fetch only content matching specific criteria. When a filter is set on `FeedConfig`, the SDK automatically applies it to all feed requests — initial load, pagination, and pull-to-refresh.
+
+Filters are applied server-side before content is returned, so the SDK only downloads matching content. This is more efficient than fetching everything and filtering on the client.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Only show Japan travel content
+    let shortKit = ShortKit(
+        apiKey: "pk_live_...",
+        config: FeedConfig(
+            filter: FeedFilter(tags: ["japan"])
+        )
+    )
+
+    // Combine filters: sports content by a specific author
+    let shortKit = ShortKit(
+        apiKey: "pk_live_...",
+        config: FeedConfig(
+            filter: FeedFilter(
+                tags: ["sports"],
+                author: "ESPN",
+                metadata: ["league": "NBA"]
+            )
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val shortKit = ShortKit(
+        apiKey = "pk_live_...",
+        config = FeedConfig(
+            filter = FeedFilter(tags = listOf("japan"))
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitProvider
+      apiKey="pk_live_..."
+      config={{ filter: { tags: ['japan'] } }}
+    >
+      <ShortKitFeed style={{ flex: 1 }} />
+    </ShortKitProvider>
+    ```
+  </Tab>
+</Tabs>
+
+### Filter logic
+
+- **Tags** use OR — content matching *any* of the provided tags is included.
+- **All other fields** use AND — content must match every specified field.
+- **No filter** (or `filter: nil`) returns the full feed, same as before.
+
+### Available filter fields
+
+| Field | Description |
+|-------|-------------|
+| `tags` | Content tags set at upload time. OR semantics. |
+| `section` | Exact match on the content's section field. |
+| `author` | Exact match on the content's author field. |
+| `contentType` | `"video"` or `"carousel"`. |
+| `metadata` | Key-value pairs matched against custom metadata. All pairs must match. |
+
+For the full `FeedFilter` API reference, see [Configuration — FeedFilter](/sdk/configuration#feedfilter).
+
 ## Client-side feed ranking
 
 The controls above (pinning, suppression, scheduling) are all server-side -- they configure how ShortKit's API assembles the feed. If your app needs full control over which content appears and in what order, you can handle ranking yourself and pass content IDs directly to the SDK. ShortKit still handles all media playback, rendering, prefetching, and analytics.

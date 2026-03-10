@@ -5,6 +5,10 @@ keywords: ["feed", "video feed", "ShortKitFeedViewController", "ShortKitFeedView
 
 To embed a video feed, create a `ShortKit` instance and hand it to one of two feed components depending on your UI framework. The feed supports four item types: video, image carousel, survey, and ad slot. For full model definitions, field descriptions, and usage examples across all platforms, see the [Content Types](/guides/content-types) guide.
 
+### Filtered feeds
+
+When `FeedConfig.filter` is set, the feed only shows content matching the filter criteria. Filtering is handled server-side — the SDK applies the filter automatically on every request (initial load, pagination, pull-to-refresh). See [Feed Ranking — Server-side feed filtering](/guides/feed-customization#server-side-feed-filtering) for details.
+
 ## ShortKitFeedViewController (UIKit)
 
 ```swift
