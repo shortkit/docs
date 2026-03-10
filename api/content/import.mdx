@@ -10,19 +10,25 @@ Use this when you have media hosted elsewhere — migrating from another platfor
 
 ## Request body
 
+<ParamField body="callbackUrl" type="string">
+  A webhook URL that ShortKit will POST to as each item progresses through the import pipeline. See [Callback lifecycle](#callback-lifecycle) for the payload shape and delivery behavior.
+</ParamField>
+
 <ParamField body="items" type="object[]" required>
   Array of content items to import. Min 1, max 100 per request.
 
-  Each item accepts the same metadata fields as [Upload](/api/content/upload) (title, description, tags, section, author, customMetadata, publishAt, expiresAt, generateSubtitles, autoScrollInterval), plus source URL fields:
+  Each item accepts the same metadata fields as [Upload](/api/content/upload) (title, description, tags, section, author, customMetadata, publishAt, expiresAt, generateSubtitles, autoScrollInterval), plus:
 
   **For videos:**
   - `sourceUrl` (string, required) — URL to the video file.
+  - `externalId` (string) — Your own identifier for this content. Used for idempotency — if you re-import an item with the same `externalId`, ShortKit skips it instead of creating a duplicate.
 
   **For carousels:**
   - `images` (object[], required) — Array of image objects, each with:
     - `sourceUrl` (string, required) — URL to the image file.
     - `altText` (string) — Accessibility text.
     - `position` (integer) — Display order (0-indexed).
+  - `externalId` (string) — Same idempotency behavior as videos.
 </ParamField>
 
 <RequestExample>
@@ -31,11 +37,13 @@ curl -X POST https://api.shortkit.dev/v1/content/import \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
   -d '{
+    "callbackUrl": "https://your-backend.com/webhooks/shortkit",
     "items": [
       {
         "contentType": "video",
         "title": "Quarterly Recap",
         "sourceUrl": "https://storage.example.com/videos/recap-q1.mp4",
+        "externalId": "vid-q1-2026",
         "tags": ["recap", "quarterly"],
         "generateSubtitles": true
       },
@@ -43,6 +51,7 @@ curl -X POST https://api.shortkit.dev/v1/content/import \
         "contentType": "video",
         "title": "Product Launch",
         "sourceUrl": "https://storage.example.com/videos/launch.mp4",
+        "externalId": "vid-launch-spring",
         "section": "Product"
       },
       {
@@ -67,11 +76,13 @@ resp = requests.post(
         "Content-Type": "application/json",
     },
     json={
+        "callbackUrl": "https://your-backend.com/webhooks/shortkit",
         "items": [
             {
                 "contentType": "video",
                 "title": "Quarterly Recap",
                 "sourceUrl": "https://storage.example.com/videos/recap-q1.mp4",
+                "externalId": "vid-q1-2026",
                 "tags": ["recap", "quarterly"],
                 "generateSubtitles": True,
             },
@@ -79,6 +90,7 @@ resp = requests.post(
                 "contentType": "video",
                 "title": "Product Launch",
                 "sourceUrl": "https://storage.example.com/videos/launch.mp4",
+                "externalId": "vid-launch-spring",
                 "section": "Product",
             },
         ],
@@ -96,11 +108,13 @@ const resp = await fetch("https://api.shortkit.dev/v1/content/import", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
+    callbackUrl: "https://your-backend.com/webhooks/shortkit",
     items: [
       {
         contentType: "video",
         title: "Quarterly Recap",
         sourceUrl: "https://storage.example.com/videos/recap-q1.mp4",
+        externalId: "vid-q1-2026",
         tags: ["recap", "quarterly"],
         generateSubtitles: true,
       },
@@ -108,6 +122,7 @@ const resp = await fetch("https://api.shortkit.dev/v1/content/import", {
         contentType: "video",
         title: "Product Launch",
         sourceUrl: "https://storage.example.com/videos/launch.mp4",
+        externalId: "vid-launch-spring",
         section: "Product",
       },
     ],
@@ -126,21 +141,21 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
       "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
       "contentType": "video",
       "title": "Quarterly Recap",
-      "uploadStatus": "processing",
+      "status": "queued",
       "error": null
     },
     {
       "id": "e3a1b2c3-d4e5-6789-abcd-ef0123456789",
       "contentType": "video",
       "title": "Product Launch",
-      "uploadStatus": "processing",
+      "status": "queued",
       "error": null
     },
     {
       "id": "f4b2c3d4-e5f6-7890-bcde-f01234567890",
       "contentType": "carousel",
       "title": "Team Photos",
-      "uploadStatus": "ready",
+      "status": "ready",
       "error": null,
       "images": [
         {"position": 0, "imageUrl": "https://...", "altText": "Engineering team"},
@@ -162,10 +177,85 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 
 ## Processing behavior
 
-- **Videos** are queued for async processing. They start with `uploadStatus: "processing"` and transition to `ready` once transcoding completes. This typically takes 30–120 seconds depending on file size.
+- **Videos** are queued for async processing. They return with `status: "queued"` and transition to `processing` once transcoding begins, then `ready` once it completes. This typically takes 30–120 seconds depending on file size.
 - **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
+
+## Callback lifecycle
+
+When you provide a `callbackUrl`, ShortKit sends a POST request to that URL at each stage of the import pipeline. Your endpoint must respond with a `2xx` status code to acknowledge receipt.
+
+### Callback events
+
+ShortKit delivers up to three callbacks per video item as it moves through the pipeline:
+
+**1. `content.imported` with `status: "processing"`**
+
+Sent when the video has been accepted for transcoding. This is where you receive the `playbackId` — store it in your backend alongside the content record.
+
+```json
+{
+  "event": "content.imported",
+  "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "status": "processing",
+  "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
+  "streamingUrl": "https://stream.mux.com/rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9.m3u8",
+  "thumbnailUrl": "https://image.mux.com/rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9/thumbnail.jpg?time=0",
+  "title": "Quarterly Recap",
+  "source": "url",
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
+
+At this point the video is streamable (progressive delivery) but transcoding is not yet complete. If you plan to serve this content immediately, be aware that viewers of longer videos may experience buffering until encoding finishes.
+
+**2. `content.imported` with `status: "ready"`**
+
+Sent when transcoding completes and the video is fully available at all quality levels. The payload shape is identical to the `processing` callback, with `status` set to `"ready"`.
+
+**3. `content.import_failed` with `status: "error"`**
+
+Sent if transcoding fails. The payload includes an `error` field describing the failure. No `playbackId` is included.
+
+```json
+{
+  "event": "content.import_failed",
+  "contentId": "e3a1b2c3-d4e5-6789-abcd-ef0123456789",
+  "status": "error",
+  "error": "Mux asset processing failed",
+  "title": "Product Launch",
+  "source": "url",
+  "timestamp": "2026-03-10T14:35:00.000Z"
+}
+```
+
+### Retry behavior
+
+Each callback is attempted up to **3 times**. If your endpoint returns a non-2xx status code or is unreachable, ShortKit retries after 1 second, then again after 5 seconds. If all three attempts fail, the callback is abandoned.
+
+Callbacks are fire-and-forget — a failed callback does **not** affect the import itself. The video continues processing regardless.
+
+### Handling callback failures
+
+If your webhook endpoint was down and you missed a callback, you can always retrieve the current status and playback ID by polling the content endpoint:
+
+```bash
+curl https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+The response includes `status`, `streamingUrl`, and `thumbnailUrl` once the video has been processed.
+
+<Note>
+  Callbacks are only sent for **video** imports. Carousels are processed synchronously and are already `ready` in the initial import response.
+</Note>
+
+## Idempotency
+
+Set `externalId` on each item to prevent duplicate imports. If you submit an item with an `externalId` that already exists in your organization, ShortKit skips it and returns the existing content record. This makes it safe to retry failed import requests without worrying about creating duplicates.
+
+Use whatever stable identifier you already have for each content record in your own system — a database primary key, a CMS slug, an internal content ID. As long as you use the same `externalId` for the same piece of content, ShortKit will recognize it as a duplicate and skip re-importing it. `externalId` is scoped to your organization, so different organizations can use the same values independently.
 
 ## Platform imports
 
