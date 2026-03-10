@@ -148,6 +148,8 @@ Each video can include multiple caption tracks. The SDK loads and renders captio
 
 `customMetadata` is a `[String: JSONValue]` dictionary that accepts strings, numbers, booleans, nested objects, and null. Values are set when you upload content through the API or portal and delivered to the SDK as-is.
 
+Custom metadata can also be used as a filter dimension. Set `FeedFilter(metadata: ["country": "Japan"])` on your `FeedConfig` to show only content with matching metadata values. See [Feed Ranking — Server-side feed filtering](/guides/feed-customization#server-side-feed-filtering) for details.
+
 <Tabs>
   <Tab title="Swift">
     ```swift

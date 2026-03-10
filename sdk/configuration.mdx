@@ -83,6 +83,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         public var muteOnStart: Bool
         public var autoplay: Bool
         public var feedSource: FeedSource
+        public var filter: FeedFilter?
 
         public init(
             feedHeight: FeedHeight = .fullscreen,
@@ -92,7 +93,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
             adOverlay: AdOverlayMode = .none,
             muteOnStart: Bool = true,
             autoplay: Bool = true,
-            feedSource: FeedSource = .algorithmic
+            feedSource: FeedSource = .algorithmic,
+            filter: FeedFilter? = nil
         )
     }
     ```
@@ -107,7 +109,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         val adOverlay: AdOverlayMode = AdOverlayMode.None,
         val muteOnStart: Boolean = true,
         val autoplay: Boolean = true,
-        val feedSource: FeedSource = FeedSource.Algorithmic
+        val feedSource: FeedSource = FeedSource.Algorithmic,
+        val filter: FeedFilter? = null
     )
     ```
   </Tab>
@@ -121,6 +124,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       muteOnStart?: boolean;
       autoplay?: boolean;
       feedSource?: 'algorithmic' | 'custom';
+      filter?: FeedFilter;
     }
 
     type FeedHeight = { type: 'fullscreen' } | { type: 'percentage'; value: number };
@@ -145,6 +149,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | `muteOnStart` | `Bool` | `true` | Whether video starts muted. Once the user unmutes, the unmuted state persists for the session. |
 | `autoplay` | `Bool` | `true` | Whether video starts playing automatically when the feed loads or when the user swipes to a new item. |
 | `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided items (pass via `feedItems` on `ShortKit.init` or call `setFeedItems()` / `appendFeedItems()`). |
+| `filter` | `FeedFilter?` | `nil` | Server-side content filter. When set, the SDK fetches only content matching the filter criteria. See [FeedFilter](#feedfilter) below. |
 
 <Tabs>
   <Tab title="Swift">
@@ -165,6 +170,109 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     <ShortKitProvider
       apiKey="pk_live_your_publishable_key"
       config={{ feedHeight: { type: 'percentage', value: 0.7 } }}
+    >
+      <ShortKitFeed style={{ flex: 1 }} />
+    </ShortKitProvider>
+    ```
+  </Tab>
+</Tabs>
+
+## `FeedFilter`
+
+`FeedFilter` controls which content the SDK fetches from the server. When set on `FeedConfig`, all feed requests (initial load, pagination, and pull-to-refresh) automatically apply the filter. When `nil`, the full unfiltered feed is returned.
+
+Different filter fields are combined with AND logic — content must match all specified fields. Tags use OR logic within the `tags` array — content matching any of the provided tags is included.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public struct FeedFilter: Codable, Equatable, Sendable {
+        public var tags: [String]?
+        public var section: String?
+        public var author: String?
+        public var contentType: String?
+        public var metadata: [String: String]?
+
+        public init(
+            tags: [String]? = nil,
+            section: String? = nil,
+            author: String? = nil,
+            contentType: String? = nil,
+            metadata: [String: String]? = nil
+        )
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    data class FeedFilter(
+        val tags: List<String>? = null,
+        val section: String? = null,
+        val author: String? = null,
+        val contentType: String? = null,
+        val metadata: Map<String, String>? = null
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    interface FeedFilter {
+      tags?: string[];
+      section?: string;
+      author?: string;
+      contentType?: string;
+      metadata?: Record<string, string>;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `tags` | `[String]?` | Filter by content tags. OR semantics — content matching **any** of the provided tags is included. |
+| `section` | `String?` | Exact match on content section. |
+| `author` | `String?` | Exact match on content author. |
+| `contentType` | `String?` | Filter by content type: `"video"` or `"carousel"`. |
+| `metadata` | `[String: String]?` | Filter by custom metadata key-value pairs. All pairs must match (AND). |
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Show only sports and news content
+    let config = FeedConfig(
+        filter: FeedFilter(tags: ["sports", "news"])
+    )
+
+    // Show only a specific author's content tagged "politics"
+    let config = FeedConfig(
+        filter: FeedFilter(tags: ["politics"], author: "Jane Doe")
+    )
+
+    // Filter by custom metadata
+    let config = FeedConfig(
+        filter: FeedFilter(metadata: ["country": "Japan", "vibe": "cultural"])
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Show only sports and news content
+    val config = FeedConfig(
+        filter = FeedFilter(tags = listOf("sports", "news"))
+    )
+
+    // Filter by custom metadata
+    val config = FeedConfig(
+        filter = FeedFilter(metadata = mapOf("country" to "Japan"))
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Show only sports and news content
+    <ShortKitProvider
+      apiKey="pk_live_..."
+      config={{ filter: { tags: ['sports', 'news'] } }}
     >
       <ShortKitFeed style={{ flex: 1 }} />
     </ShortKitProvider>
