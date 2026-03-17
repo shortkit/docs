@@ -55,9 +55,9 @@ Tested against local API on 2026-03-08.
 
 **Current state:**
 - Video upload URLs: `https://direct-uploads.oci-us-ashburn-1-vop1.production.mux.com/...`
-- Streaming URLs: `https://stream.mux.com/{playbackId}.m3u8`
-- Thumbnail URLs: `https://image.mux.com/{playbackId}/thumbnail.jpg?time=0`
-- Caption URLs: `https://stream.mux.com/{playbackId}/text/{trackId}.vtt`
+- Streaming URLs: `https://stream.media.shortkit.dev/{playbackId}.m3u8`
+- Thumbnail URLs: `https://image.media.shortkit.dev/{playbackId}/thumbnail.jpg?time=0`
+- Caption URLs: `https://stream.media.shortkit.dev/{playbackId}/text/{trackId}.vtt`
 
 **Docs show:**
 - Upload: `https://uploads.shortkit.dev/direct/...`
