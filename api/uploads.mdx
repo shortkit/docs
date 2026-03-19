@@ -193,7 +193,7 @@ curl https://api.shortkit.dev/v1/uploads/sk_content_abc123 \
 
 ### Response (ready)
 
-When processing completes, the response includes streaming URLs, duration, and caption tracks:
+When processing completes, the response includes the `playbackId`, duration, and caption tracks. The SDK uses the playback ID to resolve streaming and thumbnail URLs.
 
 ```json
 {
@@ -203,8 +203,7 @@ When processing completes, the response includes streaming URLs, duration, and c
     "title": "Breaking: Weather Alert",
     "description": "Severe thunderstorm warning for the metro area",
     "duration": 32.5,
-    "streamingUrl": "https://stream.shortkit.dev/abc123def456.m3u8",
-    "thumbnailUrl": "https://image.shortkit.dev/abc123def456/thumbnail.jpg?time=0",
+    "playbackId": "abc123def456",
     "tags": ["weather", "severe", "breaking"],
     "customMetadata": {
       "articleUrl": "https://example.com/weather-alert",
@@ -368,7 +367,7 @@ while True:
 # 4. Use the content
 if status == "ready":
     content = resp.json()["data"]
-    print(f"Streaming URL: {content['streamingUrl']}")
+    print(f"Playback ID: {content['playbackId']}")
     print(f"Duration: {content['duration']}s")
 ```
 
