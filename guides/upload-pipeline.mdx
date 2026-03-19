@@ -187,7 +187,7 @@ Check processing progress with the upload status endpoint:
   </Tab>
 </Tabs>
 
-When the status reaches `ready`, the response includes streaming and thumbnail URLs:
+When the status reaches `ready`, the response includes the `playbackId` and duration. The SDK uses the playback ID to resolve streaming and thumbnail URLs.
 
 ```json
 {
@@ -196,8 +196,7 @@ When the status reaches `ready`, the response includes streaming and thumbnail U
     "status": "ready",
     "title": "Product Launch Teaser",
     "duration": 32.5,
-    "streamingUrl": "https://stream.shortkit.dev/{playbackId}.m3u8",
-    "thumbnailUrl": "https://image.shortkit.dev/{playbackId}/thumbnail.jpg?time=0"
+    "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9"
   }
 }
 ```
