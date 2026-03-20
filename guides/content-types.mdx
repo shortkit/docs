@@ -80,6 +80,25 @@ Videos are the primary content type. Each video is an HLS stream with optional c
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    // ContentItem shape
+    {
+      id: 'string',
+      playbackId: 'string',
+      title: 'string',
+      description: 'string',
+      duration: 30.5,
+      streamingUrl: 'https://...',
+      thumbnailUrl: 'https://...',
+      captionTracks: [{ language: 'en', label: 'English', source: 'generated', url: '...' }],
+      customMetadata: { category: 'Sports' },
+      author: 'Jane Doe',
+      articleUrl: 'https://...',
+      commentCount: 5,
+    }
+    ```
+  </Tab>
 </Tabs>
 
 | Field | Type | Description |
@@ -142,6 +161,16 @@ Each video can include multiple caption tracks. The SDK loads and renders captio
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    {
+      language: 'en',
+      label: 'English',
+      source: 'generated', // 'embedded' | 'external' | 'generated'
+      url: 'https://...',  // null for embedded tracks
+    }
+    ```
+  </Tab>
 </Tabs>
 
 ### Custom metadata
@@ -180,6 +209,14 @@ Custom metadata can also be used as a filter dimension. Set `FeedFilter(metadata
     const section = item.customMetadata?.["section"];
     if (typeof section === "string") {
       return <Text>{section.toUpperCase()}</Text>;
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    const section = item.customMetadata?.category;
+    if (typeof section === 'string') {
+      document.getElementById('section').textContent = section.toUpperCase();
     }
     ```
   </Tab>
@@ -254,6 +291,24 @@ Image carousels display a horizontally paged set of images with optional auto-sc
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    // ImageCarouselItem shape (rendering deferred -- coming soon)
+    {
+      id: 'carousel-1',
+      images: [
+        { url: 'https://...', alt: 'Description' },
+      ],
+      autoScrollInterval: 5, // seconds, or null
+      caption: 'Photo caption',
+      title: 'Headline',
+      description: 'Body text',
+      author: 'Jane Doe',
+      section: 'SPORTS',
+      articleUrl: 'https://...',
+    }
+    ```
+  </Tab>
 </Tabs>
 
 | Field | Type | Description |
@@ -319,6 +374,21 @@ Surveys display a single-question poll. After the user selects an option, the SD
     interface SurveyOption {
       id: string;
       text: string;
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // SurveyItem shape (rendering deferred -- coming soon)
+    {
+      id: 'survey-1',
+      question: 'How likely are you to recommend us?',
+      options: [
+        { id: 'opt-1', text: 'Very likely' },
+        { id: 'opt-2', text: 'Somewhat likely' },
+        { id: 'opt-3', text: 'Not likely' },
+      ],
+      autoAdvanceDelay: 2, // seconds, or null
     }
     ```
   </Tab>
@@ -400,6 +470,16 @@ The SDK wraps all four content types in a single discriminated union. The API re
       | { type: "ad_slot"; item: AdSlot }
       | { type: "image_carousel"; item: ImageCarouselItem }
       | { type: "survey"; item: SurveyItem };
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // FeedItem discrimination via item.type
+    // 'content' | 'ad_slot' | 'image_carousel' | 'survey'
+    {
+      type: 'content',
+      item: { /* ContentItem */ },
+    }
     ```
   </Tab>
 </Tabs>
@@ -506,6 +586,26 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, and `surveyOverlay
         case "ad_slot":
           // Handled by the ad provider
           return null;
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    function handleFeedItem(feedItem) {
+      switch (feedItem.type) {
+        case 'content':
+          renderVideo(feedItem.item);
+          break;
+        case 'image_carousel':
+          renderCarousel(feedItem.item); // coming soon
+          break;
+        case 'survey':
+          renderSurvey(feedItem.item);   // coming soon
+          break;
+        case 'ad_slot':
+          // Handled by the ad provider
+          break;
       }
     }
     ```

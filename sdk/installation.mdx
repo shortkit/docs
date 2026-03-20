@@ -194,18 +194,23 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     ### Option A: npm
 
     ```bash
-    npm install @shortkit/web
+    npm install @shortkitsdk/web
     ```
 
     ### Option B: CDN
 
-    Add the script tag to your HTML:
+    Add the script tag to your HTML (includes HLS.js):
 
     ```html
-    <script src="https://cdn.shortkit.dev/v1/shortkit.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
     ```
 
-    The CDN script exposes a global `ShortKit` object.
+    Or use the slim bundle if you already load HLS.js:
+
+    ```html
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.slim.min.js"></script>
+    ```
   </Tab>
 </Tabs>
 
@@ -329,14 +334,11 @@ Build and run this minimal example to confirm the import resolves and the SDK in
     ```
   </Tab>
   <Tab title="Web (npm)">
-    ```ts app.ts
-    import { ShortKit } from '@shortkit/web';
+    ```js app.js
+    import { ShortKit } from '@shortkitsdk/web';
 
-    const shortKit = ShortKit.initialize({
-      apiKey: 'pk_live_your_publishable_key'
-    });
-
-    shortKit.mount('#shortkit-feed');
+    const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+    sk.createFeed(document.getElementById('shortkit-feed'));
     ```
 
     ```html index.html
@@ -347,13 +349,11 @@ Build and run this minimal example to confirm the import resolves and the SDK in
     ```html index.html
     <div id="shortkit-feed" style="width: 400px; height: 700px;"></div>
 
-    <script src="https://cdn.shortkit.dev/v1/shortkit.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
     <script>
-      var shortKit = ShortKit.initialize({
-        apiKey: 'pk_live_your_publishable_key'
-      });
-
-      shortKit.mount('#shortkit-feed');
+      const { ShortKit } = window.ShortKit;
+      const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+      sk.createFeed(document.getElementById('shortkit-feed'));
     </script>
     ```
   </Tab>

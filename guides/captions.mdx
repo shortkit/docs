@@ -53,6 +53,17 @@ Each video can have zero or more caption tracks. The `source` field tells you wh
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    // CaptionTrack shape
+    {
+      language: 'en',          // BCP 47 language code
+      label: 'English',        // Human-readable label
+      source: 'generated',     // 'embedded' | 'external' | 'generated'
+      url: 'https://...',      // URL to .vtt file (null for embedded)
+    }
+    ```
+  </Tab>
 </Tabs>
 
 Access the tracks from the current content item:
@@ -80,6 +91,12 @@ Access the tracks from the current content item:
     const tracks = currentItem?.captionTracks ?? [];
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    const tracks = sk.player.currentItem?.captionTracks ?? [];
+    console.log('Available tracks:', tracks.map(t => t.label));
+    ```
+  </Tab>
 </Tabs>
 
 ## Enabling captions
@@ -103,6 +120,11 @@ Toggle captions on or off with a single call. The SDK remembers the user's prefe
     setCaptionsEnabled(true);
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    sk.player.setCaptionsEnabled(true);
+    ```
+  </Tab>
 </Tabs>
 
 ## Selecting a caption track
@@ -124,6 +146,11 @@ When multiple tracks are available (e.g. English and Spanish), select one by BCP
     ```tsx
     const { selectCaptionTrack } = useShortKitPlayer();
     selectCaptionTrack("en");
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    sk.player.selectCaptionTrack('en');
     ```
   </Tab>
 </Tabs>
@@ -188,6 +215,19 @@ Three publishers let you react to caption changes in real time.
         {activeCue && <Text style={styles.caption}>{activeCue.text}</Text>}
       </>
     );
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    sk.player.on('captionsChange', ({ enabled, track }) => {
+      console.log('Captions:', enabled ? track?.label : 'Off');
+    });
+
+    sk.player.on('cueChange', (cue) => {
+      const captionEl = document.getElementById('caption');
+      captionEl.textContent = cue?.text ?? '';
+      captionEl.hidden = !cue;
+    });
     ```
   </Tab>
 </Tabs>
@@ -266,6 +306,27 @@ Subscribe to the `activeCue` publisher and render the text however you want.
         paddingVertical: 6,
         borderRadius: 4,
         fontSize: 16,
+      },
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {
+        overlay: (container, { item, player }) => {
+          const caption = document.createElement('div');
+          caption.style.cssText =
+            'position:absolute;bottom:80px;left:50%;transform:translateX(-50%);' +
+            'color:#fff;background:rgba(0,0,0,0.7);padding:6px 12px;border-radius:4px;';
+          caption.hidden = true;
+          container.appendChild(caption);
+
+          player.on('cueChange', (cue) => {
+            caption.textContent = cue?.text ?? '';
+            caption.hidden = !cue;
+          });
+        },
       },
     });
     ```

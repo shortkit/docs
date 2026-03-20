@@ -60,6 +60,23 @@ Publishers emit values whenever the corresponding state changes. Subscribe to re
 
     The hook returns a single object containing every publisher value and every command. Destructure what you need — your component re-renders when any included value changes.
   </Tab>
+  <Tab title="Web">
+    The Web SDK uses an event-based subscription model. Call `sk.player.on(event, callback)` to subscribe and `sk.player.off(event, callback)` to unsubscribe.
+
+    ```js
+    sk.player.on('stateChange', (state) => {
+      console.log('State:', state);
+    });
+
+    sk.player.on('timeUpdate', ({ current, duration, buffered }) => {
+      console.log('Progress:', current / duration);
+    });
+
+    sk.player.on('itemChange', (item) => {
+      console.log('Now playing:', item?.title);
+    });
+    ```
+  </Tab>
 </Tabs>
 
 ### Publisher reference
@@ -106,6 +123,17 @@ For cases where you need a point-in-time read without setting up a subscription,
     import { useShortKitPlayer } from '@shortkitsdk/react-native';
 
     const { currentItem, playbackRate } = useShortKitPlayer();
+    ```
+  </Tab>
+  <Tab title="Web">
+    The Web SDK provides synchronous getters on the player object:
+
+    ```js
+    const state = sk.player.playerState;  // 'idle'|'playing'|'paused'|...
+    const item  = sk.player.currentItem;  // ContentItem | null
+    const time  = sk.player.time;         // { current, duration, buffered }
+    const muted = sk.player.isMuted;      // boolean
+    const rate  = sk.player.playbackRate; // number
     ```
   </Tab>
 </Tabs>
@@ -183,6 +211,19 @@ Commands are fire-and-forget methods that control playback. The SDK routes each 
     setMaxBitrate(2_000_000);
     setCaptionsEnabled(true);
     selectCaptionTrack('en');
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    sk.player.play();
+    sk.player.pause();
+    sk.player.seek(15);
+    sk.player.setMuted(false);
+    sk.player.setPlaybackRate(1.5);
+    sk.player.setCaptionsEnabled(true);
+    sk.player.selectCaptionTrack('en');
+    sk.player.sendContentSignal('positive');
+    sk.player.skipToNext();
     ```
   </Tab>
 </Tabs>
@@ -274,6 +315,18 @@ Emitted by the `time` publisher at ~10 Hz during playback.
     ```
 
     Compute progress as a fraction: `time.currentMs.toFloat() / time.durationMs` (guard against `durationMs == 0`).
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // Emitted via sk.player.on('timeUpdate', fn)
+    {
+      current: 12.5,   // Current playback position in seconds
+      duration: 30.0,  // Total duration in seconds
+      buffered: 20.0,  // Buffered position in seconds
+    }
+    ```
+
+    Compute progress as a fraction: `time.current / time.duration` (guard against `duration === 0`).
   </Tab>
 </Tabs>
 
@@ -527,6 +580,45 @@ This example builds a minimal custom overlay that shows a play/pause button and 
         </View>
       );
     }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {
+        overlay: (container, { item, player }) => {
+          // Title
+          const title = document.createElement('h2');
+          title.textContent = item.title;
+          title.style.cssText = 'color:#fff;position:absolute;bottom:80px;left:16px;';
+          container.appendChild(title);
+
+          // Progress bar
+          const track = document.createElement('div');
+          track.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:3px;background:#333;';
+          const fill = document.createElement('div');
+          fill.style.cssText = 'height:100%;background:#fff;width:0%;';
+          track.appendChild(fill);
+          container.appendChild(track);
+
+          player.on('timeUpdate', ({ current, duration }) => {
+            if (duration > 0) fill.style.width = `${(current / duration) * 100}%`;
+          });
+
+          // Play/pause button
+          const btn = document.createElement('button');
+          btn.textContent = 'Play';
+          btn.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;';
+          btn.onclick = () => {
+            player.playerState === 'playing' ? player.pause() : player.play();
+          };
+          player.on('stateChange', (state) => {
+            btn.textContent = state === 'playing' ? 'Pause' : 'Play';
+          });
+          container.appendChild(btn);
+        },
+      },
+    });
     ```
   </Tab>
 </Tabs>

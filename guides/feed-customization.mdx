@@ -233,6 +233,25 @@ Filters are applied server-side before content is returned, so the SDK only down
     </ShortKitProvider>
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    // Only show Japan travel content
+    sk.createFeed(el, {
+      config: { filter: { tags: ['japan'] } },
+    });
+
+    // Combine filters: sports content by a specific author
+    sk.createFeed(el, {
+      config: {
+        filter: {
+          tags: ['sports'],
+          author: 'ESPN',
+          metadata: { league: 'NBA' },
+        },
+      },
+    });
+    ```
+  </Tab>
 </Tabs>
 
 ### Filter logic
@@ -287,6 +306,13 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     </ShortKitProvider>
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: { feedSource: 'custom' },
+    });
+    ```
+  </Tab>
 </Tabs>
 
 ### FeedInput
@@ -315,6 +341,13 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     type FeedInput =
       | { type: 'video'; playbackId: string }
       | { type: 'imageCarousel'; item: ImageCarouselItem };
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // FeedInput shapes
+    { type: 'video', playbackId: 'abc123' }
+    { type: 'imageCarousel', item: { id: 'c1', images: [{ url: '...' }] } }
     ```
   </Tab>
 </Tabs>
@@ -364,6 +397,14 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     ]);
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    feed.setFeedItems([
+      { type: 'video', playbackId: 'abc123' },
+      { type: 'video', playbackId: 'def456' },
+    ]);
+    ```
+  </Tab>
 </Tabs>
 
 ### appendFeedItems -- add more items
@@ -386,6 +427,13 @@ Call `appendFeedItems()` to add items to the end of the current feed without dis
     const { appendFeedItems } = useShortKit();
 
     appendFeedItems([{ type: 'video', playbackId: 'ghi789' }]);
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    feed.appendFeedItems([
+      { type: 'video', playbackId: 'ghi789' },
+    ]);
     ```
   </Tab>
 </Tabs>
@@ -457,6 +505,21 @@ Implement the delegate to respond to feed lifecycle events. All methods are opti
         prefetchMetadata(items.map(i => i.id));
       }}
     />
+    ```
+  </Tab>
+  <Tab title="Web">
+    The Web SDK uses callback options passed to `createFeed`:
+
+    ```js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: { feedSource: 'custom' },
+      onFeedReady: () => {
+        console.log('Feed loaded');
+      },
+      onContentTapped: (contentId, index) => {
+        window.location.href = `/article/${contentId}`;
+      },
+    });
     ```
   </Tab>
 </Tabs>

@@ -42,6 +42,15 @@ Set `videoOverlay: .none` in your `FeedConfig`. The SDK renders raw video with n
     </ShortKitProvider>
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {
+        // Omit the overlay callback to disable overlays entirely
+      },
+    });
+    ```
+  </Tab>
 </Tabs>
 
 With `videoOverlay: .none`, your code is responsible for all playback controls, metadata display, and action handling.
@@ -167,6 +176,25 @@ With `videoOverlay: .none`, your code is responsible for all playback controls, 
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    // Inside the overlay render callback
+    overlay: (container, { item, player }) => {
+      player.on('timeUpdate', ({ current, duration, buffered }) => {
+        const progress = duration > 0 ? current / duration : 0;
+        progressBar.style.width = `${progress * 100}%`;
+      });
+
+      player.on('stateChange', (state) => {
+        stateLabel.textContent = state;
+      });
+
+      player.on('itemChange', (item) => {
+        titleEl.textContent = item?.title ?? '';
+      });
+    }
+    ```
+  </Tab>
 </Tabs>
 
 ### Available publishers
@@ -266,6 +294,20 @@ Call methods on `ShortKitPlayer` to control playback from your overlay's gesture
           <Button onPress={skipToNext} title="Next" />
         </>
       );
+    }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // Inside the overlay render callback
+    overlay: (container, { item, player }) => {
+      playBtn.onclick = () => player.play();
+      pauseBtn.onclick = () => player.pause();
+      seekBtn.onclick = () => player.seek(15);
+      muteBtn.onclick = () => player.setMuted(false);
+      nextBtn.onclick = () => player.skipToNext();
+      player.setPlaybackRate(1.5);
+      player.sendContentSignal('positive');
     }
     ```
   </Tab>
@@ -530,6 +572,43 @@ This self-contained `UIView` subclass shows a centered play/pause button and a b
       icon: { fontSize: 32, color: "#fff" },
       track: { position: "absolute", bottom: 0, left: 0, right: 0, height: 2, backgroundColor: "rgba(255,255,255,0.3)" },
       fill: { height: 2, backgroundColor: "#fff" },
+    });
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {
+        overlay: (container, { item, player }) => {
+          container.innerHTML = `
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+              <button id="pp" style="width:72px;height:72px;border-radius:36px;
+                background:rgba(0,0,0,0.5);color:#fff;font-size:32px;border:none;cursor:pointer;">
+                &#9654;
+              </button>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,0.3);">
+              <div id="fill" style="height:2px;background:#fff;width:0%;"></div>
+            </div>
+          `;
+
+          const btn = container.querySelector('#pp');
+          const fill = container.querySelector('#fill');
+
+          btn.onclick = () => {
+            player.playerState === 'playing' ? player.pause() : player.play();
+          };
+
+          player.on('stateChange', (state) => {
+            btn.textContent = state === 'playing' ? '\u23F8' : '\u25B6';
+            btn.style.opacity = state === 'playing' ? '0' : '1';
+          });
+
+          player.on('timeUpdate', ({ current, duration }) => {
+            if (duration > 0) fill.style.width = `${(current / duration) * 100}%`;
+          });
+        },
+      },
     });
     ```
   </Tab>

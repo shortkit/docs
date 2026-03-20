@@ -123,6 +123,19 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_...',
+      clientAppName: 'MyNewsApp',
+      customDimensions: {
+        custom_1: 'sports',
+        custom_2: 'premium_user',
+        custom_3: 'experiment_hero_v2',
+      },
+    });
+    ```
+  </Tab>
 </Tabs>
 
 Keys must be `custom_1` through `custom_5`. Other keys are silently dropped. Values are plain strings.
@@ -164,6 +177,12 @@ Custom dimensions are immutable after init. To change them (for example, after a
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    sk.player.sendContentSignal('positive');
+    sk.player.sendContentSignal('negative');
+    ```
+  </Tab>
 </Tabs>
 
 The signal is emitted with the `contentId` of the currently active video.
@@ -203,6 +222,15 @@ Call `setUserId()` to switch to identified mode. This links the anonymous device
       // Revert to anonymous tracking
       clearUserId();
     }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // Associate events with a known user
+    sk.setUserId('user_12345');
+
+    // Revert to anonymous tracking
+    sk.clearUserId();
     ```
   </Tab>
 </Tabs>

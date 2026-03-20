@@ -54,6 +54,18 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_your_publishable_key',
+      userId: 'user-123',           // optional
+      clientAppName: 'MyApp',       // optional
+      customDimensions: {           // optional
+        custom_1: 'sports',
+      },
+    });
+    ```
+  </Tab>
 </Tabs>
 
 | Parameter | Type | Default | Description |
@@ -137,6 +149,22 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       React Native uses different property names than the native SDKs: `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. See [Overlays](/sdk/overlays) for details.
     </Note>
   </Tab>
+  <Tab title="Web">
+    ```js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {
+        feedHeight: 'fullscreen', // or { type: 'percentage', value: 0.85 }
+        muteOnStart: true,
+        autoplay: true,
+        feedSource: 'algorithmic', // or 'custom'
+        filter: { section: 'news', tags: ['breaking'] },
+        overlay: (container, { item, player }) => {
+          // render callback for custom overlay
+        },
+      },
+    });
+    ```
+  </Tab>
 </Tabs>
 
 | Property | Type | Default | Description |
@@ -173,6 +201,16 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     >
       <ShortKitFeed style={{ flex: 1 }} />
     </ShortKitProvider>
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // 70% of screen height, leaving room for a tab bar
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {
+        feedHeight: { type: 'percentage', value: 0.7 },
+      },
+    });
     ```
   </Tab>
 </Tabs>
@@ -223,6 +261,17 @@ Different filter fields are combined with AND logic — content must match all s
       contentType?: string;
       metadata?: Record<string, string>;
     }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    const filter = {
+      tags: ['sports', 'news'],    // OR semantics
+      section: 'front-page',       // exact match
+      author: 'Jane Doe',          // exact match
+      contentType: 'video',        // 'video' or 'carousel'
+      metadata: { country: 'Japan' }, // all pairs must match (AND)
+    };
     ```
   </Tab>
 </Tabs>
@@ -276,6 +325,24 @@ Different filter fields are combined with AND logic — content must match all s
     >
       <ShortKitFeed style={{ flex: 1 }} />
     </ShortKitProvider>
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // Show only sports and news content
+    sk.createFeed(el, {
+      config: { filter: { tags: ['sports', 'news'] } },
+    });
+
+    // Show only a specific author's content tagged "politics"
+    sk.createFeed(el, {
+      config: { filter: { tags: ['politics'], author: 'Jane Doe' } },
+    });
+
+    // Filter by custom metadata
+    sk.createFeed(el, {
+      config: { filter: { metadata: { country: 'Japan', vibe: 'cultural' } } },
+    });
     ```
   </Tab>
 </Tabs>
@@ -413,6 +480,35 @@ A full initialization with all configuration options set explicitly.
         </ShortKitProvider>
       );
     }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```html index.html
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
+    </head>
+    <body>
+      <div id="feed" style="width:100%;height:100vh;"></div>
+      <script>
+        const { ShortKit } = window.ShortKit;
+        const sk = new ShortKit({
+          apiKey: 'pk_live_your_publishable_key',
+          clientAppName: 'MyNewsApp',
+          customDimensions: { custom_1: 'sports' },
+        });
+
+        sk.createFeed(document.getElementById('feed'), {
+          config: {
+            feedHeight: 'fullscreen',
+            muteOnStart: true,
+            autoplay: true,
+          },
+        });
+      </script>
+    </body>
+    </html>
     ```
   </Tab>
 </Tabs>
