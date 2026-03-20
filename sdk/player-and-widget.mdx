@@ -29,6 +29,11 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
     const items = await fetchContent(5);
     ```
   </Tab>
+  <Tab title="Web">
+    ```js
+    const items = await sk.fetchContent({ limit: 5 });
+    ```
+  </Tab>
 </Tabs>
 
 `fetchContent()` returns an array of resolved `ContentItem` objects with streaming URLs, metadata, and captions. For full model definitions see the [Content Types](/guides/content-types) guide.
@@ -231,6 +236,28 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_your_publishable_key',
+    });
+
+    const items = await sk.fetchContent({ limit: 5 });
+
+    if (items.length > 0) {
+      const player = sk.createPlayer(document.getElementById('player'), {
+        config: {
+          cornerRadius: 16,
+          clickAction: 'feed',
+          autoplay: true,
+          loop: true,
+          muteOnStart: true,
+        },
+      });
+      player.setItem(items[0]);
+    }
+    ```
+  </Tab>
 </Tabs>
 
 ### Activate and deactivate
@@ -399,6 +426,26 @@ The widget displays a horizontal carousel of video cards with muted autoplay and
         </ShortKitProvider>
       );
     }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_your_publishable_key',
+    });
+
+    const items = await sk.fetchContent({ limit: 5 });
+
+    const widget = sk.createWidget(document.getElementById('widget'), {
+      config: {
+        cardCount: 3,
+        cardSpacing: 8,
+        cornerRadius: 12,
+        rotationInterval: 10000, // milliseconds
+        clickAction: 'feed',
+      },
+    });
+    widget.setItems(items);
     ```
   </Tab>
 </Tabs>

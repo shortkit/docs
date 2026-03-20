@@ -85,6 +85,18 @@ public class ShortKitFeedViewController: UIViewController {
     }
     ```
   </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_your_publishable_key',
+    });
+
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {},
+      onFeedReady: () => console.log('Feed loaded'),
+    });
+    ```
+  </Tab>
 </Tabs>
 
 ### Embedding as a child view controller
@@ -119,6 +131,17 @@ feedVC.didMove(toParent: self)
   </Tab>
   <Tab title="React Native">
     The React Native SDK automatically pauses and resumes playback when the app moves to and from the background using `AppState` listeners. No manual lifecycle management is needed.
+  </Tab>
+  <Tab title="Web">
+    Call `feed.destroy()` to tear down the feed and release all resources. Call `sk.destroy()` to clean up the entire SDK instance. The Web SDK automatically pauses playback when the browser tab is hidden via the Page Visibility API.
+
+    ```js
+    // Tear down the feed
+    feed.destroy();
+
+    // Tear down the entire SDK instance
+    sk.destroy();
+    ```
   </Tab>
 </Tabs>
 
@@ -185,6 +208,17 @@ public struct ShortKitFeedView: UIViewControllerRepresentable {
         </ShortKitProvider>
       );
     }
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js app.js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_your_publishable_key',
+    });
+
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: {},
+    });
     ```
   </Tab>
 </Tabs>

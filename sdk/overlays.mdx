@@ -538,71 +538,25 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
     ```
   </Tab>
   <Tab title="Web">
-    ```tsx
-    import { useRef, useState, useCallback } from "react";
-    import { useShortKitOverlay } from "@shortkit/web";
+    ```js
+    const sk = new ShortKit({ apiKey: 'pk_live_...' });
+    sk.createFeed(document.getElementById('feed'), {
+      config: {
+        overlay: (container, { item, player }) => {
+          // Build scrubber UI
+          const scrubber = document.createElement('div');
+          scrubber.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.3);';
+          const progress = document.createElement('div');
+          progress.style.cssText = 'height:100%;background:#fff;width:0%;';
+          scrubber.appendChild(progress);
+          container.appendChild(scrubber);
 
-    export function ScrubberOverlay() {
-      const { player, item, isActive, transitioning } = useShortKitOverlay();
-      const [isScrubbing, setIsScrubbing] = useState(false);
-      const [seekFraction, setSeekFraction] = useState(0);
-      const [thumbnail, setThumbnail] = useState<string | null>(null);
-      const trackRef = useRef<HTMLDivElement>(null);
-
-      const progress = (!isScrubbing && isActive && player.time.duration > 0)
-        ? player.time.current / player.time.duration
-        : seekFraction;
-
-      const buffered = player.time.duration > 0
-        ? player.time.buffered / player.time.duration
-        : 0;
-
-      const handlePointerDown = useCallback(() => setIsScrubbing(true), []);
-
-      const handlePointerMove = useCallback((e: React.PointerEvent) => {
-        if (!isScrubbing || !trackRef.current) return;
-        const rect = trackRef.current.getBoundingClientRect();
-        const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        setSeekFraction(frac);
-        const seekTime = (item?.duration ?? 0) * frac;
-        setThumbnail(player.seekThumbnail(seekTime));
-      }, [isScrubbing, item, player]);
-
-      const handlePointerUp = useCallback(() => {
-        const seekTime = (item?.duration ?? 0) * seekFraction;
-        player.seekAndPlay(seekTime);
-        setIsScrubbing(false);
-        setThumbnail(null);
-      }, [seekFraction, item, player]);
-
-      const seekTime = (item?.duration ?? 0) * seekFraction;
-      const minutes = Math.floor(seekTime / 60);
-      const seconds = Math.floor(seekTime % 60);
-
-      return (
-        <div
-          className="scrubber-overlay"
-          style={{ opacity: transitioning ? 0.3 : 1 }}
-        >
-          {isScrubbing && thumbnail && (
-            <div className="seek-preview" style={{ left: `${seekFraction * 100}%` }}>
-              <img src={thumbnail} width={120} height={68} />
-              <span>{`${minutes}:${String(seconds).padStart(2, "0")}`}</span>
-            </div>
-          )}
-          <div
-            ref={trackRef}
-            className="scrub-track"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-          >
-            <div className="buffered" style={{ width: `${buffered * 100}%` }} />
-            <div className="played" style={{ width: `${progress * 100}%` }} />
-          </div>
-        </div>
-      );
-    }
+          player.on('timeUpdate', ({ current, duration }) => {
+            if (duration > 0) progress.style.width = `${(current / duration) * 100}%`;
+          });
+        },
+      },
+    });
     ```
   </Tab>
 </Tabs>
@@ -867,61 +821,21 @@ This example shows a caption label that follows the active cue and can be reposi
     ```
   </Tab>
   <Tab title="Web">
-    ```tsx
-    import { useState, useRef, useCallback } from "react";
-    import { useShortKitOverlay } from "@shortkit/web";
+    ```js
+    const sk = new ShortKit({ apiKey: 'pk_live_...' });
+    sk.createFeed(document.getElementById('feed'), {
+      config: {
+        overlay: (container, { item, player }) => {
+          const cueEl = document.createElement('div');
+          cueEl.style.cssText = 'position:absolute;bottom:80px;left:16px;right:16px;color:#fff;font-size:16px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);';
+          container.appendChild(cueEl);
 
-    export function CaptionOverlay() {
-      const { player, isActive, transitioning } = useShortKitOverlay();
-      const [offsetY, setOffsetY] = useState(0);
-      const dragging = useRef(false);
-      const lastY = useRef(0);
-
-      const cueText = isActive ? player.activeCue?.text : null;
-      const captionsOn = player.captionsEnabled;
-
-      const handlePointerDown = useCallback((e: React.PointerEvent) => {
-        dragging.current = true;
-        lastY.current = e.clientY;
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      }, []);
-
-      const handlePointerMove = useCallback((e: React.PointerEvent) => {
-        if (!dragging.current) return;
-        setOffsetY((prev) => prev + (e.clientY - lastY.current));
-        lastY.current = e.clientY;
-      }, []);
-
-      const handlePointerUp = useCallback(() => {
-        dragging.current = false;
-      }, []);
-
-      return (
-        <div
-          className="caption-overlay"
-          style={{ opacity: transitioning ? 0.3 : 1 }}
-        >
-          {cueText && captionsOn && (
-            <div
-              className="caption-box"
-              style={{ transform: `translateY(${offsetY}px)` }}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-            >
-              {cueText}
-            </div>
-          )}
-          <button
-            className="caption-toggle"
-            style={{ opacity: captionsOn ? 1 : 0.5 }}
-            onClick={() => player.setCaptionsEnabled(!captionsOn)}
-          >
-            CC
-          </button>
-        </div>
-      );
-    }
+          player.on('cueChange', (cue) => {
+            cueEl.textContent = cue ? cue.text : '';
+          });
+        },
+      },
+    });
     ```
   </Tab>
 </Tabs>

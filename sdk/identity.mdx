@@ -34,9 +34,9 @@ On first initialization, the SDK generates a random UUID and persists it in devi
     ```
   </Tab>
   <Tab title="Web">
-    ```typescript
+    ```js
     // Anonymous by default.
-    const shortKit = ShortKit.initialize({ apiKey: "pk_live_..." });
+    const sk = new ShortKit({ apiKey: 'pk_live_...' });
     ```
   </Tab>
 </Tabs>
@@ -69,8 +69,8 @@ Call `setUserId` when the user signs in. The SDK switches all subsequent request
     ```
   </Tab>
   <Tab title="Web">
-    ```typescript
-    shortKit.setUserId("user_abc123");
+    ```js
+    sk.setUserId('user_abc123');
     ```
   </Tab>
 </Tabs>
@@ -107,11 +107,8 @@ You can also pass the user ID at init time to skip the anonymous-first flow enti
     ```
   </Tab>
   <Tab title="Web">
-    ```typescript
-    const shortKit = ShortKit.initialize({
-      apiKey: "pk_live_...",
-      userId: "user_abc123",
-    });
+    ```js
+    const sk = new ShortKit({ apiKey: 'pk_live_...', userId: 'user_abc123' });
     ```
   </Tab>
 </Tabs>
@@ -142,8 +139,8 @@ Call `clearUserId` on sign-out. The SDK reverts to anonymous mode with a fresh U
     ```
   </Tab>
   <Tab title="Web">
-    ```typescript
-    shortKit.clearUserId();
+    ```js
+    sk.clearUserId();
     ```
   </Tab>
 </Tabs>
