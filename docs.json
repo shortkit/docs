@@ -45,7 +45,6 @@
           {
             "group": "Get Started",
             "pages": [
-              "introduction",
               "sdk/installation",
               "quickstart"
             ]
