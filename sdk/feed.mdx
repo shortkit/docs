@@ -17,7 +17,7 @@ public class ShortKitFeedViewController: UIViewController {
 }
 ```
 
-`ShortKitFeedViewController` renders the feed as a vertically-snapping `UICollectionView`. It manages the entire lifecycle internally: pagination, player rotation, ad loading, overlay rendering, captions, and memory cleanup. All state is driven by the `ShortKit` instance you pass at init.
+`ShortKitFeedViewController` renders the feed as a page-snapping `UICollectionView`. By default the feed scrolls vertically (swipe up/down); set `FeedConfig.scrollAxis` to `.horizontal` for left/right swiping. It manages the entire lifecycle internally: pagination, player rotation, ad loading, overlay rendering, captions, and memory cleanup. All state is driven by the `ShortKit` instance you pass at init.
 
 ### Embedding in a navigation stack
 

@@ -88,6 +88,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```swift
     public struct FeedConfig: Codable {
         public var feedHeight: FeedHeight
+        public var scrollAxis: ScrollAxis
         public var videoOverlay: VideoOverlayMode
         public var carouselOverlay: CarouselOverlayMode
         public var surveyOverlay: SurveyOverlayMode
@@ -99,6 +100,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 
         public init(
             feedHeight: FeedHeight = .fullscreen,
+            scrollAxis: ScrollAxis = .vertical,
             videoOverlay: VideoOverlayMode = .none,
             carouselOverlay: CarouselOverlayMode = .none,
             surveyOverlay: SurveyOverlayMode = .none,
@@ -115,6 +117,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```kotlin
     data class FeedConfig(
         val feedHeight: FeedHeight = FeedHeight.Fullscreen,
+        val scrollAxis: ScrollAxis = ScrollAxis.Vertical,
         val videoOverlay: VideoOverlayMode = VideoOverlayMode.None,
         val carouselOverlay: CarouselOverlayMode = CarouselOverlayMode.None,
         val surveyOverlay: SurveyOverlayMode = SurveyOverlayMode.None,
@@ -130,6 +133,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```typescript
     interface FeedConfig {
       feedHeight?: FeedHeight;
+      scrollAxis?: ScrollAxis;
       overlay?: OverlayConfig;
       carouselOverlay?: CarouselOverlayConfig;
       surveyMode?: SurveyMode;
@@ -140,6 +144,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     }
 
     type FeedHeight = { type: 'fullscreen' } | { type: 'percentage'; value: number };
+    type ScrollAxis = 'vertical' | 'horizontal';
     type OverlayConfig = 'none' | { type: 'custom'; component: React.ComponentType };
     type CarouselOverlayConfig = 'none' | { type: 'custom'; component: React.ComponentType };
     type SurveyMode = 'none' | { type: 'template'; name: 'default' };
@@ -170,6 +175,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `feedHeight` | `FeedHeight` | `.fullscreen` | `.fullscreen` fills the entire screen. `.percentage(CGFloat)` sets a fraction of screen height (e.g. `0.85` for 85%). |
+| `scrollAxis` | `ScrollAxis` | `.vertical` | `.vertical` for a standard up/down swipe feed. `.horizontal` for a left/right swipe feed. Each cell fills the feed container in both modes. |
 | `videoOverlay` | `VideoOverlayMode` | `.none` | `.none` disables overlays. `.custom { ... }` provides a developer-built overlay managed by the SDK. See [Overlays](/sdk/overlays). |
 | `carouselOverlay` | `CarouselOverlayMode` | `.none` | `.none` disables carousel UI. `.custom { ... }` provides a developer-built carousel overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). |
 | `surveyOverlay` | `SurveyOverlayMode` | `.none` | `.none` disables survey UI. `.custom { ... }` provides a developer-built survey overlay. See [Overlays](/sdk/overlays#carousel-survey-and-ad-overlay-modes). |
@@ -210,6 +216,35 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       config: {
         feedHeight: { type: 'percentage', value: 0.7 },
       },
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### Horizontal feed
+
+Set `scrollAxis` to `.horizontal` for a left/right swipe feed instead of the default vertical (up/down) feed. Each cell still fills the full feed container — only the swipe direction changes.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let config = FeedConfig(scrollAxis: .horizontal)
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val config = FeedConfig(scrollAxis = ScrollAxis.Horizontal)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitFeed config={{ scrollAxis: 'horizontal' }} style={{ flex: 1 }} />
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    const feed = sk.createFeed(document.getElementById('feed'), {
+      config: { scrollAxis: 'horizontal' },
     });
     ```
   </Tab>
