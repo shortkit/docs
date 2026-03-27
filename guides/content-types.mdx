@@ -41,6 +41,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
         public let author: String?
         public let articleUrl: String?
         public let commentCount: Int?
+        public var fallbackUrl: String?
     }
     ```
   </Tab>
@@ -58,7 +59,8 @@ Videos are the primary content type. Each video is an HLS stream with optional c
         val customMetadata: Map<String, JsonValue>?,
         val author: String?,
         val articleUrl: String?,
-        val commentCount: Int?
+        val commentCount: Int?,
+        val fallbackUrl: String?
     )
     ```
   </Tab>
@@ -77,6 +79,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
       author?: string;
       articleUrl?: string;
       commentCount?: number;
+      fallbackUrl?: string;
     }
     ```
   </Tab>
@@ -96,6 +99,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
       author: 'Jane Doe',
       articleUrl: 'https://...',
       commentCount: 5,
+      fallbackUrl: 'https://cdn.example.com/video.mp4',
     }
     ```
   </Tab>
@@ -115,6 +119,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 | `author` | `String?` | Byline text |
 | `articleUrl` | `String?` | Link to a full article. When present, the news overlay template shows a "Read more" button. |
 | `commentCount` | `Int?` | Comment count displayed by the news overlay template |
+| `fallbackUrl` | `String?` | Optional static MP4 URL for fallback playback. When the primary HLS stream fails, the SDK automatically switches to this URL. See [Fallback URLs](#fallback-urls) below. |
 
 ### Caption tracks
 
@@ -221,6 +226,22 @@ Custom metadata can also be used as a filter dimension. Set `FeedFilter(metadata
     ```
   </Tab>
 </Tabs>
+
+### Fallback URLs
+
+`fallbackUrl` is an optional static MP4 URL that the SDK uses when the primary HLS stream fails. This is useful when migrating a video library to ShortKit — you can provide your existing hosted URLs as fallbacks while transitioning to ShortKit's streaming infrastructure.
+
+The SDK activates the fallback automatically in three scenarios:
+
+1. **Player error** — The HLS stream fails during playback. The SDK switches to the fallback MP4 and resumes from the same position.
+2. **Proactive next-slot detection** — The SDK pre-watches the next video in the feed. If its HLS stream fails before the user swipes, the SDK swaps in the fallback so the transition is seamless.
+3. **Missing primary URL** — If the primary `streamingUrl` is empty or invalid, the SDK uses the fallback immediately.
+
+Fallback activation is tracked as a `playbackFallback` engagement event with a `reason` field (`player_failed`, `proactive_next_slot`, or `no_primary_url`).
+
+<Note>
+Fallback URLs are only used in custom feed mode with `FeedInput.video`. Pass the fallback URL when constructing your feed items — see [Feed Ranking — FeedInput](/guides/feed-customization#feedinput).
+</Note>
 
 ---
 
@@ -633,3 +654,4 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, and `surveyOverlay
 | `options` | -- | -- | Yes | -- |
 | `autoAdvanceDelay` | -- | -- | Optional | -- |
 | `commentCount` | Optional | -- | -- | -- |
+| `fallbackUrl` | Optional | -- | -- | -- |

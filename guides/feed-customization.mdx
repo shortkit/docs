@@ -323,7 +323,7 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
   <Tab title="Swift">
     ```swift
     public enum FeedInput {
-        case video(playbackId: String)
+        case video(playbackId: String, fallbackUrl: String? = nil)
         case imageCarousel(ImageCarouselItem)
     }
     ```
@@ -331,7 +331,7 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
   <Tab title="Kotlin">
     ```kotlin
     sealed class FeedInput {
-        data class Video(val playbackId: String) : FeedInput()
+        data class Video(val playbackId: String, val fallbackUrl: String? = null) : FeedInput()
         data class ImageCarousel(val item: ImageCarouselItem) : FeedInput()
     }
     ```
@@ -339,7 +339,7 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
   <Tab title="React Native">
     ```typescript
     type FeedInput =
-      | { type: 'video'; playbackId: string }
+      | { type: 'video'; playbackId: string; fallbackUrl?: string }
       | { type: 'imageCarousel'; item: ImageCarouselItem };
     ```
   </Tab>
@@ -347,6 +347,7 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     ```js
     // FeedInput shapes
     { type: 'video', playbackId: 'abc123' }
+    { type: 'video', playbackId: 'abc123', fallbackUrl: 'https://cdn.example.com/video.mp4' }
     { type: 'imageCarousel', item: { id: 'c1', images: [{ url: '...' }] } }
     ```
   </Tab>
@@ -354,8 +355,8 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
 
 | Case | Description |
 |---|---|
-| `video` | A video identified by its playback ID. ShortKit resolves the full `ContentItem` (streaming URL, metadata, captions) automatically. |
-| `imageCarousel` | An image carousel you construct directly. See [Content Types -- Image carousel](/guides/content-types#image-carousel) for the `ImageCarouselItem` model. |
+| `video` | A video identified by its playback ID. ShortKit resolves the full `ContentItem` (streaming URL, metadata, captions) automatically. Pass an optional `fallbackUrl` to provide a static MP4 the SDK can fall back to if HLS playback fails. See [Content Types — Fallback URLs](/guides/content-types#fallback-urls). |
+| `imageCarousel` | An image carousel you construct directly. See [Content Types — Image carousel](/guides/content-types#image-carousel) for the `ImageCarouselItem` model. |
 
 ### setFeedItems -- replace the entire feed
 
@@ -366,7 +367,7 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     ```swift
     shortKit.setFeedItems([
         .video(playbackId: "abc123"),
-        .video(playbackId: "def456"),
+        .video(playbackId: "def456", fallbackUrl: "https://cdn.example.com/def456.mp4"),
         .imageCarousel(ImageCarouselItem(
             id: "carousel-1",
             images: [CarouselImage(url: "https://...")]
@@ -378,7 +379,7 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     ```kotlin
     shortKit.setFeedItems(listOf(
         FeedInput.Video("abc123"),
-        FeedInput.Video("def456"),
+        FeedInput.Video("def456", fallbackUrl = "https://cdn.example.com/def456.mp4"),
         FeedInput.ImageCarousel(ImageCarouselItem(
             id = "carousel-1",
             images = listOf(CarouselImage(url = "https://..."))
@@ -392,7 +393,7 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
 
     setFeedItems([
       { type: 'video', playbackId: 'abc123' },
-      { type: 'video', playbackId: 'def456' },
+      { type: 'video', playbackId: 'def456', fallbackUrl: 'https://cdn.example.com/def456.mp4' },
       { type: 'imageCarousel', item: { id: 'carousel-1', images: [{ url: 'https://...' }] } }
     ]);
     ```
@@ -401,7 +402,7 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     ```js
     feed.setFeedItems([
       { type: 'video', playbackId: 'abc123' },
-      { type: 'video', playbackId: 'def456' },
+      { type: 'video', playbackId: 'def456', fallbackUrl: 'https://cdn.example.com/def456.mp4' },
     ]);
     ```
   </Tab>

@@ -35,6 +35,16 @@ The SDK collects metrics for every video view. A view session starts when a cont
 | `renditionUpshiftCount` | `Int` | Switches to a higher-quality rendition. |
 | `renditionDownshiftCount` | `Int` | Switches to a lower-quality rendition. |
 
+### Fallback playback
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `reason` | `String` | Why the fallback activated: `player_failed` (HLS error during playback), `proactive_next_slot` (HLS error detected on prefetched next video), or `no_primary_url` (primary streaming URL was empty or invalid). |
+| `primaryUrl` | `String` | The original HLS streaming URL that failed. |
+| `fallbackUrl` | `String` | The static MP4 URL the SDK switched to. |
+
+Emitted as a `playbackFallback` event once per fallback activation. Only fires when a [fallback URL](/guides/content-types#fallback-urls) was provided via `FeedInput`. When this event fires, the player does not enter the `error` state — it resumes playback from the fallback URL.
+
 ### Feed session
 
 | Metric | Type | Description |

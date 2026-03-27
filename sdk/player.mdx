@@ -274,7 +274,7 @@ public enum PlayerState: Equatable, Sendable {
 | `seeking` | A seek operation is in progress. Returns to `playing` or `paused` when complete. |
 | `buffering` | Playback stalled waiting for data. Returns to `playing` when enough data arrives. |
 | `ended` | Video reached the end. For looping content, the SDK resets to `playing` and emits a `didLoop` event instead. |
-| `error(String)` | A playback error occurred. The associated string contains a description. |
+| `error(String)` | A playback error occurred. The associated string contains a description. If a [fallback URL](/guides/content-types#fallback-urls) was provided, the SDK switches to the fallback MP4 and resumes playback instead of entering this state — only a `playbackFallback` analytics event is emitted. The player reaches `error` only when no fallback is available or the fallback has already been used. |
 
 ### Typical transitions
 
