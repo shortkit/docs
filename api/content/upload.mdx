@@ -15,7 +15,7 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
 ## Request body
 
 <ParamField body="contentType" type="string" required>
-  `"video"` or `"carousel"`.
+  `"video"`, `"carousel"`, or `"video_carousel"`.
 </ParamField>
 
 <ParamField body="title" type="string" required>
@@ -192,6 +192,62 @@ For carousels, specify the image slots you need in the `images` array. The respo
     Images can be uploaded in parallel. Max 10 MB per image. Once all images are uploaded, the carousel is automatically validated and marked as `ready`.
   </Tab>
 </Tabs>
+
+---
+
+## Creating a video carousel
+
+Video carousels are containers that reference existing video content items. Create the carousel first, then add videos to it.
+
+<Tabs>
+  <Tab title="1. Create the carousel">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/upload \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "video_carousel",
+        "title": "Top Plays of the Week",
+        "section": "Sports",
+        "author": "SportsCast",
+        "tags": ["sports", "highlights"]
+      }'
+    ```
+
+    ```json
+    {
+      "data": {
+        "id": "b4c5d6e7-f8a9-0123-bcde-f45678901234",
+        "contentType": "video_carousel",
+        "uploadStatus": "ready",
+        "title": "Top Plays of the Week",
+        "section": "Sports",
+        "createdAt": "2026-02-05T12:00:00Z"
+      },
+      "meta": {
+        "request_id": "req_upload003"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="2. Add videos">
+    ```bash
+    # Add existing video content items to the carousel
+    curl -X POST https://api.shortkit.dev/v1/content/b4c5d6e7.../videos \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "videoContentId": "d290f1ee-6c54-4b01-90e6-d701748f0851"
+      }'
+    ```
+
+    Repeat for each video you want to add (up to 10). Videos appear in the carousel in the order they are added. Use `PUT /v1/content/{id}/videos/order` to reorder.
+  </Tab>
+</Tabs>
+
+<Note>
+  Video carousels reference existing video content — the videos must already be uploaded and in `ready` status. Empty carousels are excluded from the feed.
+</Note>
 
 ---
 

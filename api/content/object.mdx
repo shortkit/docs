@@ -1,9 +1,9 @@
 ---
 title: "The Content Object"
-description: "A content item represents a video or image carousel in your feed. This page covers the object structure, upload and publish lifecycle, and how content reaches your users."
+description: "A content item represents a video, image carousel, or video carousel in your feed. This page covers the object structure, upload and publish lifecycle, and how content reaches your users."
 ---
 
-A content item is the core resource in ShortKit. It represents either a **video** or an **image carousel** that appears in your feed.
+A content item is the core resource in ShortKit. It represents a **video**, an **image carousel**, or a **video carousel** that appears in your feed.
 
 ## Creating content
 
@@ -59,7 +59,7 @@ Both methods accept metadata (title, description, tags, etc.) alongside the medi
 </ResponseField>
 
 <ResponseField name="contentType" type="string">
-  Either `"video"` or `"carousel"`.
+  One of `"video"`, `"carousel"`, or `"video_carousel"`.
 </ResponseField>
 
 <ResponseField name="title" type="string">
@@ -171,11 +171,27 @@ Both methods accept metadata (title, description, tags, etc.) alongside the medi
 
 ### Carousel-specific attributes
 
-These fields are only present on carousel content items.
+These fields are only present on image carousel content items.
 
 <ResponseField name="autoScrollInterval" type="number | null">
   Seconds between automatic image transitions. When set, the carousel advances automatically. `null` means manual swipe only.
 </ResponseField>
+
+### Video carousel-specific attributes
+
+Video carousels are created with `contentType: "video_carousel"`. Unlike regular videos, video carousels are containers that reference existing video content items. They become `ready` immediately (no processing needed).
+
+Videos are managed through dedicated endpoints after the carousel is created:
+
+- `POST /v1/content/{id}/videos` — Add video references to the carousel (max 10 videos)
+- `PUT /v1/content/{id}/videos/order` — Reorder videos within the carousel
+- `DELETE /v1/content/{id}/videos/{entry_id}` — Remove a video from the carousel
+
+The carousel inherits its own metadata fields (`title`, `description`, `author`, `section`, `articleUrl`) separate from the individual videos it contains. In the feed response, the `videos` array contains full `ContentItem` objects for each referenced video.
+
+<Note>
+  Empty video carousels (no videos added) are automatically excluded from the feed response.
+</Note>
 
 ---
 
@@ -192,7 +208,9 @@ The `uploadStatus` field tracks media processing — from the moment you initiat
 
 **Videos** move through the full lifecycle: `pending` → `processing` → `ready`.
 
-**Carousels** skip processing entirely — images are served directly, so carousels are `ready` immediately after creation.
+**Image carousels** skip processing entirely — images are served directly, so carousels are `ready` immediately after creation.
+
+**Video carousels** are also `ready` immediately — they reference existing video content items that are already processed.
 
 <Note>
   `uploadStatus` only tracks whether the media file is processed. It does not control whether content appears in your feed — that's handled by `publishStatus`.
