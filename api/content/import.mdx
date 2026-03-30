@@ -23,12 +23,15 @@ Use this when you have media hosted elsewhere — migrating from another platfor
   - `sourceUrl` (string, required) — URL to the video file.
   - `externalId` (string) — Your own identifier for this content. Used for idempotency — if you re-import an item with the same `externalId`, ShortKit skips it instead of creating a duplicate.
 
-  **For carousels:**
+  **For image carousels:**
   - `images` (object[], required) — Array of image objects, each with:
     - `sourceUrl` (string, required) — URL to the image file.
     - `altText` (string) — Accessibility text.
     - `position` (integer) — Display order (0-indexed).
   - `externalId` (string) — Same idempotency behavior as videos.
+
+  **For video carousels:**
+  Video carousels cannot be created via the import endpoint — they reference existing video content items. Use [Upload](/api/content/upload) to create the carousel, then add videos via `POST /v1/content/{id}/videos`.
 </ParamField>
 
 <RequestExample>

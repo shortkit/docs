@@ -1,7 +1,7 @@
 ---
 title: "Overlays"
-description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, SurveyOverlay, and AdOverlay protocols."
-keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
+description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, SurveyOverlay, and AdOverlay protocols."
+keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
@@ -877,7 +877,7 @@ Custom overlays handle their own user interaction callbacks and report engagemen
 
 ## Carousel, survey, and ad overlay modes
 
-Image carousels, surveys, and native ads follow the same overlay pattern as video content. Each has a mode enum with `.none` and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
+Image carousels, video carousels, surveys, and native ads follow the same overlay pattern as video content. Each has a mode enum with `.none` and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
 
 <Tabs>
   <Tab title="Swift">
@@ -885,6 +885,7 @@ Image carousels, surveys, and native ads follow the same overlay pattern as vide
     let config = FeedConfig(
         videoOverlay: .custom { MyVideoOverlay() },
         carouselOverlay: .custom { MyCarouselOverlay() },
+        videoCarouselOverlay: .custom { MyVideoCarouselOverlay() },
         surveyOverlay: .custom { MySurveyOverlay() },
         adOverlay: .custom { MyAdOverlay() }
     )
@@ -895,6 +896,7 @@ Image carousels, surveys, and native ads follow the same overlay pattern as vide
     val config = FeedConfig(
         videoOverlay = VideoOverlayMode.Custom { MyVideoOverlay(context) },
         carouselOverlay = CarouselOverlayMode.Custom { MyCarouselOverlay(context) },
+        videoCarouselOverlay = VideoCarouselOverlayMode.Custom { MyVideoCarouselOverlay(context) },
         surveyOverlay = SurveyOverlayMode.Custom { MySurveyOverlay(context) },
         adOverlay = AdOverlayMode.Custom { MyAdOverlay(context) }
     )
@@ -908,6 +910,7 @@ Image carousels, surveys, and native ads follow the same overlay pattern as vide
       config={{
         overlay: { type: "custom", component: MyVideoOverlay },
         carouselOverlay: { type: "custom", component: MyCarouselOverlay },
+        videoCarouselOverlay: { type: "custom", name: "myVideoCarousel", component: MyVideoCarouselOverlay },
         surveyMode: { type: "template", name: "default" },
       }}
     >
@@ -925,6 +928,8 @@ Image carousels, surveys, and native ads follow the same overlay pattern as vide
 |------|---------|----------|
 | `CarouselOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the entire carousel UI. |
 | | `.none` | No carousel UI. Developer accesses raw `ImageCarouselItem` data. |
+| `VideoCarouselOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. The SDK handles video paging and playback natively; your overlay provides chrome (titles, buttons, page indicators) on top. |
+| | `.none` | SDK renders the native video pager with built-in page indicators. No custom overlay. |
 | `SurveyOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the survey UI and report responses via callbacks. |
 | | `.none` | No survey UI. Developer accesses raw `SurveyItem` data. |
 | `AdOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the ad UI and must handle policy compliance. |
@@ -962,6 +967,82 @@ Custom carousel overlays conform to `CarouselOverlay`. Unlike video overlays, th
 | `resetState()` | The cell is being prepared for new content. | Cancel auto-scroll timers, clear images, reset page position and any expanded text state. |
 
 The `ImageCarouselItem` provided in `configure(with:)` contains the carousel's images, metadata, and optional auto-scroll interval. Your overlay is responsible for displaying the images and handling all user interaction — paging, text expansion, action buttons — directly.
+
+### Video carousel overlays
+
+Video carousel overlays conform to `VideoCarouselOverlay`. Unlike image carousel overlays, the SDK handles horizontal video paging and playback natively — your overlay only provides the chrome layer (titles, buttons, page indicators) rendered on top.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public protocol VideoCarouselOverlay: AnyObject {
+        func configure(with item: VideoCarouselItem)
+        func updateActiveVideo(index: Int, item: ContentItem)
+        func resetState()
+
+        // Optional — default implementations provided
+        func attach(player: ShortKitPlayer)
+        func activatePlayback()
+        func deactivatePlayback()
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    interface VideoCarouselOverlay {
+        fun configure(item: VideoCarouselItem)
+        fun updateActiveVideo(index: Int, item: ContentItem)
+        fun resetState()
+
+        // Optional — default no-op implementations
+        fun attach(player: ShortKitPlayer) {}
+        fun activatePlayback() {}
+        fun deactivatePlayback() {}
+    }
+    ```
+  </Tab>
+</Tabs>
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure(with:)` | A cell receives a new video carousel item (initial load or cell reuse). | Populate carousel-level metadata (title, author, section) and set up page indicators for `item.videos.count` pages. |
+| `updateActiveVideo(index:item:)` | The user swipes horizontally to a different video page. | Update the active page indicator and any per-video metadata (title, duration). The `item` parameter is the `ContentItem` for the newly active video. |
+| `resetState()` | The cell is being prepared for new content. | Clear text, reset page indicators, cancel any pending animations. |
+| `attach(player:)` | Once, after creation. | Store the player reference and subscribe to its reactive streams (`time`, `playerState`, `isMuted`, etc.) to display playback state in your overlay. |
+| `activatePlayback()` | The cell becomes the active (on-screen) cell. | Begin processing player time updates to drive scrubbers, captions, etc. |
+| `deactivatePlayback()` | The cell scrolls off-screen. | Stop processing time updates and pause any overlay animations. |
+
+In React Native, video carousel overlays are React components that receive props directly:
+
+```tsx
+interface VideoCarouselOverlayProps {
+  carouselItem: VideoCarouselItem;
+  activeVideo: ContentItem;
+  activeVideoIndex: number;
+  isActive: boolean;
+  time: PlayerTime;
+  playerState: PlayerState;
+  isMuted: boolean;
+}
+```
+
+Register your component in the feed config:
+
+```tsx
+<ShortKitProvider
+  config={{
+    videoCarouselOverlay: {
+      type: "custom",
+      name: "myVideoCarousel",
+      component: MyVideoCarouselOverlay,
+    },
+  }}
+>
+  <ShortKitFeed />
+</ShortKitProvider>
+```
+
+Your component re-renders when the active video changes (horizontal swipe), when the cell becomes active/inactive (vertical swipe), and when player state updates. Use `activeVideoIndex` to render page indicators and `carouselItem` for carousel-level metadata.
 
 ### Custom survey overlays
 
