@@ -179,7 +179,7 @@ With `videoOverlay: .none`, your code is responsible for all playback controls, 
   <Tab title="Web">
     ```js
     // Inside the overlay render callback
-    overlay: (container, { item, player }) => {
+    overlay: (container, { item, player, feed }) => {
       player.on('timeUpdate', ({ current, duration, buffered }) => {
         const progress = duration > 0 ? current / duration : 0;
         progressBar.style.width = `${progress * 100}%`;
@@ -300,7 +300,7 @@ Call methods on `ShortKitPlayer` to control playback from your overlay's gesture
   <Tab title="Web">
     ```js
     // Inside the overlay render callback
-    overlay: (container, { item, player }) => {
+    overlay: (container, { item, player, feed }) => {
       playBtn.onclick = () => player.play();
       pauseBtn.onclick = () => player.pause();
       seekBtn.onclick = () => player.seek(15);
@@ -330,6 +330,54 @@ Call methods on `ShortKitPlayer` to control playback from your overlay's gesture
 | `setCaptionsEnabled(_:)` | Enable or disable caption rendering. |
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code. |
 | `seekThumbnail(at:)` | Returns a storyboard thumbnail `UIImage` at the given time, or `nil` if unavailable. |
+
+### Web: scoped player getters
+
+In the Web SDK, the `player` object passed to the overlay callback includes synchronous getters for reading current state without subscribing to events. Use these to set up initial UI.
+
+| Property | Type | Description |
+|---|---|---|
+| `player.isMuted` | `boolean` | Current mute state. |
+| `player.playbackRate` | `number` | Current playback speed. |
+| `player.currentTime` | `number` | Current playback position in seconds. |
+| `player.duration` | `number` | Total duration in seconds. |
+| `player.captionsEnabled` | `boolean` | Whether captions are active. |
+
+### Web: event reference
+
+Subscribe to player events with `player.on(event, callback)` and unsubscribe with `player.off(event, callback)`.
+
+| Event | Payload | Description |
+|---|---|---|
+| `timeUpdate` | `{ current, duration, buffered }` | Playback progress. Fires ~10 Hz while playing. |
+| `stateChange` | `string` | Player state: `'idle'`, `'loading'`, `'playing'`, `'paused'`, `'ended'`, `'error'`. |
+| `itemChange` | `ContentItem \| null` | Active content item changed. |
+| `mutedChange` | `boolean` | Mute state toggled. |
+| `playbackRateChange` | `number` | Playback speed changed. |
+| `cueChange` | `{ startTime, endTime, text } \| null` | Active caption cue changed. `null` when no cue is active. |
+| `captionsChange` | `boolean` | Captions enabled or disabled. |
+
+### Web: feed reference
+
+In the Web SDK, the overlay callback for feed items receives a `feed` object for controlling the feed surface. Widget slot overlays do not receive this parameter.
+
+| Method | Description |
+|---|---|
+| `feed.dismiss()` | Close the feed overlay. |
+| `feed.navigateUp()` | Navigate to the previous feed item. |
+| `feed.navigateDown()` | Navigate to the next feed item. |
+
+```js
+overlay: (container, { item, player, feed }) => {
+  // Close button — only in feed context
+  if (feed) {
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.onclick = () => feed.dismiss();
+    container.appendChild(closeBtn);
+  }
+}
+```
 
 ## Full example: custom overlay with play/pause and progress bar
 
@@ -579,7 +627,7 @@ This self-contained `UIView` subclass shows a centered play/pause button and a b
     ```js app.js
     const feed = sk.createFeed(document.getElementById('feed'), {
       config: {
-        overlay: (container, { item, player }) => {
+        overlay: (container, { item, player, feed }) => {
           container.innerHTML = `
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
               <button id="pp" style="width:72px;height:72px;border-radius:36px;

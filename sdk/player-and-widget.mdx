@@ -23,6 +23,12 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
     val items = shortKit.fetchContent(limit = 5) // suspend fun
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+    final items = await controller.fetchContent(limit: 5);
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     const { fetchContent } = useShortKit();
@@ -189,6 +195,57 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
         android:layout_marginTop="100dp" />
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart PlayerScreen.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    class PlayerScreen extends StatefulWidget {
+      const PlayerScreen({super.key});
+
+      @override
+      State<PlayerScreen> createState() => _PlayerScreenState();
+    }
+
+    class _PlayerScreenState extends State<PlayerScreen> {
+      ContentItem? _item;
+      bool _loaded = false;
+
+      @override
+      void didChangeDependencies() {
+        super.didChangeDependencies();
+        if (!_loaded) {
+          _loaded = true;
+          _loadContent();
+        }
+      }
+
+      Future<void> _loadContent() async {
+        final controller = ShortKit.of(context);
+        final items = await controller.fetchContent(limit: 5);
+        if (items.isNotEmpty) {
+          setState(() => _item = items.first);
+        }
+      }
+
+      @override
+      Widget build(BuildContext context) {
+        if (_item == null) return const SizedBox.shrink();
+
+        return ShortKitPlayer(
+          contentItem: _item,
+          config: PlayerConfig(
+            cornerRadius: 16,
+            clickAction: PlayerClickAction.feed,
+            muteOnStart: true,
+          ),
+        );
+      }
+    }
+    ```
+
+    Wrap in a `ShortKitProvider` higher in the widget tree.
+  </Tab>
   <Tab title="React Native">
     ```tsx PlayerScreen.tsx
     import React, { useEffect, useState } from 'react';
@@ -278,6 +335,16 @@ On React Native, use the `active` prop instead of method calls. It defaults to t
   config={{ clickAction: 'mute' }}
   style={{ width: 200, height: 350 }}
 />
+```
+
+On Flutter, use the `active` parameter on `ShortKitPlayer`. It defaults to `true`. Set it to `false` to pause and `true` to resume.
+
+```dart
+ShortKitPlayer(
+  contentItem: item,
+  active: isVisible,
+  config: PlayerConfig(clickAction: PlayerClickAction.mute),
+)
 ```
 
 ---
@@ -386,6 +453,55 @@ The widget displays a horizontal carousel of video cards with muted autoplay and
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart WidgetScreen.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    class WidgetScreen extends StatefulWidget {
+      const WidgetScreen({super.key});
+
+      @override
+      State<WidgetScreen> createState() => _WidgetScreenState();
+    }
+
+    class _WidgetScreenState extends State<WidgetScreen> {
+      List<ContentItem> _items = [];
+      bool _loaded = false;
+
+      @override
+      void didChangeDependencies() {
+        super.didChangeDependencies();
+        if (!_loaded) {
+          _loaded = true;
+          _loadContent();
+        }
+      }
+
+      Future<void> _loadContent() async {
+        final controller = ShortKit.of(context);
+        final items = await controller.fetchContent(limit: 5);
+        setState(() => _items = items);
+      }
+
+      @override
+      Widget build(BuildContext context) {
+        return SizedBox(
+          height: 280,
+          child: ShortKitWidget(
+            config: WidgetConfig(
+              cardCount: 3,
+              rotationInterval: const Duration(seconds: 10),
+            ),
+            items: _items,
+          ),
+        );
+      }
+    }
+    ```
+
+    Wrap in a `ShortKitProvider` higher in the widget tree.
+  </Tab>
   <Tab title="React Native">
     ```tsx WidgetScreen.tsx
     import React, { useEffect, useState } from 'react';
@@ -455,7 +571,7 @@ The widget displays a horizontal carousel of video cards with muted autoplay and
 When `autoplay` and `loop` are both `true` (the defaults), the widget advances to the next card after the `rotationInterval` elapses. Rotation pauses while the user is actively swiping and resumes once the gesture ends. When the carousel reaches the last card it wraps back to the first.
 
 <Warning>
-  The `rotationInterval` unit differs across platforms. iOS expects seconds (e.g. `10`), while Android and React Native expect milliseconds (e.g. `10_000` / `10000`). Using the wrong unit will result in rotation that is either too fast or too slow.
+  The `rotationInterval` unit differs across platforms. iOS expects seconds (e.g. `10`), Android and React Native expect milliseconds (e.g. `10_000` / `10000`), and Flutter uses a `Duration` object (e.g. `Duration(seconds: 10)`). Using the wrong unit will result in rotation that is either too fast or too slow.
 </Warning>
 
 ---

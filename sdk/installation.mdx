@@ -12,6 +12,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 |---|---|
 | **iOS** | iOS 16.0+, Xcode 15+, Swift 5.9+ |
 | **Android** | Android API 24+ (Android 7.0), Kotlin 1.9+, Android Studio Hedgehog+ |
+| **Flutter** | Flutter 3.22+, Dart 3.4+, iOS 16.0+, Android API 24+ |
 | **React Native** | React Native 0.76+, iOS 16.0+, Android API 24+ |
 | **Expo** | Expo SDK 52+, React Native 0.76+, iOS 16.0+, Android API 24+ |
 | **Web** | Chrome 80+, Safari 14+, Firefox 78+, Edge 80+, Node.js 16+ (if using npm) |
@@ -36,6 +37,24 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     | `dev.shortkit:shortkit` | Core SDK: feed, player, overlays, analytics, captions | Media3 (ExoPlayer), OkHttp, AndroidX Fragment, ViewPager2 |
 
     Transitive dependencies are resolved automatically by Gradle.
+  </Tab>
+  <Tab title="Flutter">
+    The SDK ships as a Flutter plugin package:
+
+    | Package | Purpose | Key dependencies |
+    |---|---|---|
+    | `shortkit_flutter` | Core SDK: feed, player, overlays, analytics, captions | Native iOS and Android SDKs (bundled) |
+
+    The package provides:
+
+    | Export | Type | Purpose |
+    |---|---|---|
+    | `ShortKitProvider` | Widget | Wraps the feed and supplies API key and configuration |
+    | `ShortKitFeed` | Widget | Renders the video feed (must be inside a `ShortKitProvider`) |
+    | `ShortKitController` | Controller | Access player state (via `ValueNotifier`s) and controls |
+    | `ShortKitFeedController` | Controller | Manage custom feed items for a specific feed instance |
+
+    Import from `package:shortkit_flutter/shortkit_flutter.dart` in your code.
   </Tab>
   <Tab title="React Native">
     The SDK ships as a single npm package that includes native modules for both platforms:
@@ -120,6 +139,42 @@ Get ShortKit installed and verified in your app. Choose your platform below.
 
     No custom repository URL is needed — ShortKit is published to Maven Central, which is included by default in Android projects.
   </Tab>
+  <Tab title="Flutter">
+    Add ShortKit to your `pubspec.yaml`:
+
+    ```yaml pubspec.yaml
+    dependencies:
+      shortkit_flutter: ^0.2.14
+    ```
+
+    Then install:
+
+    ```bash
+    flutter pub get
+    ```
+
+    ### iOS setup
+
+    Ensure your iOS deployment target is 16.0 or higher in `ios/Podfile`:
+
+    ```ruby Podfile
+    platform :ios, '16.0'
+    ```
+
+    Then run `flutter pub get` again — it handles CocoaPods automatically.
+
+    ### Android setup
+
+    Ensure your `minSdk` is 24 or higher in `android/app/build.gradle`:
+
+    ```groovy build.gradle
+    android {
+        defaultConfig {
+            minSdk = 24
+        }
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     Install the package with your preferred package manager:
 
@@ -202,14 +257,14 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     Add the script tag to your HTML (includes HLS.js):
 
     ```html
-    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.3.0/shortkit.min.js"></script>
     ```
 
     Or use the slim bundle if you already load HLS.js:
 
     ```html
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
-    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.slim.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.3.0/shortkit.slim.min.js"></script>
     ```
   </Tab>
 </Tabs>
@@ -293,6 +348,32 @@ Build and run this minimal example to confirm the import resolves and the SDK in
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart main.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    void main() {
+      runApp(const MyApp());
+    }
+
+    class MyApp extends StatelessWidget {
+      const MyApp({super.key});
+
+      @override
+      Widget build(BuildContext context) {
+        return MaterialApp(
+          home: ShortKitProvider.apiKey(
+            apiKey: 'pk_live_your_publishable_key',
+            child: const Scaffold(
+              body: ShortKitFeed(),
+            ),
+          ),
+        );
+      }
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx App.tsx
     import React from 'react';
@@ -349,7 +430,7 @@ Build and run this minimal example to confirm the import resolves and the SDK in
     ```html index.html
     <div id="shortkit-feed" style="width: 400px; height: 700px;"></div>
 
-    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.3.0/shortkit.min.js"></script>
     <script>
       const { ShortKit } = window.ShortKit;
       const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
@@ -404,6 +485,20 @@ If you have content uploaded to your ShortKit account, you should see a vertical
 
     1. Run `./gradlew app:dependencies` to inspect the full dependency tree
     2. Use Gradle's `resolutionStrategy` or `constraints` block to force a consistent version
+  </Accordion>
+  <Accordion title="Flutter: 'shortkit_flutter' not found">
+    If `flutter pub get` cannot resolve the package:
+
+    1. Verify the package name is exactly `shortkit_flutter` in your `pubspec.yaml`
+    2. Run `flutter pub cache repair` to clear the cache
+    3. Ensure you are using Flutter 3.22 or later: `flutter --version`
+  </Accordion>
+  <Accordion title="Flutter: iOS pod install fails">
+    If `pod install` fails after adding the Flutter package:
+
+    1. Confirm your `ios/Podfile` has `platform :ios, '16.0'` or higher
+    2. Run `cd ios && pod install --repo-update`
+    3. If you see a CocoaPods version error, update CocoaPods: `gem install cocoapods`
   </Accordion>
   <Accordion title="React Native: Native module not linked">
     If you see an error about `ShortKit` not being found at runtime:

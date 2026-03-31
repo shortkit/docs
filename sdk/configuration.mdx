@@ -39,6 +39,30 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
     )
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    ShortKitController({
+      required String apiKey,
+      String? userId,
+      String? clientAppName,
+      String? clientAppVersion,
+      Map<String, String>? customDimensions,
+    })
+
+    // Or use the provider shorthand:
+    ShortKitProvider.apiKey(
+      apiKey: 'pk_live_...',
+      userId: 'user-123',          // optional
+      clientAppName: 'MyApp',      // optional
+      customDimensions: {'custom_1': 'sports'}, // optional
+      child: const ShortKitFeed(),
+    )
+    ```
+
+    <Note>
+      Flutter does not pass `FeedConfig` at initialization. Configuration is passed directly to `ShortKitFeed(config: ...)` instead.
+    </Note>
+  </Tab>
   <Tab title="React Native">
     ```typescript
     import { ShortKitProvider } from '@shortkitsdk/react-native';
@@ -132,6 +156,26 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     )
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    FeedConfig({
+      FeedHeight? feedHeight,           // FeedHeightFullscreen() or FeedHeightPercentage(0.85)
+      ScrollAxis? scrollAxis,           // ScrollAxis.vertical or ScrollAxis.horizontal
+      OverlayConfig? overlay,           // OverlayConfigNone() or OverlayConfigCustom('name')
+      CarouselOverlayConfig? carouselOverlay,
+      VideoCarouselOverlayConfig? videoCarouselOverlay,
+      SurveyMode? surveyMode,           // SurveyModeNone() or SurveyModeTemplate('default')
+      bool? muteOnStart,                // default: true
+      bool? autoplay,                   // default: true
+      FeedSource? feedSource,           // FeedSource.algorithmic or FeedSource.custom
+      FeedFilter? filter,
+    })
+    ```
+
+    <Note>
+      Flutter uses `overlay` (not `videoOverlay`), sealed classes for enum-like types (`FeedHeight`, `OverlayConfig`, `SurveyMode`), and does not support `adOverlay`.
+    </Note>
+  </Tab>
   <Tab title="React Native">
     ```typescript
     interface FeedConfig {
@@ -168,7 +212,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         autoplay: true,
         feedSource: 'algorithmic', // or 'custom'
         filter: { section: 'news', tags: ['breaking'] },
-        overlay: (container, { item, player }) => {
+        overlay: (container, { item, player, feed }) => {
           // render callback for custom overlay
         },
       },
@@ -202,6 +246,14 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```kotlin
     // 70% of screen height, leaving room for a tab bar
     val config = FeedConfig(feedHeight = FeedHeight.Percentage(0.7f))
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    // 70% of screen height, leaving room for a tab bar
+    ShortKitFeed(
+      config: FeedConfig(feedHeight: FeedHeightPercentage(0.7)),
+    )
     ```
   </Tab>
   <Tab title="React Native">
@@ -240,6 +292,13 @@ Set `scrollAxis` to `.horizontal` for a left/right swipe feed instead of the def
   <Tab title="Kotlin">
     ```kotlin
     val config = FeedConfig(scrollAxis = ScrollAxis.Horizontal)
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    ShortKitFeed(
+      config: FeedConfig(scrollAxis: ScrollAxis.horizontal),
+    )
     ```
   </Tab>
   <Tab title="React Native">
@@ -291,6 +350,17 @@ Different filter fields are combined with AND logic — content must match all s
         val contentType: String? = null,
         val metadata: Map<String, String>? = null
     )
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    FeedFilter({
+      List<String>? tags,
+      String? section,
+      String? author,
+      String? contentType,
+      Map<String, String>? metadata,
+    })
     ```
   </Tab>
   <Tab title="React Native">
@@ -355,6 +425,24 @@ Different filter fields are combined with AND logic — content must match all s
     val config = FeedConfig(
         filter = FeedFilter(metadata = mapOf("country" to "Japan"))
     )
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    // Show only sports and news content
+    final config = FeedConfig(
+      filter: FeedFilter(tags: ['sports', 'news']),
+    );
+
+    // Show only a specific author's content tagged "politics"
+    final config = FeedConfig(
+      filter: FeedFilter(tags: ['politics'], author: 'Jane Doe'),
+    );
+
+    // Filter by custom metadata
+    final config = FeedConfig(
+      filter: FeedFilter(metadata: {'country': 'Japan', 'vibe': 'cultural'}),
+    );
     ```
   </Tab>
   <Tab title="React Native">
@@ -496,6 +584,39 @@ A full initialization with all configuration options set explicitly.
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart main.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    void main() => runApp(const MyApp());
+
+    class MyApp extends StatelessWidget {
+      const MyApp({super.key});
+
+      @override
+      Widget build(BuildContext context) {
+        final config = FeedConfig(
+          feedHeight: FeedHeightFullscreen(),
+          overlay: OverlayConfigNone(),
+          muteOnStart: true,
+        );
+
+        return MaterialApp(
+          home: ShortKitProvider.apiKey(
+            apiKey: 'pk_live_your_publishable_key',
+            clientAppName: 'MyNewsApp',
+            clientAppVersion: '2.4.1',
+            customDimensions: {'custom_1': 'sports'},
+            child: Scaffold(
+              body: ShortKitFeed(config: config),
+            ),
+          ),
+        );
+      }
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx App.tsx
     import React from 'react';
@@ -528,7 +649,7 @@ A full initialization with all configuration options set explicitly.
     <!DOCTYPE html>
     <html>
     <head>
-      <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
+      <script src="https://sdk.shortkit.dev/web/0.3.0/shortkit.min.js"></script>
     </head>
     <body>
       <div id="feed" style="width:100%;height:100vh;"></div>
