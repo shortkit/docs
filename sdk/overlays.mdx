@@ -38,6 +38,17 @@ Overlays are full-screen views layered on top of the video player in each feed c
     val config = FeedConfig(videoOverlay = VideoOverlayMode.None)
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    // Custom overlay — registered by name, rendered in a separate Flutter engine
+    final config = FeedConfig(overlay: OverlayConfigCustom('news'));
+
+    // No overlay — bare video, no UI
+    final config = FeedConfig(overlay: OverlayConfigNone());
+    ```
+
+    Flutter overlays run in a separate Dart isolate. Register them in a dedicated entry point using `ShortKitOverlayEngine.initialize()`. See [Registering your overlay](#registering-your-overlay) below.
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
@@ -94,6 +105,19 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    Flutter overlays do not conform to a protocol. Instead, you register a builder function that receives the content item and current state:
+
+    ```dart
+    typedef ShortKitOverlayBuilder = Widget Function(
+      BuildContext context,
+      ContentItem item,
+      OverlayState state,
+    );
+    ```
+
+    The SDK manages per-cell creation, content binding, and transition lifecycle. Your builder is called with the current `ContentItem` and `OverlayState` — which contains `playerState`, `time`, `isMuted`, `playbackRate`, `captionsEnabled`, `activeCaptionTrack`, `activeCue`, `feedScrollPhase`, and `isActive`.
+  </Tab>
 </Tabs>
 
 | Method | When the SDK calls it | What your overlay should do |
@@ -128,6 +152,56 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
     })
 
     val shortKit = ShortKit(apiKey = "pk_live_...", config = config)
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    In Flutter, overlays run in a separate Dart isolate (engine). Create a dedicated entry point and register your builders with `ShortKitOverlayEngine.initialize()`:
+
+    ```dart overlay_main.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    @pragma('vm:entry-point')
+    void shortKitOverlayMain() {
+      ShortKitOverlayEngine.initialize(
+        overlays: {
+          'news': (context, item, state) => NewsOverlay(item: item, state: state),
+        },
+        carouselOverlays: {
+          'newsCarousel': (context, item, isActive, activeImageIndex) =>
+              CarouselOverlay(item: item, activeImageIndex: activeImageIndex),
+        },
+        videoCarouselOverlays: {
+          'newsVideoCarousel': (context, state) =>
+              VideoCarouselOverlay(state: state),
+        },
+        loadingWidget: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    ```
+
+    Reference the overlay name in your `FeedConfig`:
+
+    ```dart
+    ShortKitFeed(
+      config: FeedConfig(
+        overlay: OverlayConfigCustom('news'),
+        carouselOverlay: CarouselOverlayConfigCustom('newsCarousel'),
+        videoCarouselOverlay: VideoCarouselOverlayConfigCustom('newsVideoCarousel'),
+      ),
+    )
+    ```
+
+    Use `ShortKitOverlayCommands.of(context)` inside your overlay widget to issue player commands:
+
+    ```dart
+    final commands = ShortKitOverlayCommands.of(context);
+    commands.play();
+    commands.pause();
+    commands.seek(15.0);
+    commands.setMuted(false);
     ```
   </Tab>
   <Tab title="React Native">
@@ -466,6 +540,55 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    Widget scrubberOverlay(BuildContext context, ContentItem item, OverlayState state) {
+      final commands = ShortKitOverlayCommands.of(context);
+      final progress = state.time.duration > 0
+          ? state.time.current / state.time.duration
+          : 0.0;
+      final buffered = state.time.duration > 0
+          ? state.time.buffered / state.time.duration
+          : 0.0;
+
+      return Stack(
+        children: [
+          // Progress track at bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 44,
+            child: GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                final box = context.findRenderObject() as RenderBox;
+                final fraction = (details.localPosition.dx / box.size.width)
+                    .clamp(0.0, 1.0);
+                final seekTime = item.duration * fraction;
+                commands.seekAndPlay(seekTime);
+              },
+              child: SizedBox(
+                height: 3,
+                child: Stack(
+                  children: [
+                    Container(color: Colors.white24),
+                    FractionallySizedBox(
+                      widthFactor: buffered,
+                      child: Container(color: Colors.white30),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: progress,
+                      child: Container(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { useRef, useState } from "react";
@@ -542,7 +665,7 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
     const sk = new ShortKit({ apiKey: 'pk_live_...' });
     sk.createFeed(document.getElementById('feed'), {
       config: {
-        overlay: (container, { item, player }) => {
+        overlay: (container, { item, player, feed }) => {
           // Build scrubber UI
           const scrubber = document.createElement('div');
           scrubber.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.3);';
@@ -760,6 +883,57 @@ This example shows a caption label that follows the active cue and can be reposi
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    Widget captionOverlay(BuildContext context, ContentItem item, OverlayState state) {
+      final commands = ShortKitOverlayCommands.of(context);
+      final cueText = state.activeCue?.text;
+
+      return Stack(
+        children: [
+          if (state.captionsEnabled && cueText != null)
+            Positioned(
+              bottom: 100,
+              left: 24,
+              right: 24,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    cueText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            bottom: 60,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => commands.setCaptionsEnabled(!state.captionsEnabled),
+              child: Opacity(
+                opacity: state.captionsEnabled ? 1.0 : 0.5,
+                child: const Text(
+                  'CC',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { View, Text, Pressable, StyleSheet } from "react-native";
@@ -825,7 +999,7 @@ This example shows a caption label that follows the active cue and can be reposi
     const sk = new ShortKit({ apiKey: 'pk_live_...' });
     sk.createFeed(document.getElementById('feed'), {
       config: {
-        overlay: (container, { item, player }) => {
+        overlay: (container, { item, player, feed }) => {
           const cueEl = document.createElement('div');
           cueEl.style.cssText = 'position:absolute;bottom:80px;left:16px;right:16px;color:#fff;font-size:16px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);';
           container.appendChild(cueEl);

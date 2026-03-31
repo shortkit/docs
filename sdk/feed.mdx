@@ -68,6 +68,26 @@ public class ShortKitFeedViewController: UIViewController {
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart FeedScreen.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    class FeedScreen extends StatelessWidget {
+      const FeedScreen({super.key});
+
+      @override
+      Widget build(BuildContext context) {
+        return ShortKitProvider.apiKey(
+          apiKey: 'pk_live_your_publishable_key',
+          child: const Scaffold(
+            body: ShortKitFeed(),
+          ),
+        );
+      }
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx FeedScreen.tsx
     import React from 'react';
@@ -128,6 +148,9 @@ feedVC.didMove(toParent: self)
         if (isVisible) shortKit.resume() else shortKit.pause()
     }
     ```
+  </Tab>
+  <Tab title="Flutter">
+    The Flutter SDK automatically pauses and resumes playback when the app moves to and from the background using `WidgetsBindingObserver`. No manual lifecycle management is needed.
   </Tab>
   <Tab title="React Native">
     The React Native SDK automatically pauses and resumes playback when the app moves to and from the background using `AppState` listeners. No manual lifecycle management is needed.
@@ -190,6 +213,26 @@ public struct ShortKitFeedView: UIViewControllerRepresentable {
         }
 
         ShortKitFeedView(shortKit)
+    }
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    class FeedScreen extends StatelessWidget {
+      const FeedScreen({super.key});
+
+      @override
+      Widget build(BuildContext context) {
+        return ShortKitProvider.apiKey(
+          apiKey: 'pk_live_your_publishable_key',
+          child: const Scaffold(
+            body: ShortKitFeed(),
+          ),
+        );
+      }
     }
     ```
   </Tab>

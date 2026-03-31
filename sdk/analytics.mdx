@@ -110,6 +110,21 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
     )
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    ShortKitProvider.apiKey(
+      apiKey: 'pk_live_...',
+      clientAppName: 'MyNewsApp',
+      clientAppVersion: '2.1.0',
+      customDimensions: {
+        'custom_1': 'sports',
+        'custom_2': 'premium_user',
+        'custom_3': 'experiment_hero_v2',
+      },
+      child: MyApp(),
+    )
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
@@ -171,6 +186,17 @@ Custom dimensions are immutable after init. To change them (for example, after a
     shortKit.player.sendContentSignal(ContentSignal.NEGATIVE)
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+
+    // Positive signal (e.g. thumbs up)
+    controller.sendContentSignal('positive');
+
+    // Negative signal (e.g. thumbs down)
+    controller.sendContentSignal('negative');
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { useShortKitPlayer } from '@shortkitsdk/react-native';
@@ -217,6 +243,17 @@ Call `setUserId()` to switch to identified mode. This links the anonymous device
     ```kotlin
     shortKit.setUserId("user_12345")
     shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+
+    // Associate events with a known user
+    controller.setUserId('user_12345');
+
+    // Revert to anonymous tracking
+    controller.clearUserId();
     ```
   </Tab>
   <Tab title="React Native">

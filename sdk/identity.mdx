@@ -23,6 +23,15 @@ On first initialization, the SDK generates a random UUID and persists it in devi
     val shortKit = ShortKit(apiKey = "pk_live_...", config = FeedConfig())
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    // No userId passed — SDK uses its auto-generated anonymous UUID.
+    ShortKitProvider.apiKey(
+      apiKey: 'pk_live_...',
+      child: const ShortKitFeed(),
+    )
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
@@ -56,6 +65,12 @@ Call `setUserId` when the user signs in. The SDK switches all subsequent request
   <Tab title="Kotlin">
     ```kotlin
     shortKit.setUserId("user_abc123")
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+    controller.setUserId('user_abc123');
     ```
   </Tab>
   <Tab title="React Native">
@@ -96,6 +111,15 @@ You can also pass the user ID at init time to skip the anonymous-first flow enti
     )
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    ShortKitProvider.apiKey(
+      apiKey: 'pk_live_...',
+      userId: 'user_abc123',
+      child: const ShortKitFeed(),
+    )
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
@@ -126,6 +150,12 @@ Call `clearUserId` on sign-out. The SDK reverts to anonymous mode with a fresh U
   <Tab title="Kotlin">
     ```kotlin
     shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+    controller.clearUserId();
     ```
   </Tab>
   <Tab title="React Native">

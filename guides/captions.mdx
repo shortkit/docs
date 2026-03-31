@@ -314,7 +314,7 @@ Subscribe to the `activeCue` publisher and render the text however you want.
     ```js app.js
     const feed = sk.createFeed(document.getElementById('feed'), {
       config: {
-        overlay: (container, { item, player }) => {
+        overlay: (container, { item, player, feed }) => {
           const caption = document.createElement('div');
           caption.style.cssText =
             'position:absolute;bottom:80px;left:50%;transform:translateX(-50%);' +

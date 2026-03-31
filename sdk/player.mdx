@@ -46,6 +46,22 @@ Publishers emit values whenever the corresponding state changes. Subscribe to re
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ShortKit for Flutter exposes state via `ValueNotifier<T>` on `ShortKitController`. Use `ValueListenableBuilder` for reactive UI, or read `.value` for one-off reads.
+
+    ```dart
+    final controller = ShortKit.of(context);
+
+    ValueListenableBuilder<PlayerState>(
+      valueListenable: controller.playerState,
+      builder: (context, state, _) {
+        return Text('State: $state');
+      },
+    )
+    ```
+
+    Store a reference to `ShortKitController` via `ShortKit.of(context)`. ValueNotifiers automatically notify listeners when their value changes.
+  </Tab>
   <Tab title="React Native">
     The React Native SDK exposes all player state reactively through the `useShortKitPlayer()` hook. State updates trigger re-renders automatically.
 
@@ -114,6 +130,15 @@ For cases where you need a point-in-time read without setting up a subscription,
     ```kotlin
     val item = shortKit.player.currentItemValue    // ContentItem?
     val rate = shortKit.player.playbackRateValue   // Float
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    Every `ValueNotifier` on `ShortKitController` provides synchronous access via `.value`:
+
+    ```dart
+    final controller = ShortKit.of(context);
+    final item = controller.currentItem.value;     // ContentItem?
+    final rate = controller.playbackRate.value;     // double
     ```
   </Tab>
   <Tab title="React Native">
@@ -185,6 +210,24 @@ Commands are fire-and-forget methods that control playback. The SDK routes each 
     shortKit.player.selectCaptionTrack("en")
 
     val thumbnail: Bitmap? = shortKit.player.seekThumbnail(30.0)
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+
+    controller.play();
+    controller.pause();
+    controller.seek(15.0);
+    controller.seekAndPlay(15.0);
+    controller.setMuted(false);
+    controller.skipToNext();
+    controller.skipToPrevious();
+    controller.setPlaybackRate(1.5);
+    controller.sendContentSignal('positive');
+    controller.setMaxBitrate(2000000);
+    controller.setCaptionsEnabled(true);
+    controller.selectCaptionTrack('en');
     ```
   </Tab>
   <Tab title="React Native">
@@ -294,7 +337,7 @@ any state -> error                                         (unrecoverable failur
 Emitted by the `time` publisher at ~10 Hz during playback.
 
 <Tabs>
-  <Tab title="iOS / React Native">
+  <Tab title="iOS">
     ```swift
     public struct PlayerTime: Equatable, Sendable {
         public let current: Double   // Current playback position in seconds
@@ -315,6 +358,34 @@ Emitted by the `time` publisher at ~10 Hz during playback.
     ```
 
     Compute progress as a fraction: `time.currentMs.toFloat() / time.durationMs` (guard against `durationMs == 0`).
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    class PlayerTime {
+      const PlayerTime({
+        required this.current,   // Current playback position in seconds
+        required this.duration,  // Total duration in seconds
+        required this.buffered,  // Buffered position in seconds
+      });
+
+      final double current;
+      final double duration;
+      final double buffered;
+    }
+    ```
+
+    Compute progress as a fraction: `time.current / time.duration` (guard against `time.duration == 0`).
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    interface PlayerTime {
+      current: number;   // Current playback position in seconds
+      duration: number;  // Total duration in seconds
+      buffered: number;  // Buffered position in seconds
+    }
+    ```
+
+    Compute progress as a fraction: `time.current / time.duration` (guard against `time.duration === 0`).
   </Tab>
   <Tab title="Web">
     ```js
@@ -540,6 +611,70 @@ This example builds a minimal custom overlay that shows a play/pause button and 
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    In Flutter, custom overlays are built as widgets registered via `ShortKitOverlayEngine.initialize()`. The builder receives `ContentItem`, `OverlayState`, and can issue commands via `ShortKitOverlayCommands.of(context)`.
+
+    ```dart
+    Widget minimalOverlay(BuildContext context, ContentItem item, OverlayState state) {
+      final commands = ShortKitOverlayCommands.of(context);
+      final progress = state.time.duration > 0
+          ? state.time.current / state.time.duration
+          : 0.0;
+
+      return Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.title,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.white24,
+                valueColor: const AlwaysStoppedAnimation(Colors.white),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    if (state.playerState == PlayerState.playing) {
+                      commands.pause();
+                    } else {
+                      commands.play();
+                    }
+                  },
+                  child: Text(
+                    state.playerState == PlayerState.playing ? '⏸' : '▶',
+                    style: const TextStyle(color: Colors.white, fontSize: 24),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    ```
+
+    Register it in your overlay entry point:
+
+    ```dart
+    @pragma('vm:entry-point')
+    void shortKitOverlayMain() {
+      ShortKitOverlayEngine.initialize(
+        overlays: {'minimal': minimalOverlay},
+      );
+    }
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     import React from 'react';
@@ -586,7 +721,7 @@ This example builds a minimal custom overlay that shows a play/pause button and 
     ```js app.js
     const feed = sk.createFeed(document.getElementById('feed'), {
       config: {
-        overlay: (container, { item, player }) => {
+        overlay: (container, { item, player, feed }) => {
           // Title
           const title = document.createElement('h2');
           title.textContent = item.title;

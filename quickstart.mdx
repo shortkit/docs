@@ -39,6 +39,20 @@ If you haven't already, add ShortKit to your project. See [Installation](/sdk/in
 
     Sync your project.
   </Tab>
+  <Tab title="Flutter">
+    Add to your `pubspec.yaml`:
+
+    ```yaml pubspec.yaml
+    dependencies:
+      shortkit_flutter: ^0.2.14
+    ```
+
+    ```bash
+    flutter pub get
+    ```
+
+    For iOS, ensure `ios/Podfile` has `platform :ios, '16.0'`.
+  </Tab>
   <Tab title="React Native">
     ```bash
     npm install @shortkitsdk/react-native
@@ -72,7 +86,7 @@ If you haven't already, add ShortKit to your project. See [Installation](/sdk/in
     Add the script tag to your HTML:
 
     ```html
-    <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.3.0/shortkit.min.js"></script>
     ```
   </Tab>
 </Tabs>
@@ -166,6 +180,28 @@ Every new account is seeded with demo videos, so your feed has content right awa
         android:layout_height="match_parent" />
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart feed_screen.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    class FeedScreen extends StatelessWidget {
+      const FeedScreen({super.key});
+
+      @override
+      Widget build(BuildContext context) {
+        return ShortKitProvider.apiKey(
+          apiKey: 'pk_live_your_publishable_key',
+          child: const Scaffold(
+            body: ShortKitFeed(),
+          ),
+        );
+      }
+    }
+    ```
+
+    Add `FeedScreen()` to your app's navigation or set it as your home route.
+  </Tab>
   <Tab title="React Native">
     ```tsx FeedScreen.tsx
     import React from 'react';
@@ -211,7 +247,7 @@ Every new account is seeded with demo videos, so your feed has content right awa
     </head>
     <body>
       <div id="feed"></div>
-      <script src="https://sdk.shortkit.dev/web/0.2.11/shortkit.min.js"></script>
+      <script src="https://sdk.shortkit.dev/web/0.3.0/shortkit.min.js"></script>
       <script>
         const { ShortKit } = window.ShortKit;
         const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
