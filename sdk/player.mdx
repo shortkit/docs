@@ -466,6 +466,8 @@ public enum ContentSignal: Equatable, Sendable {
 }
 ```
 
+On Flutter, React Native, and Web, `sendContentSignal` accepts the string literals `'positive'` or `'negative'` instead of a typed enum.
+
 ## Example: custom overlay with state observation
 
 This example builds a minimal custom overlay that shows a play/pause button and a progress bar, driven entirely by the player's publishers.

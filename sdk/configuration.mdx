@@ -162,8 +162,6 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       FeedHeight? feedHeight,           // FeedHeightFullscreen() or FeedHeightPercentage(0.85)
       ScrollAxis? scrollAxis,           // ScrollAxis.vertical or ScrollAxis.horizontal
       OverlayConfig? overlay,           // OverlayConfigNone() or OverlayConfigCustom('name')
-      CarouselOverlayConfig? carouselOverlay,
-      VideoCarouselOverlayConfig? videoCarouselOverlay,
       SurveyMode? surveyMode,           // SurveyModeNone() or SurveyModeTemplate('default')
       bool? muteOnStart,                // default: true
       bool? autoplay,                   // default: true
@@ -173,7 +171,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```
 
     <Note>
-      Flutter uses `overlay` (not `videoOverlay`), sealed classes for enum-like types (`FeedHeight`, `OverlayConfig`, `SurveyMode`), and does not support `adOverlay`.
+      Flutter uses `overlay` (not `videoOverlay`) and sealed classes for enum-like types (`FeedHeight`, `OverlayConfig`, `SurveyMode`).
     </Note>
   </Tab>
   <Tab title="React Native">

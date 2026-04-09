@@ -296,6 +296,18 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     )
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final feedController = ShortKitFeedController();
+
+    ShortKitFeed(
+      controller: feedController,
+      config: const FeedConfig(feedSource: FeedSource.custom),
+    );
+    ```
+
+    In Flutter, custom feed items are managed per-feed via a `ShortKitFeedController`. Create one and pass it to `ShortKitFeed(controller: ...)`, then call `setFeedItems` / `appendFeedItems` on the controller.
+  </Tab>
   <Tab title="React Native">
     ```tsx
     <ShortKitProvider
@@ -335,6 +347,20 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
         data class ImageCarousel(val item: ImageCarouselItem) : FeedInput()
     }
     ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    sealed class FeedInput {
+      factory FeedInput.video({
+        required String playbackId,
+        String? fallbackUrl,
+      });
+    }
+    ```
+
+    <Note>
+      Flutter currently supports only the `video` case. Image and video carousel support is coming soon.
+    </Note>
   </Tab>
   <Tab title="React Native">
     ```typescript
@@ -387,6 +413,17 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     ))
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart
+    feedController.setFeedItems([
+      FeedInput.video(playbackId: 'abc123'),
+      FeedInput.video(
+        playbackId: 'def456',
+        fallbackUrl: 'https://cdn.example.com/def456.mp4',
+      ),
+    ]);
+    ```
+  </Tab>
   <Tab title="React Native">
     ```tsx
     const { setFeedItems } = useShortKit();
@@ -421,6 +458,13 @@ Call `appendFeedItems()` to add items to the end of the current feed without dis
   <Tab title="Kotlin">
     ```kotlin
     shortKit.appendFeedItems(listOf(FeedInput.Video("ghi789")))
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    feedController.appendFeedItems([
+      FeedInput.video(playbackId: 'ghi789'),
+    ]);
     ```
   </Tab>
   <Tab title="React Native">
@@ -490,6 +534,27 @@ Implement the delegate to respond to feed lifecycle events. All methods are opti
             // Pre-fetch your own metadata for custom overlays
         }
     }
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    Flutter uses callbacks on `ShortKitFeed` instead of a delegate:
+
+    ```dart
+    ShortKitFeed(
+      controller: feedController,
+      config: const FeedConfig(feedSource: FeedSource.custom),
+      onContentTapped: (contentId, index) {
+        Navigator.pushNamed(context, '/detail', arguments: contentId);
+      },
+      onDidFetchContentItems: (items) {
+        // Pre-fetch your own metadata for custom overlays
+        prefetchMetadata(items.map((i) => i.id).toList());
+      },
+      onRefreshStateChanged: (state) {
+        // Fires on pull-to-refresh in custom feed mode. Fetch fresh data,
+        // then call feedController.setFeedItems(...) with the new list.
+      },
+    );
     ```
   </Tab>
   <Tab title="React Native">

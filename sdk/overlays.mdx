@@ -116,7 +116,19 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
     );
     ```
 
-    The SDK manages per-cell creation, content binding, and transition lifecycle. Your builder is called with the current `ContentItem` and `OverlayState` — which contains `playerState`, `time`, `isMuted`, `playbackRate`, `captionsEnabled`, `activeCaptionTrack`, `activeCue`, `feedScrollPhase`, and `isActive`.
+    The SDK manages per-cell creation, content binding, and transition lifecycle. Your builder is called with the current `ContentItem` and an `OverlayState` snapshot. The builder re-runs whenever any field on `OverlayState` changes.
+
+    | Field | Type | Description |
+    |---|---|---|
+    | `playerState` | `PlayerState` | Current playback state (`idle`, `loading`, `ready`, `playing`, `paused`, `seeking`, `buffering`, `ended`, `error`). |
+    | `time` | `PlayerTime` | `current`, `duration`, `buffered` in seconds. |
+    | `isMuted` | `bool` | Current mute state. |
+    | `playbackRate` | `double` | Current playback speed. |
+    | `captionsEnabled` | `bool` | Whether captions are on. |
+    | `activeCaptionTrack` | `CaptionTrack?` | The selected caption track, or `null`. |
+    | `activeCue` | `VTTCue?` | The active caption cue at the current time, or `null` between cues. |
+    | `feedScrollPhase` | `FeedScrollPhase` | Current feed scroll state (`dragging(from:)` or `settled`). |
+    | `isActive` | `bool` | Whether this cell is the active playback cell. |
   </Tab>
 </Tabs>
 
@@ -167,14 +179,6 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
         overlays: {
           'news': (context, item, state) => NewsOverlay(item: item, state: state),
         },
-        carouselOverlays: {
-          'newsCarousel': (context, item, isActive, activeImageIndex) =>
-              CarouselOverlay(item: item, activeImageIndex: activeImageIndex),
-        },
-        videoCarouselOverlays: {
-          'newsVideoCarousel': (context, state) =>
-              VideoCarouselOverlay(state: state),
-        },
         loadingWidget: (context) => const Center(
           child: CircularProgressIndicator(),
         ),
@@ -188,11 +192,13 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
     ShortKitFeed(
       config: FeedConfig(
         overlay: OverlayConfigCustom('news'),
-        carouselOverlay: CarouselOverlayConfigCustom('newsCarousel'),
-        videoCarouselOverlay: VideoCarouselOverlayConfigCustom('newsVideoCarousel'),
       ),
     )
     ```
+
+    <Note>
+      Flutter currently supports only video overlays. Carousel and video-carousel overlay support is coming soon.
+    </Note>
 
     Use `ShortKitOverlayCommands.of(context)` inside your overlay widget to issue player commands:
 
