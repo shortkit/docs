@@ -351,6 +351,10 @@ Image carousels display a horizontally paged set of images with optional auto-sc
 
 Video carousels display a horizontally paged set of videos within a single feed slot. The SDK handles the horizontal pager, video playback, and player handoff between pages natively. Your overlay provides the chrome (titles, buttons, page indicators) on top.
 
+<Note>
+  **Input vs. output types:** When building a custom feed (`feedSource: 'custom'`), you pass a `VideoCarouselInput` (with `VideoCarouselVideoInput[]` — playback IDs only) via `setFeedItems`. The SDK hydrates this into a fully-populated `VideoCarouselItem` internally. `VideoCarouselItem` is the output type you receive in overlays (via `VideoCarouselOverlayProps.carouselItem` in React Native, or `configure(with:)` in native SDKs). See [Feed Ranking — FeedInput](/guides/feed-customization#feedinput) for the input contract.
+</Note>
+
 ### VideoCarouselItem fields
 
 <Tabs>

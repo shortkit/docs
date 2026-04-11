@@ -1,0 +1,71 @@
+---
+title: "Migrating to v0.3.0: Playback-ID-only video carousels"
+---
+
+# Migrating to v0.3.0
+
+In v0.3.0, the `videoCarousel` FeedInput stopped accepting fully-built URLs and now takes only playback IDs — matching how the single-video FeedInput already works.
+
+## Why
+
+Before v0.3.0, every host app constructed `streamingUrl` and `thumbnailUrl` strings for each carousel slide. This forced each integrator to reinvent URL construction, and divergence between host-built URLs and the SDK's canonical domains caused a carousel thumbnail caching bug in at least one integration. The SDK already knew how to build these URLs — it just wasn't exposing that capability for carousels.
+
+## What changed
+
+### Before (v0.2.x)
+
+```ts
+const feedInput: FeedInput = {
+  type: 'videoCarousel',
+  item: {
+    id: 'thread-42',
+    videos: [
+      {
+        id: 'thread-42-v1',
+        playbackId: 'abc123',
+        title: 'Question',
+        duration: 15,
+        streamingUrl: 'https://stream.mux.com/abc123.m3u8',
+        thumbnailUrl: 'https://image.mux.com/abc123/thumbnail.jpg?time=0',
+        captionTracks: [],
+      },
+      // ... etc ...
+    ],
+    title: 'Community AMA',
+  },
+};
+```
+
+### After (v0.3.0)
+
+```ts
+const feedInput: FeedInput = {
+  type: 'videoCarousel',
+  item: {
+    id: 'thread-42',
+    videos: [
+      { playbackId: 'abc123' },
+      { playbackId: 'def456' },
+      { playbackId: 'ghi789', fallbackUrl: 'https://...' },
+    ],
+    title: 'Community AMA',
+  },
+};
+```
+
+## Per-slide metadata
+
+The new input type carries ONLY `playbackId` and optional `fallbackUrl`. If your overlay needs per-slide metadata (question text, author names, etc.) that isn't in ShortKit's backend, maintain your own `playbackId → slideContext` map on your side and look it up inside your overlay component using the `activeVideo.playbackId` field (which is still provided in full on every page change via `VideoCarouselOverlayProps.activeVideo`).
+
+## Upgrade steps
+
+1. Update your package: `npm install @shortkitsdk/react-native@^0.3.0`
+2. In your feed mapper, delete URL construction for carousel slides.
+3. Return only `{ playbackId, fallbackUrl? }` objects for each video.
+4. If your custom `VideoCarouselOverlay` iterated `carouselItem.videos[].streamingUrl`, refactor to use `activeVideo.*` for the current slide and maintain a host-side index for the rest.
+
+## Native SDK consumers
+
+- **Swift (direct):** Swap `FeedInput.videoCarousel(VideoCarouselItem(id:, videos:, ...))` for `FeedInput.videoCarousel(VideoCarouselInput(id:, videos: [VideoCarouselVideoInput(playbackId:), ...], ...))`.
+- **Android (Kotlin direct):** Swap `FeedInput.VideoCarousel(VideoCarouselItem(...))` for `FeedInput.VideoCarousel(VideoCarouselInput(id = ..., videos = listOf(VideoCarouselVideoInput(playbackId = ...)), ...))`.
+- **Flutter:** Same pattern — replace `VideoCarouselItem` with `VideoCarouselInput` at the `FeedInput.videoCarousel` construction site.

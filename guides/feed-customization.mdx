@@ -329,7 +329,7 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
 
 ### FeedInput
 
-`FeedInput` describes what should appear in the feed. It supports two cases: video (identified by playback ID) and image carousel.
+`FeedInput` describes what should appear in the feed. It supports three cases: video (identified by playback ID), image carousel, and video carousel.
 
 <Tabs>
   <Tab title="Swift">
@@ -337,6 +337,23 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     public enum FeedInput {
         case video(playbackId: String, fallbackUrl: String? = nil)
         case imageCarousel(ImageCarouselItem)
+        case videoCarousel(VideoCarouselInput)
+    }
+
+    public struct VideoCarouselInput {
+        public let id: String
+        public let videos: [VideoCarouselVideoInput]
+        public let title: String?
+        public let description: String?
+        public let author: String?
+        public let section: String?
+        public let articleUrl: String?
+    }
+
+    // Pass only playback IDs — the SDK constructs streaming and thumbnail URLs internally.
+    public struct VideoCarouselVideoInput {
+        public let playbackId: String
+        public let fallbackUrl: String?
     }
     ```
   </Tab>
@@ -345,7 +362,24 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     sealed class FeedInput {
         data class Video(val playbackId: String, val fallbackUrl: String? = null) : FeedInput()
         data class ImageCarousel(val item: ImageCarouselItem) : FeedInput()
+        data class VideoCarousel(val item: VideoCarouselInput) : FeedInput()
     }
+
+    data class VideoCarouselInput(
+        val id: String,
+        val videos: List<VideoCarouselVideoInput>,
+        val title: String? = null,
+        val description: String? = null,
+        val author: String? = null,
+        val section: String? = null,
+        val articleUrl: String? = null
+    )
+
+    // Pass only playback IDs — the SDK constructs streaming and thumbnail URLs internally.
+    data class VideoCarouselVideoInput(
+        val playbackId: String,
+        val fallbackUrl: String? = null
+    )
     ```
   </Tab>
   <Tab title="Flutter">
@@ -355,18 +389,52 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
         required String playbackId,
         String? fallbackUrl,
       });
+      factory FeedInput.videoCarousel({required VideoCarouselInput item});
+    }
+
+    class VideoCarouselInput {
+      final String id;
+      final List<VideoCarouselVideoInput> videos;
+      final String? title;
+      final String? description;
+      final String? author;
+      final String? section;
+      final String? articleUrl;
+    }
+
+    // Pass only playback IDs — the SDK constructs streaming and thumbnail URLs internally.
+    class VideoCarouselVideoInput {
+      final String playbackId;
+      final String? fallbackUrl;
     }
     ```
 
     <Note>
-      Flutter currently supports only the `video` case. Image and video carousel support is coming soon.
+      Flutter currently supports the `video` and `videoCarousel` cases. Image carousel support is coming soon.
     </Note>
   </Tab>
   <Tab title="React Native">
     ```typescript
     type FeedInput =
       | { type: 'video'; playbackId: string; fallbackUrl?: string }
-      | { type: 'imageCarousel'; item: ImageCarouselItem };
+      | { type: 'imageCarousel'; item: ImageCarouselItem }
+      | { type: 'videoCarousel'; item: VideoCarouselInput };
+
+    interface VideoCarouselInput {
+      id: string;
+      // Pass only playback IDs — the SDK constructs streaming and thumbnail URLs internally.
+      videos: VideoCarouselVideoInput[];
+      title?: string;
+      description?: string;
+      author?: string;
+      section?: string;
+      articleUrl?: string;
+    }
+
+    interface VideoCarouselVideoInput {
+      playbackId: string;
+      fallbackUrl?: string;
+    }
     ```
   </Tab>
   <Tab title="Web">
@@ -375,6 +443,18 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
     { type: 'video', playbackId: 'abc123' }
     { type: 'video', playbackId: 'abc123', fallbackUrl: 'https://cdn.example.com/video.mp4' }
     { type: 'imageCarousel', item: { id: 'c1', images: [{ url: '...' }] } }
+    // Video carousel — pass only playback IDs; SDK constructs URLs internally.
+    {
+      type: 'videoCarousel',
+      item: {
+        id: 'thread-42',
+        videos: [
+          { playbackId: 'abc123' },
+          { playbackId: 'def456', fallbackUrl: 'https://cdn.example.com/def456.mp4' },
+        ],
+        title: 'Optional carousel title',
+      },
+    }
     ```
   </Tab>
 </Tabs>
@@ -383,6 +463,11 @@ Set `feedSource: .custom` in your `FeedConfig` to switch to client-side ranking.
 |---|---|
 | `video` | A video identified by its playback ID. ShortKit resolves the full `ContentItem` (streaming URL, metadata, captions) automatically. Pass an optional `fallbackUrl` to provide a static MP4 the SDK can fall back to if HLS playback fails. See [Content Types — Fallback URLs](/guides/content-types#fallback-urls). |
 | `imageCarousel` | An image carousel you construct directly. See [Content Types — Image carousel](/guides/content-types#image-carousel) for the `ImageCarouselItem` model. |
+| `videoCarousel` | A video carousel identified by playback IDs only. Pass a `VideoCarouselInput` with one `VideoCarouselVideoInput` (`{ playbackId, fallbackUrl? }`) per slide. The SDK constructs `streamingUrl` and `thumbnailUrl` internally via its canonical `stream.media.shortkit.dev` / `image.media.shortkit.dev` domains — the same way it handles the `video` case. The fully-hydrated `VideoCarouselItem` (with `ContentItem[]` videos) is available to overlays via `VideoCarouselOverlayProps.carouselItem`. See [Overlays — Video carousel overlays](/sdk/overlays#video-carousel-overlays). |
+
+<Warning>
+  **Breaking change in v0.3.0:** The `videoCarousel` FeedInput previously accepted fully-constructed `ContentItem[]` objects (with host-built URLs). It now accepts `VideoCarouselVideoInput[]` — playback IDs only. If you're upgrading, see the [v0.3.0 migration guide](/migration/v0.3.0-carousel-playback-ids).
+</Warning>
 
 ### setFeedItems -- replace the entire feed
 
@@ -397,6 +482,14 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
         .imageCarousel(ImageCarouselItem(
             id: "carousel-1",
             images: [CarouselImage(url: "https://...")]
+        )),
+        .videoCarousel(VideoCarouselInput(
+            id: "thread-42",
+            videos: [
+                VideoCarouselVideoInput(playbackId: "abc123"),
+                VideoCarouselVideoInput(playbackId: "def456"),
+            ],
+            title: "Community AMA"
         ))
     ])
     ```
@@ -409,6 +502,14 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
         FeedInput.ImageCarousel(ImageCarouselItem(
             id = "carousel-1",
             images = listOf(CarouselImage(url = "https://..."))
+        )),
+        FeedInput.VideoCarousel(VideoCarouselInput(
+            id = "thread-42",
+            videos = listOf(
+                VideoCarouselVideoInput(playbackId = "abc123"),
+                VideoCarouselVideoInput(playbackId = "def456"),
+            ),
+            title = "Community AMA"
         ))
     ))
     ```
@@ -421,6 +522,14 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
         playbackId: 'def456',
         fallbackUrl: 'https://cdn.example.com/def456.mp4',
       ),
+      FeedInput.videoCarousel(item: VideoCarouselInput(
+        id: 'thread-42',
+        videos: [
+          VideoCarouselVideoInput(playbackId: 'abc123'),
+          VideoCarouselVideoInput(playbackId: 'def456'),
+        ],
+        title: 'Community AMA',
+      )),
     ]);
     ```
   </Tab>
@@ -431,7 +540,18 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     setFeedItems([
       { type: 'video', playbackId: 'abc123' },
       { type: 'video', playbackId: 'def456', fallbackUrl: 'https://cdn.example.com/def456.mp4' },
-      { type: 'imageCarousel', item: { id: 'carousel-1', images: [{ url: 'https://...' }] } }
+      { type: 'imageCarousel', item: { id: 'carousel-1', images: [{ url: 'https://...' }] } },
+      {
+        type: 'videoCarousel',
+        item: {
+          id: 'thread-42',
+          videos: [
+            { playbackId: 'abc123' },
+            { playbackId: 'def456' },
+          ],
+          title: 'Community AMA',
+        },
+      },
     ]);
     ```
   </Tab>
@@ -440,6 +560,14 @@ Call `setFeedItems()` to replace all items in the feed. The feed reloads from po
     feed.setFeedItems([
       { type: 'video', playbackId: 'abc123' },
       { type: 'video', playbackId: 'def456', fallbackUrl: 'https://cdn.example.com/def456.mp4' },
+      {
+        type: 'videoCarousel',
+        item: {
+          id: 'thread-42',
+          videos: [{ playbackId: 'abc123' }, { playbackId: 'def456' }],
+          title: 'Community AMA',
+        },
+      },
     ]);
     ```
   </Tab>

@@ -6,6 +6,18 @@ title: ""
 
 <div className="changelog-entry">
 <div className="changelog-header">
+<span className="changelog-date">Apr 2026</span>
+<div className="changelog-tags-row">
+<span className="changelog-tag breaking">breaking</span>
+<span className="changelog-tag">sdk</span>
+</div>
+</div>
+<h3>Video carousel FeedInput now accepts playback IDs only (v0.3.0)</h3>
+<p>The <code>videoCarousel</code> FeedInput variant no longer accepts fully-constructed <code>ContentItem[]</code> objects. The <code>videos</code> field on <code>VideoCarouselInput.item.videos</code> now takes <code>VideoCarouselVideoInput[]</code> — <code>{"{ playbackId, fallbackUrl? }"}</code> — and the SDK constructs <code>streamingUrl</code> and <code>thumbnailUrl</code> internally via its canonical <code>stream.media.shortkit.dev</code> / <code>image.media.shortkit.dev</code> domains. This matches how the <code>video</code> FeedInput variant already worked. Overlays are unaffected: <code>VideoCarouselOverlayProps.carouselItem</code> continues to provide the fully-hydrated <code>VideoCarouselItem</code> shape with <code>ContentItem[]</code> videos. Version matrix: <code>@shortkitsdk/react-native</code> 0.3.0, Swift SDK 0.2.0, Android SDK 0.3.0, Flutter SDK 0.3.0. See the <a href="/migration/v0.3.0-carousel-playback-ids">migration guide</a>.</p>
+</div>
+
+<div className="changelog-entry">
+<div className="changelog-header">
 <span className="changelog-date">Mar 2026</span>
 <div className="changelog-tags-row">
 <span className="changelog-tag">sdk</span>
