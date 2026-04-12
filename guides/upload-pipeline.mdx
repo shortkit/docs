@@ -96,7 +96,7 @@ The response contains the content `id` and a signed `uploadUrl`:
   "data": {
     "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "uploadUrl": "https://storage.shortkit.dev/uploads/...",
-    "uploadStatus": "waiting_for_upload",
+    "status": "waiting_for_upload",
     "title": "Product Launch Teaser",
     "tags": ["product", "launch"],
     "customMetadata": { "campaignId": "spring-2026" },
@@ -104,6 +104,10 @@ The response contains the content `id` and a signed `uploadUrl`:
   }
 }
 ```
+
+<Note>
+The POST create response uses the field name `status`, while the status-polling GET response uses `uploadStatus`. Both hold the same upload_status values; the field-name difference is a known API quirk we plan to reconcile.
+</Note>
 
 ### Upload the video file
 
@@ -166,7 +170,7 @@ Check processing progress with the upload status endpoint:
         status = resp.json()["data"]["uploadStatus"]
         print(f"Status: {status}")
 
-        if status in ("ready", "error"):
+        if status in ("ready", "errored"):
             break
         time.sleep(5)
     ```
@@ -182,7 +186,7 @@ Check processing progress with the upload status endpoint:
         const { data } = await resp.json();
         console.log(`Status: ${data.uploadStatus}`);
 
-        if (data.uploadStatus === "ready" || data.uploadStatus === "error") return data;
+        if (data.uploadStatus === "ready" || data.uploadStatus === "errored") return data;
         await new Promise((r) => setTimeout(r, 5000));
       }
     }
@@ -449,7 +453,7 @@ curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls"
   }'
 ```
 
-Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`. See the [API reference](/api/content) for details.
+Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`.
 
 ### Archive content
 
