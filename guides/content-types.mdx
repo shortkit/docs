@@ -183,7 +183,7 @@ Each video can include multiple caption tracks. The SDK loads and renders captio
 
 `customMetadata` is a `[String: JSONValue]` dictionary that accepts strings, numbers, booleans, nested objects, and null. Values are set when you upload content through the API or portal and delivered to the SDK as-is.
 
-Custom metadata can also be used as a filter dimension. Set `FeedFilter(metadata: ["country": "Japan"])` on your `FeedConfig` to show only content with matching metadata values. See [Feed Ranking — Server-side feed filtering](/guides/feed-customization#server-side-feed-filtering) for details.
+Custom metadata can also be used as a filter dimension. Set `FeedFilter(metadata: ["country": "Japan"])` on your `FeedConfig` to show only content with matching metadata values.
 
 <Tabs>
   <Tab title="Swift">
@@ -241,7 +241,7 @@ The SDK activates the fallback automatically in three scenarios:
 Fallback activation is tracked as a `playbackFallback` engagement event with a `reason` field (`player_failed`, `proactive_next_slot`, or `no_primary_url`).
 
 <Note>
-Fallback URLs are only used in custom feed mode with `FeedInput.video`. Pass the fallback URL when constructing your feed items — see [Feed Ranking — FeedInput](/guides/feed-customization#feedinput).
+Fallback URLs are only used in custom feed mode with `FeedInput.video`. Pass the fallback URL when constructing your feed items.
 </Note>
 
 ---
@@ -519,9 +519,7 @@ Survey responses are delivered through the `SurveyOverlay` protocol's `onSurveyR
 
 ## Ad slot
 
-Ad slots are server-positioned placeholders in the feed that get filled by your ad provider at runtime. The position and targeting configuration are set in the [Admin Portal](/portal/ad-management) or via the API. The SDK loads and displays ads automatically when an `adProvider` is configured.
-
-For full ad integration details, see [Ad integration](/sdk/ads).
+Ad slots are server-positioned placeholders in the feed that get filled by your ad provider at runtime. The position and targeting configuration are set in the Admin Portal or via the API. The SDK loads and displays ads automatically when an `adProvider` is configured.
 
 ---
 

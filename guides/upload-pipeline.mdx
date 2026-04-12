@@ -15,10 +15,11 @@ A video upload follows a simple flow: create the upload session, PUT the file to
 <Tabs>
   <Tab title="cURL">
     ```bash
-    curl -X POST https://api.shortkit.dev/v1/uploads \
+    curl -X POST https://api.shortkit.dev/v1/content/upload \
       -H "Authorization: Bearer sk_live_your_secret_key" \
       -H "Content-Type: application/json" \
       -d '{
+        "contentType": "video",
         "title": "Product Launch Teaser",
         "description": "30-second preview of the new lineup",
         "tags": ["product", "launch"],
@@ -34,12 +35,13 @@ A video upload follows a simple flow: create the upload session, PUT the file to
     import requests
 
     resp = requests.post(
-        "https://api.shortkit.dev/v1/uploads",
+        "https://api.shortkit.dev/v1/content/upload",
         headers={
             "Authorization": "Bearer sk_live_your_secret_key",
             "Content-Type": "application/json",
         },
         json={
+            "contentType": "video",
             "title": "Product Launch Teaser",
             "description": "30-second preview of the new lineup",
             "tags": ["product", "launch"],
@@ -55,13 +57,14 @@ A video upload follows a simple flow: create the upload session, PUT the file to
   </Tab>
   <Tab title="Node.js">
     ```javascript
-    const response = await fetch("https://api.shortkit.dev/v1/uploads", {
+    const response = await fetch("https://api.shortkit.dev/v1/content/upload", {
       method: "POST",
       headers: {
         "Authorization": "Bearer sk_live_your_secret_key",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        contentType: "video",
         title: "Product Launch Teaser",
         description: "30-second preview of the new lineup",
         tags: ["product", "launch"],
@@ -101,6 +104,10 @@ The response contains the content `id` and a signed `uploadUrl`:
   }
 }
 ```
+
+<Note>
+The POST create response uses the field name `status`, while the status-polling GET response uses `uploadStatus`. Both hold the same upload_status values; the field-name difference is a known API quirk we plan to reconcile.
+</Note>
 
 ### Upload the video file
 
@@ -147,7 +154,7 @@ Check processing progress with the upload status endpoint:
 <Tabs>
   <Tab title="cURL">
     ```bash
-    curl https://api.shortkit.dev/v1/uploads/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+    curl https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
       -H "Authorization: Bearer sk_live_your_secret_key"
     ```
   </Tab>
@@ -157,13 +164,13 @@ Check processing progress with the upload status endpoint:
 
     while True:
         resp = requests.get(
-            f"https://api.shortkit.dev/v1/uploads/{content_id}",
+            f"https://api.shortkit.dev/v1/content/{content_id}",
             headers={"Authorization": "Bearer sk_live_your_secret_key"},
         )
-        status = resp.json()["data"]["status"]
+        status = resp.json()["data"]["uploadStatus"]
         print(f"Status: {status}")
 
-        if status in ("ready", "error"):
+        if status in ("ready", "errored"):
             break
         time.sleep(5)
     ```
@@ -173,13 +180,13 @@ Check processing progress with the upload status endpoint:
     async function pollUntilReady(contentId) {
       while (true) {
         const resp = await fetch(
-          `https://api.shortkit.dev/v1/uploads/${contentId}`,
+          `https://api.shortkit.dev/v1/content/${contentId}`,
           { headers: { "Authorization": "Bearer sk_live_your_secret_key" } }
         );
         const { data } = await resp.json();
-        console.log(`Status: ${data.status}`);
+        console.log(`Status: ${data.uploadStatus}`);
 
-        if (data.status === "ready" || data.status === "error") return data;
+        if (data.uploadStatus === "ready" || data.uploadStatus === "errored") return data;
         await new Promise((r) => setTimeout(r, 5000));
       }
     }
@@ -193,7 +200,7 @@ When the status reaches `ready`, the response includes the `playbackId` and dura
 {
   "data": {
     "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "status": "ready",
+    "uploadStatus": "ready",
     "title": "Product Launch Teaser",
     "duration": 32.5,
     "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9"
@@ -446,7 +453,7 @@ curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls"
   }'
 ```
 
-Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`. See the [API reference](/api/content) for details.
+Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`.
 
 ### Archive content
 

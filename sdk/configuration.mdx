@@ -97,11 +97,11 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
 | `apiKey` | `String` | **required** | Your publishable API key. Starts with `pk_live_` or `pk_test_`. |
 | `config` | `FeedConfig` | **required** | Feed layout and behavior configuration. See [FeedConfig](#feedconfig) below. |
 | `userId` | `String?` | `nil` | Known user ID. When provided, the SDK starts in identified mode immediately, skipping the anonymous-first flow. |
-| `adProvider` | `ShortKitAdProvider?` | `nil` | Ad provider for monetization. Pass `nil` to disable ads. See [Ad integration](/sdk/ads). |
+| `adProvider` | `ShortKitAdProvider?` | `nil` | Ad provider for monetization. Pass `nil` to disable ads. |
 | `clientAppName` | `String?` | `nil` | App name included in analytics metadata. |
 | `clientAppVersion` | `String?` | `nil` | App version included in analytics metadata. |
 | `customDimensions` | `[String: String]?` | `nil` | Custom key-value pairs for analytics segmentation. Keys must be `"custom_1"` through `"custom_5"`. |
-| `feedItems` | `[FeedInput]?` | `nil` | Content items to preload when using custom feed mode (`feedSource: .custom`). See [Feed Ranking — FeedInput](/guides/feed-customization#feedinput). |
+| `feedItems` | `[FeedInput]?` | `nil` | Content items to preload when using custom feed mode (`feedSource: .custom`). |
 
 On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN connection, and begins HLS preroll for the first video. The feed view controller can render immediately without a loading spinner.
 
