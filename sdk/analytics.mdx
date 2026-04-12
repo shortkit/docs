@@ -73,11 +73,11 @@ Collected once per view and attached automatically.
 | `clientAppVersion` | `String?` | App version passed at SDK init. |
 | `customDimensions` | `Object?` | Custom dimensions (`custom_1` through `custom_5`), if set at init. |
 
-All of these metrics are queryable through the [metrics API](/api/analytics), which supports aggregation, dimension breakdowns, timeseries, filtering, and raw data export.
+All of these metrics are queryable through the [metrics API](/api/analytics/metrics), which supports aggregation, dimension breakdowns, timeseries, filtering, and raw data export.
 
 ## Custom dimensions
 
-Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event and become queryable as dimensions in the [metrics API](/api/analytics).
+Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event and become queryable as dimensions in the [metrics API](/api/analytics/metrics).
 
 <Tabs>
   <Tab title="Swift">
@@ -284,4 +284,4 @@ Call `setUserId()` to switch to identified mode. This links the anonymous device
 
 ## Querying analytics data
 
-Use the metrics API to query aggregate engagement data, break down by dimensions, chart timeseries, and export raw view records. See the [Analytics API reference](/api/analytics) for endpoints, available metrics, and dimensions.
+Use the metrics API to query aggregate engagement data, break down by dimensions, chart timeseries, and export raw view records. See the [Analytics API reference](/api/analytics/metrics) for endpoints, available metrics, and dimensions.
