@@ -101,7 +101,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
 | `clientAppName` | `String?` | `nil` | App name included in analytics metadata. |
 | `clientAppVersion` | `String?` | `nil` | App version included in analytics metadata. |
 | `customDimensions` | `[String: String]?` | `nil` | Custom key-value pairs for analytics segmentation. Keys must be `"custom_1"` through `"custom_5"`. |
-| `feedItems` | `[FeedInput]?` | `nil` | Content items to preload when using custom feed mode (`feedSource: .custom`). |
+| `feedItems` | `[FeedInput]?` | `nil` | Content items to preload when using custom feed mode (`feedSource: .custom`). See [Custom feed input](/guides/content-types#custom-feed-input) for the shape. |
 
 On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN connection, and begins HLS preroll for the first video. The feed view controller can render immediately without a loading spinner.
 

@@ -228,6 +228,98 @@ Custom metadata can also be used as a filter dimension. Set `FeedFilter(metadata
   </Tab>
 </Tabs>
 
+### Custom feed input (`FeedInput.video`)
+
+In [custom feed mode](/sdk/configuration#feedconfig), you build `FeedInput` items yourself instead of letting the SDK fetch them. For individual videos:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public enum FeedInput: Sendable {
+        case video(playbackId: String, origin: ContentOrigin = .other, fallbackUrl: String? = nil)
+        // other cases: .imageCarousel, .videoCarousel
+    }
+
+    public enum ContentOrigin: String, Codable, Sendable {
+        case iosUpload = "ios_upload"
+        case other
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    sealed class FeedInput {
+        data class Video(
+            val playbackId: String,
+            val fallbackUrl: String? = null
+        ) : FeedInput()
+        // other cases: ImageCarousel, VideoCarousel
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    type FeedInput =
+      | { type: 'video'; playbackId: string; origin?: ContentOrigin; fallbackUrl?: string }
+      | { type: 'imageCarousel'; item: ImageCarouselItem }
+      | { type: 'videoCarousel'; item: VideoCarouselInput };
+
+    type ContentOrigin = 'ios_upload' | 'other';
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Description |
+|---|---|
+| `playbackId` | Playback ID for this content. Assigned after processing completes; retrieve it from the [upload status endpoint](/guides/upload-pipeline#poll-for-status) for uploads or the `content.imported` webhook for imports. Not present in the initial [Upload](/api/content/upload) or [Import](/api/content/import) response. |
+| `origin` | `iosUpload` for videos captured on iOS, `other` for everything else (default). When `iosUpload`, the SDK fetches a color-accurate thumbnail. Pair with [`origin: "ios_upload"` on the Upload API](/api/content/upload#param-origin) so the server produces the matching poster. |
+| `fallbackUrl` | Optional static MP4 URL used if the HLS stream fails. See [Fallback URLs](#fallback-urls). |
+
+Video carousels wrap per-slide inputs of the same shape:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public struct VideoCarouselVideoInput: Codable, Equatable, Sendable {
+        public let playbackId: String
+        public let origin: ContentOrigin
+        public let fallbackUrl: String?
+
+        public init(
+            playbackId: String,
+            origin: ContentOrigin = .other,
+            fallbackUrl: String? = nil
+        )
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    data class VideoCarouselVideoInput(
+        val playbackId: String,
+        val fallbackUrl: String? = null
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```typescript
+    interface VideoCarouselVideoInput {
+      playbackId: string;
+      origin?: ContentOrigin;
+      fallbackUrl?: string;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The per-slide `origin` works the same way as on `FeedInput.video`.
+
+<Note>
+The `origin` field is available on the iOS, React Native, and Flutter SDKs. Android SDK support for `origin` ships in an upcoming release — on Android, `FeedInput.Video(playbackId, fallbackUrl)` works unchanged and defaults to the standard thumbnail path.
+</Note>
+
+---
+
 ### Fallback URLs
 
 `fallbackUrl` is an optional static MP4 URL that the SDK uses when the primary HLS stream fails. This is useful when migrating a video library to ShortKit — you can provide your existing hosted URLs as fallbacks while transitioning to ShortKit's streaming infrastructure.

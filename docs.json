@@ -69,6 +69,7 @@
             "pages": [
               "sdk/player",
               "sdk/overlays",
+              "sdk/carousel",
               "engagement-signals"
             ]
           },

@@ -147,6 +147,22 @@ PUT the raw video bytes to the signed URL. This goes directly to storage -- it d
 
 Once the file lands, processing starts automatically. The video is encoded into HLS adaptive bitrate renditions and the content status moves from `waiting_for_upload` to `processing`. If `generateSubtitles` was `true`, a speech-to-text caption track is also generated and embedded in the HLS manifest — this typically finishes a few minutes after the video is ready. When transcoding completes, the status transitions to `ready` and the content becomes eligible for the feed.
 
+### iOS-recorded video
+
+When the video was captured on an iOS device, include `"origin": "ios_upload"` in the upload request. iOS HEVC recordings frequently ship without explicit color metadata, and standard thumbnail extraction can produce wrong-color first frames under that condition. Marking the origin enables color-accurate thumbnail generation.
+
+```json
+{
+  "contentType": "video",
+  "origin": "ios_upload",
+  "title": "Product demo"
+}
+```
+
+Safe to set unconditionally in your iOS upload flow; harmless for properly-tagged videos.
+
+If you render this content in a custom feed via the SDK, also set `origin: .iosUpload` (iOS) or `'ios_upload'` (React Native) on the matching `FeedInput.video` so the client fetches the color-corrected thumbnail. See [Custom feed input](/guides/content-types#custom-feed-input).
+
 ### Poll for status
 
 Check processing progress with the upload status endpoint:

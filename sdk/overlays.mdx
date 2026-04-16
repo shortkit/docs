@@ -1224,6 +1224,8 @@ Register your component in the feed config:
 
 Your component re-renders when the active video changes (horizontal swipe), when the cell becomes active/inactive (vertical swipe), and when player state updates. Use `activeVideoIndex` to render page indicators and `carouselItem` for carousel-level metadata.
 
+To observe or control the active carousel from your overlay or host app — navigate between videos programmatically, read the active index, or react to video completions — see [Video carousel](/sdk/carousel).
+
 ### Custom survey overlays
 
 Custom survey overlays conform to `SurveyOverlay`. The protocol includes two callback properties that the SDK sets on your overlay after creation. Your overlay calls these when the user selects a survey option — the SDK handles forwarding the response to the host app delegate and triggering auto-advance.
