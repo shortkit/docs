@@ -46,6 +46,12 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   When `true`, auto-generates English captions after the video is processed. Only applies to videos.
 </ParamField>
 
+<ParamField body="origin" type="string" default="other">
+  `"ios_upload"` or `"other"`. Set to `"ios_upload"` for videos recorded on iOS devices to enable color-accurate thumbnail extraction. iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.
+
+  Only applies to `contentType: "video"`. No effect for image or video carousels. If you also render this content in a custom feed via the SDK, pair with the `origin` field on [`FeedInput.video`](/guides/content-types#custom-feed-input).
+</ParamField>
+
 <ParamField body="publishAt" type="string">
   ISO 8601 timestamp. Content won't appear in the feed before this time.
 </ParamField>
