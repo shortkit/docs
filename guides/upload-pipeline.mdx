@@ -161,6 +161,8 @@ When the video was captured on an iOS device, include `"origin": "ios_upload"` i
 
 Safe to set unconditionally in your iOS upload flow; harmless for properly-tagged videos.
 
+To retroactively mark existing content that was uploaded without the `origin` field, use [`PATCH /v1/content/:id`](/api/content/update) with `{ "origin": "ios_upload" }`. Thumbnail re-extraction is triggered automatically for eligible content.
+
 If you render this content in a custom feed via the SDK, also set `origin: .iosUpload` (iOS) or `'ios_upload'` (React Native) on the matching `FeedInput.video` so the client fetches the color-corrected thumbnail. See [Custom feed input](/guides/content-types#custom-feed-input).
 
 ### Poll for status
