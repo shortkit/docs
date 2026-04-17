@@ -50,6 +50,10 @@ All fields are optional — include only the fields you want to change.
   Carousel auto-scroll interval in seconds. Only applies to carousels.
 </ParamField>
 
+<ParamField body="origin" type="string">
+  `"ios_upload"` or `"other"`. Retroactively marks content as iOS-recorded to enable color-accurate thumbnail extraction. When set to `"ios_upload"` on a video that has already finished processing, thumbnail re-extraction is triggered automatically. See [Upload → origin](/api/content/upload#param-origin) for details on the field.
+</ParamField>
+
 <ParamField body="customMetadata" type="object">
   Merged with existing metadata. To remove a key, set it to `null`.
 </ParamField>
