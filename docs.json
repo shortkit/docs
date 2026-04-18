@@ -127,6 +127,7 @@
                   "api/live-streams/create",
                   "api/live-streams/list",
                   "api/live-streams/get",
+                  "api/live-streams/status",
                   "api/live-streams/end",
                   "api/live-streams/delete",
                   "api/live-streams/clip"

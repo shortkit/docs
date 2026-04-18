@@ -57,10 +57,13 @@ The credentials are returned only on this response. If you lose them, delete the
 
 ## Displaying live streams in the feed
 
-Live streams render in the feed with no extra setup. The SDK's `ContentItem` exposes two fields you can read in your custom overlay:
+Live streams render in the feed with no extra setup. The SDK's `ContentItem` exposes the following live-specific fields you can read in your custom overlay:
 
 - **`isLive`** — `true` while the broadcast is in progress, `false` after it ends
+- **`liveStreamStatus`** — `"idle"`, `"active"`, or `"ended"` ([more on lifecycle](/api/live-streams/object#lifecycle))
+- **`liveStreamId`** — the underlying live stream's UUID (use this from your backend to address the stream itself, e.g. for [creating clips](/api/live-streams/clip))
 - **`currentViewers`** — concurrent viewer count for the stream (`0` for non-live items)
+- **`startedAt`** — ISO 8601 timestamp the broadcaster connected (useful for an elapsed-time display)
 
 <Tabs>
   <Tab title="Swift">
@@ -92,7 +95,9 @@ Live streams render in the feed with no extra setup. The SDK's `ContentItem` exp
   </Tab>
 </Tabs>
 
-The SDK automatically reports viewer presence on your behalf — every active viewer counts toward `currentViewers` for as long as they're watching. You don't need to call any tracking API; just render the field.
+The SDK automatically reports viewer presence on your behalf — every active viewer counts toward `currentViewers` for as long as they're watching. The mechanism is a [`live.viewer.heartbeat` event](/api/analytics/event-object#engagement) the SDK fires every 30 seconds while a live item is the active playing item. You don't need to call any tracking API or write your own heartbeat code; just render the field.
+
+For a known set of streams (for example, those currently visible to a viewer in your UI), you can also poll [Get Live Stream Status](/api/live-streams/status) directly with your publishable key to react to status changes (`active` → `ended`) more promptly than the next feed refresh would surface them.
 
 ---
 
@@ -154,6 +159,12 @@ If you provide a `callbackUrl`, ShortKit will `POST` to it once each clip is rea
 
 See the [Create Clips](/api/live-streams/clip) reference for the full request and response shape.
 
+### Letting end users create clips
+
+If you want to expose a "clip this moment" affordance directly in your client app, **don't ship your secret key with the app** — secret keys grant full server-side access to your organization and are extractable from any shipped binary. Instead, expose your own backend endpoint (using whatever user-auth your app already does) that takes a clip request from your client and forwards it to ShortKit's clip API with your secret key. That gives you a place to enforce per-user rate limits, attribution, and abuse controls before a clip is created.
+
+The client app already has everything it needs to construct the request: read `liveStreamId` and the marked time offsets from the live `ContentItem`, send them to your backend, and your backend handles the rest.
+
 ---
 
 ## Ending a stream
@@ -175,5 +186,6 @@ Once ended, a stream cannot be restarted. Create a new live stream for the next 
 
 - [Live Stream API reference](/api/live-streams/object) — full object shape and field descriptions
 - [Create Live Stream](/api/live-streams/create) — request and response details
+- [Get Live Stream Status](/api/live-streams/status) — publishable-key polling for stream state changes
 - [Create Clips](/api/live-streams/clip) — clip request shape, callback behavior, and error cases
 - [Embedding a Feed](/sdk/feed) — how the SDK renders content items, including live streams

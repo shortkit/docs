@@ -1,0 +1,90 @@
+---
+title: "Get Live Stream Status"
+api: "GET /v1/live-streams/status"
+description: "Poll status for one or more live streams by playback ID, using your publishable key."
+---
+
+Returns the current `status`, `startedAt`, and (if applicable) `endedAt` for one or more live streams, addressed by `playbackId`. Authenticated with your **publishable** key — safe to call directly from a client app.
+
+Use this when you want to react to a stream's state changing (for example, surfacing an "ended" UI when a broadcast finishes) without re-fetching the entire feed.
+
+The fields returned here are a subset of [The Live Stream Object](/api/live-streams/object) — only what's useful for client-side state awareness. To inspect a stream's full configuration (latency mode, reconnect window, etc.), use [Get Live Stream](/api/live-streams/get) with your secret key from your backend.
+
+## Query parameters
+
+<ParamField query="playback_ids" type="string" required>
+  Comma-separated list of playback IDs to look up. Up to 50 per request.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/live-streams/status?playback_ids=DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100,RwonKfBGyk5Ij4DkQVpB9Z9MqvsnDqn02pjJgbp4AfsE" \
+  -H "X-API-Key: pk_live_your_publishable_key"
+```
+
+```swift Swift
+var components = URLComponents(string: "https://api.shortkit.dev/v1/live-streams/status")!
+components.queryItems = [URLQueryItem(name: "playback_ids", value: playbackIds.joined(separator: ","))]
+var req = URLRequest(url: components.url!)
+req.setValue("pk_live_your_publishable_key", forHTTPHeaderField: "X-API-Key")
+let (data, _) = try await URLSession.shared.data(for: req)
+let payload = try JSONDecoder().decode(StatusResponse.self, from: data)
+```
+
+```javascript Node.js
+const params = new URLSearchParams({ playback_ids: playbackIds.join(",") });
+const resp = await fetch(
+  `https://api.shortkit.dev/v1/live-streams/status?${params}`,
+  { headers: { "X-API-Key": "pk_live_your_publishable_key" } }
+);
+const { data } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100": {
+      "status": "active",
+      "startedAt": "2026-04-17T14:00:00Z"
+    },
+    "RwonKfBGyk5Ij4DkQVpB9Z9MqvsnDqn02pjJgbp4AfsE": {
+      "status": "ended",
+      "startedAt": "2026-04-16T05:04:11.370994Z",
+      "endedAt": "2026-04-17T15:30:00Z"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Response shape
+
+The response `data` is a map keyed by `playbackId`. Each entry contains:
+
+<ResponseField name="status" type="string">
+  Current lifecycle state. One of `"idle"`, `"active"`, or `"ended"`.
+</ResponseField>
+
+<ResponseField name="startedAt" type="string | null">
+  ISO 8601 timestamp of when the broadcaster first connected. `null` while `status` is `idle`.
+</ResponseField>
+
+<ResponseField name="endedAt" type="string">
+  ISO 8601 timestamp of when the stream ended. Only present when `status` is `"ended"`.
+</ResponseField>
+
+Playback IDs that don't match a live stream owned by your organization are silently omitted from the response — there is no per-ID error. If `data` is empty, none of the requested IDs were valid.
+
+## When to use this vs. the feed
+
+- **Feed (`/v1/feed`)** — surface the live stream as part of normal content browsing. The feed response already includes `liveStreamStatus` on each item, so you don't need a separate status call to render initial state.
+- **This endpoint** — keep a known set of streams (for example, those currently visible to a viewer in your UI) up-to-date as their state changes, without paying the cost of refetching the entire feed.
+
+## Errors
+
+| Status | Reason |
+|--------|--------|
+| `400` | More than 50 playback IDs in a single request. |
+| `401` | Missing or invalid publishable key. |
