@@ -1,0 +1,179 @@
+---
+title: "Live Streams"
+description: "Publish real-time broadcasts that appear in your feed alongside on-demand content, then turn the recordings into reusable clips."
+keywords: ["live", "live stream", "broadcast", "RTMP", "viewer count", "clip", "live clipping"]
+---
+
+Live streams are real-time broadcasts that show up in your feed exactly like any other content item. Once a stream ends, the recording stays in the feed as on-demand video, and you can carve clips out of it for separate distribution.
+
+This guide walks through the full lifecycle: creating a stream, broadcasting to it, displaying it in the SDK, and turning the recording into clips.
+
+---
+
+## How a live stream flows through ShortKit
+
+1. **Create the stream** with [`POST /v1/live-streams`](/api/live-streams/create). You receive a `playbackId` (for viewers) and broadcast credentials (`rtmpUrl` + `streamKey`) for your encoder.
+2. **Forward the credentials to your broadcaster.** They paste them into their encoder of choice.
+3. **The broadcaster goes live.** As soon as ShortKit receives video, the stream's `status` flips from `idle` to `active`. The stream appears in your feed automatically — no separate publish step.
+4. **Viewers watch from your app.** The SDK plays the live stream the same way it plays any video. A live badge and viewer count are available to overlay on top.
+5. **The stream ends.** Either the broadcaster disconnects (and stays disconnected longer than `reconnectWindow`), or you call [`POST /v1/live-streams/{id}/end`](/api/live-streams/end). The status moves to `ended` and the recording stays in the feed as a regular video.
+6. **Optionally, create clips** from the recording with [`POST /v1/live-streams/{id}/clips`](/api/live-streams/clip). Each clip becomes its own content item.
+
+---
+
+## Creating a stream
+
+You create a stream from your backend using your secret key:
+
+```bash
+curl -X POST "https://api.shortkit.dev/v1/live-streams" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "title": "Friday morning yoga", "latencyMode": "low" }'
+```
+
+The response includes the broadcaster credentials:
+
+```json
+{
+  "data": {
+    "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+    "status": "idle",
+    "rtmpUrl": "rtmps://global-live.example/app/<stream-key>",
+    "streamKey": "abc123def456...",
+    ...
+  }
+}
+```
+
+<Warning>
+  `rtmpUrl` and `streamKey` are credentials. Anyone with them can broadcast under your stream. Forward them only to the broadcaster who will publish the stream. Do not log them, expose them in your client app, or commit them to source control.
+</Warning>
+
+The credentials are returned only on this response. If you lose them, delete the stream and create a new one.
+
+---
+
+## Displaying live streams in the feed
+
+Live streams render in the feed with no extra setup. The SDK's `ContentItem` exposes two fields you can read in your custom overlay:
+
+- **`isLive`** — `true` while the broadcast is in progress, `false` after it ends
+- **`currentViewers`** — concurrent viewer count for the stream (`0` for non-live items)
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    if let item = feedItem.contentItem, item.isLive {
+        liveBadge.isHidden = false
+        viewerCountLabel.text = "\(item.currentViewers) watching"
+    } else {
+        liveBadge.isHidden = true
+        viewerCountLabel.text = nil
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    if (feedItem is FeedItem.Content && feedItem.item.isLive) {
+        liveBadge.visibility = View.VISIBLE
+    } else {
+        liveBadge.visibility = View.GONE
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    {feedItem.type === "content" && feedItem.item.isLive && (
+      <Text style={styles.liveBadge}>LIVE</Text>
+    )}
+    ```
+  </Tab>
+</Tabs>
+
+The SDK automatically reports viewer presence on your behalf — every active viewer counts toward `currentViewers` for as long as they're watching. You don't need to call any tracking API; just render the field.
+
+---
+
+## Surfacing a specific live stream in a custom feed
+
+If you're using [custom feed mode](/sdk/configuration#feedconfig) and want to surface a known stream at a specific position, pass its `playbackId` as a video input — the SDK plays it like any other:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let inputs: [FeedInput] = [
+        .video(playbackId: "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100"),
+        // ...other items
+    ]
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val inputs = listOf(
+        FeedInput.Video(playbackId = "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100"),
+        // ...other items
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const inputs: FeedInput[] = [
+      { type: "video", playbackId: "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100" },
+      // ...other items
+    ];
+    ```
+  </Tab>
+</Tabs>
+
+The SDK detects whether the playback ID is live or on-demand at play time and configures the player accordingly.
+
+---
+
+## Turning a stream into clips
+
+You can carve short clips out of a stream while it's still `active` (real-time clipping during the broadcast) or after it has `ended`. Specify start and end offsets in seconds from the beginning of the stream:
+
+```bash
+curl -X POST "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/clips" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clips": [
+      { "startSec": 0,    "endSec": 30,  "title": "Opening" },
+      { "startSec": 600,  "endSec": 660, "title": "Q&A highlight" }
+    ],
+    "callbackUrl": "https://example.com/webhooks/shortkit/clip-ready"
+  }'
+```
+
+Each clip becomes its own [content item](/api/content/object) with a fresh `contentId` and `playbackId`. The clip is `processing` for a few seconds to a few minutes, then becomes `ready` and shows up in the feed like any other video.
+
+If you provide a `callbackUrl`, ShortKit will `POST` to it once each clip is ready — handy if you want to re-share clips into your app immediately without polling.
+
+See the [Create Clips](/api/live-streams/clip) reference for the full request and response shape.
+
+---
+
+## Ending a stream
+
+Streams end automatically when the broadcaster disconnects and stays disconnected past the `reconnectWindow` you configured at creation time (default: 60 seconds).
+
+To end a stream on your terms — for example when programming has finished and you don't want to wait for the timeout — call:
+
+```bash
+curl -X POST "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/end" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Once ended, a stream cannot be restarted. Create a new live stream for the next broadcast.
+
+---
+
+## Next steps
+
+- [Live Stream API reference](/api/live-streams/object) — full object shape and field descriptions
+- [Create Live Stream](/api/live-streams/create) — request and response details
+- [Create Clips](/api/live-streams/clip) — clip request shape, callback behavior, and error cases
+- [Embedding a Feed](/sdk/feed) — how the SDK renders content items, including live streams

@@ -53,7 +53,8 @@
             "group": "Content",
             "pages": [
               "guides/content-types",
-              "guides/upload-pipeline"
+              "guides/upload-pipeline",
+              "guides/live-streams"
             ]
           },
           {
@@ -116,6 +117,19 @@
                   "api/content/search",
                   "api/content/update",
                   "api/content/delete"
+                ]
+              },
+              {
+                "group": "Live Streams",
+                "expanded": true,
+                "pages": [
+                  "api/live-streams/object",
+                  "api/live-streams/create",
+                  "api/live-streams/list",
+                  "api/live-streams/get",
+                  "api/live-streams/end",
+                  "api/live-streams/delete",
+                  "api/live-streams/clip"
                 ]
               },
               {

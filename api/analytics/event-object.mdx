@@ -80,6 +80,7 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 | `save` | User saved/bookmarked the content | — |
 | `swipe` | User swiped to the next item | `direction` |
 | `interaction` | Generic UI interaction | `action` |
+| `live.viewer.heartbeat` | Live stream viewer presence ping. Sent by the SDK every 30 seconds while a live item is the active playing item. Drives the `currentViewers` count on live content. | `playbackId`, `viewerSessionId` |
 
 ### Playback quality
 
