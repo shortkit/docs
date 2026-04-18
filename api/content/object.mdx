@@ -63,12 +63,24 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   One of `"video"`, `"carousel"`, `"video_carousel"`, or `"live_stream"`.
 </ResponseField>
 
+<Note>
+  The following four fields are present on content items returned by the **feed endpoint**. They are not included in content management API responses (`GET /v1/content/:id`, `GET /v1/content`).
+</Note>
+
 <ResponseField name="isLive" type="boolean">
   `true` while a live stream is broadcasting, `false` otherwise. Only meaningful when `contentType` is `"live_stream"`. See [Live Streams](/guides/live-streams).
 </ResponseField>
 
+<ResponseField name="liveStreamId" type="string | null">
+  The underlying [live stream](/api/live-streams/object)'s UUID for items where `contentType` is `"live_stream"`. Use this when you need to address the live stream itself — for example, to [end](/api/live-streams/end) it or [create clips](/api/live-streams/clip) from it. `null` for non-live items.
+</ResponseField>
+
+<ResponseField name="liveStreamStatus" type="string | null">
+  Current state of the underlying live stream. One of `"idle"`, `"active"`, or `"ended"`. `null` for non-live items. See [Lifecycle](/api/live-streams/object#lifecycle) for state semantics.
+</ResponseField>
+
 <ResponseField name="currentViewers" type="integer">
-  Concurrent viewer count for live streams. `0` for non-live items and for live streams that are not currently being watched.
+  Concurrent viewer count for live streams, refreshed on every feed read. `0` for non-live items and for live streams that are not currently being watched.
 </ResponseField>
 
 <ResponseField name="title" type="string">

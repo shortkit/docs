@@ -8,6 +8,10 @@ Creates one or more video clips from a live stream's recording. Each clip become
 
 You can clip from a stream that is still `active` (real-time clipping while the broadcast is in progress) or from one that has `ended`. Authenticated with your secret key.
 
+<Warning>
+  This endpoint requires your **secret** key, so it must be called from a server-side context — never directly from a client app. If you want users of your iOS / Android / web client to be able to create clips themselves (for example, a "clip this moment" button), expose your own backend endpoint that accepts the request from your client (using whatever user-auth your app already uses), then forward to this endpoint with your secret key. That pattern lets you apply your own rate limits, attribution, and abuse controls before a clip is created.
+</Warning>
+
 ## Path parameters
 
 <ParamField path="id" type="string" required>
