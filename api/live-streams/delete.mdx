@@ -1,0 +1,56 @@
+---
+title: "Delete Live Stream"
+api: "DELETE /v1/live-streams/{id}"
+description: "Delete a live stream and remove it from the feed."
+---
+
+Deletes a live stream and removes the underlying content item from your feed. If the stream is still `active` when you delete it, the broadcast is ended first. Authenticated with your secret key.
+
+Clips already created from the stream are preserved as standalone content items.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The live stream's UUID.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.delete(
+    "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+result = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+  { method: "DELETE", headers: { Authorization: "Bearer sk_live_your_secret_key" } }
+);
+const { data: result } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    "deleted": true
+  },
+  "meta": {
+    "request_id": "req_delete001"
+  }
+}
+```
+</ResponseExample>
+
+Returns a `404` if the stream does not exist or does not belong to your organization.

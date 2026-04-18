@@ -1,9 +1,9 @@
 ---
 title: "The Content Object"
-description: "A content item represents a video, image carousel, or video carousel in your feed. This page covers the object structure, upload and publish lifecycle, and how content reaches your users."
+description: "A content item represents a video, image carousel, video carousel, or live stream in your feed. This page covers the object structure, upload and publish lifecycle, and how content reaches your users."
 ---
 
-A content item is the core resource in ShortKit. It represents a **video**, an **image carousel**, or a **video carousel** that appears in your feed.
+A content item is the core resource in ShortKit. It represents a **video**, an **image carousel**, a **video carousel**, or a **live stream** that appears in your feed.
 
 ## Creating content
 
@@ -11,8 +11,9 @@ Content is not created directly — instead, you create content by uploading or 
 
 - **[Upload](/api/content/upload)** — You have a video file. Upload it directly from a client or server. Best for user-generated content or files on disk.
 - **[Import](/api/content/import)** — You have a URL (cloud storage, TikTok, Instagram, etc.). ShortKit fetches and processes the media for you. Best for migrating existing content or server-side workflows.
+- **[Live Stream](/api/live-streams/create)** — You're broadcasting in real time. ShortKit creates a content item for the stream that appears in the feed while the broadcast is live, and the recording remains afterward.
 
-Both methods accept metadata (title, description, tags, etc.) alongside the media, and return a content object. Once created, use the content endpoints to [list](/api/content/list), update, or delete content.
+Each method accepts metadata (title, description, tags, etc.) alongside the media, and returns a content object. Once created, use the content endpoints to [list](/api/content/list), update, or delete content.
 
 ---
 
@@ -59,7 +60,15 @@ Both methods accept metadata (title, description, tags, etc.) alongside the medi
 </ResponseField>
 
 <ResponseField name="contentType" type="string">
-  One of `"video"`, `"carousel"`, or `"video_carousel"`.
+  One of `"video"`, `"carousel"`, `"video_carousel"`, or `"live_stream"`.
+</ResponseField>
+
+<ResponseField name="isLive" type="boolean">
+  `true` while a live stream is broadcasting, `false` otherwise. Only meaningful when `contentType` is `"live_stream"`. See [Live Streams](/guides/live-streams).
+</ResponseField>
+
+<ResponseField name="currentViewers" type="integer">
+  Concurrent viewer count for live streams. `0` for non-live items and for live streams that are not currently being watched.
 </ResponseField>
 
 <ResponseField name="title" type="string">

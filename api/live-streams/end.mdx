@@ -1,0 +1,67 @@
+---
+title: "End Live Stream"
+api: "POST /v1/live-streams/{id}/end"
+description: "End an active live stream and finalize its recording."
+---
+
+Ends a live stream immediately, regardless of whether the broadcaster is still connected. Use this when you want to stop a broadcast on your terms — for example, when the broadcaster forgets to disconnect, or when scheduled programming has finished.
+
+The response returns the stream in its current state. The `status` transitions to `ended` asynchronously — poll [Get Live Stream](/api/live-streams/get) or listen for a webhook to confirm the transition. Once ended, the recording becomes available for [clipping](/api/live-streams/clip). Authenticated with your secret key.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The live stream's UUID.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/end" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/end",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+stream = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/end",
+  { method: "POST", headers: { Authorization: "Bearer sk_live_your_secret_key" } }
+);
+const { data: stream } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+    "status": "active",
+    "title": "Friday morning yoga",
+    "latencyMode": "low",
+    "reconnectWindow": 60,
+    "startedAt": "2026-04-17T14:00:00Z",
+    "endedAt": null,
+    "createdAt": "2026-04-17T13:55:00Z"
+  },
+  "meta": {
+    "request_id": "req_end001"
+  }
+}
+```
+</ResponseExample>
+
+<Note>
+  Ending a stream is permanent — the same stream cannot be restarted. Create a new live stream for the next broadcast.
+</Note>
+
+Returns a `404` if the stream does not exist or does not belong to your organization.

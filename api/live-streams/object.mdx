@@ -1,0 +1,121 @@
+---
+title: "The Live Stream Object"
+description: "A live stream represents a real-time broadcast that appears in your feed alongside on-demand content. This page covers the object structure, lifecycle, and how viewers reach the stream."
+---
+
+A live stream is a real-time broadcast you publish into your ShortKit feed. Each stream has its own broadcast endpoint that an external encoder pushes video to, and a playback ID that viewers use to watch.
+
+While a stream is `active`, it appears in the feed as a content item with `contentType: "live_stream"` and a live viewer count. When the stream ends, its recording becomes available as on-demand video — you can either keep the full recording or generate shorter [clips](/api/live-streams/clip) from it.
+
+## The live stream object
+
+```json
+{
+  "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+  "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+  "status": "active",
+  "title": "Friday morning yoga",
+  "latencyMode": "low",
+  "reconnectWindow": 60,
+  "rtmpUrl": "rtmps://global-live.example/app/<stream-key>",
+  "streamKey": "abc123def456...",
+  "startedAt": "2026-04-17T14:00:00Z",
+  "endedAt": null,
+  "createdAt": "2026-04-17T13:55:00Z"
+}
+```
+
+---
+
+## Attributes
+
+<ResponseField name="id" type="string">
+  Unique identifier (UUID) for the live stream.
+</ResponseField>
+
+<ResponseField name="playbackId" type="string">
+  Identifier viewers use to play the stream. The SDK plays a live stream the same way it plays on-demand video — pass the `playbackId` through your custom feed input, or let the feed surface it automatically.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current lifecycle state. See [Lifecycle](#lifecycle) below. One of `idle`, `active`, or `ended`.
+</ResponseField>
+
+<ResponseField name="title" type="string | null">
+  Display title shown in the feed. Max 200 characters.
+</ResponseField>
+
+<ResponseField name="latencyMode" type="string">
+  Glass-to-glass latency target. One of `low`, `reduced`, or `standard`. See [Latency mode](#latency-mode) below.
+</ResponseField>
+
+<ResponseField name="reconnectWindow" type="integer">
+  Number of seconds the stream will hold the slot if the broadcaster disconnects. After this window expires without a reconnect, the stream automatically transitions to `ended`. Range 0–1800. Defaults to 60.
+</ResponseField>
+
+<ResponseField name="rtmpUrl" type="string | null">
+  Ready-to-use RTMPS broadcast URL with credentials embedded. Only returned in the [Create Live Stream](/api/live-streams/create) response. Point your encoder at this URL to start pushing video — no additional configuration needed.
+
+  **Sensitive — treat like an API key.** Anyone with this URL can broadcast under your stream. Forward it only to the broadcaster who will publish the stream, never log it, and never expose it to viewers or commit it to source control.
+</ResponseField>
+
+<ResponseField name="streamKey" type="string | null">
+  Broadcaster authentication key, already embedded in `rtmpUrl`. Only returned in the [Create Live Stream](/api/live-streams/create) response. Provided separately for encoders that require the key as a distinct field. See the warning on `rtmpUrl` — same handling rules apply.
+</ResponseField>
+
+<ResponseField name="startedAt" type="string | null">
+  ISO 8601 timestamp of when the broadcaster first connected. `null` while `status` is `idle`.
+</ResponseField>
+
+<ResponseField name="endedAt" type="string | null">
+  ISO 8601 timestamp of when the stream ended. `null` while the stream is `idle` or `active`.
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 creation timestamp.
+</ResponseField>
+
+---
+
+## Lifecycle
+
+A live stream moves through three states:
+
+| Status | Description |
+|--------|-------------|
+| `idle` | Stream created, no broadcaster connected yet. The slot is reserved but no video is flowing. |
+| `active` | A broadcaster is connected and pushing video. Viewers can watch the stream from your feed. |
+| `ended` | The stream has finished — either explicitly ended via [End Live Stream](/api/live-streams/end), or automatically because the broadcaster disconnected for longer than `reconnectWindow`. The recording becomes available for [clipping](/api/live-streams/clip). |
+
+A stream can transition `idle` → `active` only once. Once it has gone `active` and then `ended`, it cannot be restarted — create a new live stream for the next broadcast.
+
+---
+
+## Latency mode
+
+`latencyMode` controls the trade-off between end-to-end delay and playback stability:
+
+| Mode | Approximate latency | Best for |
+|------|---------------------|----------|
+| `low` | A few seconds | Interactive broadcasts where viewers chat or react in near real-time |
+| `reduced` | Several seconds | Most live content — good balance of latency and resilience to network jitter |
+| `standard` | 10+ seconds | Maximum stability for one-way broadcasts where latency doesn't matter |
+
+The default is `low`. Higher latency modes give the player more time to buffer, which results in smoother playback over poor connections.
+
+---
+
+## Live streams in the feed
+
+When the SDK fetches the feed, active live streams appear as content items with two extra fields:
+
+- `isLive: true` — flags the item as a live broadcast
+- `currentViewers: <number>` — the live concurrent viewer count
+
+Once the stream ends, the recording remains in the feed as a regular video. The `isLive` flag flips to `false` and `currentViewers` returns `0`. See [The Content Object](/api/content/object) for the full content shape.
+
+---
+
+## Deletion
+
+Deleting a live stream via [Delete Live Stream](/api/live-streams/delete) ends the broadcast (if it's still active) and archives the underlying content item. Recordings and any clips already created from the stream are preserved.

@@ -1,0 +1,124 @@
+---
+title: "Create Clips"
+api: "POST /v1/live-streams/{id}/clips"
+description: "Create one or more on-demand video clips from a live stream."
+---
+
+Creates one or more video clips from a live stream's recording. Each clip becomes a standalone [content item](/api/content/object) (`contentType: "video"`) that appears in your feed once processing completes.
+
+You can clip from a stream that is still `active` (real-time clipping while the broadcast is in progress) or from one that has `ended`. Authenticated with your secret key.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The live stream's UUID.
+</ParamField>
+
+## Body parameters
+
+<ParamField body="clips" type="array" required>
+  An array of clip ranges to create. Up to 20 per request. Each entry has:
+
+  - **`startSec`** (`number`, required) — Offset from the beginning of the stream, in seconds. Must be `>= 0`.
+  - **`endSec`** (`number`, required) — End offset, in seconds. Must be greater than `startSec`.
+  - **`title`** (`string`, optional) — Display title for the resulting content item.
+</ParamField>
+
+<ParamField body="callbackUrl" type="string">
+  An HTTPS URL that ShortKit will `POST` to once each clip's media is fully processed and ready to play. Useful when you want to publish a clip in your own UI without polling.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/clips" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clips": [
+      { "startSec": 0,    "endSec": 30,  "title": "Opening" },
+      { "startSec": 600,  "endSec": 660, "title": "Q&A highlight" }
+    ],
+    "callbackUrl": "https://example.com/webhooks/shortkit/clip-ready"
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/clips",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    json={
+        "clips": [
+            {"startSec": 0, "endSec": 30, "title": "Opening"},
+            {"startSec": 600, "endSec": 660, "title": "Q&A highlight"},
+        ],
+        "callbackUrl": "https://example.com/webhooks/shortkit/clip-ready",
+    },
+)
+clips = resp.json()["data"]["clips"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/clips",
+  {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer sk_live_your_secret_key",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      clips: [
+        { startSec: 0,   endSec: 30,  title: "Opening" },
+        { startSec: 600, endSec: 660, title: "Q&A highlight" },
+      ],
+      callbackUrl: "https://example.com/webhooks/shortkit/clip-ready",
+    }),
+  }
+);
+const { data: { clips } } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201
+{
+  "data": {
+    "clips": [
+      {
+        "contentId": "f1a2b3c4-d5e6-4789-90ab-cdef12345678",
+        "playbackId": "ABCxyz123...",
+        "startSec": 0,
+        "endSec": 30,
+        "title": "Opening"
+      },
+      {
+        "contentId": "1234abcd-5678-90ef-12ab-34567890cdef",
+        "playbackId": "DEFuvw456...",
+        "startSec": 600,
+        "endSec": 660,
+        "title": "Q&A highlight"
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "req_clip001"
+  }
+}
+```
+</ResponseExample>
+
+## Clip availability
+
+Clips are returned immediately with a new `contentId`, but the underlying media takes a few seconds to a few minutes to process depending on length. The clip's [content item](/api/content/get) will report `uploadStatus: "processing"` until processing finishes, then transition to `ready`.
+
+If you provided a `callbackUrl`, ShortKit will `POST` to it once each clip is ready, with the clip's `contentId` and current state. Otherwise, poll the content item directly.
+
+## Errors
+
+| Status | Reason |
+|--------|--------|
+| `400` | `endSec` is not greater than `startSec`, or the request includes more than 20 clips. |
+| `404` | The live stream does not exist or does not belong to your organization. |
+| `409` | The stream's status does not support clipping yet — it must be `active` or `ended`. If `active`, the recording asset may not be available for the first few seconds of the broadcast; retry shortly. |

@@ -1,0 +1,63 @@
+---
+title: "Get Live Stream"
+api: "GET /v1/live-streams/{id}"
+description: "Retrieve a single live stream by ID."
+---
+
+Returns the live stream's current state — including its `status`, `startedAt`, and `endedAt` timestamps. Authenticated with your secret key.
+
+`rtmpUrl` and `streamKey` are **not** returned by this endpoint; they are only available on the [Create Live Stream](/api/live-streams/create) response.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The live stream's UUID.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+stream = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+  { headers: { Authorization: "Bearer sk_live_your_secret_key" } }
+);
+const { data: stream } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+    "status": "active",
+    "title": "Friday morning yoga",
+    "latencyMode": "low",
+    "reconnectWindow": 60,
+    "startedAt": "2026-04-17T14:00:00Z",
+    "endedAt": null,
+    "createdAt": "2026-04-17T13:55:00Z"
+  },
+  "meta": {
+    "request_id": "req_get001"
+  }
+}
+```
+</ResponseExample>
+
+Returns a `404` if the stream does not exist or does not belong to your organization.

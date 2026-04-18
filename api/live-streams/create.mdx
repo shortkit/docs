@@ -1,0 +1,96 @@
+---
+title: "Create Live Stream"
+api: "POST /v1/live-streams"
+description: "Create a new live stream and receive the broadcast credentials."
+---
+
+Creates a live stream in the `idle` state and returns the broadcast credentials your encoder needs to start pushing video. Authenticated with your secret key.
+
+The response contains a single-use `streamKey` and an `rtmpUrl` that the broadcaster pastes into their encoder. Once the broadcaster connects, the stream automatically transitions to `active` and becomes visible in your feed.
+
+## Body parameters
+
+<ParamField body="title" type="string">
+  Display title shown in the feed. Max 200 characters.
+</ParamField>
+
+<ParamField body="latencyMode" type="string" default="low">
+  One of `low`, `reduced`, or `standard`. See [Latency mode](/api/live-streams/object#latency-mode).
+</ParamField>
+
+<ParamField body="reconnectWindow" type="integer" default="60">
+  Seconds the stream will hold the slot if the broadcaster disconnects. Range 0–1800.
+</ParamField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/live-streams" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Friday morning yoga",
+    "latencyMode": "low",
+    "reconnectWindow": 60
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/live-streams",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    json={
+        "title": "Friday morning yoga",
+        "latencyMode": "low",
+        "reconnectWindow": 60,
+    },
+)
+stream = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch("https://api.shortkit.dev/v1/live-streams", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk_live_your_secret_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    title: "Friday morning yoga",
+    latencyMode: "low",
+    reconnectWindow: 60,
+  }),
+});
+const { data: stream } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201
+{
+  "data": {
+    "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+    "status": "idle",
+    "title": "Friday morning yoga",
+    "latencyMode": "low",
+    "reconnectWindow": 60,
+    "rtmpUrl": "rtmps://global-live.example/app/abc123def456...",
+    "streamKey": "abc123def456...",
+    "startedAt": null,
+    "endedAt": null,
+    "createdAt": "2026-04-17T13:55:00Z"
+  },
+  "meta": {
+    "request_id": "req_create001"
+  }
+}
+```
+</ResponseExample>
+
+<Warning>
+  `rtmpUrl` and `streamKey` are sensitive credentials — anyone with them can broadcast under your stream. Forward them only to the broadcaster who will publish the stream. Do not log them, expose them to viewers, or commit them to source control.
+</Warning>
+
+The credentials are returned only on this `Create` response. If you lose them, delete the stream and create a new one.

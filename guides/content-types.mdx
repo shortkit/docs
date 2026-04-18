@@ -1,16 +1,17 @@
 ---
 title: "Content Types"
-description: "The five feed item types in ShortKit: video, image carousel, video carousel, survey, and ad slot."
-keywords: ["content types", "feed items", "video", "image carousel", "video carousel", "survey", "ad slot", "FeedItem", "ContentItem", "VideoCarouselItem"]
+description: "The feed item types in ShortKit: video, live stream, image carousel, video carousel, survey, and ad slot."
+keywords: ["content types", "feed items", "video", "live stream", "image carousel", "video carousel", "survey", "ad slot", "FeedItem", "ContentItem", "VideoCarouselItem"]
 ---
 
-ShortKit feeds are polymorphic. Each position in the feed can be a video, an image carousel, a video carousel, a survey, or an ad slot. The SDK represents this with the `FeedItem` enum, and each case wraps a typed model with all the data you need to render it.
+ShortKit feeds are polymorphic. Each position in the feed can be a video, a live stream, an image carousel, a video carousel, a survey, or an ad slot. The SDK represents this with the `FeedItem` enum, and each case wraps a typed model with all the data you need to render it.
 
 ## Feed item types at a glance
 
 | Type | Model | Purpose |
 |---|---|---|
 | Video | `ContentItem` | HLS video with metadata, captions, and custom fields |
+| Live stream | `ContentItem` with `isLive: true` | Real-time broadcast with a live viewer count. See [Live Streams](/guides/live-streams). |
 | Image carousel | `ImageCarouselItem` | Horizontally paged images with optional auto-scroll |
 | Video carousel | `VideoCarouselItem` | Horizontally paged videos with carousel-level metadata |
 | Survey | `SurveyItem` | Single-question poll with selectable options |
