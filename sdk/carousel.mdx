@@ -14,7 +14,7 @@ When the current feed item is a video carousel, the SDK applies these rules auto
 
 | Trigger | Behavior |
 |---|---|
-| The carousel becomes visible for the first time | The SDK lands on the carousel's `initialPageIndex` (defaults to `0`). No horizontal scroll animation — the player is pre-attached to the target page before the cell composites. See [Video carousel › `initialPageIndex`](/guides/content-types#video-carousel) for the data shape. |
+| The carousel becomes visible for the first time | The SDK lands on the carousel's `initialPageIndex` (defaults to `0`) without a horizontal scroll animation. See [Video carousel › `initialPageIndex`](/guides/content-types#video-carousel) for the data shape. |
 | The user swipes vertically away from the carousel and back | The carousel resets to `initialPageIndex` again. Last-watched position is not preserved. |
 | A video in the carousel plays to its natural end | The SDK advances to the next video in the carousel and fires a completion event. |
 | The **last** video in the carousel plays to its natural end | The SDK loops that last video back to itself. The feed does **not** advance to the next feed item. A completion event fires with `wasLast: true` and `willAutoAdvance: false`. |
@@ -217,7 +217,7 @@ Fires once per discrete tap on a carousel cell that did **not** trigger the inne
 ### Long press
 
 <Note>
-  Available since SDK **0.2.36** (iOS and React Native). Android support is planned but not yet shipped.
+  Available since SDK **0.2.36**.
 </Note>
 
 Fires across the lifecycle of a sustained press: a `began` after 0.2s of continuous touch within 10 points of the touch origin, then exactly one terminal state — `ended` on touch release, or `cancelled` if the press is interrupted.
@@ -279,13 +279,13 @@ Fires across the lifecycle of a sustained press: a `began` after 0.2s of continu
 |---|---|
 | `began` | After 0.2s of continuous touch within 10 points of the touch origin. |
 | `ended` | When the user releases the touch with the recognizer still active. |
-| `cancelled` | When the press is interrupted — by movement past 10 points, by the user starting a horizontal carousel pan or vertical feed scroll, or by the cell being recycled out from under the touch. |
+| `cancelled` | When the press is interrupted — by movement past 10 points, by the user starting a horizontal carousel pan or vertical feed scroll, or by the cell scrolling off-screen. |
 
 Every press that reaches `began` is followed by exactly one terminal state — `ended` or `cancelled`. Touches that don't satisfy the recognizer (released before 0.2s, or moved >10 points before 0.2s) never fire any long-press event. Use `state === 'began'` to start an effect (pause, dim, show menu) and treat both `ended` and `cancelled` as the signal to undo it.
 
 ### Recipe: hold-to-pause
 
-A common use is letting the user pause playback by holding the cell, the way TikTok and Instagram Reels do.
+A common use is letting the user pause playback by holding the cell — a familiar pattern in short-video feeds.
 
 <Tabs>
   <Tab title="iOS">

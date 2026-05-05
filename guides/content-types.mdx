@@ -520,10 +520,6 @@ Video carousels display a horizontally paged set of videos within a single feed 
 
 Each video in the `videos` array is a standard `ContentItem` — the same type used by standalone video feed items. This means your overlay can display per-video metadata (title, duration, captions) alongside carousel-level metadata (section, author, articleUrl).
 
-<Note>
-The `initialPageIndex` field is available on the iOS and React Native SDKs. Android and Flutter SDK support ships in an upcoming release — on those platforms the field is silently ignored and the carousel always lands on page 0.
-</Note>
-
 ### How video carousels differ from image carousels
 
 | Aspect | Image carousel | Video carousel |
