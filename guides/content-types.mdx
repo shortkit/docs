@@ -452,6 +452,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
     public struct VideoCarouselItem: Codable, Equatable, Sendable {
         public let id: String
         public let videos: [ContentItem]
+        public let initialPageIndex: Int?
         public let title: String?
         public let description: String?
         public let author: String?
@@ -478,6 +479,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
     interface VideoCarouselItem {
       id: string;
       videos: ContentItem[];
+      initialPageIndex?: number;
       title?: string;
       description?: string;
       author?: string;
@@ -509,6 +511,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
 |---|---|---|
 | `id` | `String` | Unique video carousel identifier |
 | `videos` | `[ContentItem]` | Ordered array of videos. Each is a full `ContentItem` with playback metadata, captions, and custom fields. Up to 10 videos per carousel. |
+| `initialPageIndex` | `Int?` | Zero-based index of the page the carousel should land on the first time it becomes visible. Out-of-range values are silently clamped to a valid index. Has no effect after the carousel is first configured — re-rendering with a different value on the same `id` is ignored. To move imperatively after landing, use `shortKit.carousel.setActiveIndex(_:)`. See [Video carousel › Default behavior](/sdk/carousel#default-behavior). |
 | `title` | `String?` | Headline text for the carousel as a whole |
 | `description` | `String?` | Body text |
 | `author` | `String?` | Byline text |
