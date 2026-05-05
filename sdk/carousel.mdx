@@ -1,7 +1,7 @@
 ---
 title: "Video carousel"
 description: "Observe and control the active video carousel in the feed: programmatic navigation, reactive state, and completion events."
-keywords: ["video carousel", "VideoCarouselItem", "ShortKitCarousel", "useShortKitCarousel", "CarouselCompletionEvent", "auto-advance", "loop", "carouselNext", "carouselPrevious", "carouselSetActiveIndex", "onCarouselActiveVideoCompleted"]
+keywords: ["video carousel", "VideoCarouselItem", "ShortKitCarousel", "useShortKitCarousel", "CarouselCompletionEvent", "auto-advance", "loop", "carouselNext", "carouselPrevious", "carouselSetActiveIndex", "onCarouselActiveVideoCompleted", "onVideoCarouselCellTap", "onVideoCarouselCellLongPress", "hold to pause", "double tap to like"]
 ---
 
 A video carousel is a horizontally-swipeable collection of short videos within a single feed cell. The SDK owns the pager, the player handoff between pages, and the transition animations natively. This page covers the APIs you use to **observe** the active carousel, **navigate** it programmatically, and **react** to video completions.
@@ -154,6 +154,174 @@ Subscribe to reactive state to keep overlay UI, badges, or host-app chrome in sy
     The component re-renders when the active carousel changes (vertical swipe onto/off of a video carousel) or when the active video index changes inside the current carousel (horizontal swipe or imperative call).
   </Tab>
 </Tabs>
+
+## Cell gesture events
+
+Two events fire on direct user interaction with a video-carousel cell:
+
+- `onVideoCarouselCellTap` — a discrete tap that didn't turn into a horizontal pan.
+- `onVideoCarouselCellLongPress` — the lifecycle of a sustained press.
+
+Both are **passive observers** on the cell. They run alongside the carousel's horizontal pan and the feed's vertical pan without intercepting either, so a press that becomes a horizontal swipe still pages the carousel, and a press that becomes a vertical swipe still advances the feed. Use these for analytics, custom interactions like double-tap-to-like, or hold-to-pause UX.
+
+### Tap
+
+Fires once per discrete tap on a carousel cell that did **not** trigger the inner horizontal pan. Quick taps qualify; presses that turn into pans do not.
+
+<Tabs>
+  <Tab title="iOS">
+    Set the closure on your `ShortKitFeedViewController` instance.
+
+    ```swift
+    feedVC.onVideoCarouselCellTap = { [weak self] payload in
+        analytics.track("carousel_cell_tap", [
+            "carousel_id": payload.id,
+            "page_index": payload.pageIndex,
+        ])
+    }
+    ```
+
+    ```swift
+    public struct VideoCarouselCellTapPayload {
+        public let id: String       // VideoCarouselItem.id
+        public let index: Int       // Zero-based position of the carousel cell in the feed (its IndexPath.item)
+        public let pageIndex: Int   // Inner page visible at tap time
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Pass the prop to `<ShortKitFeed>`.
+
+    ```tsx
+    <ShortKitFeed
+      onVideoCarouselCellTap={(event) => {
+        analytics.track('carousel_cell_tap', {
+          carousel_id: event.id,
+          page_index: event.pageIndex,
+        });
+      }}
+      /* ... */
+    />
+    ```
+
+    ```ts
+    interface VideoCarouselCellTapEvent {
+      id: string;          // VideoCarouselItem.id
+      index: number;       // Zero-based position of the carousel cell in the feed
+      pageIndex: number;   // Inner page visible at tap time
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Long press
+
+<Note>
+  Available since SDK **0.2.36** (iOS and React Native). Android support is planned but not yet shipped.
+</Note>
+
+Fires across the lifecycle of a sustained press: a `began` after 0.2s of continuous touch within 10 points of the touch origin, then exactly one terminal state — `ended` on touch release, or `cancelled` if the press is interrupted.
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    feedVC.onVideoCarouselCellLongPress = { [weak self] payload in
+        switch payload.state {
+        case .began:
+            self?.shortKit.player.pause()
+        case .ended, .cancelled:
+            self?.shortKit.player.play()
+        }
+    }
+    ```
+
+    ```swift
+    public struct VideoCarouselCellLongPressPayload {
+        public let id: String                                  // VideoCarouselItem.id
+        public let index: Int                                  // Zero-based position of the carousel cell in the feed
+        public let pageIndex: Int                              // Inner page visible when this lifecycle event fired
+        public let state: VideoCarouselCellLongPressState
+    }
+
+    public enum VideoCarouselCellLongPressState: String {
+        case began, ended, cancelled
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitFeed
+      onVideoCarouselCellLongPress={(event) => {
+        if (event.state === 'began') {
+          ShortKitCommands.pause();
+        } else {
+          ShortKitCommands.play();
+        }
+      }}
+      /* ... */
+    />
+    ```
+
+    ```ts
+    interface VideoCarouselCellLongPressEvent {
+      id: string;                                       // VideoCarouselItem.id
+      index: number;                                    // Zero-based position of the carousel cell in the feed
+      pageIndex: number;                                // Inner page visible when this lifecycle event fired
+      state: 'began' | 'ended' | 'cancelled';
+    }
+    ```
+  </Tab>
+</Tabs>
+
+#### Lifecycle states
+
+| State | When it fires |
+|---|---|
+| `began` | After 0.2s of continuous touch within 10 points of the touch origin. |
+| `ended` | When the user releases the touch with the recognizer still active. |
+| `cancelled` | When the press is interrupted — by movement past 10 points, by the user starting a horizontal carousel pan or vertical feed scroll, or by the cell being recycled out from under the touch. |
+
+Every press that reaches `began` is followed by exactly one terminal state — `ended` or `cancelled`. Touches that don't satisfy the recognizer (released before 0.2s, or moved >10 points before 0.2s) never fire any long-press event. Use `state === 'began'` to start an effect (pause, dim, show menu) and treat both `ended` and `cancelled` as the signal to undo it.
+
+### Recipe: hold-to-pause
+
+A common use is letting the user pause playback by holding the cell, the way TikTok and Instagram Reels do.
+
+<Tabs>
+  <Tab title="iOS">
+    ```swift
+    feedVC.onVideoCarouselCellLongPress = { [weak self] payload in
+        guard let self else { return }
+        switch payload.state {
+        case .began:
+            self.shortKit.player.pause()
+        case .ended, .cancelled:
+            self.shortKit.player.play()
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    <ShortKitFeed
+      onVideoCarouselCellLongPress={(event) => {
+        if (event.state === 'began') {
+          ShortKitCommands.pause();
+        } else if (event.state === 'ended' || event.state === 'cancelled') {
+          ShortKitCommands.play();
+        }
+      }}
+      /* ... */
+    />
+    ```
+  </Tab>
+</Tabs>
+
+Because the recognizer is a passive observer, a hold that turns into a horizontal swipe still pages the carousel — the `cancelled` arm of the switch is what restores playback when that happens.
+
+<Note>
+  This minimal recipe will resume playback after a hold even if the user had manually paused the video before holding. To preserve manual pauses, track the player state and only call `play()` from the `ended`/`cancelled` arm if the video was playing before `began` fired.
+</Note>
 
 ## Completion events
 
