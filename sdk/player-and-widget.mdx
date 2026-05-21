@@ -22,8 +22,8 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
     // Fetch up to 5 items
     let items = try await shortKit.fetchContent(limit: 5)
 
-    // Fetch with a filter
-    let items = try await shortKit.fetchContent(limit: 5, filter: FeedFilter(tags: ["sports"]))
+    // Fetch with a filter (FeedFilter also accepts section, author, contentType, metadata)
+    let filtered = try await shortKit.fetchContent(limit: 5, filter: FeedFilter(tags: ["sports"]))
     ```
   </Tab>
   <Tab title="Android">
@@ -304,7 +304,7 @@ The widget displays a horizontal carousel or vertical grid of video cards with m
 | `autoplay` | boolean | `true` | Whether the visible card plays automatically. |
 | `muteOnStart` | boolean | `true` | Whether playback starts muted. |
 | `loop` | boolean | `true` | Whether each card loops when it reaches the end. |
-| `rotationInterval` | number | `10` | Time before the carousel advances to the next card. **iOS uses seconds (`10`). Android and React Native use milliseconds (`10_000`).** Flutter support is coming soon. Applies to carousel layout only. |
+| `rotationInterval` | number | `10` | **Android and React Native only.** Time in milliseconds before the carousel advances to the next card (e.g. `10_000` for 10 seconds). On iOS, advancement is driven by the preview reaching its end — this property is ignored. Flutter support is coming soon. Applies to carousel layout only. |
 | `clickAction` | enum | `.feed` | Action performed when a card is tapped. See [click actions](#click-actions). |
 | `cardOverlay` / `overlay` | enum | `.none` | Overlay rendered on top of each card. The React Native prop is named `overlay`; iOS and Android use `cardOverlay`. |
 | `layout` | `WidgetLayout` | `.carousel` | Layout mode — horizontal carousel or vertical grid. See [Layout](#layout). |
@@ -442,8 +442,7 @@ The `startSide` parameter on `gridAlternating` controls which column plays in th
             let widgetVC = ShortKitWidgetViewController(
                 shortKit: shortKit,
                 config: WidgetConfig(
-                    cardCount: 3,
-                    rotationInterval: 10 // seconds
+                    cardCount: 3
                 )
             )
 
@@ -589,7 +588,7 @@ These properties are set on the widget component after initialization.
     | `onModalFeedDismissed` | `(() -> Void)?` | `nil` | Fires when the SDK's full-screen feed dismisses. |
     | `onContentHeightChange` | `((CGFloat) -> Void)?` | `nil` | Fires whenever the grid's total content height changes. **Non-scrollable grid only** — use this to update a height constraint as items are appended. Has no effect on scrollable grids or carousel layouts. |
 
-    `setFeedItems(_ inputs: [FeedInput])` supplies an optional seed list of items for the full-screen feed that opens when a card is tapped. The widget's own cards are always prepended so the tapped clip is the opening item; the seed items follow.
+    `setFeedItems(_ inputs: [FeedInput])` supplies an optional seed list of items for the full-screen feed that opens when a card is tapped. The widget's own cards are always prepended so the tapped clip is the opening item; the seed items follow. `FeedInput` accepts the same inputs as the full-screen feed — see [Embedding a Feed](/sdk/feed) for details.
   </Tab>
   <Tab title="Android">
     Coming soon.
@@ -664,11 +663,10 @@ Three additional steps are required:
 
 <Tabs>
   <Tab title="iOS (UIKit)">
+    ```swift ViewController.swift
+    import ShortKitSDK
 
-```swift ViewController.swift
-import ShortKitSDK
-
-class HomeViewController: UIViewController, UIScrollViewDelegate {
+    class HomeViewController: UIViewController, UIScrollViewDelegate {
     private var shortKit: ShortKit!
     private var widgetVC: ShortKitWidgetViewController!
     private var gridHeightConstraint: NSLayoutConstraint!
@@ -735,8 +733,7 @@ class HomeViewController: UIViewController, UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         widgetVC.parentScrollViewDidScroll(scrollView)
     }
-}
-```
+    ```
   </Tab>
   <Tab title="Android">
     Coming soon.
