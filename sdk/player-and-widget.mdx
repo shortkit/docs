@@ -1,10 +1,10 @@
 ---
 title: "Widgets & Entry Points"
-description: "Embed individual videos or horizontal video carousels anywhere in your app."
-keywords: ["player", "widget", "single player", "carousel", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "fetchContent"]
+description: "Embed individual videos, horizontal video carousels, and vertical video grids anywhere in your app."
+keywords: ["player", "widget", "single player", "carousel", "grid", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
 ---
 
-The player and widget components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews) and the **widget** for a horizontal carousel of video cards (home screens, dashboards, discovery surfaces).
+The player and widget components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews) and the **widget** for a horizontal carousel or vertical grid of video cards (home screens, dashboards, discovery surfaces).
 
 Both components require content fetched via `fetchContent()`.
 
@@ -19,7 +19,11 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
 <Tabs>
   <Tab title="iOS (Swift)">
     ```swift
+    // Fetch up to 5 items
     let items = try await shortKit.fetchContent(limit: 5)
+
+    // Fetch with a filter (FeedFilter also accepts section, author, contentType, metadata)
+    let filtered = try await shortKit.fetchContent(limit: 5, filter: FeedFilter(tags: ["sports"]))
     ```
   </Tab>
   <Tab title="Android">
@@ -40,7 +44,7 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
   </Tab>
 </Tabs>
 
-`fetchContent()` returns an array of resolved `ContentItem` objects with streaming URLs, metadata, and captions. For full model definitions see the [Content Types](/guides/content-types) guide.
+`fetchContent(limit:filter:)` returns an array of resolved `ContentItem` objects with streaming URLs, metadata, and captions. `limit` defaults to `10`. Pass a `FeedFilter` to restrict results by tags, section, author, content type, or custom metadata. For full model definitions see the [Content Types](/guides/content-types) guide.
 
 ---
 
@@ -288,21 +292,134 @@ On React Native, use the `active` prop instead of method calls. It defaults to t
 
 ## Widget
 
-The widget displays a horizontal carousel of video cards with muted autoplay and automatic rotation. Tapping a card opens the feed by default.
+The widget displays a horizontal carousel or vertical grid of video cards with muted autoplay. Tapping a card opens the feed by default.
 
 ### WidgetConfig
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `cardCount` | integer | `3` | Number of video cards visible in the carousel. |
-| `cardSpacing` | float | `8` | Horizontal spacing between cards, in points (iOS) or dp (Android/RN). |
+| `cardCount` | integer | `3` | Number of video cards visible in the carousel. Has no effect when `layout` is `.grid`. |
+| `cardSpacing` | float | `8` | Spacing between cards (carousel) or between grid cells, in points (iOS) or dp (Android/RN). |
 | `cornerRadius` | float | `12` | Corner radius applied to each card. |
 | `autoplay` | boolean | `true` | Whether the visible card plays automatically. |
 | `muteOnStart` | boolean | `true` | Whether playback starts muted. |
 | `loop` | boolean | `true` | Whether each card loops when it reaches the end. |
-| `rotationInterval` | number | `10` | Time before the carousel advances to the next card. **iOS uses seconds (`10`). Android and React Native use milliseconds (`10_000`).** Flutter support is coming soon. |
+| `rotationInterval` | number | `10` | **Android and React Native only.** Time in milliseconds before the carousel advances to the next card (e.g. `10_000` for 10 seconds). On iOS, advancement is driven by the preview reaching its end — this property is ignored. Flutter support is coming soon. Applies to carousel layout only. |
 | `clickAction` | enum | `.feed` | Action performed when a card is tapped. See [click actions](#click-actions). |
 | `cardOverlay` / `overlay` | enum | `.none` | Overlay rendered on top of each card. The React Native prop is named `overlay`; iOS and Android use `cardOverlay`. |
+| `layout` | `WidgetLayout` | `.carousel` | Layout mode — horizontal carousel or vertical grid. See [Layout](#layout). |
+| `playbackMode` | `WidgetPlaybackMode` | `.singleVisibleRotating` | How the widget activates preview playback across cells. See [Playback mode](#playback-mode). |
+| `previewDuration` | `TimeInterval` | `5` | Duration in seconds of the looping preview clip shown on each card. |
+| `filter` | `FeedFilter?` | `nil` | Filter applied when the widget fetches content automatically. Same format as the `filter` parameter in `fetchContent()`. |
+
+### Layout
+
+`WidgetConfig.layout` controls whether the widget renders as a horizontal carousel or a vertical grid.
+
+| Value | Description |
+|---|---|
+| `.carousel` | Default. Cards scroll horizontally in a single row within the widget's fixed height. |
+| `.grid(columns:cellAspectRatio:scrollable:)` | Vertical grid with configurable columns. |
+
+**Grid parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `columns` | `Int` | Number of columns. Must be at least `1`. |
+| `cellAspectRatio` | `CGFloat` | Cell height ÷ cell width. Use `16.0/9.0` for portrait video, `9.0/16.0` for landscape, or `1.0` for square. |
+| `scrollable` | `Bool` | When `true` (default) the grid manages its own scroll view and fills its assigned frame — use this for a standalone grid surface. When `false`, the grid expands to fit all of its content without internal scrolling and defers scrolling to the enclosing scroll view — use this to embed the grid inside a host-managed scroll view alongside other content. |
+
+Two helper methods on `WidgetConfig` make it easier to size the container when using a non-scrollable embedded grid:
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    // Height of each individual cell given the container's current width
+    let cellHeight = config.gridCellHeight(forContainerWidth: view.bounds.width)
+
+    // Total height needed to display all items (non-scrollable grids only)
+    let totalHeight = config.preferredGridHeight(forContainerWidth: view.bounds.width, itemCount: items.count)
+    ```
+
+    `gridCellHeight` returns `nil` for carousel layouts. `preferredGridHeight` returns `nil` for carousel layouts and for scrollable grid layouts (where total height is unbounded).
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+</Tabs>
+
+---
+
+### Playback mode
+
+`WidgetConfig.playbackMode` controls how the widget activates preview playback across its cells.
+
+| Value | Works with | Description |
+|---|---|---|
+| `.singleVisibleRotating` | Carousel | Default. One visible card plays at a time. When its preview ends the widget advances to the next visible card. Off-screen cards never play. |
+| `.allVisibleSimultaneous` | Carousel | Up to 3 visible cards play simultaneously. Each card loops its own preview independently. Cards beyond the first 3 visible and all off-screen cards stay paused. |
+| `.gridAlternating(startSide:)` | Grid | One cell per visible row plays at a time, alternating left and right columns on successive rows, up to 4 active previews simultaneously. Each active cell loops its preview. When more rows are equally visible, the topmost rows take priority. When using this mode with a non-scrollable embedded grid, call `parentScrollViewDidScroll(_:)` on every scroll event so the widget can correctly score cell visibility against the parent viewport. |
+
+The `startSide` parameter on `gridAlternating` controls which column plays in the first row:
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    // Row 0 → rightmost column, row 1 → leftmost, row 2 → rightmost, …
+    let config = WidgetConfig(
+        layout: .grid(columns: 3, cellAspectRatio: 16.0 / 9.0),
+        playbackMode: .gridAlternating(startSide: .right)
+    )
+    ```
+
+    `GridSide` values: `.left` (default), `.right`.
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+</Tabs>
+
+---
+
+### WidgetInput
+
+`WidgetInput` describes a video by its playback ID. Pass an array of these to `configure(with:)` or `appendItems(_:)`.
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    case video(playbackId: String, origin: ContentOrigin = .other, fallbackUrl: String? = nil)
+    ```
+
+    | Parameter | Type | Default | Description |
+    |---|---|---|---|
+    | `playbackId` | `String` | required | The video's playback ID, available on `ContentItem.playbackId`. |
+    | `origin` | `ContentOrigin` | `.other` | Origin of the video. Use `.iosUpload` for videos uploaded directly from the device; `.other` for all other sources. |
+    | `fallbackUrl` | `String?` | `nil` | Optional direct video URL used as a fallback when the primary stream is unavailable. |
+
+    Because `ContentItem.playbackId` is optional, use `compactMap` when converting from `fetchContent()` results:
+
+    ```swift
+    let items = try await shortKit.fetchContent(limit: 10)
+    let inputs = items.compactMap { $0.playbackId.map { WidgetInput.video(playbackId: $0) } }
+    widgetVC.configure(with: inputs)
+    ```
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+</Tabs>
+
+---
 
 ### Embedding a widget
 
@@ -325,8 +442,7 @@ The widget displays a horizontal carousel of video cards with muted autoplay and
             let widgetVC = ShortKitWidgetViewController(
                 shortKit: shortKit,
                 config: WidgetConfig(
-                    cardCount: 3,
-                    rotationInterval: 10 // seconds
+                    cardCount: 3
                 )
             )
 
@@ -338,7 +454,8 @@ The widget displays a horizontal carousel of video cards with muted autoplay and
 
             Task {
                 let items = try await shortKit.fetchContent(limit: 5)
-                widgetVC.configure(with: items)
+                let inputs = items.compactMap { $0.playbackId.map { WidgetInput.video(playbackId: $0) } }
+                widgetVC.configure(with: inputs)
             }
         }
     }
@@ -454,12 +571,219 @@ The widget displays a horizontal carousel of video cards with muted autoplay and
   </Tab>
 </Tabs>
 
+### Widget properties and callbacks
+
+These properties are set on the widget component after initialization.
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    Set these directly on your `ShortKitWidgetViewController` instance:
+
+    | Property | Type | Default | Description |
+    |---|---|---|---|
+    | `active` | `Bool` | `true` | When `false`, the widget deactivates all playing cards and releases playback resources. Setting back to `true` resumes playback in place. Use this for tab-focus gating — pause widgets on inactive tabs so the focused surface has uncontested access to playback. |
+    | `feedMask` | `FeedMaskMode` | `.none` | Mask applied to the full-screen feed presented when a card is tapped. |
+    | `onCardTap` | `((String, Int) -> Void)?` | `nil` | When set, tapping a card invokes this callback with the video's `playbackId` and its index, and the built-in feed presentation is skipped entirely. When `nil`, `clickAction` governs tap behavior. |
+    | `onModalFeedPresented` | `((ShortKitFeedViewController) -> Void)?` | `nil` | Fires immediately before the SDK presents the full-screen feed. Not fired when `onCardTap` is set. |
+    | `onModalFeedDismissed` | `(() -> Void)?` | `nil` | Fires when the SDK's full-screen feed dismisses. |
+    | `onContentHeightChange` | `((CGFloat) -> Void)?` | `nil` | Fires whenever the grid's total content height changes. **Non-scrollable grid only** — use this to update a height constraint as items are appended. Has no effect on scrollable grids or carousel layouts. |
+
+    `setFeedItems(_ inputs: [FeedInput])` supplies an optional seed list of items for the full-screen feed that opens when a card is tapped. The widget's own cards are always prepended so the tapped clip is the opening item; the seed items follow. `FeedInput` accepts the same inputs as the full-screen feed — see [Embedding a Feed](/sdk/feed) for details.
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+</Tabs>
+
+---
+
+### Embedding a grid
+
+Use `WidgetLayout.grid` to replace the carousel with a vertical grid. The example below embeds a scrollable standalone grid that fills its assigned frame:
+
+<Tabs>
+  <Tab title="iOS (UIKit)">
+    ```swift ViewController.swift
+    import ShortKitSDK
+
+    class ViewController: UIViewController {
+        private var shortKit: ShortKit!
+        private var widgetVC: ShortKitWidgetViewController!
+
+        override func viewDidLoad() {
+            super.viewDidLoad()
+
+            shortKit = ShortKit(
+                apiKey: "pk_live_your_publishable_key",
+                config: FeedConfig()
+            )
+
+            let config = WidgetConfig(
+                cornerRadius: 8,
+                layout: .grid(columns: 3, cellAspectRatio: 16.0 / 9.0, scrollable: true),
+                playbackMode: .gridAlternating()
+            )
+
+            widgetVC = ShortKitWidgetViewController(shortKit: shortKit, config: config)
+            addChild(widgetVC)
+            widgetVC.view.frame = view.bounds
+            widgetVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(widgetVC.view)
+            widgetVC.didMove(toParent: self)
+
+            Task {
+                let items = try await shortKit.fetchContent(limit: 12)
+                let inputs = items.compactMap { $0.playbackId.map { WidgetInput.video(playbackId: $0) } }
+                widgetVC.configure(with: inputs)
+            }
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+</Tabs>
+
+### Embedded (non-scrollable) grid
+
+When the grid sits inside a host-managed scroll view alongside other content — for example, a home screen with a carousel above and a grid below — set `scrollable: false`. The grid expands to fit all of its content and lets the parent scroll view handle scrolling.
+
+Three additional steps are required:
+
+1. **Resize the container as items load.** Subscribe to `onContentHeightChange` and update your height constraint whenever the grid's content height changes.
+2. **Forward scroll events.** Call `parentScrollViewDidScroll(_:)` from the parent scroll view delegate so the widget can correctly score which grid cells are visible.
+3. **Append items for pagination.** Call `appendItems(_:)` to load additional items without a full reload.
+
+<Tabs>
+  <Tab title="iOS (UIKit)">
+    ```swift ViewController.swift
+    import ShortKitSDK
+
+    class HomeViewController: UIViewController, UIScrollViewDelegate {
+    private var shortKit: ShortKit!
+    private var widgetVC: ShortKitWidgetViewController!
+    private var gridHeightConstraint: NSLayoutConstraint!
+
+    private let scrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
+    }()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Set up the host scroll view
+        view.addSubview(scrollView)
+        scrollView.delegate = self
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig()
+        )
+
+        let config = WidgetConfig(
+            cornerRadius: 8,
+            layout: .grid(columns: 3, cellAspectRatio: 16.0 / 9.0, scrollable: false),
+            playbackMode: .gridAlternating()
+        )
+
+        widgetVC = ShortKitWidgetViewController(shortKit: shortKit, config: config)
+
+        // Resize the container whenever content is added
+        widgetVC.onContentHeightChange = { [weak self] height in
+            self?.gridHeightConstraint.constant = height
+        }
+
+        addChild(widgetVC)
+        widgetVC.view.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(widgetVC.view)
+        gridHeightConstraint = widgetVC.view.heightAnchor.constraint(equalToConstant: 0)
+        NSLayoutConstraint.activate([
+            widgetVC.view.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            widgetVC.view.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            widgetVC.view.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            widgetVC.view.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            widgetVC.view.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            gridHeightConstraint,
+        ])
+        widgetVC.didMove(toParent: self)
+
+        Task {
+            let items = try await shortKit.fetchContent(limit: 10)
+            let inputs = items.compactMap { $0.playbackId.map { WidgetInput.video(playbackId: $0) } }
+            widgetVC.configure(with: inputs)
+        }
+    }
+
+    // Forward scroll events so the grid can score cell visibility
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        widgetVC.parentScrollViewDidScroll(scrollView)
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+</Tabs>
+
+To size the grid container before items load, use `preferredGridHeight(forContainerWidth:itemCount:)`:
+
+```swift
+let initialHeight = config.preferredGridHeight(
+    forContainerWidth: view.bounds.width,
+    itemCount: items.count
+) ?? 0
+gridHeightConstraint.constant = initialHeight
+```
+
+#### Appending items
+
+Call `appendItems(_:)` to add more items to the grid without a full reload — for example, when the user scrolls near the bottom:
+
+```swift
+Task {
+    let nextPage = try await shortKit.fetchContent(limit: 10, filter: FeedFilter(tags: ["sports"]))
+    let inputs = nextPage.compactMap { $0.playbackId.map { WidgetInput.video(playbackId: $0) } }
+    widgetVC.appendItems(inputs)
+}
+```
+
+`appendItems` is a no-op on an empty input array. It works on both scrollable and non-scrollable grid layouts, inserting items incrementally without a full reload. On carousel layouts it triggers a full reload instead.
+
+---
+
 ### Auto-rotation
 
-When `autoplay` and `loop` are both `true` (the defaults), the widget advances to the next card after the `rotationInterval` elapses. Rotation pauses while the user is actively swiping and resumes once the gesture ends. When the carousel reaches the last card it wraps back to the first.
+<Note>
+  Auto-rotation applies to carousel layout only (`WidgetLayout.carousel`). Grid layouts use the `playbackMode` setting to control preview activation instead.
+</Note>
+
+When `autoplay` is `true` (the default), the carousel widget automatically advances through cards. How advancement is triggered differs by platform:
+
+- **iOS** — advancement is driven by the preview reaching its end (`singleVisibleRotating` mode). Each card plays until its preview clip finishes, then the carousel moves to the next card. `rotationInterval` has no effect on iOS.
+- **Android and React Native** — advancement is timer-based: the carousel advances to the next card after `rotationInterval` elapses, regardless of playback position.
+
+On all platforms, when the carousel reaches the last card it wraps back to the first. Rotation pauses while the user is actively swiping and resumes once the gesture ends.
 
 <Warning>
-  The `rotationInterval` unit differs across platforms. iOS expects seconds (e.g. `10`), while Android and React Native expect milliseconds (e.g. `10_000` / `10000`). Using the wrong unit will result in rotation that is either too fast or too slow.
+  The `rotationInterval` unit differs across platforms. Android and React Native expect milliseconds (e.g. `10_000` / `10000`). The property is ignored on iOS.
 </Warning>
 
 ---
