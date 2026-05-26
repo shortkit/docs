@@ -228,6 +228,65 @@ When the status reaches `ready`, the response includes the `playbackId` and dura
 
 The content now appears in the feed (`GET /v1/feed`), subject to scheduling and editorial controls.
 
+### Use a webhook callback
+
+As an alternative to polling, pass `callbackUrl` in the upload request to receive push notifications as the video moves through the pipeline.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/upload \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "video",
+        "title": "Product Launch Teaser",
+        "callbackUrl": "https://your-backend.com/webhooks/shortkit"
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    resp = requests.post(
+        "https://api.shortkit.dev/v1/content/upload",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "contentType": "video",
+            "title": "Product Launch Teaser",
+            "callbackUrl": "https://your-backend.com/webhooks/shortkit",
+        },
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const resp = await fetch("https://api.shortkit.dev/v1/content/upload", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contentType: "video",
+        title: "Product Launch Teaser",
+        callbackUrl: "https://your-backend.com/webhooks/shortkit",
+      }),
+    });
+    ```
+  </Tab>
+</Tabs>
+
+ShortKit will POST to your endpoint at each stage of processing:
+
+- **`content.imported` / `status: "processing"`** — Sent when your file is received and processing begins. Contains the `playbackId`.
+- **`content.imported` / `status: "ready"`** — Sent when transcoding completes and all quality levels are available.
+- **`content.import_failed` / `status: "error"`** — Sent if processing fails.
+
+See [Callback events](/api/content/upload#callback-events) for full payload shapes and retry behavior.
+
 ## Carousel creation workflow
 
 Carousels skip the processing pipeline entirely. They are `ready` the moment you create them.
