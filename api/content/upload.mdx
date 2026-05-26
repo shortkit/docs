@@ -72,6 +72,10 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   **Carousel only.** Seconds between automatic image transitions.
 </ParamField>
 
+<ParamField body="callbackUrl" type="string">
+  A webhook URL that ShortKit will POST to as the content moves through the processing pipeline. Applies to `"video"` and `"carousel"` content types. See [Callback events](#callback-events) for payload shape and delivery behavior.
+</ParamField>
+
 ---
 
 ## Uploading a video
@@ -291,3 +295,86 @@ asyncio.run(main())
 <Tip>
   For bulk server-side ingestion from URLs (cloud storage, CMS, etc.), use [Import](/api/content/import) instead — it accepts up to 100 items in a single request.
 </Tip>
+
+---
+
+## Callback events
+
+When you provide a `callbackUrl`, ShortKit sends a POST request to that URL at each stage of processing. Your endpoint must respond with a `2xx` status code to acknowledge receipt.
+
+### Video uploads
+
+ShortKit delivers up to three callbacks per video upload:
+
+**1. `content.imported` with `status: "processing"`**
+
+Sent when your file has been received and processing has begun. If a `playbackId` is present, store it alongside your content record — the video is already streamable at this point, though transcoding is not yet complete. Viewers of longer videos may experience buffering near the end until encoding finishes.
+
+<Note>
+  `playbackId` may be `null` in this callback if processing is still in its earliest stage. The `ready` callback always includes a non-null `playbackId`.
+</Note>
+
+```json
+{
+  "event": "content.imported",
+  "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
+  "status": "processing",
+  "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
+  "title": "Product Launch Teaser",
+  "source": "upload",
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
+
+**2. `content.imported` with `status: "ready"`**
+
+Sent when transcoding completes and the video is fully available at all quality levels. The payload shape is identical to the `processing` callback, with `status` set to `"ready"`. `playbackId` is always present.
+
+**3. `content.import_failed` with `status: "error"`**
+
+Sent if processing fails. The payload includes an `error` field with a human-readable description of the failure. No `playbackId` is included.
+
+```json
+{
+  "event": "content.import_failed",
+  "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
+  "status": "error",
+  "error": "A human-readable description of the failure.",
+  "title": "Product Launch Teaser",
+  "source": "upload",
+  "timestamp": "2026-03-10T14:35:00.000Z"
+}
+```
+
+### Carousel uploads
+
+A single callback fires once all images have been validated. The `status` is `"ready"` if at least one image processed successfully, or `"errored"` if all images failed. Only successfully processed images are included in the `images` array.
+
+```json
+{
+  "event": "content.imported",
+  "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
+  "contentType": "carousel",
+  "status": "ready",
+  "title": "Top 5 Weekend Destinations",
+  "images": [
+    { "position": 0, "url": "https://..." },
+    { "position": 1, "url": "https://..." },
+    { "position": 2, "url": "https://..." }
+  ],
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
+
+<Note>
+  `externalId` reflects the value you provided on upload, or `null` if not set.
+</Note>
+
+### Retry behavior
+
+Each callback is attempted up to **3 times**. If your endpoint returns a non-2xx status or is unreachable, ShortKit retries after 1 second, then again after 5 seconds. If all three attempts fail, the callback is abandoned.
+
+Callbacks are fire-and-forget — a failed callback does **not** affect processing. If your endpoint was down and you missed a callback, you can always retrieve the current status by polling `GET /v1/content/{id}`.
