@@ -308,12 +308,17 @@ ShortKit delivers up to three callbacks per video upload:
 
 **1. `content.imported` with `status: "processing"`**
 
-Sent when your file has been received and processing has begun. This is where you receive the `playbackId` — store it alongside your content record.
+Sent when your file has been received and processing has begun. If a `playbackId` is present, store it alongside your content record — the video is already streamable at this point, though transcoding is not yet complete. Viewers of longer videos may experience buffering near the end until encoding finishes.
+
+<Note>
+  `playbackId` may be `null` in this callback if processing is still in its earliest stage. The `ready` callback always includes a non-null `playbackId`.
+</Note>
 
 ```json
 {
   "event": "content.imported",
   "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
   "status": "processing",
   "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
   "title": "Product Launch Teaser",
@@ -322,22 +327,21 @@ Sent when your file has been received and processing has begun. This is where yo
 }
 ```
 
-The video is streamable at this point, but transcoding is not yet complete. Viewers of longer videos may experience buffering near the end until encoding finishes.
-
 **2. `content.imported` with `status: "ready"`**
 
-Sent when transcoding completes and the video is fully available at all quality levels. The payload shape is identical to the `processing` callback, with `status` set to `"ready"`.
+Sent when transcoding completes and the video is fully available at all quality levels. The payload shape is identical to the `processing` callback, with `status` set to `"ready"`. `playbackId` is always present.
 
 **3. `content.import_failed` with `status: "error"`**
 
-Sent if processing fails. The payload includes an `error` field describing the failure. No `playbackId` is included.
+Sent if processing fails. The payload includes an `error` field with a human-readable description of the failure. No `playbackId` is included.
 
 ```json
 {
   "event": "content.import_failed",
   "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
   "status": "error",
-  "error": "Video processing failed",
+  "error": "A human-readable description of the failure.",
   "title": "Product Launch Teaser",
   "source": "upload",
   "timestamp": "2026-03-10T14:35:00.000Z"
@@ -346,12 +350,13 @@ Sent if processing fails. The payload includes an `error` field describing the f
 
 ### Carousel uploads
 
-A single callback fires once all images have been validated and the carousel status is determined:
+A single callback fires once all images have been validated. The `status` is `"ready"` if at least one image processed successfully, or `"errored"` if all images failed. Only successfully processed images are included in the `images` array.
 
 ```json
 {
   "event": "content.imported",
   "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
   "contentType": "carousel",
   "status": "ready",
   "title": "Top 5 Weekend Destinations",
@@ -363,6 +368,10 @@ A single callback fires once all images have been validated and the carousel sta
   "timestamp": "2026-03-10T14:30:00.000Z"
 }
 ```
+
+<Note>
+  `externalId` reflects the value you provided on upload, or `null` if not set.
+</Note>
 
 ### Retry behavior
 
