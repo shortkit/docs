@@ -1,7 +1,7 @@
 ---
 title: "Live Streams"
 description: "Publish real-time broadcasts that appear in your feed alongside on-demand content, then turn the recordings into reusable clips."
-keywords: ["live", "live stream", "broadcast", "RTMP", "viewer count", "clip", "live clipping"]
+keywords: ["live", "live stream", "broadcast", "RTMP", "WebRTC", "viewer count", "clip", "live clipping"]
 ---
 
 Live streams are real-time broadcasts that show up in your feed exactly like any other content item. Once a stream ends, the recording stays in the feed as on-demand video, and you can carve clips out of it for separate distribution.
@@ -12,12 +12,36 @@ This guide walks through the full lifecycle: creating a stream, broadcasting to 
 
 ## How a live stream flows through ShortKit
 
-1. **Create the stream** with [`POST /v1/live-streams`](/api/live-streams/create). You receive a `playbackId` (for viewers) and broadcast credentials (`rtmpUrl` + `streamKey`) for your encoder.
-2. **Forward the credentials to your broadcaster.** They paste them into their encoder of choice.
+1. **Create the stream** with [`POST /v1/live-streams`](/api/live-streams/create). Choose a protocol — `hls` for standard latency or `webrtc` for sub-second delivery. You receive a `playbackId` (for viewers) and broadcast credentials (`rtmpUrl` + `streamKey`) for your encoder.
+2. **Forward the credentials to your broadcaster.** They paste them into their encoder of choice. The broadcast workflow is the same regardless of protocol.
 3. **The broadcaster goes live.** As soon as ShortKit receives video, the stream's `status` flips from `idle` to `active`. The stream appears in your feed automatically — no separate publish step.
 4. **Viewers watch from your app.** The SDK plays the live stream the same way it plays any video. A live badge and viewer count are available to overlay on top.
-5. **The stream ends.** Either the broadcaster disconnects (and stays disconnected longer than `reconnectWindow`), or you call [`POST /v1/live-streams/{id}/end`](/api/live-streams/end). The status moves to `ended` and the recording stays in the feed as a regular video.
+5. **The stream ends.** Either the broadcaster disconnects (and stays disconnected longer than `reconnectWindow` on HLS streams), or you call [`POST /v1/live-streams/{id}/end`](/api/live-streams/end). The status moves to `ended` and the recording stays in the feed as a regular video.
 6. **Optionally, create clips** from the recording with [`POST /v1/live-streams/{id}/clips`](/api/live-streams/clip). Each clip becomes its own content item.
+
+---
+
+## Choosing a protocol
+
+ShortKit supports two ingest and delivery protocols:
+
+| Protocol | Viewer latency | Best for |
+|----------|---------------|----------|
+| `hls` (default) | A few seconds | Most broadcasts — broadest encoder compatibility, tunable via `latencyMode` |
+| `webrtc` | Under one second | Highly interactive streams where near-instant delivery matters |
+
+Specify `protocol` when you create the stream:
+
+```bash
+curl -X POST "https://api.shortkit.dev/v1/live-streams" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "title": "Friday morning yoga", "protocol": "webrtc" }'
+```
+
+**The broadcast workflow is identical for both protocols.** Your encoder always connects to the `rtmpUrl` from the create response — there is no separate setup required for WebRTC. The protocol choice only affects how the stream is delivered to viewers; the ShortKit SDK handles playback automatically.
+
+The protocol cannot be changed after creation. `latencyMode` and `reconnectWindow` apply only to `hls` streams and are ignored for `webrtc` streams.
 
 ---
 
@@ -40,6 +64,7 @@ The response includes the broadcaster credentials:
     "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
     "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
     "status": "idle",
+    "protocol": "hls",
     "rtmpUrl": "rtmps://global-live.example/app/<stream-key>",
     "streamKey": "abc123def456...",
     ...
@@ -52,6 +77,37 @@ The response includes the broadcaster credentials:
 </Warning>
 
 The credentials are returned only on this response. If you lose them, delete the stream and create a new one.
+
+---
+
+## Broadcasting to a stream
+
+Once you have the `rtmpUrl` and `streamKey` from the create response, point your encoder at them to start pushing video.
+
+**`rtmpUrl` already embeds the stream key**, so for tools that take a single URL (such as ffmpeg), pass it directly:
+
+```bash
+# RTMP_URL is the rtmpUrl value from the create response
+ffmpeg -re \
+  -i your-input.mp4 \
+  -c:v libx264 -preset veryfast -tune zerolatency -b:v 2500k \
+  -c:a aac -b:a 128k \
+  -f flv "$RTMP_URL"
+```
+
+For **broadcast software** (OBS, Wirecast, and similar) that has separate Server and Stream Key fields, split the URL at the key boundary:
+
+| Field | Value |
+|-------|-------|
+| Server | Everything in `rtmpUrl` up to and including the last `/` |
+| Stream Key | The `streamKey` value from the response |
+
+For example, with a WebRTC stream whose `rtmpUrl` is `rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl`:
+
+- **Server**: `rtmps://ingest.shortkit.dev/x/`
+- **Stream Key**: `AbCdEfGhIjKl`
+
+The broadcast workflow is the same regardless of whether you created an `hls` or `webrtc` stream — the difference is entirely on the viewer delivery side.
 
 ---
 
@@ -169,14 +225,14 @@ The client app already has everything it needs to construct the request: read `l
 
 ## Ending a stream
 
-Streams end automatically when the broadcaster disconnects and stays disconnected past the `reconnectWindow` you configured at creation time (default: 60 seconds).
-
-To end a stream on your terms — for example when programming has finished and you don't want to wait for the timeout — call:
+End any stream — regardless of protocol — by calling:
 
 ```bash
 curl -X POST "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/end" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
+
+**HLS streams** also end automatically if the broadcaster disconnects and stays disconnected past the `reconnectWindow` you configured at creation time (default: 60 seconds). Use the explicit end call above when you want to close the stream immediately rather than waiting for the timeout.
 
 Once ended, a stream cannot be restarted. Create a new live stream for the next broadcast.
 
