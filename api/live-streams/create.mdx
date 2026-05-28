@@ -8,22 +8,33 @@ Creates a live stream in the `idle` state and returns the broadcast credentials 
 
 The response contains a single-use `streamKey` and an `rtmpUrl` that the broadcaster pastes into their encoder. Once the broadcaster connects, the stream automatically transitions to `active` and becomes visible in your feed.
 
+ShortKit supports two ingest and delivery protocols. Use `protocol: "hls"` (the default) for standard latency broadcasts, or `protocol: "webrtc"` for sub-second delivery to viewers — see [Choosing a protocol](/guides/live-streams#choosing-a-protocol).
+
 ## Body parameters
 
 <ParamField body="title" type="string">
   Display title shown in the feed. Max 200 characters.
 </ParamField>
 
+<ParamField body="protocol" type="string" default="hls">
+  Ingest and delivery protocol. One of `hls` or `webrtc`.
+
+  - **`hls`** — Standard latency (a few seconds). Use with any RTMP-compatible broadcast software or hardware encoder.
+  - **`webrtc`** — Sub-second latency. Viewers receive the stream in under a second end-to-end. The broadcast workflow is identical — your encoder still connects via the `rtmpUrl` returned in the response.
+
+  `latencyMode` and `reconnectWindow` apply only to `hls` streams and are ignored when `protocol` is `webrtc`.
+</ParamField>
+
 <ParamField body="latencyMode" type="string" default="low">
-  One of `low`, `reduced`, or `standard`. See [Latency mode](/api/live-streams/object#latency-mode).
+  HLS streams only. One of `low`, `reduced`, or `standard`. See [Latency mode](/api/live-streams/object#latency-mode). Ignored when `protocol` is `webrtc`.
 </ParamField>
 
 <ParamField body="reconnectWindow" type="integer" default="60">
-  Seconds the stream will hold the slot if the broadcaster disconnects. Range 0–1800.
+  HLS streams only. Seconds the stream will hold the slot if the broadcaster disconnects. Range 0–1800. Ignored when `protocol` is `webrtc`.
 </ParamField>
 
 <RequestExample>
-```bash cURL
+```bash HLS (default)
 curl -X POST "https://api.shortkit.dev/v1/live-streams" \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
@@ -31,6 +42,16 @@ curl -X POST "https://api.shortkit.dev/v1/live-streams" \
     "title": "Friday morning yoga",
     "latencyMode": "low",
     "reconnectWindow": 60
+  }'
+```
+
+```bash WebRTC
+curl -X POST "https://api.shortkit.dev/v1/live-streams" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Friday morning yoga",
+    "protocol": "webrtc"
   }'
 ```
 
@@ -42,8 +63,7 @@ resp = requests.post(
     headers={"Authorization": "Bearer sk_live_your_secret_key"},
     json={
         "title": "Friday morning yoga",
-        "latencyMode": "low",
-        "reconnectWindow": 60,
+        "protocol": "webrtc",
     },
 )
 stream = resp.json()["data"]
@@ -58,8 +78,7 @@ const resp = await fetch("https://api.shortkit.dev/v1/live-streams", {
   },
   body: JSON.stringify({
     title: "Friday morning yoga",
-    latencyMode: "low",
-    reconnectWindow: 60,
+    protocol: "webrtc",
   }),
 });
 const { data: stream } = await resp.json();
@@ -67,23 +86,46 @@ const { data: stream } = await resp.json();
 </RequestExample>
 
 <ResponseExample>
-```json 201
+```json HLS (201)
 {
   "data": {
     "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
     "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
     "status": "idle",
+    "protocol": "hls",
     "title": "Friday morning yoga",
     "latencyMode": "low",
     "reconnectWindow": 60,
-    "rtmpUrl": "rtmps://global-live.example/app/abc123def456...",
-    "streamKey": "abc123def456...",
+    "rtmpUrl": "rtmps://global-live.example/app/abc123def456-7890-abcd-ef12-34567890abcd",
+    "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
     "startedAt": null,
     "endedAt": null,
     "createdAt": "2026-04-17T13:55:00Z"
   },
   "meta": {
     "request_id": "req_create001"
+  }
+}
+```
+
+```json WebRTC (201)
+{
+  "data": {
+    "id": "6b8c9d0e-f1a2-5345-6789-01bcdef23456",
+    "playbackId": "ET11Tqy2DW4D11cw8o8DoH03SPtQJyR211",
+    "status": "idle",
+    "protocol": "webrtc",
+    "title": "Friday morning yoga",
+    "latencyMode": null,
+    "reconnectWindow": null,
+    "rtmpUrl": "rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl",
+    "streamKey": "AbCdEfGhIjKl",
+    "startedAt": null,
+    "endedAt": null,
+    "createdAt": "2026-04-17T13:55:00Z"
+  },
+  "meta": {
+    "request_id": "req_create002"
   }
 }
 ```

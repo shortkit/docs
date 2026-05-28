@@ -14,6 +14,7 @@ While a stream is `active`, it appears in the feed as a content item with `conte
   "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
   "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
   "status": "active",
+  "protocol": "hls",
   "title": "Friday morning yoga",
   "latencyMode": "low",
   "reconnectWindow": 60,
@@ -45,12 +46,16 @@ While a stream is `active`, it appears in the feed as a content item with `conte
   Display title shown in the feed. Max 200 characters.
 </ResponseField>
 
-<ResponseField name="latencyMode" type="string">
-  Glass-to-glass latency target. One of `low`, `reduced`, or `standard`. See [Latency mode](#latency-mode) below.
+<ResponseField name="protocol" type="string">
+  Ingest and delivery protocol. One of `hls` or `webrtc`. Set at creation time and cannot be changed. See [Choosing a protocol](/guides/live-streams#choosing-a-protocol).
 </ResponseField>
 
-<ResponseField name="reconnectWindow" type="integer">
-  Number of seconds the stream will hold the slot if the broadcaster disconnects. After this window expires without a reconnect, the stream automatically transitions to `ended`. Range 0–1800. Defaults to 60.
+<ResponseField name="latencyMode" type="string | null">
+  HLS streams only. Glass-to-glass latency target. One of `low`, `reduced`, or `standard`. See [Latency mode](#latency-mode) below. `null` for WebRTC streams.
+</ResponseField>
+
+<ResponseField name="reconnectWindow" type="integer | null">
+  HLS streams only. Number of seconds the stream will hold the slot if the broadcaster disconnects. After this window expires without a reconnect, the stream automatically transitions to `ended`. Range 0–1800. Defaults to 60. `null` for WebRTC streams.
 </ResponseField>
 
 <ResponseField name="rtmpUrl" type="string | null">
@@ -85,7 +90,7 @@ A live stream moves through three states:
 |--------|-------------|
 | `idle` | Stream created, no broadcaster connected yet. The slot is reserved but no video is flowing. |
 | `active` | A broadcaster is connected and pushing video. Viewers can watch the stream from your feed. |
-| `ended` | The stream has finished — either explicitly ended via [End Live Stream](/api/live-streams/end), or automatically because the broadcaster disconnected for longer than `reconnectWindow`. The recording becomes available for [clipping](/api/live-streams/clip). |
+| `ended` | The stream has finished — either explicitly ended via [End Live Stream](/api/live-streams/end), or (HLS streams only) automatically because the broadcaster disconnected for longer than `reconnectWindow`. The recording becomes available for [clipping](/api/live-streams/clip). |
 
 A stream can transition `idle` → `active` only once. Once it has gone `active` and then `ended`, it cannot be restarted — create a new live stream for the next broadcast.
 
@@ -93,7 +98,7 @@ A stream can transition `idle` → `active` only once. Once it has gone `active`
 
 ## Latency mode
 
-`latencyMode` controls the trade-off between end-to-end delay and playback stability:
+`latencyMode` applies to HLS streams only and controls the trade-off between end-to-end delay and playback stability. For sub-second delivery, use `protocol: "webrtc"` instead — see [Choosing a protocol](/guides/live-streams#choosing-a-protocol).
 
 | Mode | Approximate latency | Best for |
 |------|---------------------|----------|
