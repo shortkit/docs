@@ -410,6 +410,11 @@ Different filter fields are combined with AND logic — content must match all s
     let config = FeedConfig(
         filter: FeedFilter(metadata: ["country": "Japan", "vibe": "cultural"])
     )
+
+    // Filter by detected language
+    let config = FeedConfig(
+        filter: FeedFilter(metadata: ["language": "es"])
+    )
     ```
   </Tab>
   <Tab title="Kotlin">
@@ -422,6 +427,11 @@ Different filter fields are combined with AND logic — content must match all s
     // Filter by custom metadata
     val config = FeedConfig(
         filter = FeedFilter(metadata = mapOf("country" to "Japan"))
+    )
+
+    // Filter by detected language
+    val config = FeedConfig(
+        filter = FeedFilter(metadata = mapOf("language" to "es"))
     )
     ```
   </Tab>
@@ -441,6 +451,11 @@ Different filter fields are combined with AND logic — content must match all s
     final config = FeedConfig(
       filter: FeedFilter(metadata: {'country': 'Japan', 'vibe': 'cultural'}),
     );
+
+    // Filter by detected language
+    final config = FeedConfig(
+      filter: FeedFilter(metadata: {'language': 'es'}),
+    );
     ```
   </Tab>
   <Tab title="React Native">
@@ -449,6 +464,14 @@ Different filter fields are combined with AND logic — content must match all s
     <ShortKitProvider
       apiKey="pk_live_..."
       config={{ filter: { tags: ['sports', 'news'] } }}
+    >
+      <ShortKitFeed style={{ flex: 1 }} />
+    </ShortKitProvider>
+
+    // Filter by detected language
+    <ShortKitProvider
+      apiKey="pk_live_..."
+      config={{ filter: { metadata: { language: 'es' } } }}
     >
       <ShortKitFeed style={{ flex: 1 }} />
     </ShortKitProvider>
@@ -471,7 +494,7 @@ Different filter fields are combined with AND logic — content must match all s
       config: { filter: { metadata: { country: 'Japan', vibe: 'cultural' } } },
     });
 
-    // Filter by detected language — show only Spanish-language videos
+    // Filter by detected language
     sk.createFeed(el, {
       config: { filter: { metadata: { language: 'es' } } },
     });

@@ -46,9 +46,6 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   Arbitrary key-value pairs passed through to the feed.
 </ParamField>
 
-<ParamField body="generateSubtitles" type="boolean" default={false}>
-  **Deprecated.** Captions are now generated automatically for all videos regardless of this flag. The parameter is accepted for backwards compatibility but has no effect.
-</ParamField>
 
 <ParamField body="origin" type="string" default="other">
   `"ios_upload"` or `"other"`. Set to `"ios_upload"` for videos recorded on iOS devices to enable color-accurate thumbnail extraction. iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.
