@@ -129,7 +129,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 
   ShortKit automatically populates one reserved key:
 
-  - **`language`** — BCP 47 language code detected from the video's audio track (e.g. `"en"`, `"es"`, `"ja"`). Set asynchronously after processing completes. `"und"` indicates no speech was detected. You can filter the feed by this key using [`FeedFilter.metadata`](/sdk/configuration#feedfilter).
+  - **`language`** — [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) language code detected from the video's audio track (e.g. `"en"`, `"es"`, `"ja"`). Set asynchronously after processing completes. `"und"` indicates no speech was detected. You can filter the feed by this key using [`FeedFilter.metadata`](/sdk/configuration#feedfilter).
 </ResponseField>
 
 <ResponseField name="captionTracks" type="object[]">
