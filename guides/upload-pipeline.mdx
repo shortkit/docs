@@ -81,7 +81,6 @@ A video upload follows a simple flow: create the upload session, PUT the file to
 | `title` | string | Yes | -- | Max 200 characters |
 | `description` | string | No | `null` | Max 2000 characters |
 | `tags` | string[] | No | `[]` | |
-
 | `customMetadata` | object | No | `{}` | Arbitrary key-value pairs passed through to the SDK |
 | `section` | string | No | `null` | Grouping label for filtering |
 | `author` | string | No | `null` | Author name |
@@ -142,7 +141,7 @@ PUT the raw video bytes to the signed URL. This goes directly to storage -- it d
 </Tabs>
 
 
-Once the file lands, processing starts automatically. The video is encoded and the content status moves from `waiting_for_upload` to `processing`. When encoding completes, the status transitions to `ready` and the content becomes eligible for the feed. A caption track and spoken language detection are also generated automatically — these typically complete within a few minutes after the video reaches `ready` status. The detected language is stored as `customMetadata.language` (BCP 47 code, e.g. `"en"`, `"es"`, `"ja"`).
+Once the file lands, processing starts automatically. The video is encoded and the content status moves from `waiting_for_upload` to `processing`. When encoding completes, the status transitions to `ready` and the content becomes eligible for the feed. A caption track and spoken language detection are also generated automatically — these typically complete within a few minutes after the video reaches `ready` status. The detected language is stored as `customMetadata.language` ([BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) code, e.g. `"en"`, `"es"`, `"ja"`).
 
 ### iOS-recorded video
 

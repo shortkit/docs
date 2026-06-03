@@ -3,7 +3,7 @@ title: "Language Detection"
 description: "ShortKit automatically detects the spoken language of every video and stores it on the content object, so you can serve language-specific feeds without any extra work on upload."
 ---
 
-Every video uploaded to ShortKit is analyzed for spoken language automatically. The result is stored as `customMetadata.language` on the content item using a BCP 47 language code. No configuration is required.
+Every video uploaded to ShortKit is analyzed for spoken language automatically. The result is stored as `customMetadata.language` on the content item using a [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) language code. No configuration is required.
 
 ## How it works
 
@@ -17,7 +17,7 @@ Every video uploaded to ShortKit is analyzed for spoken language automatically. 
 
 ## The `language` field
 
-`customMetadata.language` contains a BCP 47 language code (e.g. `"en"`, `"es"`, `"ja"`). It appears on the content object alongside any other custom metadata you set at upload time.
+`customMetadata.language` contains a [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) language code (e.g. `"en"`, `"es"`, `"ja"`). It appears on the content object alongside any other custom metadata you set at upload time.
 
 ```json
 {
@@ -36,7 +36,7 @@ Every video uploaded to ShortKit is analyzed for spoken language automatically. 
 
 ## Language codes
 
-Detection covers a broad range of languages. The table below lists the most commonly returned codes, but others may appear as valid BCP 47 codes.
+Detection covers a broad range of languages. The table below lists the most commonly returned codes, but others may appear as valid [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) codes.
 
 | Code | Language |
 |------|----------|
