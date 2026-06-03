@@ -23,7 +23,6 @@ A video upload follows a simple flow: create the upload session, PUT the file to
         "title": "Product Launch Teaser",
         "description": "30-second preview of the new lineup",
         "tags": ["product", "launch"],
-        "generateSubtitles": true,
         "customMetadata": {
           "campaignId": "spring-2026"
         }
@@ -45,7 +44,6 @@ A video upload follows a simple flow: create the upload session, PUT the file to
             "title": "Product Launch Teaser",
             "description": "30-second preview of the new lineup",
             "tags": ["product", "launch"],
-            "generateSubtitles": True,
             "customMetadata": {"campaignId": "spring-2026"},
         },
     )
@@ -68,7 +66,6 @@ A video upload follows a simple flow: create the upload session, PUT the file to
         title: "Product Launch Teaser",
         description: "30-second preview of the new lineup",
         tags: ["product", "launch"],
-        generateSubtitles: true,
         customMetadata: { campaignId: "spring-2026" },
       }),
     });
@@ -84,7 +81,7 @@ A video upload follows a simple flow: create the upload session, PUT the file to
 | `title` | string | Yes | -- | Max 200 characters |
 | `description` | string | No | `null` | Max 2000 characters |
 | `tags` | string[] | No | `[]` | |
-| `generateSubtitles` | boolean | No | `true` | Auto-generate English captions via speech-to-text |
+| `generateSubtitles` | boolean | No | — | **Deprecated.** Captions are generated automatically for all videos. This field is accepted for backwards compatibility but has no effect. |
 | `customMetadata` | object | No | `{}` | Arbitrary key-value pairs passed through to the SDK |
 | `section` | string | No | `null` | Grouping label for filtering |
 | `author` | string | No | `null` | Author name |
@@ -145,7 +142,7 @@ PUT the raw video bytes to the signed URL. This goes directly to storage -- it d
 </Tabs>
 
 
-Once the file lands, processing starts automatically. The video is encoded into HLS adaptive bitrate renditions and the content status moves from `waiting_for_upload` to `processing`. If `generateSubtitles` was `true`, a speech-to-text caption track is also generated and embedded in the HLS manifest — this typically finishes a few minutes after the video is ready. When transcoding completes, the status transitions to `ready` and the content becomes eligible for the feed.
+Once the file lands, processing starts automatically. The video is encoded and the content status moves from `waiting_for_upload` to `processing`. When encoding completes, the status transitions to `ready` and the content becomes eligible for the feed. A caption track and spoken language detection are also generated automatically — these typically complete within a few minutes of the video reaching `ready` status. The detected language is stored as `customMetadata.language` (BCP 47 code, e.g. `"en"`, `"es"`, `"ja"`).
 
 ### iOS-recorded video
 

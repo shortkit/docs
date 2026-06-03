@@ -470,9 +470,66 @@ Different filter fields are combined with AND logic — content must match all s
     sk.createFeed(el, {
       config: { filter: { metadata: { country: 'Japan', vibe: 'cultural' } } },
     });
+
+    // Filter by detected language — show only Spanish-language videos
+    sk.createFeed(el, {
+      config: { filter: { metadata: { language: 'es' } } },
+    });
     ```
   </Tab>
 </Tabs>
+
+### Filtering by language
+
+ShortKit automatically detects the spoken language in every video and stores it as `customMetadata.language` using a BCP 47 code. Use this with `metadata` to serve a language-specific feed without any extra work on upload.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Spanish-language feed
+    let config = FeedConfig(
+        filter: FeedFilter(metadata: ["language": "es"])
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Spanish-language feed
+    val config = FeedConfig(
+        filter = FeedFilter(metadata = mapOf("language" to "es"))
+    )
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    // Spanish-language feed
+    final config = FeedConfig(
+      filter: FeedFilter(metadata: {'language': 'es'}),
+    );
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Spanish-language feed
+    <ShortKitProvider
+      apiKey="pk_live_..."
+      config={{ filter: { metadata: { language: 'es' } } }}
+    >
+      <ShortKitFeed style={{ flex: 1 }} />
+    </ShortKitProvider>
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    // Spanish-language feed
+    sk.createFeed(el, {
+      config: { filter: { metadata: { language: 'es' } } },
+    });
+    ```
+  </Tab>
+</Tabs>
+
+Common language codes: `"en"` English, `"es"` Spanish, `"fr"` French, `"de"` German, `"it"` Italian, `"pt"` Portuguese, `"ja"` Japanese, `"ko"` Korean, `"zh"` Chinese, `"ar"` Arabic, `"hi"` Hindi. `"und"` indicates no detectable speech (music or ambient audio). Language is set asynchronously — it appears on the content object within a few minutes of the video reaching `ready` status.
 
 ## Complete example
 
