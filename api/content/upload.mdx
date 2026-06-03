@@ -12,6 +12,10 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   **Building client-side uploads?** A guide for integrating direct uploads into your app is coming soon.
 </Info>
 
+<Note>
+  **Automatic captions and language detection.** ShortKit generates captions for every video automatically — no configuration needed. Once processing completes, the detected language is stored as `customMetadata.language` (BCP 47 code, e.g. `"en"`, `"es"`). You can use this field to [filter the feed by language](/sdk/configuration#feedfilter).
+</Note>
+
 ## Request body
 
 <ParamField body="contentType" type="string" required>
@@ -42,9 +46,6 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   Arbitrary key-value pairs passed through to the feed.
 </ParamField>
 
-<ParamField body="generateSubtitles" type="boolean" default={false}>
-  When `true`, auto-generates English captions after the video is processed. Only applies to videos.
-</ParamField>
 
 <ParamField body="origin" type="string" default="other">
   `"ios_upload"` or `"other"`. Set to `"ios_upload"` for videos recorded on iOS devices to enable color-accurate thumbnail extraction. iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.
@@ -92,8 +93,7 @@ Send a `POST` with `contentType: "video"` and your metadata. The response includ
         "contentType": "video",
         "title": "Morning Headlines",
         "section": "News",
-        "tags": ["news", "morning"],
-        "generateSubtitles": true
+        "tags": ["news", "morning"]
       }'
     ```
 

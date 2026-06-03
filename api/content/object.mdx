@@ -34,7 +34,8 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   "author": "Jane Doe",
   "tags": ["weather", "severe", "breaking"],
   "customMetadata": {
-    "articleUrl": "https://example.com/weather-alert"
+    "articleUrl": "https://example.com/weather-alert",
+    "language": "en"
   },
   "captionTracks": [],
   "images": [],
@@ -125,6 +126,10 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 
 <ResponseField name="customMetadata" type="object">
   Arbitrary key-value pairs passed through to the feed. Use this for article URLs, campaign IDs, deep links, or any app-specific data your client needs at render time.
+
+  ShortKit automatically populates one reserved key:
+
+  - **`language`** — BCP 47 language code detected from the video's audio track (e.g. `"en"`, `"es"`, `"ja"`). Set asynchronously after processing completes. `"und"` indicates no speech was detected. You can filter the feed by this key using [`FeedFilter.metadata`](/sdk/configuration#feedfilter).
 </ResponseField>
 
 <ResponseField name="captionTracks" type="object[]">

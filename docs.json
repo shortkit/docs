@@ -71,7 +71,7 @@
               "sdk/player",
               "sdk/overlays",
               "sdk/carousel",
-              "engagement-signals"
+              "guides/language-detection"
             ]
           },
           {
@@ -79,12 +79,6 @@
             "pages": [
               "sdk/identity",
               "sdk/analytics"
-            ]
-          },
-          {
-            "group": "Roadmap",
-            "pages": [
-              "coming-soon"
             ]
           }
         ]
