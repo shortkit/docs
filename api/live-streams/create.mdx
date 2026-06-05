@@ -33,6 +33,10 @@ ShortKit supports two ingest and delivery protocols. Use `protocol: "hls"` (the 
   HLS streams only. Seconds the stream will hold the slot if the broadcaster disconnects. Range 0–1800. Ignored when `protocol` is `webrtc`.
 </ParamField>
 
+<ParamField body="customMetadata" type="object" default="{}">
+  Arbitrary key-value pairs you want to store on the live stream. Keys and values must be strings; non-string values are coerced to strings at the API boundary.
+</ParamField>
+
 <RequestExample>
 ```bash HLS (default)
 curl -X POST "https://api.shortkit.dev/v1/live-streams" \
