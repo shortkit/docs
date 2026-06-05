@@ -20,6 +20,7 @@ While a stream is `active`, it appears in the feed as a content item with `conte
   "reconnectWindow": 60,
   "rtmpUrl": "rtmps://global-live.example/app/<stream-key>",
   "streamKey": "abc123def456...",
+  "customMetadata": {},
   "startedAt": "2026-04-17T14:00:00Z",
   "endedAt": null,
   "createdAt": "2026-04-17T13:55:00Z"
@@ -74,6 +75,10 @@ While a stream is `active`, it appears in the feed as a content item with `conte
 
 <ResponseField name="endedAt" type="string | null">
   ISO 8601 timestamp of when the stream ended. `null` while the stream is `idle` or `active`.
+</ResponseField>
+
+<ResponseField name="customMetadata" type="object">
+  Arbitrary key-value pairs stored on the live stream at creation time. Keys and values are strings. Defaults to `{}` if not set. Use this field to attach feed-filter metadata, campaign IDs, or any app-specific data your client needs at render time.
 </ResponseField>
 
 <ResponseField name="createdAt" type="string">
