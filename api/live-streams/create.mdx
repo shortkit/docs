@@ -34,13 +34,15 @@ ShortKit supports two ingest and delivery protocols. Use `protocol: "hls"` (the 
 </ParamField>
 
 <ParamField body="customMetadata" type="object" default="{}">
-  Arbitrary key-value pairs you want to store on the live stream. Keys and values must be strings; non-string values are coerced to strings at the API boundary.
+  Arbitrary key-value pairs attached to the stream at creation time and passed through to the feed. Both keys and values must be strings. Defaults to `{}`.
+
+  Use this to tag the stream with app-specific data (e.g. feed-filter IDs, event identifiers) so the SDK can surface it without a follow-up update.
 </ParamField>
 
 <RequestExample>
 ```bash HLS (default)
 curl -X POST "https://api.shortkit.dev/v1/live-streams" \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Authorization: Bearer *** \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Friday morning yoga",
@@ -51,11 +53,27 @@ curl -X POST "https://api.shortkit.dev/v1/live-streams" \
 
 ```bash WebRTC
 curl -X POST "https://api.shortkit.dev/v1/live-streams" \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Authorization: Bearer *** \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Friday morning yoga",
     "protocol": "webrtc"
+  }'
+```
+
+```bash With customMetadata
+curl -X POST "https://api.shortkit.dev/v1/live-streams" \
+  -H "Authorization: Bearer *** \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Fight Night — Main Card",
+    "customMetadata": {
+      "eventId": "event-789",
+      "boutId": "bout-456",
+      "fighter1Id": "f1",
+      "fighter2Id": "f2",
+      "isTest": "false"
+    }
   }'
 ```
 
@@ -64,7 +82,7 @@ import requests
 
 resp = requests.post(
     "https://api.shortkit.dev/v1/live-streams",
-    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    headers={"Authorization": "Bearer sk_liv..._key"},
     json={
         "title": "Friday morning yoga",
         "protocol": "webrtc",
@@ -77,7 +95,7 @@ stream = resp.json()["data"]
 const resp = await fetch("https://api.shortkit.dev/v1/live-streams", {
   method: "POST",
   headers: {
-    Authorization: "Bearer sk_live_your_secret_key",
+    Authorization: "Bearer sk_liv..._key",
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -100,9 +118,9 @@ const { data: stream } = await resp.json();
     "title": "Friday morning yoga",
     "latencyMode": "low",
     "reconnectWindow": 60,
+    "customMetadata": {},
     "rtmpUrl": "rtmps://global-live.example/app/abc123def456-7890-abcd-ef12-34567890abcd",
     "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
-    "customMetadata": {},
     "startedAt": null,
     "endedAt": null,
     "createdAt": "2026-04-17T13:55:00Z"
@@ -123,9 +141,9 @@ const { data: stream } = await resp.json();
     "title": "Friday morning yoga",
     "latencyMode": null,
     "reconnectWindow": null,
+    "customMetadata": {},
     "rtmpUrl": "rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl",
     "streamKey": "AbCdEfGhIjKl",
-    "customMetadata": {},
     "startedAt": null,
     "endedAt": null,
     "createdAt": "2026-04-17T13:55:00Z"
