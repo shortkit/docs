@@ -122,6 +122,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         public var autoplay: Bool
         public var feedSource: FeedSource
         public var filter: FeedFilter?
+        public var preload: FeedPreload?
 
         public init(
             feedHeight: FeedHeight = .fullscreen,
@@ -134,7 +135,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
             muteOnStart: Bool = true,
             autoplay: Bool = true,
             feedSource: FeedSource = .algorithmic,
-            filter: FeedFilter? = nil
+            filter: FeedFilter? = nil,
+            preload: FeedPreload? = nil
         )
     }
     ```
@@ -232,6 +234,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | `autoplay` | `Bool` | `true` | Whether video starts playing automatically when the feed loads or when the user swipes to a new item. |
 | `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided items (pass via `feedItems` on `ShortKit.init` or call `setFeedItems()` / `appendFeedItems()`). |
 | `filter` | `FeedFilter?` | `nil` | Server-side content filter. When set, the SDK fetches only content matching the filter criteria. See [FeedFilter](#feedfilter) below. |
+| `preload` | `FeedPreload?` | `nil` | A token returned by `shortKit.preloadFeed()`. When set, the feed resumes from prefetched feed data instead of issuing a new network request at mount time. See [Preloading for instant first frame](/sdk/feed#preloading-for-instant-first-frame). |
 
 <Tabs>
   <Tab title="Swift">
