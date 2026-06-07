@@ -138,7 +138,39 @@ feedVC.didMove(toParent: self)
 
 <Tabs>
   <Tab title="iOS">
-    `ShortKitFeedViewController` responds to standard UIKit lifecycle events. Playback pauses automatically when the view controller disappears and resumes when it reappears. You do not need to call `play()` or `pause()` manually during navigation transitions.
+    By default, `ShortKitFeedViewController` responds to standard UIKit lifecycle events. Playback pauses automatically when the view controller disappears and resumes when it reappears. You do not need to call `play()` or `pause()` manually during navigation transitions.
+
+    **Manual lifecycle control**
+
+    Pass `lifecycle: .manual` to take explicit control. The view controller will not respond to UIKit appearance events on its own — you drive it with `activate()` and `deactivate()`.
+
+    Use manual mode when the feed is mounted but not yet visible — for example, when it is hidden behind a splash screen or sitting on an inactive tab.
+
+    ```swift
+    let feedVC = ShortKitFeedViewController(
+        shortKit: shortKit,
+        config: config,
+        lifecycle: .manual
+    )
+
+    // Start the feed when your screen becomes active
+    feedVC.activate()
+
+    // Pause and release resources when hidden
+    feedVC.deactivate()
+    ```
+
+    When embedding the feed in a tab bar, call `activate()` and `deactivate()` from `updateUIViewController` as tab focus changes:
+
+    ```swift
+    func updateUIViewController(_ uiViewController: ShortKitFeedViewController, context: Context) {
+        if isVisible {
+            uiViewController.activate()
+        } else {
+            uiViewController.deactivate()
+        }
+    }
+    ```
   </Tab>
   <Tab title="Android">
     `ShortKitFeedFragment` manages playback lifecycle automatically — no manual calls needed. Resources are released when the Activity is destroyed.
@@ -289,4 +321,127 @@ var body: some View {
     }
 }
 ```
+
+## Preloading for instant first frame
+
+Call `preloadFeed()` on your `ShortKit` instance as early as possible — typically at app initialization, before any UI is shown. It returns a `FeedPreload` token that you pass to `FeedConfig`. When the feed controller mounts, it resumes from the prefetched feed data instead of issuing a fresh network request, so the first frame appears sooner.
+
+Pair this with `onFeedReady` — a callback that fires once the feed has loaded its first item and is ready to display. This is the right moment to dismiss a custom splash or launch screen.
+
+<Tabs>
+  <Tab title="iOS (SwiftUI)">
+    Call `preloadFeed()` in your `App` initializer and store the returned `FeedPreload` token alongside your `ShortKit` instance. Pass it to `FeedConfig` when constructing the feed, and assign `onFeedReady` to receive a callback when the first frame is ready.
+
+    ```swift App.swift
+    import SwiftUI
+    import ShortKitSDK
+
+    @main
+    struct MyApp: App {
+        @State private var shortKit: ShortKit       // reference types — @State prevents re-initialization on re-renders
+        @State private var feedPreload: FeedPreload
+
+        init() {
+            let kit = ShortKit(apiKey: "pk_live_your_publishable_key")
+            _shortKit = State(initialValue: kit)
+            _feedPreload = State(initialValue: kit.preloadFeed())
+        }
+
+        var body: some Scene {
+            WindowGroup {
+                RootView(shortKit: shortKit, feedPreload: feedPreload)
+            }
+        }
+    }
+    ```
+
+    Use `lifecycle: .manual` so the feed does not auto-play while it is still hidden behind the splash. Then call `player.play()` once the splash has started fading.
+
+    ```swift RootView.swift
+    import SwiftUI
+    import ShortKitSDK
+
+    struct RootView: View {
+        let shortKit: ShortKit
+        let feedPreload: FeedPreload
+        @State private var splashOpacity: Double = 1.0
+        @State private var minElapsed = false
+        @State private var feedIsReady = false
+
+        var body: some View {
+            FeedView(shortKit: shortKit, feedPreload: feedPreload, onFeedReady: {
+                feedIsReady = true
+                dismissSplashIfReady()
+            })
+            .overlay {
+                SplashView() // Replace with your own launch screen view
+                    .opacity(splashOpacity)
+                    .allowsHitTesting(splashOpacity > 0)
+                    .ignoresSafeArea()
+            }
+            .task {
+                // Minimum splash duration — prevents an instant dismissal if the feed loads extremely fast.
+                try? await Task.sleep(for: .seconds(1))
+                minElapsed = true
+                dismissSplashIfReady()
+            }
+            .task {
+                // Fallback — dismiss after 3 seconds regardless of feed state.
+                try? await Task.sleep(for: .seconds(3))
+                guard splashOpacity > 0 else { return }
+                dismissSplash()
+            }
+        }
+
+        private func dismissSplashIfReady() {
+            guard splashOpacity > 0, minElapsed, feedIsReady else { return }
+            dismissSplash()
+        }
+
+        private func dismissSplash() {
+            withAnimation(.easeOut(duration: 0.4)) { splashOpacity = 0 }
+            // Start playback partway through the fade so the video is already
+            // running when the splash fully clears.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                shortKit.player.play()
+            }
+        }
+    }
+
+    struct FeedView: UIViewControllerRepresentable {
+        let shortKit: ShortKit
+        let feedPreload: FeedPreload
+        var onFeedReady: (() -> Void)?
+
+        func makeUIViewController(context: Context) -> ShortKitFeedViewController {
+            let config = FeedConfig(preload: feedPreload)
+            let feedVC = ShortKitFeedViewController(
+                shortKit: shortKit,
+                config: config,
+                lifecycle: .manual
+            )
+            feedVC.onFeedReady = onFeedReady
+            return feedVC
+        }
+
+        func updateUIViewController(_ uiViewController: ShortKitFeedViewController, context: Context) {}
+    }
+    ```
+  </Tab>
+  <Tab title="iOS (UIKit)">
+    Coming soon.
+  </Tab>
+  <Tab title="Android">
+    Coming soon.
+  </Tab>
+  <Tab title="Flutter">
+    Coming soon.
+  </Tab>
+  <Tab title="React Native">
+    Coming soon.
+  </Tab>
+  <Tab title="Web">
+    Coming soon.
+  </Tab>
+</Tabs>
 
