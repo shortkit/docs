@@ -1,0 +1,1370 @@
+{
+  "rationale": "B and C independently converge on the decisive structural move \u2014 replace the 5\u20137-way platform <Tabs> matrix with a per-platform SDKs tab \u2014 which is the only design that actually fixes P1 (O(platforms) edits per page), kills the 21 \"Coming soon\" stubs structurally (a page exists only where the feature ships), and fixes the RN-overlays systematic misdocumentation. A's shared-tab-with-exceptions model is cheaper to migrate but leaves the matrix in place and adds a non-deterministic asymmetry (\"split only when architecture differs\") that an automated pipeline will misapply. So the final IA takes C's skeleton (4 tabs: Docs = concepts + REST workflows; SDKs = per-platform; API Reference; Changelog) because its taxonomy is more consolidated and readable than B's (~55 pages vs ~75): FeedConfig folds into each platform's `feed` page, multi-surface/preload/debugging fold into `advanced`. From B we graft the load-bearing scaling machinery: a closed slug taxonomy per platform (install, feed, playback, widgets, overlays, carousel, live, downloads, ads, recipes, advanced \u2014 never extend without updating guidelines), five mechanical placement rules for the docs pipeline, the platform-parity matrix page, and `Since X`/`Unreleased` badge conventions. From A we graft `snippets/versions.mdx` (single edit per release, fixing the 0.2.22/0.3.0 staleness), the canonical `api/webhooks` page (deduping callback/retry docs from upload/import/clip), and the sanctioned `changelog` + `changelog/migrations/*` home that PR #20 proved is needed. Conflicts resolved decisively: no separate `concepts/playback` page (B) \u2014 each platform's `playback` page is self-contained; custom feeds get a concept home (`concepts/feeds`) plus a mandatory \"Custom feeds\" section in each `sdks/{p}/feed` rather than one cross-platform page; per-platform quickstarts fold into `sdks/{p}/install` (ends with a minimal render). API Reference stays structurally intact: new groups and pages are additive; Analytics & Events stays a flat group with new endpoints appended (no nested regroup). Every move gets a `docs.json` redirect and `doc_guidelines.md` is rewritten in lockstep.",
+  "navigation": [
+    {
+      "tab": "Docs",
+      "icon": "book-open",
+      "groups": [
+        {
+          "group": "Get started",
+          "pages": [
+            {
+              "path": "index",
+              "title": "Overview",
+              "status": "new",
+              "summary": "Product overview plus platform cards linking into the SDKs tab and API Reference."
+            },
+            {
+              "path": "quickstart",
+              "title": "Quickstart",
+              "status": "updated",
+              "sourcePages": [
+                "quickstart"
+              ],
+              "summary": "Slimmed to: get keys, pick a platform, render a feed. Per-platform install steps removed (link to sdks/{p}/install); versions via snippets/versions.mdx."
+            }
+          ]
+        },
+        {
+          "group": "Core concepts",
+          "pages": [
+            {
+              "path": "concepts/content-model",
+              "title": "Content model",
+              "status": "split",
+              "sourcePages": [
+                "guides/content-types",
+                "sdk/overlays"
+              ],
+              "summary": "Canonical FeedItem/ContentItem/carousel/survey/ad type reference with per-type data matrix and customMetadata. Single source of truth ending the 3x ContentItem duplication; struct dumps replaced by platform-neutral field tables."
+            },
+            {
+              "path": "concepts/feeds",
+              "title": "Feeds",
+              "status": "split",
+              "sourcePages": [
+                "guides/content-types",
+                "sdk/feed"
+              ],
+              "summary": "Ranked vs custom feeds, publish lifecycle, fallback URLs, deep-link seeding, and corrected FeedFilter semantics (Map<String,[String]> with OR). Platform code lives in sdks/{p}/feed."
+            },
+            {
+              "path": "concepts/identity",
+              "title": "Identity",
+              "status": "moved",
+              "sourcePages": [
+                "sdk/identity"
+              ],
+              "summary": "Anonymous UUID, setUserId/clearUserId model, /v1/identity/resolve mechanics. Canonical; analytics pages link here instead of recapping."
+            }
+          ]
+        },
+        {
+          "group": "Content",
+          "pages": [
+            {
+              "path": "content/upload-videos",
+              "title": "Upload videos",
+              "status": "split",
+              "sourcePages": [
+                "guides/upload-pipeline"
+              ],
+              "summary": "Direct upload + URL import task flow, statuses, polling. Field tables deleted in favor of links to API Reference; callback details link to content/webhooks."
+            },
+            {
+              "path": "content/carousels",
+              "title": "Carousels",
+              "status": "split",
+              "sourcePages": [
+                "guides/upload-pipeline"
+              ],
+              "summary": "Create image/video carousels, upload images, reorder. Links to new Content API pages."
+            },
+            {
+              "path": "content/captions-and-metadata",
+              "title": "Captions & metadata",
+              "status": "split",
+              "sourcePages": [
+                "guides/upload-pipeline"
+              ],
+              "summary": "Caption upload and language tagging, PATCH merge semantics, publication URLs."
+            },
+            {
+              "path": "content/live-streams",
+              "title": "Live streams",
+              "status": "moved",
+              "sourcePages": [
+                "guides/live-streams"
+              ],
+              "summary": "Server-side lifecycle, hls/webrtc protocols, broadcasting (ffmpeg/OBS), clips. Corrects the 'cannot be restarted' claim (reactivation re-publishes) and adds the token flow. Client surfaces move to sdks/{ios,web}/live."
+            },
+            {
+              "path": "content/downloads",
+              "title": "Downloads",
+              "status": "new",
+              "summary": "Watermarked download flow: download-url, 202 'preparing' lifecycle, retrieval. Links to SDK downloads pages."
+            },
+            {
+              "path": "content/language",
+              "title": "Language detection",
+              "status": "moved",
+              "sourcePages": [
+                "guides/language-detection"
+              ],
+              "summary": "BCP 47 customMetadata.language, und handling, canonical filter-by-language examples. The duplicate in sdk/configuration is deleted."
+            },
+            {
+              "path": "content/webhooks",
+              "title": "Webhooks",
+              "status": "new",
+              "sourcePages": [
+                "guides/upload-pipeline"
+              ],
+              "summary": "Canonical callback event reference and retry semantics, consolidating duplicated docs from upload, import, and clips."
+            }
+          ]
+        },
+        {
+          "group": "Analytics",
+          "pages": [
+            {
+              "path": "analytics/overview",
+              "title": "Analytics overview",
+              "status": "split",
+              "sourcePages": [
+                "sdk/analytics"
+              ],
+              "summary": "Auto-collected metrics, QoE, sessions; pointers to the Analytics API group."
+            },
+            {
+              "path": "analytics/custom-data",
+              "title": "Custom data",
+              "status": "split",
+              "sourcePages": [
+                "sdk/analytics"
+              ],
+              "summary": "customDimensions and sendContentSignal, canonical (collapses three scattered copies). Identity recap replaced with a link."
+            }
+          ]
+        },
+        {
+          "group": "Monetization",
+          "pages": [
+            {
+              "path": "monetization/ads",
+              "title": "Ads",
+              "status": "new",
+              "summary": "Ad config concepts and ad slots; links to api/ad-config and per-platform sdks/{p}/ads pages."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "SDKs",
+      "icon": "layer-group",
+      "groups": [
+        {
+          "group": "Overview",
+          "pages": [
+            {
+              "path": "sdks/overview",
+              "title": "Platform support",
+              "status": "new",
+              "summary": "Feature x platform parity matrix with Since X / Unreleased badges; replaces scattered 'Coming soon' stubs. Defines the closed page taxonomy and badge conventions."
+            }
+          ]
+        },
+        {
+          "group": "iOS",
+          "pages": [
+            {
+              "path": "sdks/ios/install",
+              "title": "Install & initialize",
+              "status": "split",
+              "sourcePages": [
+                "sdk/installation",
+                "quickstart",
+                "sdk/configuration"
+              ],
+              "summary": "SPM install, corrected ShortKit init signature (no config:/feedItems: params), troubleshooting, minimal first-feed render. Version from snippets/versions.mdx."
+            },
+            {
+              "path": "sdks/ios/feed",
+              "title": "Feed",
+              "status": "split",
+              "sourcePages": [
+                "sdk/feed",
+                "sdk/configuration",
+                "guides/content-types"
+              ],
+              "summary": "Embed ShortKitFeedViewController, FeedConfig/FeedFilter, feed control (scroll, refresh, applyFilter, lock, deep-link seeding, activate/deactivate), custom feeds (FeedInput, setFeedItems/appendFeedItems)."
+            },
+            {
+              "path": "sdks/ios/playback",
+              "title": "Playback",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player"
+              ],
+              "summary": "ShortKitPlayer publishers/commands/state machine \u2014 sole canonical copy (phantom feedReady removed; formatChange, prefetchedAheadCount, remainingContentCount included)."
+            },
+            {
+              "path": "sdks/ios/widgets",
+              "title": "Player & widgets",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player-and-widget"
+              ],
+              "summary": "Single-player component, carousel/grid widget, WidgetInput, playback modes, click actions."
+            },
+            {
+              "path": "sdks/ios/overlays",
+              "title": "Overlays",
+              "status": "split",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "VideoOverlayMode, FeedOverlay/CarouselOverlay/VideoCarouselOverlay/SurveyOverlay protocols, SwiftUI mode. Phantom resetPlaybackProgress removed; embedded player/ContentItem tables replaced with links."
+            },
+            {
+              "path": "sdks/ios/carousel",
+              "title": "Carousel control",
+              "status": "split",
+              "sourcePages": [
+                "sdk/carousel"
+              ],
+              "summary": "shortKit.carousel runtime: commands, events, recipes."
+            },
+            {
+              "path": "sdks/ios/live",
+              "title": "Live",
+              "status": "new",
+              "sourcePages": [
+                "guides/live-streams"
+              ],
+              "summary": "iOS live viewer surface: LiveOverlay, LiveEndedOverlay, LiveRoomMask, live-room expand/collapse, .liveStream FeedInput."
+            },
+            {
+              "path": "sdks/ios/downloads",
+              "title": "Downloads",
+              "status": "new",
+              "summary": "downloadVideo and ShortKitDownloadDelegate; links to content/downloads for the server flow."
+            },
+            {
+              "path": "sdks/ios/ads",
+              "title": "Ads",
+              "status": "split",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "AdOverlay protocol and NativeAdContent rendering."
+            },
+            {
+              "path": "sdks/ios/recipes",
+              "title": "Recipes",
+              "status": "split",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "Worked examples extracted from overlays: custom scrubber, captions overlay (Swift only)."
+            },
+            {
+              "path": "sdks/ios/advanced",
+              "title": "Advanced",
+              "status": "new",
+              "summary": "Multi-surface lifecycle (ShortKitFeedLifecycle), preload/cold-start, pull-to-refresh, debug/tracing."
+            }
+          ]
+        },
+        {
+          "group": "Android",
+          "pages": [
+            {
+              "path": "sdks/android/install",
+              "title": "Install & initialize",
+              "status": "split",
+              "sourcePages": [
+                "sdk/installation",
+                "quickstart",
+                "sdk/configuration"
+              ],
+              "summary": "Gradle install, corrected init (required context, no phantom config/feedItems), correct package name, first-feed render."
+            },
+            {
+              "path": "sdks/android/feed",
+              "title": "Feed",
+              "status": "split",
+              "sourcePages": [
+                "sdk/feed",
+                "sdk/configuration"
+              ],
+              "summary": "Fragment embed + programmatic API, FeedConfig/FeedFilter (ms units noted), feed control, custom feeds (FeedSource.CUSTOM), preload, pull-to-refresh. Explicit caveat: no live support on Android."
+            },
+            {
+              "path": "sdks/android/playback",
+              "title": "Playback",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player"
+              ],
+              "summary": "Player listeners/commands in native Android units; phantom APIs removed."
+            },
+            {
+              "path": "sdks/android/overlays",
+              "title": "Overlays",
+              "status": "split",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "Android overlay protocols; phantom resetPlaybackProgress removed."
+            },
+            {
+              "path": "sdks/android/carousel",
+              "title": "Carousel control",
+              "status": "new",
+              "sourcePages": [
+                "sdk/carousel"
+              ],
+              "summary": "Android carousel namespace \u2014 full parity shipped but had zero Kotlin docs; written fresh."
+            },
+            {
+              "path": "sdks/android/ads",
+              "title": "Ads",
+              "status": "new",
+              "summary": "ShortKitAdProvider and Android ads types \u2014 shipped, previously undocumented."
+            },
+            {
+              "path": "sdks/android/recipes",
+              "title": "Recipes",
+              "status": "split",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "Scrubber and captions worked examples (Kotlin)."
+            },
+            {
+              "path": "sdks/android/advanced",
+              "title": "Advanced",
+              "status": "new",
+              "summary": "suspendPlayers/ShortKitSurface multi-surface lifecycle, memory/preload guidance, debugging."
+            }
+          ]
+        },
+        {
+          "group": "Flutter",
+          "pages": [
+            {
+              "path": "sdks/flutter/install",
+              "title": "Install & initialize",
+              "status": "split",
+              "sourcePages": [
+                "sdk/installation",
+                "quickstart",
+                "sdk/configuration"
+              ],
+              "summary": "pub.dev install, init, first-feed render; SurveyMode phantom removed from FeedConfig docs."
+            },
+            {
+              "path": "sdks/flutter/feed",
+              "title": "Feed",
+              "status": "split",
+              "sourcePages": [
+                "sdk/feed",
+                "sdk/configuration"
+              ],
+              "summary": "Feed embed, FeedConfig/FeedFilter (notes Flutter OR-map pending 0.3.0 with Unreleased badge), custom feeds via ShortKitFeedController, feed callbacks, fetchContent, scrollToItem."
+            },
+            {
+              "path": "sdks/flutter/playback",
+              "title": "Playback",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player"
+              ],
+              "summary": "Flutter player surface; CaptionCue (not VTTCue)."
+            },
+            {
+              "path": "sdks/flutter/widgets",
+              "title": "Player & widgets",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player-and-widget"
+              ],
+              "summary": "ShortKitPlayer/ShortKitWidget \u2014 shipped but marked 'Coming soon' today; documented for real."
+            },
+            {
+              "path": "sdks/flutter/overlays",
+              "title": "Overlays",
+              "status": "split",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "Flutter overlays including shipped carousel overlays (previously 'Coming soon')."
+            },
+            {
+              "path": "sdks/flutter/advanced",
+              "title": "Advanced",
+              "status": "new",
+              "summary": "Storyboard API, SkTrace logging, profile-mode guidance, unreleased-surface markers."
+            }
+          ]
+        },
+        {
+          "group": "React Native",
+          "pages": [
+            {
+              "path": "sdks/react-native/install",
+              "title": "Install & initialize",
+              "status": "split",
+              "sourcePages": [
+                "sdk/installation",
+                "quickstart",
+                "sdk/configuration"
+              ],
+              "summary": "npm install (incl. Expo), corrected ShortKitProvider (no config prop \u2014 config belongs on <ShortKitFeed>), first-feed render."
+            },
+            {
+              "path": "sdks/react-native/feed",
+              "title": "Feed",
+              "status": "split",
+              "sourcePages": [
+                "sdk/feed",
+                "sdk/configuration"
+              ],
+              "summary": "<ShortKitFeed> props (videoOverlay naming), ref handle + event props, active/surfaceId, custom feeds, filters."
+            },
+            {
+              "path": "sdks/react-native/playback",
+              "title": "Playback",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player"
+              ],
+              "summary": "ShortKitCommands and playback events; phantom FeedItem/SurveyItem/AdSlot types and ContentItem.isLive removed."
+            },
+            {
+              "path": "sdks/react-native/widgets",
+              "title": "Player & widgets",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player-and-widget"
+              ],
+              "summary": "Shipped widget props replacing six 'Coming soon' stubs."
+            },
+            {
+              "path": "sdks/react-native/overlays",
+              "title": "Overlays",
+              "status": "rewritten",
+              "sourcePages": [
+                "sdk/overlays"
+              ],
+              "summary": "RN's real props-in/commands-out isolated-surface architecture \u2014 structurally different from the protocol model the shared tabs misdocumented. Phantom surveyMode/survey surface removed."
+            },
+            {
+              "path": "sdks/react-native/carousel",
+              "title": "Carousel control",
+              "status": "split",
+              "sourcePages": [
+                "sdk/carousel"
+              ],
+              "summary": "RN carousel runtime."
+            },
+            {
+              "path": "sdks/react-native/downloads",
+              "title": "Downloads",
+              "status": "new",
+              "summary": "ShortKitCommands.downloadVideo; links to content/downloads."
+            },
+            {
+              "path": "sdks/react-native/advanced",
+              "title": "Advanced",
+              "status": "new",
+              "summary": "Overlay registration, multi-surface active/surfaceId patterns, debugging."
+            }
+          ]
+        },
+        {
+          "group": "Web",
+          "pages": [
+            {
+              "path": "sdks/web/install",
+              "title": "Install & initialize",
+              "status": "split",
+              "sourcePages": [
+                "sdk/installation",
+                "quickstart",
+                "sdk/configuration"
+              ],
+              "summary": "Distribution model (CDN vs npm slim/full, hls.js peer dep), manager pattern, constructor options, init()/initWithItems(). Web version line (0.5.0) via its own snippet entry."
+            },
+            {
+              "path": "sdks/web/feed",
+              "title": "Feed",
+              "status": "split",
+              "sourcePages": [
+                "sdk/feed",
+                "sdk/configuration"
+              ],
+              "summary": "Feed embed and control, web-only callbacks, FeedFilter OR semantics."
+            },
+            {
+              "path": "sdks/web/playback",
+              "title": "Playback",
+              "status": "split",
+              "sourcePages": [
+                "sdk/player"
+              ],
+              "summary": "Web player events/commands with honest availability (no feedReady/didLoop; rotationInterval supported)."
+            },
+            {
+              "path": "sdks/web/widgets",
+              "title": "Player & widgets",
+              "status": "rewritten",
+              "sourcePages": [
+                "sdk/player-and-widget"
+              ],
+              "summary": "Real single-player/widget APIs (widgets self-fetch); phantom player.setItem()/widget.setItems()/scrollAxis removed."
+            },
+            {
+              "path": "sdks/web/live",
+              "title": "Live",
+              "status": "new",
+              "sourcePages": [
+                "guides/live-streams"
+              ],
+              "summary": "Live-stream viewing: badge, viewer count, currentProgramDate()."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "API Reference",
+      "icon": "square-terminal",
+      "groups": [
+        {
+          "group": "Overview",
+          "pages": [
+            {
+              "path": "api/overview",
+              "title": "Overview",
+              "status": "unchanged",
+              "summary": "API basics."
+            },
+            {
+              "path": "api/authentication",
+              "title": "Authentication",
+              "status": "updated",
+              "sourcePages": [
+                "api/authentication"
+              ],
+              "summary": "pk/sk endpoint table rewritten: phantom GET /v1/content, /v1/analytics/*, POST /v1/org/rotate-secret-key removed; real pk endpoints (events, identity/resolve, captions, live tokens, feed) listed."
+            },
+            {
+              "path": "api/errors",
+              "title": "Errors",
+              "status": "unchanged",
+              "summary": "Error reference."
+            },
+            {
+              "path": "api/webhooks",
+              "title": "Webhooks",
+              "status": "new",
+              "summary": "Canonical callback event payloads and retry semantics referenced by upload/import/clip pages."
+            }
+          ]
+        },
+        {
+          "group": "Reference",
+          "pages": [
+            {
+              "path": "api/feed",
+              "title": "Feed",
+              "status": "new",
+              "summary": "New group: feed item object plus GET /v1/feed, /feed/videos, /feed/filter, /feed/discovery, /feed/filter/discovery.",
+              "children": [
+                {
+                  "path": "api/feed/object",
+                  "title": "The feed item object",
+                  "status": "new",
+                  "summary": "Feed-item shape, currently only hinted at in notes on content/ad-config object pages."
+                },
+                {
+                  "path": "api/feed/get",
+                  "title": "Get feed",
+                  "status": "new",
+                  "summary": "GET /v1/feed."
+                },
+                {
+                  "path": "api/feed/videos",
+                  "title": "Get feed videos",
+                  "status": "new",
+                  "summary": "GET /v1/feed/videos."
+                },
+                {
+                  "path": "api/feed/filter",
+                  "title": "Filter feed",
+                  "status": "new",
+                  "summary": "GET /v1/feed/filter."
+                },
+                {
+                  "path": "api/feed/discovery",
+                  "title": "Discovery feed",
+                  "status": "new",
+                  "summary": "GET /v1/feed/discovery."
+                },
+                {
+                  "path": "api/feed/filter-discovery",
+                  "title": "Filtered discovery feed",
+                  "status": "new",
+                  "summary": "GET /v1/feed/filter/discovery."
+                }
+              ]
+            },
+            {
+              "path": "api/client-runtime",
+              "title": "Client runtime",
+              "status": "new",
+              "summary": "New pk-key group for SDK runtime endpoints.",
+              "children": [
+                {
+                  "path": "api/client-runtime/events",
+                  "title": "Send events",
+                  "status": "new",
+                  "summary": "POST /v1/events."
+                },
+                {
+                  "path": "api/client-runtime/identity-resolve",
+                  "title": "Resolve identity",
+                  "status": "new",
+                  "summary": "POST /v1/identity/resolve."
+                },
+                {
+                  "path": "api/client-runtime/captions",
+                  "title": "Get captions",
+                  "status": "new",
+                  "summary": "GET /v1/captions."
+                },
+                {
+                  "path": "api/client-runtime/viewer-token",
+                  "title": "Create viewer token",
+                  "status": "new",
+                  "summary": "Live viewer-token endpoint; required for documented webrtc protocol."
+                },
+                {
+                  "path": "api/client-runtime/publisher-token",
+                  "title": "Create publisher token",
+                  "status": "new",
+                  "summary": "Live publisher-token endpoint."
+                },
+                {
+                  "path": "api/client-runtime/start",
+                  "title": "Start live session",
+                  "status": "new",
+                  "summary": "Live start endpoint."
+                }
+              ]
+            },
+            {
+              "path": "api/content",
+              "title": "Content",
+              "status": "updated",
+              "summary": "Existing group plus sub-resource endpoints.",
+              "children": [
+                {
+                  "path": "api/content/object",
+                  "title": "The content object",
+                  "status": "updated",
+                  "summary": "Canonical field source; feed-item notes link to api/feed/object."
+                },
+                {
+                  "path": "api/content/upload",
+                  "title": "Upload",
+                  "status": "updated",
+                  "summary": "Callback-event duplication replaced with link to api/webhooks."
+                },
+                {
+                  "path": "api/content/import",
+                  "title": "Import",
+                  "status": "updated",
+                  "summary": "Same dedup; links api/webhooks."
+                },
+                {
+                  "path": "api/content/import-status",
+                  "title": "Import status",
+                  "status": "new",
+                  "summary": "Import status endpoint."
+                },
+                {
+                  "path": "api/content/create-shell",
+                  "title": "Create shell",
+                  "status": "new",
+                  "summary": "Create-shell endpoint."
+                },
+                {
+                  "path": "api/content/finalize",
+                  "title": "Finalize",
+                  "status": "new",
+                  "summary": "Finalize endpoint."
+                },
+                {
+                  "path": "api/content/captions",
+                  "title": "Upload captions",
+                  "status": "new",
+                  "summary": "Captions upload endpoint."
+                },
+                {
+                  "path": "api/content/carousel-create",
+                  "title": "Create carousel",
+                  "status": "new",
+                  "summary": "Carousel create endpoint."
+                },
+                {
+                  "path": "api/content/carousel-images",
+                  "title": "Upload carousel images",
+                  "status": "new",
+                  "summary": "Carousel image upload endpoint."
+                },
+                {
+                  "path": "api/content/carousel-image-order",
+                  "title": "Reorder carousel images",
+                  "status": "new",
+                  "summary": "Image order endpoint."
+                },
+                {
+                  "path": "api/content/publication-urls",
+                  "title": "Publication URLs",
+                  "status": "new",
+                  "summary": "Publication URL CRUD."
+                },
+                {
+                  "path": "api/content/download-url",
+                  "title": "Get download URL",
+                  "status": "new",
+                  "summary": "GET /v1/content/{id}/download-url with watermarking and 202 preparing flow."
+                },
+                {
+                  "path": "api/content/download",
+                  "title": "Download",
+                  "status": "new",
+                  "summary": "GET /v1/content/{id}/download."
+                },
+                {
+                  "path": "api/content/list",
+                  "title": "List",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/content/get",
+                  "title": "Get",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/content/count",
+                  "title": "Count",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/content/search",
+                  "title": "Search",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/content/update",
+                  "title": "Update",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/content/delete",
+                  "title": "Delete",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                }
+              ]
+            },
+            {
+              "path": "api/live-streams",
+              "title": "Live Streams",
+              "status": "updated",
+              "summary": "Kept; lifecycle wording corrected.",
+              "children": [
+                {
+                  "path": "api/live-streams/object",
+                  "title": "The live stream object",
+                  "status": "updated",
+                  "summary": "Lifecycle corrected: streams can reactivate after idle."
+                },
+                {
+                  "path": "api/live-streams/create",
+                  "title": "Create",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/live-streams/list",
+                  "title": "List",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/live-streams/get",
+                  "title": "Get",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/live-streams/status",
+                  "title": "Status",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/live-streams/end",
+                  "title": "End",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/live-streams/delete",
+                  "title": "Delete",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/live-streams/clip",
+                  "title": "Clip",
+                  "status": "updated",
+                  "summary": "Callback docs link api/webhooks."
+                }
+              ]
+            },
+            {
+              "path": "api/surveys",
+              "title": "Surveys",
+              "status": "updated",
+              "summary": "Kept; one addition.",
+              "children": [
+                {
+                  "path": "api/surveys/object",
+                  "title": "The survey object",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/surveys/create",
+                  "title": "Create",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/surveys/list",
+                  "title": "List",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/surveys/get",
+                  "title": "Get",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/surveys/update",
+                  "title": "Update",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/surveys/delete",
+                  "title": "Delete",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/surveys/priorities",
+                  "title": "Set priorities",
+                  "status": "new",
+                  "summary": "PUT /v1/surveys/priorities."
+                },
+                {
+                  "path": "api/surveys/submit-response",
+                  "title": "Submit response",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                }
+              ]
+            },
+            {
+              "path": "api/analytics",
+              "title": "Analytics & Events",
+              "status": "updated",
+              "summary": "Group kept flat (no structural regroup); missing endpoints appended.",
+              "children": [
+                {
+                  "path": "api/analytics/event-object",
+                  "title": "The event object",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/analytics/list-events",
+                  "title": "List events",
+                  "status": "updated",
+                  "summary": "Adds filters[] param."
+                },
+                {
+                  "path": "api/analytics/metrics",
+                  "title": "List metrics",
+                  "status": "updated",
+                  "summary": "Documents all ~19 metrics (currently 6)."
+                },
+                {
+                  "path": "api/analytics/get-metric",
+                  "title": "Get metric",
+                  "status": "updated",
+                  "summary": "Adds filters[] param."
+                },
+                {
+                  "path": "api/analytics/get-timeseries",
+                  "title": "Get timeseries",
+                  "status": "updated",
+                  "summary": "Adds filters[] param."
+                },
+                {
+                  "path": "api/analytics/get-breakdown",
+                  "title": "Get breakdown",
+                  "status": "new",
+                  "summary": "GET /metrics/{metric}/breakdown."
+                },
+                {
+                  "path": "api/analytics/get-heatmap",
+                  "title": "Get heatmap",
+                  "status": "new",
+                  "summary": "GET /metrics/{metric}/heatmap."
+                },
+                {
+                  "path": "api/analytics/batch-metrics",
+                  "title": "Batch metrics",
+                  "status": "new",
+                  "summary": "POST /metrics/batch."
+                },
+                {
+                  "path": "api/analytics/list-views",
+                  "title": "List views",
+                  "status": "new",
+                  "summary": "GET /v1/views."
+                },
+                {
+                  "path": "api/analytics/get-view",
+                  "title": "Get view",
+                  "status": "new",
+                  "summary": "GET /v1/views/{view_id}."
+                },
+                {
+                  "path": "api/analytics/export-views",
+                  "title": "Export views",
+                  "status": "new",
+                  "summary": "GET /v1/exports/views."
+                },
+                {
+                  "path": "api/analytics/event-types",
+                  "title": "Event types",
+                  "status": "new",
+                  "summary": "GET /events/types."
+                },
+                {
+                  "path": "api/analytics/event-views",
+                  "title": "Event views",
+                  "status": "new",
+                  "summary": "GET /events/views."
+                },
+                {
+                  "path": "api/analytics/event-sessions",
+                  "title": "Event sessions",
+                  "status": "new",
+                  "summary": "GET /events/sessions."
+                },
+                {
+                  "path": "api/analytics/dimension-values",
+                  "title": "Dimension values",
+                  "status": "new",
+                  "summary": "GET /v1/dimensions/{dimension}/values."
+                }
+              ]
+            },
+            {
+              "path": "api/ad-config",
+              "title": "Ad Configuration",
+              "status": "unchanged",
+              "summary": "Kept as-is.",
+              "children": [
+                {
+                  "path": "api/ad-config/object",
+                  "title": "The ad config object",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/ad-config/get",
+                  "title": "Get",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                },
+                {
+                  "path": "api/ad-config/update",
+                  "title": "Update",
+                  "status": "unchanged",
+                  "summary": "Kept."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "Changelog",
+      "icon": "clock-rotate-left",
+      "groups": [
+        {
+          "group": "Changelog",
+          "pages": [
+            {
+              "path": "changelog",
+              "title": "Changelog",
+              "status": "new",
+              "summary": "Mintlify <Update> entry per release, tagged by product area and platform. Sanctioned home the pipeline writes to every release; absorbs coming-soon roadmap signal."
+            }
+          ]
+        },
+        {
+          "group": "Migrations",
+          "pages": [
+            {
+              "path": "changelog/migrations/v0-3-0-carousel-playback-ids",
+              "title": "v0.3.0: Carousel playback IDs",
+              "status": "new",
+              "summary": "Lands PR #20's invented migration page in a sanctioned location; template for future migrations/v{version}-{slug} guides (e.g. FeedFilter OR-map)."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "pagePlan": [
+    {
+      "oldPath": "quickstart",
+      "action": "update",
+      "detail": "Slim to keys + platform cards + minimal render; per-platform install steps replaced by links to sdks/{p}/install; versions sourced from snippets/versions.mdx."
+    },
+    {
+      "oldPath": "sdk/installation",
+      "action": "split",
+      "detail": "Per-platform install/init pages: sdks/{ios,android,flutter,react-native,web}/install. Init signatures corrected on all platforms (digest section 2). Redirect to sdks/overview."
+    },
+    {
+      "oldPath": "guides/content-types",
+      "action": "split",
+      "detail": "Type matrix + field tables -> concepts/content-model; custom-feed input + fallback behavior -> concepts/feeds; per-platform struct code -> sdks/{p}/feed custom-feeds sections."
+    },
+    {
+      "oldPath": "guides/upload-pipeline",
+      "action": "split",
+      "detail": "-> content/upload-videos, content/carousels, content/captions-and-metadata, content/webhooks. Duplicated request-field tables and callback events deleted; link API Reference. Internal 'known API quirk' admission removed."
+    },
+    {
+      "oldPath": "guides/live-streams",
+      "action": "split",
+      "detail": "Server lifecycle/broadcast/clips -> content/live-streams (lifecycle 'cannot restart' claim corrected, webrtc token flow added); client surfaces -> sdks/ios/live and sdks/web/live."
+    },
+    {
+      "oldPath": "guides/language-detection",
+      "action": "move",
+      "detail": "-> content/language, canonical. sdk/configuration's duplicate language section deleted."
+    },
+    {
+      "oldPath": "sdk/feed",
+      "action": "split",
+      "detail": "-> sdks/{p}/feed x5: embed + control (scroll/refresh/filter/lock/deep-link/lifecycle) + custom feeds. Missing description frontmatter fixed in the process. Android page carries no-live caveat."
+    },
+    {
+      "oldPath": "sdk/configuration",
+      "action": "split",
+      "detail": "Init -> sdks/{p}/install; FeedConfig/FeedFilter -> sdks/{p}/feed (corrected Map<String,[String]> OR semantics); language section deleted in favor of content/language."
+    },
+    {
+      "oldPath": "sdk/player",
+      "action": "split",
+      "detail": "-> sdks/{p}/playback per platform, each the sole canonical publisher/command table in native units (iOS seconds, Android ms); phantom feedReady removed; Web availability honest."
+    },
+    {
+      "oldPath": "sdk/player-and-widget",
+      "action": "split",
+      "detail": "-> sdks/{ios,flutter,react-native,web}/widgets. Fabricated Kotlin tabs (ShortKitPlayerView/ShortKitWidgetView) deleted \u2014 no Android page until shipped. Title/filename collision with sdk/player resolved by the playback/widgets rename."
+    },
+    {
+      "oldPath": "sdk/overlays",
+      "action": "split",
+      "detail": "1307-line page splits -> sdks/{p}/overlays x5 (RN rewritten for props-in/commands-out), sdks/{ios,android}/ads (AdOverlay/NativeAdContent), sdks/{ios,android}/recipes (scrubber + captions tutorials). Embedded ShortKitPlayer/ContentItem tables deleted -> links to playback/content-model."
+    },
+    {
+      "oldPath": "sdk/carousel",
+      "action": "split",
+      "detail": "-> sdks/{ios,react-native}/carousel moved; sdks/android/carousel written new (shipped parity, zero Kotlin docs today). Flutter pending open question."
+    },
+    {
+      "oldPath": "sdk/identity",
+      "action": "move",
+      "detail": "-> concepts/identity, canonical. Per-platform setUserId snippets stay; analytics recaps become links."
+    },
+    {
+      "oldPath": "sdk/analytics",
+      "action": "split",
+      "detail": "-> analytics/overview (auto-collected metrics, QoE) + analytics/custom-data (customDimensions, sendContentSignal \u2014 canonical, collapsing 3 copies). Identity recap deleted."
+    },
+    {
+      "oldPath": "coming-soon",
+      "action": "delete",
+      "detail": "Orphan (not in docs.json). Roadmap signal moves to Changelog tab; parity truth moves to sdks/overview matrix."
+    },
+    {
+      "oldPath": "api/overview",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/authentication",
+      "action": "rewrite",
+      "detail": "pk/sk endpoint table materially wrong: remove phantom GET /v1/content{,/{id}}, /v1/analytics/*, POST /v1/org/rotate-secret-key; list real pk endpoints (events, identity/resolve, captions, live tokens, feed)."
+    },
+    {
+      "oldPath": "api/errors",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/content/object",
+      "action": "update",
+      "detail": "Stays canonical content field source; feed-item-shape notes replaced with link to new api/feed/object."
+    },
+    {
+      "oldPath": "api/content/upload",
+      "action": "update",
+      "detail": "Keep endpoint docs; callback events/retry section replaced with link to api/webhooks; caption/carousel params cross-link new sub-resource pages."
+    },
+    {
+      "oldPath": "api/content/import",
+      "action": "update",
+      "detail": "Same webhook dedup; link api/content/import-status."
+    },
+    {
+      "oldPath": "api/content/list",
+      "action": "update",
+      "detail": "Document shipped list filters (currently 'coming soon' lie)."
+    },
+    {
+      "oldPath": "api/content/get",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/content/count",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/content/search",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/content/update",
+      "action": "update",
+      "detail": "Confirm PATCH merge semantics match content/captions-and-metadata guide; cross-link."
+    },
+    {
+      "oldPath": "api/content/delete",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/object",
+      "action": "update",
+      "detail": "Correct lifecycle claim \u2014 streams can reactivate after idle; republish guidance."
+    },
+    {
+      "oldPath": "api/live-streams/create",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/list",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/get",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/status",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/end",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/delete",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/live-streams/clip",
+      "action": "update",
+      "detail": "Callback docs link api/webhooks instead of inlining."
+    },
+    {
+      "oldPath": "api/surveys/object",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/surveys/create",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/surveys/list",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/surveys/get",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/surveys/update",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/surveys/delete",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/surveys/submit-response",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/analytics/event-object",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/analytics/list-events",
+      "action": "update",
+      "detail": "Add filters[] param."
+    },
+    {
+      "oldPath": "api/analytics/metrics",
+      "action": "update",
+      "detail": "Document all ~19 metrics (6 today)."
+    },
+    {
+      "oldPath": "api/analytics/get-metric",
+      "action": "update",
+      "detail": "Add filters[] param."
+    },
+    {
+      "oldPath": "api/analytics/get-timeseries",
+      "action": "update",
+      "detail": "Add filters[] param."
+    },
+    {
+      "oldPath": "api/ad-config/object",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/ad-config/get",
+      "action": "keep",
+      "detail": "Unchanged."
+    },
+    {
+      "oldPath": "api/ad-config/update",
+      "action": "keep",
+      "detail": "Unchanged."
+    }
+  ],
+  "apiAugmentations": [
+    "New Feed group: api/feed/object \u2014 the feed item object (currently only hinted at in api/content/object and api/ad-config/object notes)",
+    "New Feed group: GET /v1/feed",
+    "New Feed group: GET /v1/feed/videos",
+    "New Feed group: GET /v1/feed/filter",
+    "New Feed group: GET /v1/feed/discovery",
+    "New Feed group: GET /v1/feed/filter/discovery",
+    "New Client runtime group (pk key): POST /v1/events",
+    "New Client runtime group: POST /v1/identity/resolve",
+    "New Client runtime group: GET /v1/captions",
+    "New Client runtime group: POST /v1/live-streams/{id}/viewer-token (required for documented webrtc protocol)",
+    "New Client runtime group: POST /v1/live-streams/{id}/publisher-token",
+    "New Client runtime group: POST /v1/live-streams/{id}/start",
+    "Content group: import status endpoint (api/content/import-status)",
+    "Content group: create-shell endpoint",
+    "Content group: finalize endpoint",
+    "Content group: captions upload endpoint",
+    "Content group: carousel create endpoint",
+    "Content group: carousel images upload endpoint",
+    "Content group: carousel image order endpoint",
+    "Content group: publication URLs CRUD",
+    "Content group: GET /v1/content/{id}/download-url (watermarking, 202 preparing flow)",
+    "Content group: GET /v1/content/{id}/download",
+    "Analytics & Events group (flat, appended \u2014 no structural regroup): GET /v1/metrics/{metric}/breakdown",
+    "Analytics & Events group: GET /v1/metrics/{metric}/heatmap",
+    "Analytics & Events group: POST /v1/metrics/batch",
+    "Analytics & Events group: GET /v1/views",
+    "Analytics & Events group: GET /v1/views/{view_id}",
+    "Analytics & Events group: GET /v1/exports/views",
+    "Analytics & Events group: GET /v1/events/types",
+    "Analytics & Events group: GET /v1/events/views",
+    "Analytics & Events group: GET /v1/events/sessions",
+    "Analytics & Events group: GET /v1/dimensions/{dimension}/values",
+    "Analytics & Events group: document filters[] param on existing get-metric, get-timeseries, list-events pages",
+    "Surveys group: PUT /v1/surveys/priorities",
+    "Overview group: new api/webhooks page \u2014 canonical callback events + retry semantics (dedupes upload/import/clip)",
+    "Fix api/authentication pk/sk table: remove phantom GET /v1/content{,/{id}}, /v1/analytics/*, POST /v1/org/rotate-secret-key"
+  ],
+  "contentWorkItems": [
+    "Create snippets/versions.mdx with one entry per SDK version line (iOS/Android/RN/Flutter at 0.2.55, Web at 0.5.0); replace all 12 hardcoded version strings; wire release scripts to bump it",
+    "Fix init signatures on all four broken platforms in new sdks/{p}/install pages: iOS/Android drop phantom config:/feedItems: params, Android adds required context and correct package, RN moves config prop from ShortKitProvider to <ShortKitFeed>",
+    "Correct FeedFilter.metadata to Map<String,[String]> with OR semantics across iOS/Android/RN/Web/API pages; mark Flutter pending 0.3.0 with Unreleased badge",
+    "Delete phantom APIs during splits: FeedOverlay.resetPlaybackProgress (iOS/Android), feedReady publisher, RN surveyMode/FeedItem/SurveyItem/AdSlot/ContentItem.isLive, Flutter SurveyMode/VTTCue, Web player.setItem/widget.setItems/scrollAxis, fabricated Kotlin player-and-widget tabs",
+    "Replace shipped-feature 'Coming soon' stubs with real docs: Flutter ShortKitPlayer/ShortKitWidget, Flutter carousel overlays, content list filters, client-upload guide, six RN widget props",
+    "Correct live-stream lifecycle claims (reactivation after idle re-publishes); add webrtc viewer-token flow to content/live-streams",
+    "Add missing description frontmatter (sdk/feed) and remove the 'known API quirk we plan to reconcile' internal admission from upload-pipeline content during migration",
+    "Define and apply Since X / Unreleased badge conventions on sdks/overview; apply to Flutter 0.3.0-pending surface and the lone 'since 0.2.36' note",
+    "Standardize platform naming (iOS/Android/Flutter/React Native/Web) in all group labels and page titles; no platform <Tabs> anywhere outside API-language tabs (cURL/Python/Node)",
+    "Add full redirects block to docs.json for every moved/split URL; rewrite doc_guidelines.md nav section, code-example rules (SDK tabs rule replaced by per-platform-page rule), and edit-vs-create rules to the five mechanical placement rules in lockstep",
+    "Vendor-name hygiene check on all newly written RN/Web/live content (streaming vendor, image-library names from source comments must not propagate)"
+  ],
+  "openQuestions": [
+    "Does the Flutter carousel runtime control surface (sdk.carousel namespace) actually ship today? Determines whether sdks/flutter/carousel is created now or waits for 0.3.0.",
+    "Web SDK versions independently and is absent from VERSIONS.md and release tooling \u2014 who owns bumping the web entry in snippets/versions.mdx on web releases?",
+    "Approve the migration scale: every Docs-tab URL moves (full redirects block, doc_guidelines.md rewrite). Ship big-bang or phase (SDKs tab first, Docs-tab reshuffle second)?",
+    "Analytics & Events kept flat per the 'API tab structurally as-is' constraint; with 15 pages it gets long \u2014 may we use nested Metrics/Views/Events/Dimensions subgroups, or is flat firm?",
+    "Exact paths for client-runtime live endpoints (viewer-token/publisher-token/start) and content sub-resources (carousel create, finalize, create-shell) need verification against the API router before page creation."
+  ]
+}
