@@ -1,0 +1,16 @@
+{
+  "root": true,
+  "title": "API Reference",
+  "description": "REST API endpoints",
+  "icon": "SquareTerminal",
+  "pages": [
+    "index",
+    "authentication",
+    "errors",
+    "webhooks",
+    "---Content---",
+    "content",
+    "---Live Streams---",
+    "live-streams"
+  ]
+}

@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-openapi/css/preset.css';
+
+/* Geist, as used by the limrun reference styling */
+@theme {
+  --font-sans: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+}
+
+/* ShortKit brand accent on top of the neutral (limrun-style) base */
+:root {
+  --color-fd-primary: #f60;
+  --fd-sidebar-width: 280px;
+}
+
+.dark {
+  --color-fd-primary: #ff7a26;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}

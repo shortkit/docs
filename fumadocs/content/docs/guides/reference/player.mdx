@@ -1,0 +1,474 @@
+---
+title: "ShortKitPlayer"
+description: "Canonical reference for the ShortKitPlayer control API: observable state, commands, the playback state machine, and event payload types across iOS, Android, Flutter, React Native, and Web."
+---
+
+`ShortKitPlayer` is the public interface for observing and controlling playback. It follows a unidirectional data flow: **state flows down** through observable values, **commands flow up** through method calls. You never set state directly.
+
+This page is the single reference for the player surface. Guides link here instead of repeating these tables.
+
+## Getting the player handle
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+Access the player through the `player` property on your `ShortKit` instance. State is exposed as Combine publishers, each typed `AnyPublisher<T, Never>` — they never fail.
+
+```swift title="Get the player"
+let player = shortKit.player
+```
+</Tab>
+<Tab value="Android">
+Access the player through the `player` property on your `ShortKit` instance. State is exposed as Kotlin `StateFlow` and `SharedFlow`. The SDK package is `com.shortkit.sdk` (the Maven coordinate `dev.shortkit:shortkit` is not the package name).
+
+```kotlin title="Get the player"
+import com.shortkit.sdk.ShortKitPlayer
+
+val player = shortKit.player
+```
+</Tab>
+<Tab value="Flutter">
+State and commands live on `ShortKitController`, obtained from the widget tree. State is exposed as `ValueNotifier<T>` instances. Use `ShortKit.maybeOf(context)` when the controller may not be available.
+
+```dart title="Get the controller"
+final controller = ShortKit.of(context);
+```
+
+Inside overlay builders, the controller is not available — overlays receive `ContentItem` and `OverlayState` as parameters and issue commands through `ShortKitOverlayCommands.of(context)`.
+</Tab>
+<Tab value="React Native">
+Use the `useShortKitPlayer()` hook anywhere inside the provider tree. It returns one object containing every state value and every command; destructure what you need, and your component re-renders when any included value changes.
+
+```tsx title="Get player state and commands"
+import { useShortKitPlayer } from '@shortkitsdk/react-native';
+
+const { playerState, time, play, pause } = useShortKitPlayer();
+```
+
+`useShortKitPlayer()` is **not available inside overlay components** — overlays run in isolated surfaces. Overlay components receive their state via `OverlayProps` and issue commands through the `ShortKitCommands` module.
+</Tab>
+<Tab value="Web">
+Access the player as `sk.player` on your ShortKit instance. State changes are delivered through events — subscribe with `sk.player.on(event, callback)` and unsubscribe with `sk.player.off(event, callback)`. Synchronous getters mirror every state value.
+
+```js title="Get the player"
+const player = sk.player;
+player.on('stateChange', (state) => console.log(state));
+```
+</Tab>
+</Tabs>
+
+## Observable state
+
+Each row is a state value the player exposes. Names are platform-neutral; the tabs below show how each platform delivers them.
+
+| Name | Type | Description | Platforms |
+|---|---|---|---|
+| `time` | `PlayerTime` | Fires at ~10 Hz while playing. Contains current position, duration, and buffered position. See [PlayerTime](#playertime) for per-platform units. | All |
+| `playerState` | `PlayerState` | Fires on every playback state transition. See [Player state machine](#player-state-machine). | All |
+| `currentItem` | `ContentItem?` | Metadata for the active content item. `nil` when no content is loaded. | All |
+| `isMuted` | `Bool` | Current mute state. | All |
+| `playbackRate` | `Float` | Current playback speed (for example `1.0`, `1.5`, `2.0`). | All |
+| `captionsEnabled` | `Bool` | Whether captions are currently enabled. | iOS, Android, Flutter, RN |
+| `activeCaptionTrack` | `CaptionTrack?` | The currently selected caption track, or `nil` if none. | All |
+| `activeCue` | `VTTCue?` | The active caption cue at the current playback time, or `nil` between cues. The Dart type is `CaptionCue`. | All |
+| `feedScrollPhase` | `FeedScrollPhase` | Scroll state of the feed: dragging or settled. See [FeedScrollPhase](#feedscrollphase). | All |
+| `prefetchedAheadCount` | `Int` | Number of upcoming items with preloaded thumbnails. Useful for a "loading more" indicator. | All |
+| `remainingContentCount` | `Int` | Number of items remaining ahead of the current feed position. On Flutter this is delivered as the `onRemainingContentCountChange` feed callback, not a controller notifier. | All |
+| `didLoop` | `LoopEvent` | Fires each time the current video loops back to the beginning. | iOS, Android¹ |
+| `feedTransition` | `FeedTransitionEvent` | Fires at the start and end of a feed swipe navigation. | iOS, Android¹ |
+| `formatChange` | `FormatChangeEvent` | Fires when the adaptive streaming variant switches (resolution or bitrate change). | iOS, Android¹ |
+| `liveStreamStatus` | `LiveStreamStatus` | Live status of the current item: `idle`, `active`, `dvr`, or `ended`. | iOS² |
+| `isLiveRoomExpanded` | `Bool` | Whether the live room is currently expanded. | iOS |
+
+¹ On Flutter and React Native, loop, transition, and format events are delivered as feed component callbacks (`onLoop`, `onFeedTransition`, `onFormatChange` on `ShortKitFeed`), not through the player handle. They are not available on Web.
+
+² On Web, live status is observed through the player's `liveStatusChange` and `viewerCountChange` events instead. Android has no live streaming surface.
+
+<Callout type="info">
+There is no `feedReady` publisher on the player. Feed readiness is a feed component callback — `onFeedReady` on the feed view controller (iOS), fragment (Android), `ShortKitFeed` widget (Flutter), or `ShortKitFeed` props (React Native). See [Controlling the feed](/docs/guides/display/feed-control).
+</Callout>
+
+### Subscribing and reading values
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+Subscribe with Combine. Store subscriptions in a `Set<AnyCancellable>` and dispatch to the main queue before updating UI.
+
+```swift title="Subscribe to state"
+import Combine
+
+var cancellables = Set<AnyCancellable>()
+
+shortKit.player.playerState
+    .receive(on: DispatchQueue.main)
+    .sink { state in
+        print("State: \(state)")
+    }
+    .store(in: &cancellables)
+```
+
+Every publisher has a matching synchronous accessor for point-in-time reads without a subscription — for example `currentItemValue`, `playbackRateValue`, `captionsEnabledValue`. Accessors return the most recent value and trigger no side effects.
+</Tab>
+<Tab value="Android">
+Collect flows from a coroutine scope tied to your lifecycle.
+
+```kotlin title="Subscribe to state"
+lifecycleScope.launch {
+    shortKit.player.playerState.collect { state ->
+        println("State: $state")
+    }
+}
+```
+
+For synchronous reads, every `StateFlow` exposes `.value` (for example `shortKit.player.captionsEnabled.value`). Two convenience accessors also exist: `currentItemValue` and `playbackRateValue`. There are no other `*Value` accessors on Android.
+
+Time values are in **milliseconds** on Android — see [PlayerTime](#playertime).
+</Tab>
+<Tab value="Flutter">
+Each state value is a `ValueNotifier` on `ShortKitController`. Use `ValueListenableBuilder` for reactive UI, or read `.value` for a one-off read.
+
+```dart title="Subscribe to state"
+final controller = ShortKit.of(context);
+
+ValueListenableBuilder<PlayerState>(
+  valueListenable: controller.playerState,
+  builder: (context, state, _) {
+    return Text('State: $state');
+  },
+)
+```
+
+The controller also exposes `playerError` (`ValueNotifier<String?>`) with the most recent playback error message, and `isActive` for the controller's active state. The caption cue type is `CaptionCue` (not `VTTCue`). Loop, transition, format, feed-ready, and remaining-count events arrive as `ShortKitFeed` callbacks (`onLoop`, `onFeedTransition`, `onFormatChange`, `onFeedReady`, `onRemainingContentCountChange`), not controller notifiers.
+</Tab>
+<Tab value="React Native">
+The hook's values are always current — there are no separate synchronous accessors.
+
+```tsx title="Subscribe to state"
+import { useShortKitPlayer } from '@shortkitsdk/react-native';
+
+function NowPlaying() {
+  const { playerState, currentItem } = useShortKitPlayer();
+  return <Text>{playerState}: {currentItem?.title}</Text>;
+}
+```
+
+Loop, transition, format, refresh, and feed-ready events are **feed props**, not hook state: pass `onLoop`, `onFeedTransition`, `onFormatChange`, `onFeedReady` to `<ShortKitFeed>`. Inside overlay components, read state from `OverlayProps` instead of the hook.
+</Tab>
+<Tab value="Web">
+Subscribe with `on`/`off`. The Web SDK emits `stateChange`, `timeUpdate`, and `itemChange`; loop, transition, and format events are not available on Web.
+
+```js title="Subscribe to state"
+sk.player.on('stateChange', (state) => console.log('State:', state));
+sk.player.on('timeUpdate', ({ current, duration, buffered }) => {
+  console.log('Progress:', current / duration);
+});
+sk.player.on('itemChange', (item) => console.log('Now playing:', item?.title));
+```
+
+Synchronous getters cover the full state surface: `playerState`, `currentItem`, `time`, `isMuted`, `playbackRate`, `activeCaptionTrack`, `activeCue`, `feedScrollPhase`, `prefetchedAheadCount`, and `remainingContentCount` are all readable directly on `sk.player`.
+</Tab>
+</Tabs>
+
+## Commands
+
+Commands are fire-and-forget methods that control playback. The SDK routes each command to the underlying native player.
+
+| Method | Description | Platforms |
+|---|---|---|
+| `play()` | Resume playback. | All |
+| `pause()` | Pause playback. | All |
+| `seek(to:)` | Seek to a specific time. Does not auto-resume. | All |
+| `seekAndPlay(to:)` | Seek to a specific time and immediately resume playback. | All |
+| `setMuted(_:)` | Set the mute state. `true` mutes, `false` unmutes. | All |
+| `skipToNext()` | Navigate to the next item in the feed. | All |
+| `skipToPrevious()` | Navigate to the previous item in the feed. | All |
+| `setPlaybackRate(_:)` | Set playback speed. Common values: `1.0`, `1.5`, `2.0`. | All |
+| `sendContentSignal(_:)` | Send a positive or negative signal about the current content to the recommendation engine. | All |
+| `setMaxBitrate(_:)` | Set the maximum bitrate in bits per second. Pass `0` to uncap. | All |
+| `setCaptionsEnabled(_:)` | Enable or disable caption rendering. | All |
+| `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (for example `"en"`, `"es"`). | All |
+| `setFeedScrollEnabled(_:)` | Lock or unlock feed swiping — useful while a custom scrubber gesture is active. | iOS, Android³, RN |
+| `seekThumbnail(at:)` | Synchronously returns a storyboard thumbnail for the given time, or `nil` if the storyboard is not yet loaded. | iOS, Android, Web |
+| `prefetchStoryboard(playbackId)` / `getStoryboardData(playbackId)` | Prefetch and read raw storyboard tile data for building seek previews. | Android, Flutter, RN |
+
+³ On Android, `setFeedScrollEnabled` is a method on `ShortKitFeedFragment`, not the player. On React Native it lives on `ShortKitCommands`.
+
+### Issuing commands
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+Time arguments are in **seconds** (`Double`).
+
+```swift title="Player commands"
+shortKit.player.play()
+shortKit.player.seek(to: 15.0)
+shortKit.player.seekAndPlay(to: 15.0)
+shortKit.player.setPlaybackRate(1.5)
+shortKit.player.sendContentSignal(.positive)
+shortKit.player.setMaxBitrate(2_000_000)
+shortKit.player.selectCaptionTrack(language: "en")
+shortKit.player.setFeedScrollEnabled(false)
+
+// Synchronous — returns nil if the storyboard is not yet loaded
+let thumbnail: UIImage? = shortKit.player.seekThumbnail(at: 30.0)
+```
+</Tab>
+<Tab value="Android">
+Same command surface as iOS, with two divergences: `seekThumbnail` takes **milliseconds** (`Long`), and the feed scroll lock lives on the feed fragment.
+
+```kotlin title="Player commands"
+shortKit.player.play()
+shortKit.player.seekAndPlay(15.0)
+shortKit.player.setPlaybackRate(1.5f)
+shortKit.player.sendContentSignal(ContentSignal.POSITIVE)
+shortKit.player.selectCaptionTrack("en")
+
+val thumbnail: Bitmap? = shortKit.player.seekThumbnail(atMs = 30_000L)
+
+// Storyboard data for custom seek previews
+shortKit.player.prefetchStoryboard(playbackId)
+val storyboard = shortKit.player.getStoryboardData(playbackId)
+
+// Feed scroll lock lives on the feed fragment, not the player
+feedFragment.setFeedScrollEnabled(false)
+```
+</Tab>
+<Tab value="Flutter">
+Time arguments are in **seconds** (`double`). There is no `seekThumbnail` on Flutter — use the storyboard data API (`StoryboardData`/`StoryboardTile`) to build seek previews.
+
+```dart title="Controller commands"
+final controller = ShortKit.of(context);
+
+controller.play();
+controller.seekAndPlay(15.0);
+controller.setPlaybackRate(1.5);
+controller.sendContentSignal('positive');
+controller.selectCaptionTrack('en');
+
+// Storyboard data for custom seek previews
+await controller.prefetchStoryboard(playbackId);
+final storyboard = await controller.getStoryboardData(playbackId);
+```
+
+`ShortKitController.sendContentSignal` takes the string literals `'positive'` or `'negative'`. Inside overlays, `ShortKitOverlayCommands.sendContentSignal` takes the typed `ContentSignal` enum instead.
+</Tab>
+<Tab value="React Native">
+Time arguments are in **seconds**. In screen-level components, destructure commands from the hook. Inside overlay components, use `ShortKitCommands`.
+
+```tsx title="Commands via the hook"
+import { useShortKitPlayer } from '@shortkitsdk/react-native';
+
+const { play, pause, seekAndPlay, setMuted, sendContentSignal } = useShortKitPlayer();
+
+seekAndPlay(15.0);
+sendContentSignal('positive');
+```
+
+```tsx title="Commands inside overlays"
+import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+ShortKitCommands.pause();
+ShortKitCommands.setFeedScrollEnabled(false); // e.g. while a scrubber gesture is active
+
+// Storyboard data for custom seek previews (no seekThumbnail on RN)
+await ShortKitCommands.prefetchStoryboard(playbackId);
+const storyboard = await ShortKitCommands.getStoryboardData(playbackId);
+```
+</Tab>
+<Tab value="Web">
+Time arguments are in **seconds**.
+
+```js title="Player commands"
+sk.player.play();
+sk.player.seekAndPlay(15);
+sk.player.skipToPrevious();
+sk.player.setPlaybackRate(1.5);
+sk.player.sendContentSignal('positive');
+sk.player.setMaxBitrate(2_000_000);
+sk.player.selectCaptionTrack('en');
+
+const thumbnail = sk.player.seekThumbnail(30); // null until the storyboard loads
+```
+
+`setFeedScrollEnabled` and the storyboard data API are not yet supported on Web.
+</Tab>
+</Tabs>
+
+## Player state machine
+
+The `playerState` value is one of:
+
+```swift title="PlayerState"
+public enum PlayerState: Equatable, Sendable {
+    case idle
+    case loading
+    case ready
+    case playing
+    case paused
+    case seeking
+    case buffering
+    case ended
+    case error(String)
+}
+```
+
+The same states exist on every platform. Naming differs: Android uses a sealed class (`PlayerState.Playing`, `PlayerState.Error(message)`), Flutter uses a Dart enum (`PlayerState.playing`), React Native and Web use lowercase string literals (`'playing'`, `'error'`).
+
+| State | Meaning |
+|---|---|
+| `idle` | No content loaded. Initial state before the feed provides a video. |
+| `loading` | Content URL received, streaming manifest is being fetched. |
+| `ready` | Enough data buffered to begin playback. Transitions here before auto-playing. |
+| `playing` | Video is actively playing. |
+| `paused` | Playback paused by the user or the SDK (for example, app backgrounded). |
+| `seeking` | A seek operation is in progress. Returns to `playing` or `paused` when complete. |
+| `buffering` | Playback stalled waiting for data. Returns to `playing` when enough data arrives. |
+| `ended` | Video reached the end. For looping content, the SDK resets to `playing` and emits a loop event instead. |
+| `error(String)` | A playback error occurred; the associated string describes it. If the content has a fallback URL, the SDK switches to the fallback MP4 and resumes instead of entering this state — only a `playbackFallback` analytics event is emitted. The player reaches `error` only when no fallback is available or the fallback has already been used. |
+
+### Typical transitions
+
+```
+idle -> loading -> ready -> playing -> paused -> playing   (tap to pause/resume)
+                                    -> seeking -> playing   (user scrubs)
+                                    -> buffering -> playing (network stall)
+                                    -> ended                (non-looping content)
+playing -> playing + loop event                             (looping content)
+any state -> error                                          (unrecoverable failure)
+```
+
+## Event payload types
+
+### PlayerTime
+
+Emitted at ~10 Hz during playback. Field names and units differ by platform.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+Values are in **seconds**.
+
+```swift title="PlayerTime"
+public struct PlayerTime: Equatable, Sendable {
+    public let current: Double   // seconds
+    public let duration: Double  // seconds
+    public let buffered: Double  // seconds
+}
+```
+
+Compute progress as `time.current / time.duration` (guard against `duration == 0`).
+</Tab>
+<Tab value="Android">
+Values are in **milliseconds** (`Long`), with `Ms`-suffixed field names.
+
+```kotlin title="PlayerTime"
+data class PlayerTime(
+    val currentMs: Long = 0,   // milliseconds
+    val durationMs: Long = 0,  // milliseconds
+    val bufferedMs: Long = 0,  // milliseconds
+)
+```
+
+Compute progress as `time.currentMs.toFloat() / time.durationMs` (guard against `durationMs == 0L`).
+</Tab>
+<Tab value="Flutter">
+Values are in **seconds**.
+
+```dart title="PlayerTime"
+class PlayerTime {
+  final double current;   // seconds
+  final double duration;  // seconds
+  final double buffered;  // seconds
+}
+```
+</Tab>
+<Tab value="React Native">
+Values are in **seconds**.
+
+```tsx title="PlayerTime"
+interface PlayerTime {
+  current: number;   // seconds
+  duration: number;  // seconds
+  buffered: number;  // seconds
+}
+```
+</Tab>
+<Tab value="Web">
+Values are in **seconds**, delivered via the `timeUpdate` event or the `sk.player.time` getter.
+
+```js title="timeUpdate payload"
+{ current: 12.5, duration: 30.0, buffered: 20.0 }
+```
+</Tab>
+</Tabs>
+
+### LoopEvent
+
+Emitted each time a video restarts from the beginning. Delivered by the `didLoop` publisher (iOS, Android) or the `onLoop` feed callback (Flutter, React Native). Not available on Web.
+
+```swift title="LoopEvent"
+public struct LoopEvent: Equatable, Sendable {
+    public let contentId: String  // ID of the content that looped
+    public let loopCount: Int     // Total number of completed loops
+}
+```
+
+### FeedTransitionEvent
+
+Emitted when the user swipes between feed items. Delivered by the `feedTransition` publisher (iOS, Android) or the `onFeedTransition` feed callback (Flutter, React Native). Not available on Web.
+
+```swift title="FeedTransitionEvent"
+public struct FeedTransitionEvent: Equatable, Sendable {
+    public enum Phase: Sendable { case began, ended }
+    public enum Direction: Sendable { case forward, backward }
+
+    public let phase: Phase          // .began when swipe starts, .ended when settled
+    public let from: ContentItem?    // Item being swiped away
+    public let to: ContentItem?      // Item being swiped to
+    public let direction: Direction  // .forward (swipe up) or .backward (swipe down)
+}
+```
+
+`began` fires as soon as the swipe gesture is recognized; `ended` fires after the feed settles on the new item. Use `began` to fade out a custom overlay and `ended` to configure it for the new item.
+
+### FormatChangeEvent
+
+Emitted when the adaptive bitrate algorithm switches streaming variants. Delivered by the `formatChange` publisher (iOS, Android) or the `onFormatChange` feed callback (Flutter, React Native). Not available on Web.
+
+```swift title="FormatChangeEvent"
+public struct FormatChangeEvent: Equatable, Sendable {
+    public let contentId: String
+    public let fromBitrate: Int       // Previous bitrate in bps
+    public let toBitrate: Int         // New bitrate in bps
+    public let fromResolution: String // e.g. "720x1280"
+    public let toResolution: String   // e.g. "1080x1920"
+}
+```
+
+### FeedScrollPhase
+
+Indicates the scroll state of the feed.
+
+```swift title="FeedScrollPhase"
+public enum FeedScrollPhase: Equatable, Sendable {
+    case dragging(from: String)  // User is actively swiping; `from` is the content ID being swiped away
+    case settled                 // Feed is at rest on a cell
+}
+```
+
+### ContentSignal
+
+Passed to `sendContentSignal` to influence the recommendation engine.
+
+```swift title="ContentSignal"
+public enum ContentSignal: Equatable, Sendable {
+    case positive   // User liked / saved / engaged positively
+    case negative   // User reported / disliked
+}
+```
+
+On React Native, Web, and the Flutter controller, `sendContentSignal` accepts the string literals `'positive'` or `'negative'`. Flutter's `ShortKitOverlayCommands.sendContentSignal` takes the typed `ContentSignal` enum.
+
+## Related pages
+
+- [Controlling the feed](/docs/guides/display/feed-control) — feed-level callbacks (`onFeedReady`, `onLoop`, `onDismiss`, refresh state) and programmatic feed control
+- [Building overlays](/docs/guides/customize/overlays) — how each platform wires player state into custom overlay UI
+- [Scrubber recipe](/docs/guides/customize/recipes-scrubber) — a worked example combining `time`, `seek`, and `setFeedScrollEnabled`

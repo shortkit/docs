@@ -1,0 +1,246 @@
+---
+title: "Upload videos"
+description: "Get videos into ShortKit with direct uploads or URL imports, then track processing status until they're ready for the feed."
+---
+
+ShortKit gives you two ways to get a video into the platform:
+
+- **Direct upload** — create an upload session, then `PUT` the file to a signed URL. Best when the file lives on the device or server making the request.
+- **URL import** — point ShortKit at a URL and it fetches the file for you. Best for server-side ingestion from cloud storage or a CMS, and for bulk migration (up to 100 items per request).
+
+Both paths feed the same asynchronous processing pipeline: transcoding, automatic caption generation, and search indexing. Once processing completes, the video is eligible for the feed.
+
+## Status lifecycle
+
+Every video moves through the same statuses, whichever way it arrived:
+
+| Status | Meaning |
+|--------|---------|
+| `waiting_for_upload` | Upload session created; ShortKit is waiting for the file |
+| `processing` | File received; transcoding in progress |
+| `ready` | Encoding complete; the video is eligible for the feed |
+| `errored` | Processing failed |
+
+Processing typically takes 30–120 seconds depending on file size. A caption track and spoken language detection are generated automatically — these usually complete within a few minutes after the video reaches `ready`, and the detected language is stored as `customMetadata.language` ([BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) code, e.g. `"en"`, `"es"`, `"ja"`).
+
+## Direct upload
+
+### 1. Create an upload session
+
+`POST /v1/content/upload` with `contentType: "video"` and your metadata. For the full list of request fields (`section`, `author`, `origin`, `publishAt`, `expiresAt`, and more), see the [Upload API reference](/docs/api/content/upload-content).
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+<Tab value="cURL">
+```bash title="Create upload session"
+curl -X POST https://api.shortkit.dev/v1/content/upload \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contentType": "video",
+    "title": "Product Launch Teaser",
+    "description": "30-second preview of the new lineup",
+    "tags": ["product", "launch"],
+    "customMetadata": { "campaignId": "spring-2026" }
+  }'
+```
+</Tab>
+<Tab value="Python">
+```python title="Create upload session"
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/content/upload",
+    headers={
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "contentType": "video",
+        "title": "Product Launch Teaser",
+        "description": "30-second preview of the new lineup",
+        "tags": ["product", "launch"],
+        "customMetadata": {"campaignId": "spring-2026"},
+    },
+)
+
+data = resp.json()["data"]
+content_id = data["id"]
+upload_url = data["uploadUrl"]
+```
+</Tab>
+<Tab value="Node.js">
+```javascript title="Create upload session"
+const response = await fetch("https://api.shortkit.dev/v1/content/upload", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_live_your_secret_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    contentType: "video",
+    title: "Product Launch Teaser",
+    description: "30-second preview of the new lineup",
+    tags: ["product", "launch"],
+    customMetadata: { campaignId: "spring-2026" },
+  }),
+});
+
+const { data } = await response.json();
+const { id: contentId, uploadUrl } = data;
+```
+</Tab>
+</Tabs>
+
+The response contains the content `id` and a signed `uploadUrl`:
+
+```json title="Response"
+{
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "uploadUrl": "https://storage.shortkit.dev/uploads/...",
+    "status": "waiting_for_upload",
+    "title": "Product Launch Teaser",
+    "createdAt": "2026-03-02T12:00:00+00:00"
+  }
+}
+```
+
+<Callout type="info">
+This endpoint accepts both publishable and secret keys, so it's safe to call directly from mobile apps and browsers. For videos recorded on an iOS device, include `"origin": "ios_upload"` to enable color-accurate thumbnails — see the [Upload API reference](/docs/api/content/upload-content).
+</Callout>
+
+### 2. Upload the file
+
+`PUT` the raw video bytes to the signed URL. The file goes directly to storage — it does not pass through the ShortKit API.
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+<Tab value="cURL">
+```bash title="Upload the file"
+curl -X PUT "${uploadUrl}" \
+  -H "Content-Type: video/mp4" \
+  --data-binary @video.mp4
+```
+</Tab>
+<Tab value="Python">
+```python title="Upload the file"
+with open("video.mp4", "rb") as f:
+    requests.put(
+        upload_url,
+        headers={"Content-Type": "video/mp4"},
+        data=f,
+    )
+```
+</Tab>
+<Tab value="Node.js">
+```javascript title="Upload the file"
+import { readFileSync } from "fs";
+
+await fetch(uploadUrl, {
+  method: "PUT",
+  headers: { "Content-Type": "video/mp4" },
+  body: readFileSync("video.mp4"),
+});
+```
+</Tab>
+</Tabs>
+
+Once the file lands, processing starts automatically and the status moves from `waiting_for_upload` to `processing`.
+
+### 3. Poll until ready
+
+Check progress with `GET /v1/content/{id}` and watch the `uploadStatus` field:
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+<Tab value="cURL">
+```bash title="Check status"
+curl https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+</Tab>
+<Tab value="Python">
+```python title="Poll until ready"
+import time
+
+while True:
+    resp = requests.get(
+        f"https://api.shortkit.dev/v1/content/{content_id}",
+        headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    )
+    status = resp.json()["data"]["uploadStatus"]
+    print(f"Status: {status}")
+
+    if status in ("ready", "errored"):
+        break
+    time.sleep(5)
+```
+</Tab>
+<Tab value="Node.js">
+```javascript title="Poll until ready"
+async function pollUntilReady(contentId) {
+  while (true) {
+    const resp = await fetch(
+      `https://api.shortkit.dev/v1/content/${contentId}`,
+      { headers: { "Authorization": "Bearer sk_live_your_secret_key" } }
+    );
+    const { data } = await resp.json();
+    console.log(`Status: ${data.uploadStatus}`);
+
+    if (data.uploadStatus === "ready" || data.uploadStatus === "errored") return data;
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+}
+```
+</Tab>
+</Tabs>
+
+When the status reaches `ready`, the response includes the `playbackId` and `duration`. The SDK uses the playback ID to resolve streaming and thumbnail URLs, and the content now appears in the feed (`GET /v1/feed`), subject to scheduling and editorial controls.
+
+### Prefer push over polling
+
+Instead of polling, pass a `callbackUrl` in the upload request and ShortKit will POST to your endpoint at each stage of processing — when the file is received (`processing`), when transcoding completes (`ready`), and on failure (`error`). See the [webhooks guide](/docs/guides/content/webhooks) for payload shapes and retry behavior.
+
+## Import from a URL
+
+When your videos are already hosted somewhere — cloud storage, a CDN, a CMS — skip the upload step entirely. `POST /v1/content/import` accepts up to 100 items per request; ShortKit downloads and processes each one.
+
+```bash title="Import from URLs"
+curl -X POST https://api.shortkit.dev/v1/content/import \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "callbackUrl": "https://your-backend.com/webhooks/shortkit",
+    "items": [
+      {
+        "contentType": "video",
+        "title": "Quarterly Recap",
+        "sourceUrl": "https://storage.example.com/videos/recap-q1.mp4",
+        "externalId": "vid-q1-2026",
+        "tags": ["recap", "quarterly"]
+      },
+      {
+        "contentType": "video",
+        "title": "Product Launch",
+        "sourceUrl": "https://storage.example.com/videos/launch.mp4",
+        "externalId": "vid-launch-spring",
+        "section": "Product"
+      }
+    ]
+  }'
+```
+
+The response reports a per-item `status` plus a `summary` of how many items succeeded and failed.
+
+Each item accepts the same metadata fields as a direct upload. Imported videos are queued for the same processing pipeline — poll `GET /v1/content/{id}` or use the `callbackUrl` exactly as with direct uploads. If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response without affecting the rest of the batch.
+
+<Callout type="info">
+Set `externalId` on each item for idempotency. If you re-import an item with an `externalId` that already exists in your organization, ShortKit skips it and returns the existing record — safe to retry failed import requests without creating duplicates.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title="Carousels" href="/docs/guides/content/carousels" description="Create image and video carousels, upload images, and reorder slides."/>
+  <Card title="Captions and metadata" href="/docs/guides/content/captions-and-metadata" description="Add caption tracks and manage titles, tags, and custom metadata after upload."/>
+  <Card title="Webhooks" href="/docs/guides/content/webhooks" description="Receive push notifications as content moves through the processing pipeline."/>
+  <Card title="Upload API reference" href="/docs/api/content/upload-content" description="Full request and response fields for POST /v1/content/upload."/>
+</Cards>

@@ -1,0 +1,147 @@
+---
+title: "iOS Setup"
+description: "Install the ShortKit iOS SDK with Swift Package Manager, initialize it, and render your first feed."
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+Install the SDK, create a `ShortKit` instance with your publishable key, and embed a feed view. That's the whole setup.
+
+## Requirements
+
+| Requirement | Minimum |
+|---|---|
+| iOS | 16.0+ |
+| Xcode | 15+ |
+| Swift | 5.9+ |
+
+The SDK ships as a pre-compiled binary XCFramework with no external dependencies — it uses only Foundation, UIKit, AVFoundation, and SwiftUI.
+
+## Install via Swift Package Manager
+
+In Xcode, go to **File** then **Add Package Dependencies** and enter:
+
+```
+https://github.com/shortkit/shortkit-ios
+```
+
+Choose **Up to Next Major Version** with a minimum of `0.2.55`, then add the `ShortKitSDK` library product to your app target.
+
+If you manage dependencies in `Package.swift` instead:
+
+```swift title="Package.swift"
+dependencies: [
+    .package(url: "https://github.com/shortkit/shortkit-ios.git", from: "0.2.55")
+],
+targets: [
+    .target(
+        name: "YourApp",
+        dependencies: [
+            .product(name: "ShortKitSDK", package: "shortkit-ios")
+        ]
+    )
+]
+```
+
+Import the module in your code with `import ShortKitSDK`.
+
+## Initialize
+
+Create a single `ShortKit` instance with your publishable key and share it across your app:
+
+```swift title="ShortKit initialization"
+import ShortKitSDK
+
+let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+```
+
+Feed configuration is not part of the initializer — each feed view takes its own `FeedConfig`, so one `ShortKit` instance can power multiple surfaces. The initializer also accepts optional parameters such as `userId:` for identifying logged-in users.
+
+<Callout type="info">
+Get your publishable key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development. Never embed a secret key in client code.
+</Callout>
+
+## Render your first feed
+
+### SwiftUI
+
+```swift title="FeedScreen.swift"
+import SwiftUI
+import ShortKitSDK
+
+struct FeedScreen: View {
+    let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+
+    var body: some View {
+        ShortKitFeedView(shortKit: shortKit)
+            .ignoresSafeArea()
+    }
+}
+```
+
+`ShortKitFeedView` uses a default `FeedConfig` unless you pass one with the `config:` parameter.
+
+### UIKit
+
+```swift title="FeedViewController.swift"
+import UIKit
+import ShortKitSDK
+
+class FeedViewController: UIViewController {
+    private let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let feedVC = ShortKitFeedViewController(shortKit: shortKit, config: FeedConfig())
+        addChild(feedVC)
+        feedVC.view.frame = view.bounds
+        feedVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(feedVC.view)
+        feedVC.didMove(toParent: self)
+    }
+}
+```
+
+Run your app. You should see a full-screen, vertically-scrolling video feed. New accounts come seeded with demo content, so the feed works before you upload anything.
+
+## Troubleshooting
+
+<Accordions type="single">
+  <Accordion title="'No such module ShortKitSDK'">
+    Xcode has not resolved the Swift Package dependency.
+
+    1. Verify the package URL is exactly `https://github.com/shortkit/shortkit-ios`
+    2. Go to **File** then **Packages** then **Reset Package Caches**
+    3. Clean the build folder: **Product** then **Clean Build Folder** (Shift+Cmd+K)
+    4. Close and reopen Xcode
+    5. Confirm your deployment target is iOS 16.0 or higher in your project settings
+  </Accordion>
+  <Accordion title="Deployment target too low">
+    ShortKit requires iOS 16.0 or later. If a build error references a minimum deployment target:
+
+    1. Select your project in the Xcode navigator
+    2. Under the **General** tab, set **Minimum Deployments** to iOS 16.0 or higher
+    3. If you have multiple targets, update each one
+  </Accordion>
+  <Accordion title="XCFramework download fails or checksum mismatch">
+    ShortKitSDK is distributed as a pre-compiled XCFramework downloaded from GitHub Releases.
+
+    1. Check your internet connection and any proxy configuration
+    2. Go to **File** then **Packages** then **Reset Package Caches** and resolve again
+    3. If you see a checksum mismatch, update to the latest version of the package
+  </Accordion>
+  <Accordion title="Feed loads but shows no content">
+    The SDK initialized, but the feed is empty.
+
+    1. Confirm at least one video exists in your account under **Content** in the [Admin Portal](https://portal.shortkit.dev)
+    2. Verify the video status is **Ready** — processing takes 1-2 minutes after upload
+    3. Check the API key matches the environment your content lives in (`pk_live_...` vs `pk_test_...`)
+    4. A 401 error means the key is invalid — double-check the full key string and confirm it has not been revoked
+  </Accordion>
+</Accordions>
+
+## Next steps
+
+- [Quickstart](/docs/guides/quickstart) — get your API key and upload your first video
+- [Display a feed](/docs/guides/display/feed) — configure feed height, mute behavior, and feed sources

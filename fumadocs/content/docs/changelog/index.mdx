@@ -1,0 +1,57 @@
+---
+title: "Changelog"
+description: "Release notes for the ShortKit SDKs and API, newest first."
+---
+
+New features and notable changes across the ShortKit SDKs and API, newest first. Releases that require code changes on your side get a dedicated migration guide — see [Carousel playback IDs (v0.3.0)](/docs/changelog/migrations/v0-3-0-carousel-playback-ids) for an example.
+
+## June 10, 2026 — Flutter SDK
+
+**SDK**
+
+- Added `scrollToItem` so you can programmatically scroll the feed to a specific item.
+- Added an `active` prop to pause and resume feed playback when the widget is hidden or shown (for example, behind a tab switch).
+
+## June 8, 2026 — iOS, Android, React Native 0.2.55
+
+**SDK**
+
+- Added `switchFeedSource(to:)` on iOS for switching the running feed between feed modes at runtime without recreating the feed view.
+- Caption tracks are now exposed on `ContentItem` across iOS and Android, with captions resolved lazily on Android so they don't block feed loading.
+- Carousel long-press events now include the tap's `x`/`y` coordinates on Android and React Native, so you can anchor context menus to the press location.
+- iOS adds an `onModalFeedPresented` hook and interactive swipe-back navigation (with parallax) for pushed feed screens.
+
+## June 4, 2026 — API and SDK 0.2.52
+
+**API**
+
+- `createLiveStream` now accepts `customMetadata`, so live streams can carry the same metadata key-value pairs as uploaded content.
+- Metadata feed filters now support OR semantics: pass repeated values for the same key and the feed returns content matching any of them.
+
+**SDK**
+
+- `FeedFilter.metadata` accepts arrays of values per key on all platforms — `[String: [String]]` on iOS, `Map<String, List<String>>` on Android and Flutter, and `string | string[]` in React Native.
+
+## June 1, 2026 — API and SDK 0.2.50
+
+**API**
+
+- Captions are now generated automatically for all new uploads, with automatic language detection — no configuration required.
+- Added a `content.playback_id_updated` webhook that fires when an ended live stream's recording becomes available, so your backend can react to the playback ID changing.
+- Ended live streams with recordings now report `LiveStreamStatus.dvr` and play back as on-demand video instead of showing a "stream ended" screen.
+
+**SDK**
+
+- Added `ShortKitPlayer.downloadCurrentItem()` to let viewers save the current video as an MP4, with optional per-organization watermarking.
+
+## May 2026 — iOS, Android, React Native 0.2.44–0.2.49
+
+**SDK**
+
+- New grid widget layout with a `gridAlternating` playback mode for multi-column feed surfaces (0.2.46).
+- Feed overlays can now push native screens in your app via `pushFeedScreen`, wrapping your navigation stack instead of presenting modally (0.2.47).
+- Added `prependSeedItem` on iOS so deep links can open the feed on a specific video and continue into the algorithmic feed (0.2.48).
+
+<Callout type="info">
+Looking for install instructions and current version numbers? See the [SDK installation guide](/docs/guides/setup/ios).
+</Callout>

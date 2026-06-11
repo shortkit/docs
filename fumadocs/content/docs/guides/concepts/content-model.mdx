@@ -1,0 +1,239 @@
+---
+title: "Content model"
+description: "The ShortKit content model: the polymorphic FeedItem type, ContentItem fields, caption tracks, custom metadata, fallback URLs, and the per-type data matrix."
+---
+
+ShortKit feeds are polymorphic. Each position in a feed can hold a video, a live stream, an image carousel, a video carousel, a survey, or an ad slot. The SDK represents this with a single discriminated union, `FeedItem`, and each case wraps a typed model carrying everything you need to render it.
+
+This page is the canonical reference for these types. Field names and types map 1:1 across all SDK platforms; code examples here use Swift as the reference language.
+
+## Feed item types at a glance
+
+| Type | Model | Purpose |
+|---|---|---|
+| Video | `ContentItem` | HLS video with metadata, captions, and custom fields |
+| Live stream | `ContentItem` with `isLive: true` | Real-time broadcast with viewer count and lifecycle status. See [Live streams](/docs/guides/content/live-streams). |
+| Image carousel | `ImageCarouselItem` | Horizontally paged images with optional auto-scroll |
+| Video carousel | `VideoCarouselItem` | Horizontally paged videos with carousel-level metadata |
+| Survey | `SurveyItem` | Single-question poll with selectable options |
+| Ad slot | `AdSlot` | Server-positioned ad placement filled by your ad provider |
+
+## The FeedItem union
+
+`FeedItem` is the type every feed delivers. On the wire, each item carries a `type` field — `"content"`, `"image_carousel"`, `"video_carousel"`, `"survey"`, or `"ad_slot"` — that the SDK uses for deserialization. A missing `type` defaults to `"content"` for backward compatibility. Live streams are not a separate wire type: they arrive as `content` items with `isLive` set.
+
+Each platform exposes the same surface: a stable `id` for diffing, convenience booleans (`isContent`, `isAdSlot`, `isImageCarousel`, `isVideoCarousel`, `isSurvey`, `isNonVideo`), and typed unwrap accessors (`contentItem`, `adSlot`, `imageCarouselItem`, `videoCarouselItem`, `surveyItem`) that return the wrapped model or nil when the case doesn't match.
+
+## Video
+
+Videos are the primary content type. Each video is an HLS stream with optional caption tracks and arbitrary custom metadata.
+
+### ContentItem fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique content identifier |
+| `playbackId` | string, optional | Playback ID for this item. For server-driven feeds this equals `id`; in custom feeds it may differ when the same video appears multiple times. Used when referencing content in [custom feeds](/docs/guides/display/custom-feeds). |
+| `title` | string | Display title |
+| `description` | string, optional | Body text |
+| `duration` | number | Video length in seconds |
+| `streamingUrl` | string | HLS manifest URL (`.m3u8`). The SDK handles adaptive bitrate selection, buffering, and format switching automatically. |
+| `thumbnailUrl` | string | Poster image URL, displayed while the video loads |
+| `captionTracks` | array of `CaptionTrack` | Available caption and subtitle tracks. See [Caption tracks](#caption-tracks). |
+| `customMetadata` | map of string to `JSONValue`, optional | Arbitrary key-value pairs attached at upload time. See [Custom metadata](#custom-metadata). |
+| `author` | string, optional | Byline text |
+| `articleUrl` | string, optional | Link to a full article. When present, the news overlay template shows a "Read more" button. |
+| `commentCount` | integer, optional | Comment count displayed by the news overlay template |
+| `fallbackUrl` | string, optional | Static MP4 URL used when the primary HLS stream fails. See [Fallback URLs](#fallback-urls). |
+| `downloadUrl` | string, optional | MP4 download URL, when a download is available. The convenience accessor `isDownloadable` is true when this is set. See [Downloads](/docs/guides/content/downloads). |
+
+### Live stream fields
+
+Live streams reuse `ContentItem` with additional fields populated:
+
+| Field | Type | Description |
+|---|---|---|
+| `isLive` | boolean | True when this item is a live stream |
+| `liveStreamId` | string, optional | Identifier of the underlying live stream |
+| `liveStreamStatus` | enum, optional | Lifecycle state: `idle`, `active`, `ended`, or `dvr`. Items in `dvr` have a finished recording ready for playback and should render as regular video. |
+| `startedAt` | string, optional | ISO 8601 timestamp when the broadcast began. Nil for non-live content and streams that haven't started. |
+| `endedAt` | string, optional | ISO 8601 timestamp when the broadcast ended. Nil for non-live content and active streams. |
+| `currentViewers` | integer | Concurrent viewer count. 0 for non-live items. |
+
+<Callout type="warn" title="liveStreamStatus is open to extension">
+The `dvr` case was added after the enum shipped. If you switch exhaustively over `liveStreamStatus`, include a default branch so future cases don't break your build.
+</Callout>
+
+### Caption tracks
+
+Each video can include multiple caption tracks. The SDK loads and renders captions automatically when the viewer enables them.
+
+| Field | Type | Description |
+|---|---|---|
+| `language` | string | BCP 47 language code, for example `en` or `es-MX` |
+| `label` | string | Display name shown in the track picker, for example "English" |
+| `source` | enum | Where the track comes from: `embedded` (muxed into the HLS stream), `external` (sidecar WebVTT file), or `generated` (auto-generated by ShortKit) |
+| `url` | string, optional | WebVTT file URL. Nil for `embedded` tracks, which are read from the stream itself. |
+
+To add or manage caption tracks on your content, see [Captions and metadata](/docs/guides/content/captions-and-metadata).
+
+### Custom metadata
+
+`customMetadata` is a dictionary of string keys to `JSONValue` — a recursive value type that holds strings, numbers, booleans, nested objects, and null. You set values when uploading content through the API or portal, and the SDK delivers them as-is. Use it for section labels, tags, or any app-specific data your overlay needs.
+
+```swift title="CustomMetadata.swift"
+// Reading custom metadata from a ContentItem
+if case .string(let section) = item.customMetadata?["section"] {
+    sectionLabel.text = section.uppercased()
+}
+```
+
+Custom metadata also works as a feed filter dimension. Filter values are arrays, and multiple values for the same key match with OR semantics — for example, a filter of `["country": ["Japan", "Korea"]]` shows content tagged with either country. See [Feeds](/docs/guides/concepts/feeds) for filter behavior.
+
+### Fallback URLs
+
+`fallbackUrl` is an optional static MP4 URL the SDK plays when the primary HLS stream fails. This is useful when migrating an existing video library to ShortKit: provide your current hosted URLs as fallbacks while you transition.
+
+The SDK activates the fallback automatically in three scenarios:
+
+1. **Player error** — the HLS stream fails during playback. The SDK switches to the fallback MP4 and resumes from the same position.
+2. **Proactive next-slot detection** — the SDK pre-watches the next video in the feed. If its HLS stream fails before the viewer swipes, the SDK swaps in the fallback so the transition is seamless.
+3. **Missing primary URL** — if `streamingUrl` is empty or invalid, the SDK uses the fallback immediately.
+
+Each activation is tracked as a `playbackFallback` engagement event with a `reason` field: `player_failed`, `proactive_next_slot`, or `no_primary_url`.
+
+<Callout type="info" title="Custom feeds only">
+Fallback URLs apply only in custom feed mode, where you construct feed items yourself and pass the fallback URL alongside the playback ID. See [Custom feeds](/docs/guides/display/custom-feeds).
+</Callout>
+
+## Image carousel
+
+Image carousels display a horizontally paged set of images with optional auto-scrolling. They occupy the same vertical feed slot as videos and surveys.
+
+### ImageCarouselItem fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique carousel identifier |
+| `images` | array | Ordered images. Each has a `url` and optional `alt` text. |
+| `autoScrollInterval` | number, optional | Seconds between automatic page transitions. When nil, auto-scroll is disabled and the viewer pages manually. |
+| `caption` | string, optional | Short text displayed below the images |
+| `title` | string, optional | Headline text |
+| `description` | string, optional | Body text |
+| `author` | string, optional | Byline text |
+| `section` | string, optional | Category label, for example "SPORTS" |
+| `articleUrl` | string, optional | Link to a related article |
+
+## Video carousel
+
+Video carousels display a horizontally paged set of videos within a single feed slot. The SDK handles the horizontal pager, playback, and player handoff between pages natively; your overlay provides the chrome — titles, buttons, page indicators — on top.
+
+### VideoCarouselItem fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique video carousel identifier |
+| `videos` | array of `ContentItem` | Ordered videos, up to 10 per carousel. Each is a full `ContentItem` with playback metadata, captions, and custom fields. |
+| `initialPageIndex` | integer, optional | Zero-based index of the page to land on the first time the carousel becomes visible. Out-of-range values are clamped. Applies only on first configuration; to move pages afterwards, use the carousel commands in [Carousel control](/docs/guides/customize/carousel-control). |
+| `title` | string, optional | Headline text for the carousel as a whole |
+| `description` | string, optional | Body text |
+| `author` | string, optional | Byline text |
+| `section` | string, optional | Category label |
+| `articleUrl` | string, optional | Link to a related article |
+
+Because each entry in `videos` is a standard `ContentItem`, your overlay can mix per-video metadata (title, duration, captions) with carousel-level metadata (section, author, article link).
+
+### Image carousel vs video carousel
+
+| Aspect | Image carousel | Video carousel |
+|---|---|---|
+| Content | Static images | HLS video streams |
+| Paging | Managed by your overlay | Managed natively by the SDK |
+| Playback | No player | SDK handles player assignment, buffering, and handoff between pages |
+| Overlay role | Full UI: images, paging, text, actions | Chrome only; the SDK renders the video underneath |
+
+## Survey
+
+Surveys display a single-question poll. After the viewer selects an option, the SDK reports the response and can auto-advance to the next feed item.
+
+### SurveyItem fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique survey identifier |
+| `question` | string | The question to display |
+| `options` | array | Selectable answers. Each has an `id` and display `text`. |
+| `autoAdvanceDelay` | number, optional | Seconds to wait after selection before advancing to the next feed item. When nil, the SDK does not auto-advance. |
+
+Survey responses are delivered through the survey overlay's response callback. See [Overlays](/docs/guides/customize/overlays) for the protocol reference.
+
+## Ad slot
+
+Ad slots are server-positioned placeholders that your ad provider fills at runtime. Position and targeting are configured in the portal or via the API; the SDK loads and displays ads automatically when an ad provider is configured. See [Ads](/docs/guides/monetization/ads).
+
+## Handling each type
+
+When you disable the built-in overlays, the SDK renders raw content and you build the UI by switching over `FeedItem`. The same switch translates directly to every platform — case names and field names are identical; only the host language syntax differs.
+
+```swift title="FeedItemRouter.swift"
+switch feedItem {
+case .content(let video):
+    // video.streamingUrl — HLS manifest
+    // video.captionTracks — available subtitles
+    // video.customMetadata — app-specific fields
+    // video.isLive / video.liveStreamStatus — live state, when applicable
+    configureVideoUI(video)
+
+case .imageCarousel(let carousel):
+    // carousel.images — image URLs with alt text
+    // carousel.autoScrollInterval — seconds between pages, or nil
+    configureCarouselUI(carousel)
+
+case .videoCarousel(let videoCarousel):
+    // videoCarousel.videos — full ContentItem per page
+    // The SDK pages and plays natively; render chrome only.
+    configureVideoCarouselUI(videoCarousel)
+
+case .survey(let survey):
+    // survey.question, survey.options, survey.autoAdvanceDelay
+    configureSurveyUI(survey)
+
+case .adSlot:
+    // Handled by the ad provider — no custom UI needed
+    break
+}
+```
+
+## Data available per type
+
+| Field | Video | Image carousel | Video carousel | Survey | Ad slot |
+|---|---|---|---|---|---|
+| `id` | Yes | Yes | Yes | Yes | Yes |
+| `title` | Yes | Optional | Optional | — | — |
+| `description` | Optional | Optional | Optional | — | — |
+| `author` | Optional | Optional | Optional | — | — |
+| `section` | Via `customMetadata` | Optional | Optional | — | — |
+| `articleUrl` | Optional | Optional | Optional | — | — |
+| `streamingUrl` | Yes (HLS) | — | — | — | — |
+| `thumbnailUrl` | Yes | — | — | — | — |
+| `duration` | Yes | — | — | — | — |
+| `captionTracks` | Yes | — | — | — | — |
+| `customMetadata` | Optional | — | — | — | — |
+| `commentCount` | Optional | — | — | — | — |
+| `fallbackUrl` | Optional | — | — | — | — |
+| `downloadUrl` | Optional | — | — | — | — |
+| Live fields (`isLive`, `liveStreamStatus`, …) | Optional | — | — | — | — |
+| `videos` | — | — | Yes | — | — |
+| `images` | — | Yes | — | — | — |
+| `autoScrollInterval` | — | Optional | — | — | — |
+| `initialPageIndex` | — | — | Optional | — | — |
+| `question` | — | — | — | Yes | — |
+| `options` | — | — | — | Yes | — |
+| `autoAdvanceDelay` | — | — | — | Optional | — |
+
+## Next steps
+
+- [Feeds](/docs/guides/concepts/feeds) — how ranked and custom feeds deliver these items
+- [Custom feeds](/docs/guides/display/custom-feeds) — construct feed items yourself, including fallback URLs
+- [Live streams](/docs/guides/content/live-streams) — the live broadcast lifecycle behind `isLive` items
+- [Captions and metadata](/docs/guides/content/captions-and-metadata) — attach caption tracks and custom metadata at upload time

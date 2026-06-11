@@ -1,0 +1,464 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ShortKit API",
+    "description": "REST API for managing ShortKit content, live streams, surveys, analytics, and ad configuration.",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "https://api.shortkit.dev"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Content",
+      "description": "Upload, import, and manage videos and carousels."
+    },
+    {
+      "name": "Live Streams",
+      "description": "Create and manage live streams that appear in your feed."
+    }
+  ],
+  "paths": {
+    "/v1/content/{content_id}": {
+      "get": {
+        "summary": "Get content",
+        "operationId": "get_content_v1_content__content_id__get",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Retrieve a single content item by ID, including upload and publish status, playback URLs, caption tracks, and custom metadata.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/upload": {
+      "post": {
+        "summary": "Upload content",
+        "operationId": "upload_content_v1_content_upload_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Create an upload session for a video file. The response includes a signed `uploadUrl` — send the file bytes to it with a `PUT` request. Processing starts automatically once the upload completes; track it by polling the content item or with a `callbackUrl`.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams": {
+      "post": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Create live stream",
+        "description": "Create a live stream. The response includes ingest credentials (`rtmpUrl` and `streamKey`) for your broadcast software and the content item that appears in your feed once the stream goes live. Choose the delivery protocol with `protocol`: `hls` (default, a few seconds of latency) or `webrtc` (sub-second).",
+        "operationId": "create_live_stream_v1_live_streams_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLiveStreamRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateLiveStreamRequest": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "hls",
+              "webrtc"
+            ],
+            "title": "Protocol",
+            "default": "hls"
+          },
+          "latencyMode": {
+            "type": "string",
+            "enum": [
+              "low",
+              "reduced",
+              "standard"
+            ],
+            "title": "Latencymode",
+            "default": "low"
+          },
+          "reconnectWindow": {
+            "type": "integer",
+            "maximum": 1800,
+            "minimum": 0,
+            "title": "Reconnectwindow",
+            "default": 60
+          },
+          "reconnectSlateUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconnectslateurl"
+          },
+          "customMetadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Custommetadata"
+          }
+        },
+        "type": "object",
+        "title": "CreateLiveStreamRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "UploadImageSlot": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "altText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alttext"
+          }
+        },
+        "type": "object",
+        "title": "UploadImageSlot"
+      },
+      "UploadRequest": {
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "title": "Contenttype"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "customMetadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Custommetadata"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "publishAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishat"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiresat"
+          },
+          "generateSubtitles": {
+            "type": "boolean",
+            "title": "Generatesubtitles",
+            "default": false
+          },
+          "callbackUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callbackurl"
+          },
+          "externalId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externalid"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ios_upload",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "images": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/UploadImageSlot"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images"
+          }
+        },
+        "type": "object",
+        "required": [
+          "contentType",
+          "title"
+        ],
+        "title": "UploadRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "secretKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Secret API key (`sk_live_...` or `sk_test_...`) sent as a Bearer token. Server-side only — never ship secret keys in client apps."
+      }
+    }
+  }
+}

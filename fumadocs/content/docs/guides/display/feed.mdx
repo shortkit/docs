@@ -1,0 +1,345 @@
+---
+title: "Embedding a feed"
+description: "Embed the full-screen ShortKit feed component on iOS, Android, Flutter, React Native, and Web — including lifecycle handling, partial-height layouts, and filtered feeds."
+---
+
+The feed is ShortKit's core component: a full-screen, swipeable video experience you drop into your app. It manages everything internally — pagination, player rotation, ad loading, overlay rendering, captions, and memory cleanup. You create an SDK instance, hand it to the feed component for your platform, and the feed does the rest.
+
+The feed supports several item types: video, live stream, image carousel, video carousel, survey, and ad slot. For full model definitions across all platforms, see [Content model](/docs/guides/concepts/content-model).
+
+<Callout type="info">
+Live streams render in the feed on iOS only — see [Live streams](/docs/guides/content/live-streams) for creating, broadcasting, and clipping streams, and [Platform support](/docs/guides/setup/platform-support) for the current coverage matrix.
+</Callout>
+
+Every feed takes a `FeedConfig`. The defaults produce a working full-screen feed — `FeedConfig()` with no arguments is all you need to start. Layout, scroll axis, overlays, autoplay, mute behavior, and filtering are all configured there; this page uses only the basics. For every option, see the [FeedConfig reference](/docs/guides/reference/feed-config).
+
+## Embed the feed
+
+Create an SDK instance and pass it to the feed component. On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN connection, and begins preroll for the first video, so the feed renders without a loading spinner.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+#### SwiftUI
+
+`ShortKitFeedView` works anywhere a SwiftUI `View` is accepted:
+
+```swift title="ContentView.swift"
+import SwiftUI
+import ShortKitSDK
+
+struct ContentView: View {
+    let shortKit = ShortKit(
+        apiKey: "pk_live_your_publishable_key",
+        config: FeedConfig()
+    )
+
+    var body: some View {
+        ShortKitFeedView(shortKit: shortKit)
+            .ignoresSafeArea()
+    }
+}
+```
+
+<Callout type="warn">
+Store the `ShortKit` instance outside the view body. Creating it inside the `body` property causes re-initialization on every SwiftUI render pass.
+</Callout>
+
+#### UIKit
+
+`ShortKitFeedViewController` is a standard view controller. Push it onto a navigation stack:
+
+```swift title="ViewController.swift"
+import ShortKitSDK
+
+class ViewController: UIViewController {
+    private var shortKit: ShortKit!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig()
+        )
+
+        let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+        navigationController?.pushViewController(feedVC, animated: true)
+    }
+}
+```
+
+Or embed it as a child view controller when the feed should occupy part of the screen:
+
+```swift
+let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+addChild(feedVC)
+feedVC.view.frame = view.bounds
+feedVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+view.addSubview(feedVC.view)
+feedVC.didMove(toParent: self)
+```
+
+</Tab>
+<Tab value="Android">
+
+`ShortKitFeedFragment` is the feed component on Android. Construct it with `newInstance`, passing the SDK instance and a `FeedConfig`:
+
+```kotlin title="MainActivity.kt"
+import com.shortkit.sdk.ShortKit
+import com.shortkit.sdk.FeedConfig
+import com.shortkit.sdk.ShortKitFeedFragment
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val shortKit = ShortKit(
+            context = this,
+            apiKey = "pk_live_your_publishable_key"
+        )
+
+        val feedFragment = ShortKitFeedFragment.newInstance(shortKit, FeedConfig())
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.container, feedFragment)
+            .commit()
+    }
+}
+```
+
+In a Compose app, host the fragment with `AndroidView` and a `FragmentContainerView` — the fragment is the only embed path on Android.
+
+</Tab>
+<Tab value="Flutter">
+
+Wrap your screen in `ShortKitProvider` and place `ShortKitFeed` where the feed should render:
+
+```dart title="feed_screen.dart"
+import 'package:flutter/material.dart';
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+class FeedScreen extends StatelessWidget {
+  const FeedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShortKitProvider.apiKey(
+      apiKey: 'pk_live_your_publishable_key',
+      child: const Scaffold(
+        body: ShortKitFeed(),
+      ),
+    );
+  }
+}
+```
+
+`ShortKitFeed()` with no arguments uses the default configuration. Pass `ShortKitFeed(config: FeedConfig(...))` to customize.
+
+</Tab>
+<Tab value="React Native">
+
+Wrap your app in `ShortKitProvider` and render `ShortKitFeed`. Configuration is passed to the feed component, not the provider:
+
+```tsx title="FeedScreen.tsx"
+import React from 'react';
+import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+
+export default function FeedScreen() {
+  return (
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      <ShortKitFeed config={{}} style={{ flex: 1 }} />
+    </ShortKitProvider>
+  );
+}
+```
+
+</Tab>
+<Tab value="Web">
+
+Create an SDK instance, then mount the feed into a container element:
+
+```js title="app.js"
+const sk = new ShortKit({
+  apiKey: 'pk_live_your_publishable_key',
+});
+
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: {},
+  onFeedReady: () => console.log('Feed loaded'),
+});
+```
+
+</Tab>
+</Tabs>
+
+By default the feed scrolls vertically (swipe up/down). Set the `scrollAxis` config option to horizontal for left/right swiping — see the [FeedConfig reference](/docs/guides/reference/feed-config) for details. For programmatic control — scrolling to an item, refreshing, locking scroll — see [Feed control](/docs/guides/display/feed-control).
+
+## Lifecycle
+
+The feed manages playback lifecycle for you on every platform. Playback pauses when the feed leaves the screen or the app backgrounds, and resumes when it returns. Manual intervention is only needed in a few host-specific situations described below.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+The feed responds to standard UIKit lifecycle events (SwiftUI usage inherits this through the wrapper). Playback pauses automatically when the view controller disappears and resumes when it reappears. You do not need to call `play()` or `pause()` manually during navigation transitions.
+
+</Tab>
+<Tab value="Android">
+
+`ShortKitFeedFragment` manages playback lifecycle automatically — no manual calls needed. Resources are released when the Activity is destroyed.
+
+If you embed the fragment inside a Compose `AndroidView` with tab-based visibility (where the fragment stays mounted but hidden), call `shortKit.pause()` and `shortKit.resume()` to stop playback on the hidden tab:
+
+```kotlin
+LaunchedEffect(isVisible) {
+    if (isVisible) shortKit.resume() else shortKit.pause()
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+The Flutter SDK automatically pauses and resumes playback when the app moves to and from the background using `WidgetsBindingObserver`. No manual lifecycle management is needed.
+
+</Tab>
+<Tab value="React Native">
+
+The React Native SDK automatically pauses and resumes playback when the app moves to and from the background using `AppState` listeners. No manual lifecycle management is needed.
+
+</Tab>
+<Tab value="Web">
+
+The Web SDK automatically pauses playback when the browser tab is hidden via the Page Visibility API. When you remove the feed from the page, tear it down explicitly:
+
+```js
+// Tear down the feed
+feed.destroy();
+
+// Tear down the entire SDK instance
+sk.destroy();
+```
+
+</Tab>
+</Tabs>
+
+## Partial-height feeds
+
+The feed fills its container by default. To make it occupy a portion of the screen — leaving room for a tab bar or your own chrome — set the `feedHeight` config option to a percentage.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+// 75% of screen height, leaving room for a bottom bar
+let shortKit = ShortKit(
+    apiKey: "pk_live_your_publishable_key",
+    config: FeedConfig(feedHeight: .percentage(0.75))
+)
+
+var body: some View {
+    VStack {
+        ShortKitFeedView(shortKit: shortKit)
+        CustomBottomBar()
+    }
+}
+```
+
+In UIKit, the same config applies — embed the feed as a child view controller (shown above) and size its frame alongside your other views.
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+import com.shortkit.sdk.FeedConfig
+import com.shortkit.sdk.FeedHeight
+import com.shortkit.sdk.ShortKitFeedFragment
+
+// 75% of screen height, leaving room for a bottom bar
+val config = FeedConfig(feedHeight = FeedHeight.Percentage(0.75f))
+val feedFragment = ShortKitFeedFragment.newInstance(shortKit, config)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+// 75% of screen height, leaving room for a bottom bar
+ShortKitFeed(
+  config: FeedConfig(feedHeight: FeedHeightPercentage(0.75)),
+)
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+// 75% of screen height, leaving room for a bottom bar
+<ShortKitFeed
+  config={{ feedHeight: { type: 'percentage', value: 0.75 } }}
+  style={{ flex: 1 }}
+/>
+```
+
+</Tab>
+<Tab value="Web">
+
+```js
+// 75% of screen height, leaving room for a bottom bar
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: {
+    feedHeight: { type: 'percentage', value: 0.75 },
+  },
+});
+```
+
+</Tab>
+</Tabs>
+
+## Filtered feeds
+
+Set the `filter` config option to show only content matching specific tags, sections, authors, content types, or custom metadata. Filtering is handled server-side — the SDK applies the filter automatically on every request (initial load, pagination, pull-to-refresh).
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+// Show only sports and news content
+let config = FeedConfig(filter: FeedFilter(tags: ["sports", "news"]))
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+// Show only sports and news content
+val config = FeedConfig(filter = FeedFilter(tags = listOf("sports", "news")))
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+// Show only sports and news content
+final config = FeedConfig(filter: FeedFilter(tags: ['sports', 'news']));
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+// Show only sports and news content
+<ShortKitFeed config={{ filter: { tags: ['sports', 'news'] } }} style={{ flex: 1 }} />
+```
+
+</Tab>
+<Tab value="Web">
+
+```js
+// Show only sports and news content
+sk.createFeed(el, { config: { filter: { tags: ['sports', 'news'] } } });
+```
+
+</Tab>
+</Tabs>
+
+For the full `FeedFilter` shape — field semantics, combining rules, and filtering by detected language — see the [FeedConfig reference](/docs/guides/reference/feed-config). To build a feed from your own item list instead of the recommendation engine, see [Custom feeds](/docs/guides/display/custom-feeds).

@@ -1,0 +1,11 @@
+{
+  "root": true,
+  "title": "Changelog",
+  "description": "Releases and migrations",
+  "icon": "History",
+  "pages": [
+    "index",
+    "---Migrations---",
+    "migrations/v0-3-0-carousel-playback-ids"
+  ]
+}
