@@ -8,8 +8,6 @@
     "authentication",
     "errors",
     "webhooks",
-    "---Feed---",
-    "feed",
     "---Content---",
     "content",
     "---Live Streams---",
@@ -19,8 +17,6 @@
     "---Analytics---",
     "analytics",
     "---Ad Configuration---",
-    "ad-configuration",
-    "---Client Runtime---",
-    "client-runtime"
+    "ad-configuration"
   ]
 }

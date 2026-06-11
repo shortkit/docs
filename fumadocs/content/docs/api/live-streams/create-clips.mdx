@@ -1,6 +1,13 @@
 ---
-title: "Create clips"
-description: "Create one or more on-demand video clips from a live stream's recording \u2014 pass up to 20 ranges in `clips`, each with `startSec`, `endSec`, and an optional `title`. Works while the stream is `active` (real-time clipping) or after it has `ended`; returns 409 if the recording isn't available yet or the stream is in another state, and clipping is not supported for WebRTC streams. Each clip becomes a standalone video content item that starts in `processing`; supply a `callbackUrl` to be notified when each clip is ready."
+title: Create clips
+description: >-
+  Create one or more on-demand video clips from a live stream's recording — pass
+  up to 20 ranges in `clips`, each with `startSec`, `endSec`, and an optional
+  `title`. Works while the stream is `active` (real-time clipping) or after it
+  has `ended`; returns 409 if the recording isn't available yet or the stream is
+  in another state, and clipping is not supported for WebRTC streams. Each clip
+  becomes a standalone video content item that starts in `processing`; supply a
+  `callbackUrl` to be notified when each clip is ready.
 full: true
 _openapi:
   preload:

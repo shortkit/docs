@@ -1,6 +1,11 @@
 ---
-title: "Finalize carousel upload"
-description: "Finalize a carousel created via the upload endpoint after sending the image files to their signed upload URLs. Each image slot is validated \u2014 the file must exist, be an image, and be 10 MB or less \u2014 and the carousel becomes `ready` if at least one image is valid, otherwise `errored`. Returns per-image results; only applies to carousels still awaiting upload."
+title: Finalize carousel upload
+description: >-
+  Finalize a carousel created via the upload endpoint after sending the image
+  files to their signed upload URLs. Each image slot is validated — the file
+  must exist, be an image, and be 10 MB or less — and the carousel becomes
+  `ready` if at least one image is valid, otherwise `errored`. Returns per-image
+  results; only applies to carousels still awaiting upload.
 full: true
 _openapi:
   preload:

@@ -22,7 +22,7 @@ const overlay = JSON.parse(readFileSync(path.join(root, 'openapi/overlay.json'),
 // Public endpoint allowlist: "METHOD /path". Extend as endpoints are documented.
 const ALLOW = new Set(Object.keys(overlay.operations));
 
-const FORBIDDEN = /\b(mux|livekit|oci|gcp|google cloud|cloud run|pubsub|alembic)\b/i;
+const FORBIDDEN = /\b(mux|livekit|oci|gcp|google cloud|cloud run|pubsub|alembic|googleapis\.com|amazonaws\.com)\b/i;
 
 // --- filter paths ---------------------------------------------------------
 const paths = {};
@@ -30,8 +30,19 @@ for (const [route, methods] of Object.entries(spec.paths)) {
   for (const [method, op] of Object.entries(methods)) {
     const key = `${method.toUpperCase()} ${route}`;
     if (!ALLOW.has(key)) continue;
+    const { responseExamples, ...entry } = overlay.operations[key];
+    const merged = { ...op, ...entry };
+    // FastAPI routers return raw dicts (no response_model), so the dumped
+    // schema has empty 2xx bodies — docs-owned examples fill them in.
+    for (const [status, example] of Object.entries(responseExamples ?? {})) {
+      merged.responses ??= {};
+      merged.responses[status] = {
+        description: merged.responses[status]?.description ?? 'Successful response',
+        content: { 'application/json': { example } },
+      };
+    }
     paths[route] ??= {};
-    paths[route][method] = { ...op, ...overlay.operations[key] };
+    paths[route][method] = merged;
   }
 }
 if (Object.values(paths).length === 0) throw new Error('no operations kept — allowlist empty?');

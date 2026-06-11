@@ -207,7 +207,7 @@ The backend then:
 
 Because the same `userId` can be resolved from multiple devices, an identified profile accumulates one linked device ID per device the user signs in on. This is how ShortKit unifies a user's history across their phone, tablet, and browser.
 
-The SDK calls this endpoint for you — you only need it directly if you're building a custom client. See the [identity resolve endpoint reference](/docs/api/client-runtime/resolve-a-user-identity) for full details.
+The SDK calls this endpoint for you. It is part of the SDK runtime (publishable-key) surface, not the public REST API, so it has no endpoint reference page.
 
 ## Identity on analytics events
 
@@ -220,5 +220,4 @@ To attach additional user attributes to events (plan tier, cohort, A/B variant),
 <Cards>
   <Card title="Analytics overview" href="/docs/guides/analytics/overview" description="Query metrics and views by user ID and other dimensions." />
   <Card title="Custom data" href="/docs/guides/analytics/custom-data" description="Attach custom dimensions to every event alongside the user ID." />
-  <Card title="Identity resolve endpoint" href="/docs/api/client-runtime/resolve-a-user-identity" description="REST reference for POST /v1/identity/resolve." />
 </Cards>

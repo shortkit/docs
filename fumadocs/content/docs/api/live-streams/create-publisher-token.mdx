@@ -1,6 +1,11 @@
 ---
-title: "Create publisher token"
-description: "Issue a short-lived publisher token (about 4 hours) for broadcasting to a WebRTC live stream, along with the `wsUrl` and WHIP ingest details. Only available for streams created with `protocol: \"webrtc\"` \u2014 returns 400 for HLS streams. Requires your secret key, so call it from your backend and hand the token to the broadcasting client."
+title: Create publisher token
+description: >-
+  Issue a short-lived publisher token (about 4 hours) for broadcasting to a
+  WebRTC live stream, along with the `wsUrl` and WHIP ingest details. Only
+  available for streams created with `protocol: "webrtc"` — returns 400 for HLS
+  streams. Requires your secret key, so call it from your backend and hand the
+  token to the broadcasting client.
 full: true
 _openapi:
   preload:

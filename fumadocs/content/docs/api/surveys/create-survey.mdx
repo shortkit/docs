@@ -1,6 +1,12 @@
 ---
-title: "Create survey"
-description: "Create an in-feed survey with a `question`, answer `options` (each with `text` and `position`), and `placementRules` controlling when it appears. `placementRules` must include at least one `min_videos_before` rule with a non-negative integer `n`; supported rule types are `min_videos_before`, `once_per_user`, `once_per_session`, and `max_per_session`. Surveys start in `draft` status unless you pass `status: \"active\"`."
+title: Create survey
+description: >-
+  Create an in-feed survey with a `question`, answer `options` (each with `text`
+  and `position`), and `placementRules` controlling when it appears.
+  `placementRules` must include at least one `min_videos_before` rule with a
+  non-negative integer `n`; supported rule types are `min_videos_before`,
+  `once_per_user`, `once_per_session`, and `max_per_session`. Surveys start in
+  `draft` status unless you pass `status: "active"`.
 full: true
 _openapi:
   preload:

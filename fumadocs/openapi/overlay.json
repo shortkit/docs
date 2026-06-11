@@ -24,10 +24,6 @@
   },
   "tags": [
     {
-      "name": "Feed",
-      "description": "Retrieve ranked and filtered feeds."
-    },
-    {
       "name": "Content",
       "description": "Upload, import, and manage videos and carousels."
     },
@@ -46,10 +42,6 @@
     {
       "name": "Ad Configuration",
       "description": "Configure ad serving in your feeds."
-    },
-    {
-      "name": "Client Runtime",
-      "description": "Endpoints the SDKs call with publishable keys."
     }
   ],
   "operations": {
@@ -63,7 +55,31 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+            "externalId": "cms-vid-48213",
+            "contentType": "video",
+            "uploadUrl": "https://uploads.shortkit.dev/direct/upl_4f8c2a91d3b7?token=eyJhbGciOiJSUzI1NiJ9...",
+            "status": "waiting_for_upload",
+            "title": "Morning Headlines",
+            "description": "Top stories for June 11",
+            "tags": [
+              "news",
+              "morning"
+            ],
+            "customMetadata": {
+              "category": "news"
+            },
+            "createdAt": "2026-06-11T14:02:31.481927+00:00"
+          },
+          "meta": {
+            "request_id": "req_b3f8a1c2d4e5"
+          }
+        }
+      }
     },
     "GET /v1/content/{content_id}": {
       "tags": [
@@ -75,7 +91,69 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+            "externalId": "newsroom-48291",
+            "contentType": "video",
+            "title": "Breaking: Weather Alert",
+            "description": "Severe thunderstorm warning for the metro area",
+            "uploadStatus": "ready",
+            "errorReason": null,
+            "publishStatus": "published",
+            "duration": 32.5,
+            "tags": [
+              "weather",
+              "severe",
+              "breaking"
+            ],
+            "customMetadata": {
+              "articleUrl": "https://example.com/weather-alert",
+              "language": "en"
+            },
+            "section": "Weather",
+            "author": "Jane Doe",
+            "images": [],
+            "captionTracks": [
+              {
+                "id": "5a7d3e91-2b48-4c06-8f17-9e0a6b4d2c53",
+                "language": "en",
+                "label": "English",
+                "source": "generated",
+                "url": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/text/Yq8mW3kN02vTzL6cJ9xR4aB7dF1gH5eP.vtt",
+                "trackId": "Yq8mW3kN02vTzL6cJ9xR4aB7dF1gH5eP",
+                "status": "ready",
+                "createdAt": "2026-02-05T12:03:12+00:00"
+              }
+            ],
+            "videoWidth": 1080,
+            "videoHeight": 1920,
+            "aspectRatio": 0.5625,
+            "maxFrameRate": 29.97,
+            "videoQuality": "plus",
+            "resolutionTier": "HD",
+            "playbackId": "Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS",
+            "liveStreamId": null,
+            "publishAt": null,
+            "expiresAt": null,
+            "createdAt": "2026-02-05T12:00:00+00:00",
+            "updatedAt": "2026-02-05T12:03:45+00:00",
+            "streamingUrl": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8",
+            "thumbnailUrl": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/thumbnail.jpg?time=0",
+            "previewUrls": {
+              "hls": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8?asset_start_time=0&asset_end_time=5.00&max_resolution=360p",
+              "webp": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.webp?start=0&end=5&width=320&fps=12",
+              "gif": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.gif?start=0&end=5&width=320&fps=12"
+            },
+            "downloadUrl": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/highest.mp4"
+          },
+          "meta": {
+            "request_id": "req_01hv8q6r4t"
+          }
+        }
+      }
     },
     "POST /v1/live-streams": {
       "tags": [
@@ -87,7 +165,30 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+            "streamingProtocol": "hls",
+            "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+            "status": "idle",
+            "title": "Friday morning yoga",
+            "startedAt": null,
+            "endedAt": null,
+            "createdAt": "2026-06-10T13:55:02+00:00",
+            "currentViewers": 0,
+            "latencyMode": "low",
+            "reconnectWindow": 60,
+            "vodAssetId": null,
+            "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
+            "rtmpUrl": "rtmps://ingest.shortkit.dev/app/abc123def456-7890-abcd-ef12-34567890abcd"
+          },
+          "meta": {
+            "request_id": "req_8f4b2c1d9e0a"
+          }
+        }
+      }
     },
     "POST /v1/content": {
       "tags": [
@@ -99,7 +200,49 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "7f3c9a2e-8d41-4b6a-9c25-1e8f0a4d7b91",
+            "externalId": null,
+            "contentType": "carousel",
+            "title": "Top 5 Plays of the Week",
+            "description": "Countdown of the best moments from this week's games",
+            "uploadStatus": "ready",
+            "errorReason": null,
+            "publishStatus": "unpublished",
+            "duration": null,
+            "tags": [
+              "sports",
+              "highlights"
+            ],
+            "customMetadata": {},
+            "section": "Sports",
+            "author": "Marcus Webb",
+            "images": [],
+            "captionTracks": [],
+            "videoWidth": null,
+            "videoHeight": null,
+            "aspectRatio": null,
+            "maxFrameRate": null,
+            "videoQuality": null,
+            "resolutionTier": null,
+            "playbackId": null,
+            "liveStreamId": null,
+            "publishAt": null,
+            "expiresAt": null,
+            "createdAt": "2026-02-05T12:00:00+00:00",
+            "updatedAt": "2026-02-05T12:00:00+00:00",
+            "streamingUrl": null,
+            "thumbnailUrl": null,
+            "downloadUrl": null
+          },
+          "meta": {
+            "request_id": "req_01hv8q3k7m"
+          }
+        }
+      }
     },
     "GET /v1/content": {
       "tags": [
@@ -111,7 +254,61 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+              "externalId": null,
+              "contentType": "video",
+              "title": "Breaking: Weather Alert",
+              "description": "Severe thunderstorm warning for the metro area",
+              "uploadStatus": "ready",
+              "errorReason": null,
+              "publishStatus": "published",
+              "duration": 32.5,
+              "tags": [
+                "weather",
+                "severe",
+                "breaking"
+              ],
+              "customMetadata": {
+                "articleUrl": "https://example.com/weather-alert",
+                "language": "en"
+              },
+              "section": "Weather",
+              "author": "Jane Doe",
+              "images": [],
+              "captionTracks": [],
+              "videoWidth": 1080,
+              "videoHeight": 1920,
+              "aspectRatio": 0.5625,
+              "maxFrameRate": 29.97,
+              "videoQuality": "plus",
+              "resolutionTier": "HD",
+              "playbackId": "Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS",
+              "liveStreamId": null,
+              "publishAt": null,
+              "expiresAt": null,
+              "createdAt": "2026-02-05T12:00:00+00:00",
+              "updatedAt": "2026-02-05T12:03:45+00:00",
+              "streamingUrl": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8",
+              "thumbnailUrl": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/thumbnail.jpg?time=0",
+              "previewUrls": {
+                "hls": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8?asset_start_time=0&asset_end_time=5.00&max_resolution=360p",
+                "webp": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.webp?start=0&end=5&width=320&fps=12",
+                "gif": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.gif?start=0&end=5&width=320&fps=12"
+              },
+              "downloadUrl": null
+            }
+          ],
+          "meta": {
+            "request_id": "req_01hv8q4n2x",
+            "nextCursor": "eyJjYSI6IjIwMjYtMDItMDVUMTI6MDA6MDArMDA6MDAiLCJpZCI6ImQyOTBmMWVlLTZjNTQtNGIwMS05MGU2LWQ3MDE3NDhmMDg1MSJ9"
+          }
+        }
+      }
     },
     "GET /v1/content/search": {
       "tags": [
@@ -123,7 +320,60 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+              "externalId": null,
+              "contentType": "video",
+              "title": "Breaking: Weather Alert",
+              "description": "Severe thunderstorm warning for the metro area",
+              "uploadStatus": "ready",
+              "errorReason": null,
+              "publishStatus": "published",
+              "duration": 32.5,
+              "tags": [
+                "weather",
+                "severe",
+                "breaking"
+              ],
+              "customMetadata": {
+                "articleUrl": "https://example.com/weather-alert",
+                "language": "en"
+              },
+              "section": "Weather",
+              "author": "Jane Doe",
+              "images": [],
+              "captionTracks": [],
+              "videoWidth": 1080,
+              "videoHeight": 1920,
+              "aspectRatio": 0.5625,
+              "maxFrameRate": 29.97,
+              "videoQuality": "plus",
+              "resolutionTier": "HD",
+              "playbackId": "Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS",
+              "liveStreamId": null,
+              "publishAt": null,
+              "expiresAt": null,
+              "createdAt": "2026-02-05T12:00:00+00:00",
+              "updatedAt": "2026-02-05T12:03:45+00:00",
+              "streamingUrl": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8",
+              "thumbnailUrl": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/thumbnail.jpg?time=0",
+              "previewUrls": {
+                "hls": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8?asset_start_time=0&asset_end_time=5.00&max_resolution=360p",
+                "webp": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.webp?start=0&end=5&width=320&fps=12",
+                "gif": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.gif?start=0&end=5&width=320&fps=12"
+              },
+              "downloadUrl": null
+            }
+          ],
+          "meta": {
+            "request_id": "req_01hv8q5p8d"
+          }
+        }
+      }
     },
     "GET /v1/content/count": {
       "tags": [
@@ -135,7 +385,17 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "count": 1284
+          },
+          "meta": {
+            "request_id": "req_01hv8q3k7m"
+          }
+        }
+      }
     },
     "PATCH /v1/content/{content_id}": {
       "tags": [
@@ -147,7 +407,57 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+            "externalId": "newsroom-48291",
+            "contentType": "video",
+            "title": "Updated: Weather Alert Downgraded",
+            "description": "Severe thunderstorm warning for the metro area",
+            "uploadStatus": "ready",
+            "errorReason": null,
+            "publishStatus": "published",
+            "duration": 32.5,
+            "tags": [
+              "weather",
+              "update"
+            ],
+            "customMetadata": {
+              "articleUrl": "https://example.com/weather-update",
+              "language": "en"
+            },
+            "section": "Weather",
+            "author": "Jane Doe",
+            "images": [],
+            "captionTracks": [],
+            "videoWidth": 1080,
+            "videoHeight": 1920,
+            "aspectRatio": 0.5625,
+            "maxFrameRate": 29.97,
+            "videoQuality": "plus",
+            "resolutionTier": "HD",
+            "playbackId": "Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS",
+            "liveStreamId": null,
+            "publishAt": null,
+            "expiresAt": null,
+            "createdAt": "2026-02-05T12:00:00+00:00",
+            "updatedAt": "2026-02-05T12:05:30+00:00",
+            "streamingUrl": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8",
+            "thumbnailUrl": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/thumbnail.jpg?time=0",
+            "previewUrls": {
+              "hls": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS.m3u8?asset_start_time=0&asset_end_time=5.00&max_resolution=360p",
+              "webp": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.webp?start=0&end=5&width=320&fps=12",
+              "gif": "https://image.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/animated.gif?start=0&end=5&width=320&fps=12"
+            },
+            "downloadUrl": null
+          },
+          "meta": {
+            "request_id": "req_01hv8q7w9k"
+          }
+        }
+      }
     },
     "DELETE /v1/content/{content_id}": {
       "tags": [
@@ -159,7 +469,18 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+            "deleted": true
+          },
+          "meta": {
+            "request_id": "req_01hv8q8x2m"
+          }
+        }
+      }
     },
     "POST /v1/content/{content_id}/images": {
       "tags": [
@@ -171,7 +492,21 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "3b8e2f6a-1c9d-4e57-8a40-f2d6b91c3e75",
+            "imageUrl": "https://image.media.shortkit.dev/carousels/e8f4a2d1c6b34f7a9d2e5c8b1a4f7e3d.jpg",
+            "altText": "Game-winning shot at the buzzer",
+            "position": 0,
+            "createdAt": "2026-02-05T12:08:14+00:00"
+          },
+          "meta": {
+            "request_id": "req_01hv8q9c5n"
+          }
+        }
+      }
     },
     "DELETE /v1/content/{content_id}/images/{image_id}": {
       "tags": [
@@ -183,7 +518,17 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "deleted": true
+          },
+          "meta": {
+            "request_id": "req_01hv8qad7p"
+          }
+        }
+      }
     },
     "PUT /v1/content/{content_id}/images/order": {
       "tags": [
@@ -195,7 +540,30 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "8c4f1a9e-5b27-4d63-90e8-a7b3c2d1f604",
+              "imageUrl": "https://image.media.shortkit.dev/carousels/b2c7d4e9a1f64385c0d9e2f7a5b8c1d4.jpg",
+              "altText": "Overtime celebration on the court",
+              "position": 0,
+              "createdAt": "2026-02-05T12:09:02+00:00"
+            },
+            {
+              "id": "3b8e2f6a-1c9d-4e57-8a40-f2d6b91c3e75",
+              "imageUrl": "https://image.media.shortkit.dev/carousels/e8f4a2d1c6b34f7a9d2e5c8b1a4f7e3d.jpg",
+              "altText": "Game-winning shot at the buzzer",
+              "position": 1,
+              "createdAt": "2026-02-05T12:08:14+00:00"
+            }
+          ],
+          "meta": {
+            "request_id": "req_01hv8qbe9r"
+          }
+        }
+      }
     },
     "POST /v1/content/{content_id}/videos": {
       "tags": [
@@ -207,7 +575,23 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "6d2a8f4c-9e15-4b73-a062-c8e5d1b7f349",
+              "videoContentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+              "position": 0
+            },
+            {
+              "id": "1e9b5d3f-7a48-4c02-b6d1-f4a2c8e6b590",
+              "videoContentId": "a4c8e2b6-3f91-4d57-8e20-b7d5f1a9c364",
+              "position": 1
+            }
+          ]
+        }
+      }
     },
     "PUT /v1/content/{content_id}/videos/order": {
       "tags": [
@@ -219,7 +603,12 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": "ok"
+        }
+      }
     },
     "DELETE /v1/content/{content_id}/videos/{entry_id}": {
       "tags": [
@@ -231,7 +620,12 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": "ok"
+        }
+      }
     },
     "POST /v1/content/{content_id}/captions": {
       "tags": [
@@ -243,7 +637,24 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "9f2c6b4a-8d31-4e75-a190-e3b7c5d2f816",
+            "language": "es",
+            "label": "Español",
+            "source": "external",
+            "url": "https://stream.media.shortkit.dev/Ab3xT9yQv00ZJkM2nC8dR5wPq6L1fEoS/text/4f8a2c6e9b1d43759e0a3c7f2b5d8e1a.vtt",
+            "trackId": null,
+            "status": "ready",
+            "createdAt": "2026-02-05T12:12:40+00:00"
+          },
+          "meta": {
+            "request_id": "req_01hv8qcf3s"
+          }
+        }
+      }
     },
     "DELETE /v1/content/{content_id}/captions/{track_id}": {
       "tags": [
@@ -255,7 +666,17 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "deleted": true
+          },
+          "meta": {
+            "request_id": "req_01hv8qdg6t"
+          }
+        }
+      }
     },
     "POST /v1/content/{content_id}/publication-urls": {
       "tags": [
@@ -267,7 +688,21 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "2c7e9a5b-4f18-4d36-8b02-d6f3a1c9e574",
+            "url": "https://www.example-news.com/articles/weather-alert-metro",
+            "label": "Read the full story",
+            "position": 0,
+            "createdAt": "2026-02-05T12:15:22+00:00"
+          },
+          "meta": {
+            "request_id": "req_01hv8qeh8v"
+          }
+        }
+      }
     },
     "PUT /v1/content/{content_id}/publication-urls/order": {
       "tags": [
@@ -279,7 +714,30 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "7b1d4f8c-2e95-4a63-b740-a9c2e6d3f185",
+              "url": "https://www.example-news.com/live/storm-tracker",
+              "label": "Live storm tracker",
+              "position": 0,
+              "createdAt": "2026-02-05T12:16:05+00:00"
+            },
+            {
+              "id": "2c7e9a5b-4f18-4d36-8b02-d6f3a1c9e574",
+              "url": "https://www.example-news.com/articles/weather-alert-metro",
+              "label": "Read the full story",
+              "position": 1,
+              "createdAt": "2026-02-05T12:15:22+00:00"
+            }
+          ],
+          "meta": {
+            "request_id": "req_01hv8qfj2w"
+          }
+        }
+      }
     },
     "PUT /v1/content/{content_id}/publication-urls/{url_id}": {
       "tags": [
@@ -291,7 +749,21 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "2c7e9a5b-4f18-4d36-8b02-d6f3a1c9e574",
+            "url": "https://www.example-news.com/articles/weather-alert-metro-update",
+            "label": "Read the updated story",
+            "position": 0,
+            "createdAt": "2026-02-05T12:15:22+00:00"
+          },
+          "meta": {
+            "request_id": "req_01hv8qgk4x"
+          }
+        }
+      }
     },
     "DELETE /v1/content/{content_id}/publication-urls/{url_id}": {
       "tags": [
@@ -303,7 +775,17 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "deleted": true
+          },
+          "meta": {
+            "request_id": "req_01hv8qhm6y"
+          }
+        }
+      }
     },
     "POST /v1/content/import": {
       "tags": [
@@ -315,7 +797,41 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": [
+            {
+              "id": "e3a1b2c3-d4e5-4789-abcd-ef0123456789",
+              "externalId": "cms-vid-1042",
+              "contentType": "video",
+              "status": "queued",
+              "title": "Quarterly Recap",
+              "error": null
+            },
+            {
+              "id": "f4b2c3d4-e5f6-4890-bcde-f01234567890",
+              "externalId": null,
+              "contentType": "carousel",
+              "status": "queued",
+              "title": "Team Photos",
+              "error": null
+            }
+          ],
+          "summary": {
+            "total": 2,
+            "succeeded": 2,
+            "failed": 0
+          },
+          "queue": {
+            "queuedItems": 14,
+            "estimatedMinutes": 0.2
+          },
+          "meta": {
+            "request_id": "req_7d2e9f4a8b1c"
+          }
+        }
+      }
     },
     "POST /v1/content/import/tiktok": {
       "tags": [
@@ -327,7 +843,24 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "jobId": "9b7e4d12-3f8a-4c56-9e01-2a4b6c8d0e1f",
+            "profilesQueued": 0,
+            "videosQueued": 3,
+            "videosSkipped": 1
+          },
+          "queue": {
+            "orgQueuedItems": 3,
+            "estimatedMinutes": 0.1
+          },
+          "meta": {
+            "request_id": "req_5c1d8e2f9a3b"
+          }
+        }
+      }
     },
     "POST /v1/content/import/instagram": {
       "tags": [
@@ -339,7 +872,24 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "jobId": "2c8f1a3b-5d7e-4910-8f23-4b6a8c0d2e4f",
+            "profilesQueued": 1,
+            "reelsQueued": 2,
+            "reelsSkipped": 0
+          },
+          "queue": {
+            "orgQueuedItems": 2,
+            "estimatedMinutes": 0.1
+          },
+          "meta": {
+            "request_id": "req_9e4a7b2c5d8f"
+          }
+        }
+      }
     },
     "GET /v1/content/import/status": {
       "tags": [
@@ -351,7 +901,23 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "queued": 12,
+            "processing": 3,
+            "readyToday": 248,
+            "failedToday": 2,
+            "dailyQuota": 5000,
+            "dailyUsed": 263,
+            "estimatedMinutes": 0.2
+          },
+          "meta": {
+            "request_id": "req_1f6c3a9d7e2b"
+          }
+        }
+      }
     },
     "POST /v1/content/{content_id}/finalize": {
       "tags": [
@@ -363,7 +929,34 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "a1b2c3d4-e5f6-4890-abcd-ef1234567890",
+            "externalId": "cms-carousel-310",
+            "status": "ready",
+            "publishStatus": "published",
+            "images": [
+              {
+                "position": 0,
+                "status": "ready",
+                "imageUrl": "https://image.media.shortkit.dev/carousels/0.jpg",
+                "error": null
+              },
+              {
+                "position": 1,
+                "status": "ready",
+                "imageUrl": "https://image.media.shortkit.dev/carousels/1.jpg",
+                "error": null
+              }
+            ]
+          },
+          "meta": {
+            "request_id": "req_3a9d5e1f7c4b"
+          }
+        }
+      }
     },
     "GET /v1/content/{content_id}/download-url": {
       "tags": [
@@ -378,7 +971,15 @@
         {
           "publishableKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "downloadUrl": "https://stream.media.shortkit.dev/rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9/highest.mp4",
+            "status": "ready"
+          }
+        }
+      }
     },
     "GET /v1/content/{content_id}/download": {
       "tags": [
@@ -395,18 +996,6 @@
         }
       ]
     },
-    "GET /v1/captions": {
-      "tags": [
-        "Client Runtime"
-      ],
-      "summary": "Get captions for a playback ID",
-      "description": "Resolves the ready caption tracks for a video by its `playback_id` query parameter, returning each track's `language`, `label`, `source`, and a `url` to the WebVTT file. Useful in custom feed mode where the client has a playback ID but not the full content object. Returns an empty list if the playback ID is unknown or no tracks are ready.",
-      "security": [
-        {
-          "publishableKey": []
-        }
-      ]
-    },
     "GET /v1/live-streams": {
       "tags": [
         "Live Streams"
@@ -417,7 +1006,63 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+              "streamingProtocol": "hls",
+              "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+              "status": "active",
+              "title": "Friday morning yoga",
+              "startedAt": "2026-06-10T14:00:08+00:00",
+              "endedAt": null,
+              "createdAt": "2026-06-10T13:55:02+00:00",
+              "currentViewers": 87,
+              "latencyMode": "low",
+              "reconnectWindow": 60,
+              "vodAssetId": null,
+              "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
+              "rtmpUrl": "rtmps://ingest.shortkit.dev/app/abc123def456-7890-abcd-ef12-34567890abcd"
+            },
+            {
+              "id": "6b8c9d0e-f1a2-4345-a789-01bcdef23456",
+              "streamingProtocol": "webrtc",
+              "playbackId": "sk-7c2d9e4f-1a3b-4c5d-8e9f-0a1b2c3d4e5f",
+              "status": "ended",
+              "title": "Sneaker drop Q&A",
+              "startedAt": "2026-06-08T17:02:11+00:00",
+              "endedAt": "2026-06-08T17:48:36+00:00",
+              "createdAt": "2026-06-08T16:50:44+00:00",
+              "currentViewers": 0,
+              "totalViews": 264,
+              "peakViewers": 31,
+              "viewerHistory": [
+                {
+                  "ts": "2026-06-08T17:03:00Z",
+                  "v": 12
+                },
+                {
+                  "ts": "2026-06-08T17:04:00Z",
+                  "v": 24
+                },
+                {
+                  "ts": "2026-06-08T17:05:00Z",
+                  "v": 31
+                }
+              ],
+              "streamKey": "AbCdEfGhIjKl",
+              "rtmpUrl": "rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl",
+              "whipUrl": "https://ingest.shortkit.dev/whip",
+              "whipToken": "Kf3mZq8vXw2N"
+            }
+          ],
+          "meta": {
+            "request_id": "req_2d7e9a4c5b1f"
+          }
+        }
+      }
     },
     "GET /v1/live-streams/status": {
       "tags": [
@@ -429,7 +1074,24 @@
         {
           "publishableKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100": {
+              "status": "active",
+              "startedAt": "2026-06-10T14:00:08+00:00",
+              "currentViewers": 87
+            },
+            "sk-7c2d9e4f-1a3b-4c5d-8e9f-0a1b2c3d4e5f": {
+              "status": "ended",
+              "startedAt": "2026-06-08T17:02:11+00:00",
+              "endedAt": "2026-06-08T17:48:36+00:00",
+              "currentViewers": 0
+            }
+          }
+        }
+      }
     },
     "GET /v1/live-streams/{stream_id}/viewer-token": {
       "tags": [
@@ -441,7 +1103,16 @@
         {
           "publishableKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2aWV3ZXItOWYyYzRiOGEiLCJ2aWRlbyI6eyJyb29tIjoic2stN2MyZDllNGYiLCJjYW5TdWJzY3JpYmUiOnRydWV9fQ.x7KqVbn3mP0sT2wYzR8cD4eF6gH1jL5n",
+            "wsUrl": "wss://live.shortkit.dev",
+            "expiresAt": "2026-06-10T17:18:42Z"
+          }
+        }
+      }
     },
     "GET /v1/live-streams/{stream_id}/publisher-token": {
       "tags": [
@@ -453,7 +1124,18 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwdWJsaXNoZXIiLCJ2aWRlbyI6eyJyb29tIjoic2stN2MyZDllNGYiLCJjYW5QdWJsaXNoIjp0cnVlfX0.a9BcD2eF4gH6jK8mN0pQ1rS3tU5vW7xY",
+            "wsUrl": "wss://live.shortkit.dev",
+            "whipUrl": "https://ingest.shortkit.dev/whip",
+            "expiresAt": "2026-06-10T21:03:42Z",
+            "whipToken": "Kf3mZq8vXw2N"
+          }
+        }
+      }
     },
     "GET /v1/live-streams/{stream_id}": {
       "tags": [
@@ -465,7 +1147,30 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+            "streamingProtocol": "hls",
+            "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+            "status": "active",
+            "title": "Friday morning yoga",
+            "startedAt": "2026-06-10T14:00:08+00:00",
+            "endedAt": null,
+            "createdAt": "2026-06-10T13:55:02+00:00",
+            "currentViewers": 87,
+            "latencyMode": "low",
+            "reconnectWindow": 60,
+            "vodAssetId": null,
+            "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
+            "rtmpUrl": "rtmps://ingest.shortkit.dev/app/abc123def456-7890-abcd-ef12-34567890abcd"
+          },
+          "meta": {
+            "request_id": "req_6c1e8b3a9d2f"
+          }
+        }
+      }
     },
     "POST /v1/live-streams/{stream_id}/start": {
       "tags": [
@@ -477,7 +1182,32 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "6b8c9d0e-f1a2-4345-a789-01bcdef23456",
+            "streamingProtocol": "webrtc",
+            "playbackId": "sk-7c2d9e4f-1a3b-4c5d-8e9f-0a1b2c3d4e5f",
+            "status": "active",
+            "title": "Sneaker drop Q&A",
+            "startedAt": "2026-06-10T17:02:11+00:00",
+            "endedAt": null,
+            "createdAt": "2026-06-10T16:50:44+00:00",
+            "currentViewers": 0,
+            "totalViews": 0,
+            "peakViewers": 0,
+            "viewerHistory": [],
+            "streamKey": "AbCdEfGhIjKl",
+            "rtmpUrl": "rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl",
+            "whipUrl": "https://ingest.shortkit.dev/whip",
+            "whipToken": "Kf3mZq8vXw2N"
+          },
+          "meta": {
+            "request_id": "req_4a9d2c7e1b5f"
+          }
+        }
+      }
     },
     "POST /v1/live-streams/{stream_id}/end": {
       "tags": [
@@ -489,7 +1219,30 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+            "streamingProtocol": "hls",
+            "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+            "status": "active",
+            "title": "Friday morning yoga",
+            "startedAt": "2026-06-10T14:00:08+00:00",
+            "endedAt": null,
+            "createdAt": "2026-06-10T13:55:02+00:00",
+            "currentViewers": 0,
+            "latencyMode": "low",
+            "reconnectWindow": 60,
+            "vodAssetId": null,
+            "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
+            "rtmpUrl": "rtmps://ingest.shortkit.dev/app/abc123def456-7890-abcd-ef12-34567890abcd"
+          },
+          "meta": {
+            "request_id": "req_b3f7a1c8e4d9"
+          }
+        }
+      }
     },
     "DELETE /v1/live-streams/{stream_id}": {
       "tags": [
@@ -501,7 +1254,18 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+            "deleted": true
+          },
+          "meta": {
+            "request_id": "req_e9c2f5a8b1d4"
+          }
+        }
+      }
     },
     "POST /v1/live-streams/{stream_id}/clips": {
       "tags": [
@@ -513,7 +1277,32 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "clips": [
+              {
+                "contentId": "f1a2b3c4-d5e6-4789-90ab-cdef12345678",
+                "playbackId": "vM3xKq7TfRZw01jN5mYbA02LcPdQ8sE00",
+                "startSec": 0,
+                "endSec": 30,
+                "title": "Opening"
+              },
+              {
+                "contentId": "1234abcd-5678-40ef-92ab-34567890cdef",
+                "playbackId": "Qw9pLs4HtVx02kB6nZcD01MePfR7uG11",
+                "startSec": 600,
+                "endSec": 660,
+                "title": "Q&A highlight"
+              }
+            ]
+          },
+          "meta": {
+            "request_id": "req_7d4f1b9c3a6e"
+          }
+        }
+      }
     },
     "GET /v1/live-streams/{stream_id}/clips": {
       "tags": [
@@ -525,7 +1314,38 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "clipContentId": "1234abcd-5678-40ef-92ab-34567890cdef",
+              "playbackId": "Qw9pLs4HtVx02kB6nZcD01MePfR7uG11",
+              "startSec": 600,
+              "endSec": 660,
+              "title": "Q&A highlight",
+              "uploadStatus": "processing",
+              "publishStatus": "unpublished",
+              "thumbnailUrl": "https://image.media.shortkit.dev/Qw9pLs4HtVx02kB6nZcD01MePfR7uG11/thumbnail.jpg?time=0",
+              "createdAt": "2026-06-10T18:12:27+00:00"
+            },
+            {
+              "clipContentId": "f1a2b3c4-d5e6-4789-90ab-cdef12345678",
+              "playbackId": "vM3xKq7TfRZw01jN5mYbA02LcPdQ8sE00",
+              "startSec": 0,
+              "endSec": 30,
+              "title": "Opening",
+              "uploadStatus": "ready",
+              "publishStatus": "published",
+              "thumbnailUrl": "https://image.media.shortkit.dev/vM3xKq7TfRZw01jN5mYbA02LcPdQ8sE00/thumbnail.jpg?time=0",
+              "createdAt": "2026-06-10T18:12:26+00:00"
+            }
+          ],
+          "meta": {
+            "request_id": "req_5b8e2a7d4c1f"
+          }
+        }
+      }
     },
     "POST /v1/surveys": {
       "tags": [
@@ -537,7 +1357,64 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+            "title": "Content Discovery",
+            "question": "How did you discover this content?",
+            "status": "active",
+            "priority": 10,
+            "autoAdvanceDelay": 3,
+            "options": [
+              {
+                "id": "a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6",
+                "text": "Social media",
+                "position": 0,
+                "responseCount": 0,
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e",
+                "text": "Search",
+                "position": 1,
+                "responseCount": 0,
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "c3d4e5f6-a7b8-4c0d-9e2f-3a4b5c6d7e8f",
+                "text": "A friend",
+                "position": 2,
+                "responseCount": 0,
+                "createdAt": "2026-05-18T09:24:11Z"
+              }
+            ],
+            "placementRules": [
+              {
+                "id": "e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b",
+                "ruleType": "min_videos_before",
+                "ruleValue": {
+                  "n": 3
+                },
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "f6a7b8c9-d0e1-4f2a-9b4c-5d6e7f8a9b0c",
+                "ruleType": "once_per_user",
+                "ruleValue": {},
+                "createdAt": "2026-05-18T09:24:11Z"
+              }
+            ],
+            "totalResponses": 0,
+            "createdAt": "2026-05-18T09:24:11Z",
+            "updatedAt": "2026-05-18T09:24:11Z"
+          },
+          "meta": {
+            "request_id": "req_8fk2nq7xv4"
+          }
+        }
+      }
     },
     "GET /v1/surveys": {
       "tags": [
@@ -549,7 +1426,103 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+              "title": "Content Discovery",
+              "question": "How did you discover this content?",
+              "status": "active",
+              "priority": 10,
+              "autoAdvanceDelay": 3,
+              "options": [
+                {
+                  "id": "a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6",
+                  "text": "Social media",
+                  "position": 0,
+                  "responseCount": 42,
+                  "createdAt": "2026-05-18T09:24:11Z"
+                },
+                {
+                  "id": "b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e",
+                  "text": "Search",
+                  "position": 1,
+                  "responseCount": 28,
+                  "createdAt": "2026-05-18T09:24:11Z"
+                }
+              ],
+              "placementRules": [
+                {
+                  "id": "e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b",
+                  "ruleType": "min_videos_before",
+                  "ruleValue": {
+                    "n": 3
+                  },
+                  "createdAt": "2026-05-18T09:24:11Z"
+                }
+              ],
+              "totalResponses": 70,
+              "createdAt": "2026-05-18T09:24:11Z",
+              "updatedAt": "2026-05-21T14:30:02Z"
+            },
+            {
+              "id": "9b1c2d3e-4f5a-4b6c-8d7e-8f9a0b1c2d3e",
+              "title": "Session Satisfaction",
+              "question": "How was your viewing experience today?",
+              "status": "active",
+              "priority": 5,
+              "autoAdvanceDelay": 2.5,
+              "options": [
+                {
+                  "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+                  "text": "Great",
+                  "position": 0,
+                  "responseCount": 31,
+                  "createdAt": "2026-05-20T11:02:45Z"
+                },
+                {
+                  "id": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+                  "text": "Okay",
+                  "position": 1,
+                  "responseCount": 12,
+                  "createdAt": "2026-05-20T11:02:45Z"
+                },
+                {
+                  "id": "3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f",
+                  "text": "Not great",
+                  "position": 2,
+                  "responseCount": 4,
+                  "createdAt": "2026-05-20T11:02:45Z"
+                }
+              ],
+              "placementRules": [
+                {
+                  "id": "4d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f8a",
+                  "ruleType": "min_videos_before",
+                  "ruleValue": {
+                    "n": 8
+                  },
+                  "createdAt": "2026-05-20T11:02:45Z"
+                },
+                {
+                  "id": "5e6f7a8b-9c0d-4e1f-8a3b-4c5d6e7f8a9b",
+                  "ruleType": "once_per_session",
+                  "ruleValue": {},
+                  "createdAt": "2026-05-20T11:02:45Z"
+                }
+              ],
+              "totalResponses": 47,
+              "createdAt": "2026-05-20T11:02:45Z",
+              "updatedAt": "2026-05-20T11:02:45Z"
+            }
+          ],
+          "meta": {
+            "request_id": "req_3jd9wm2kp1"
+          }
+        }
+      }
     },
     "GET /v1/surveys/{survey_id}": {
       "tags": [
@@ -561,7 +1534,64 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+            "title": "Content Discovery",
+            "question": "How did you discover this content?",
+            "status": "active",
+            "priority": 10,
+            "autoAdvanceDelay": 3,
+            "options": [
+              {
+                "id": "a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6",
+                "text": "Social media",
+                "position": 0,
+                "responseCount": 42,
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e",
+                "text": "Search",
+                "position": 1,
+                "responseCount": 28,
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "c3d4e5f6-a7b8-4c0d-9e2f-3a4b5c6d7e8f",
+                "text": "A friend",
+                "position": 2,
+                "responseCount": 15,
+                "createdAt": "2026-05-18T09:24:11Z"
+              }
+            ],
+            "placementRules": [
+              {
+                "id": "e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b",
+                "ruleType": "min_videos_before",
+                "ruleValue": {
+                  "n": 3
+                },
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "f6a7b8c9-d0e1-4f2a-9b4c-5d6e7f8a9b0c",
+                "ruleType": "once_per_user",
+                "ruleValue": {},
+                "createdAt": "2026-05-18T09:24:11Z"
+              }
+            ],
+            "totalResponses": 85,
+            "createdAt": "2026-05-18T09:24:11Z",
+            "updatedAt": "2026-05-21T14:30:02Z"
+          },
+          "meta": {
+            "request_id": "req_p7vx41hm9s"
+          }
+        }
+      }
     },
     "PUT /v1/surveys/{survey_id}": {
       "tags": [
@@ -573,7 +1603,64 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+            "title": "Content Discovery",
+            "question": "How did you discover this content?",
+            "status": "paused",
+            "priority": 10,
+            "autoAdvanceDelay": 2,
+            "options": [
+              {
+                "id": "a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6",
+                "text": "Social media",
+                "position": 0,
+                "responseCount": 42,
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e",
+                "text": "Search",
+                "position": 1,
+                "responseCount": 28,
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "c3d4e5f6-a7b8-4c0d-9e2f-3a4b5c6d7e8f",
+                "text": "A friend",
+                "position": 2,
+                "responseCount": 15,
+                "createdAt": "2026-05-18T09:24:11Z"
+              }
+            ],
+            "placementRules": [
+              {
+                "id": "e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b",
+                "ruleType": "min_videos_before",
+                "ruleValue": {
+                  "n": 3
+                },
+                "createdAt": "2026-05-18T09:24:11Z"
+              },
+              {
+                "id": "f6a7b8c9-d0e1-4f2a-9b4c-5d6e7f8a9b0c",
+                "ruleType": "once_per_user",
+                "ruleValue": {},
+                "createdAt": "2026-05-18T09:24:11Z"
+              }
+            ],
+            "totalResponses": 85,
+            "createdAt": "2026-05-18T09:24:11Z",
+            "updatedAt": "2026-06-09T16:42:38Z"
+          },
+          "meta": {
+            "request_id": "req_k2mz85qw3f"
+          }
+        }
+      }
     },
     "DELETE /v1/surveys/{survey_id}": {
       "tags": [
@@ -585,7 +1672,18 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+            "deleted": true
+          },
+          "meta": {
+            "request_id": "req_w9rt62bn4h"
+          }
+        }
+      }
     },
     "PUT /v1/surveys/priorities": {
       "tags": [
@@ -597,7 +1695,17 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "updated": true
+          },
+          "meta": {
+            "request_id": "req_6hc3jp8dq2"
+          }
+        }
+      }
     },
     "POST /v1/surveys/{survey_id}/responses": {
       "tags": [
@@ -609,7 +1717,21 @@
         {
           "publishableKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "201": {
+          "data": {
+            "id": "7a8b9c0d-1e2f-4a3b-8c5d-6e7f8a9b0c1d",
+            "surveyId": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+            "optionId": "a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6",
+            "userId": "user_4d82kx",
+            "respondedAt": "2026-06-09T15:00:27Z"
+          },
+          "meta": {
+            "request_id": "req_z4nf17vk8m"
+          }
+        }
+      }
     },
     "GET /v1/metrics/{metric}": {
       "tags": [
@@ -621,7 +1743,22 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "value": 48210,
+            "total_views": 48210
+          },
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_4f9c1e7b2a8d"
+          }
+        }
+      }
     },
     "GET /v1/metrics/{metric}/timeseries": {
       "tags": [
@@ -633,7 +1770,48 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "date": "2026-06-04T00:00:00",
+              "value": 6125
+            },
+            {
+              "date": "2026-06-05T00:00:00",
+              "value": 6840
+            },
+            {
+              "date": "2026-06-06T00:00:00",
+              "value": 7912
+            },
+            {
+              "date": "2026-06-07T00:00:00",
+              "value": 8067
+            },
+            {
+              "date": "2026-06-08T00:00:00",
+              "value": 6453
+            },
+            {
+              "date": "2026-06-09T00:00:00",
+              "value": 6991
+            },
+            {
+              "date": "2026-06-10T00:00:00",
+              "value": 5822
+            }
+          ],
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_9b2d7e4c1f6a"
+          }
+        }
+      }
     },
     "GET /v1/metrics/{metric}/breakdown": {
       "tags": [
@@ -645,7 +1823,41 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "dimension_value": "cnt_01hv8q3k7m",
+              "metric_value": 6204,
+              "total_views": 6204,
+              "content_title": "Summer Drop Teaser",
+              "content_thumbnail_url": "https://image.media.shortkit.dev/Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB/thumbnail.jpg?time=0"
+            },
+            {
+              "dimension_value": "cnt_01hv9t5n2c",
+              "metric_value": 4818,
+              "total_views": 4818,
+              "content_title": "Behind the Seams Ep. 4",
+              "content_thumbnail_url": "https://image.media.shortkit.dev/Mk7dW2pQfT9xC4vRnJ8bL5sYgHa3Ze/thumbnail.jpg?time=0"
+            },
+            {
+              "dimension_value": "cnt_01hvb2r8sw",
+              "metric_value": 3577,
+              "total_views": 3577,
+              "content_title": "Studio Tour: Brooklyn",
+              "content_thumbnail_url": "https://image.media.shortkit.dev/Pz5cR8nK2wT7mX4qVdY9bJfL3hGa6S/thumbnail.jpg?time=0"
+            }
+          ],
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_7a3e9d2c5b1f"
+          }
+        }
+      }
     },
     "GET /v1/metrics/{metric}/heatmap": {
       "tags": [
@@ -657,7 +1869,45 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "date": "2026-06-09",
+              "hour": 12,
+              "value": 318
+            },
+            {
+              "date": "2026-06-09",
+              "hour": 13,
+              "value": 402
+            },
+            {
+              "date": "2026-06-09",
+              "hour": 14,
+              "value": 511
+            },
+            {
+              "date": "2026-06-10",
+              "hour": 12,
+              "value": 287
+            },
+            {
+              "date": "2026-06-10",
+              "hour": 13,
+              "value": 364
+            }
+          ],
+          "timeframe": [
+            1779840000,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_2c8f4b7e9d3a"
+          }
+        }
+      }
     },
     "POST /v1/metrics/batch": {
       "tags": [
@@ -669,7 +1919,36 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "views": {
+              "value": 48210,
+              "total_views": 48210
+            },
+            "completions": {
+              "value": 19873,
+              "total_views": 48210
+            },
+            "watch_time": {
+              "value": 18342.77,
+              "total_views": 48210
+            },
+            "avg_session_duration": {
+              "value": 184.62,
+              "total_views": 48210
+            }
+          },
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_6d1a8c3f5e9b"
+          }
+        }
+      }
     },
     "GET /v1/views": {
       "tags": [
@@ -681,7 +1960,66 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "vw_01hvd8x4qz",
+              "content_id": "cnt_01hv8q3k7m",
+              "viewer_id": "user_48291",
+              "view_session_id": "vs_01hvd8x4qz",
+              "view_start": "2026-06-09T18:24:11+00:00",
+              "view_end": "2026-06-09T18:24:35+00:00",
+              "watch_time_ms": 23480,
+              "playing_time_ms": 21934,
+              "completed": true,
+              "looped": false,
+              "loop_count": 0,
+              "exit_before_start": false,
+              "video_startup_time_ms": 412,
+              "rebuffer_count": 0,
+              "rebuffer_duration_ms": 0,
+              "seek_count": 1,
+              "seek_duration_ms": 880,
+              "avg_bitrate_bps": 2840000,
+              "rendition_change_count": 2,
+              "rendition_upshift_count": 2,
+              "rendition_downshift_count": 0,
+              "captions_enabled": false,
+              "device_category": "phone",
+              "device_manufacturer": "Apple",
+              "device_model": "iPhone16,2",
+              "device_name": "iPhone 15 Pro Max",
+              "os_name": "iOS",
+              "os_version": "18.5",
+              "connection_type": "wifi",
+              "video_title": "Summer Drop Teaser",
+              "video_duration_ms": 24000,
+              "client_app_name": "bloom-ios",
+              "client_app_version": "3.12.0",
+              "custom_1": "campaign_summer26",
+              "custom_2": null,
+              "custom_3": null,
+              "custom_4": null,
+              "custom_5": null
+            }
+          ],
+          "pagination": {
+            "total": 8421,
+            "page": 1,
+            "limit": 25,
+            "total_pages": 337
+          },
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_1e7b4a9c2d6f"
+          }
+        }
+      }
     },
     "GET /v1/views/{view_id}": {
       "tags": [
@@ -693,7 +2031,54 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "id": "vw_01hvd8x4qz",
+            "content_id": "cnt_01hv8q3k7m",
+            "viewer_id": "user_48291",
+            "view_session_id": "vs_01hvd8x4qz",
+            "view_start": "2026-06-09T18:24:11+00:00",
+            "view_end": "2026-06-09T18:24:35+00:00",
+            "watch_time_ms": 23480,
+            "playing_time_ms": 21934,
+            "completed": true,
+            "looped": false,
+            "loop_count": 0,
+            "exit_before_start": false,
+            "video_startup_time_ms": 412,
+            "rebuffer_count": 0,
+            "rebuffer_duration_ms": 0,
+            "seek_count": 1,
+            "seek_duration_ms": 880,
+            "avg_bitrate_bps": 2840000,
+            "rendition_change_count": 2,
+            "rendition_upshift_count": 2,
+            "rendition_downshift_count": 0,
+            "captions_enabled": false,
+            "device_category": "phone",
+            "device_manufacturer": "Apple",
+            "device_model": "iPhone16,2",
+            "device_name": "iPhone 15 Pro Max",
+            "os_name": "iOS",
+            "os_version": "18.5",
+            "connection_type": "wifi",
+            "video_title": "Summer Drop Teaser",
+            "video_duration_ms": 24000,
+            "client_app_name": "bloom-ios",
+            "client_app_version": "3.12.0",
+            "custom_1": "campaign_summer26",
+            "custom_2": null,
+            "custom_3": null,
+            "custom_4": null,
+            "custom_5": null
+          },
+          "meta": {
+            "request_id": "req_8c5d2f7a3b9e"
+          }
+        }
+      }
     },
     "GET /v1/exports/views": {
       "tags": [
@@ -705,7 +2090,91 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": [
+          {
+            "id": "vw_01hvd8x4qz",
+            "content_id": "cnt_01hv8q3k7m",
+            "viewer_id": "user_48291",
+            "view_session_id": "vs_01hvd8x4qz",
+            "view_start": "2026-06-09T18:24:11+00:00",
+            "view_end": "2026-06-09T18:24:35+00:00",
+            "watch_time_ms": 23480,
+            "playing_time_ms": 21934,
+            "completed": true,
+            "looped": false,
+            "loop_count": 0,
+            "exit_before_start": false,
+            "video_startup_time_ms": 412,
+            "rebuffer_count": 0,
+            "rebuffer_duration_ms": 0,
+            "seek_count": 1,
+            "seek_duration_ms": 880,
+            "avg_bitrate_bps": 2840000,
+            "rendition_change_count": 2,
+            "rendition_upshift_count": 2,
+            "rendition_downshift_count": 0,
+            "captions_enabled": false,
+            "device_category": "phone",
+            "device_manufacturer": "Apple",
+            "device_model": "iPhone16,2",
+            "device_name": "iPhone 15 Pro Max",
+            "os_name": "iOS",
+            "os_version": "18.5",
+            "connection_type": "wifi",
+            "video_title": "Summer Drop Teaser",
+            "video_duration_ms": 24000,
+            "client_app_name": "bloom-ios",
+            "client_app_version": "3.12.0",
+            "custom_1": "campaign_summer26",
+            "custom_2": null,
+            "custom_3": null,
+            "custom_4": null,
+            "custom_5": null
+          },
+          {
+            "id": "vw_01hvd8w9rk",
+            "content_id": "cnt_01hv9t5n2c",
+            "viewer_id": "user_70114",
+            "view_session_id": "vs_01hvd8w9rk",
+            "view_start": "2026-06-09T18:21:02+00:00",
+            "view_end": "2026-06-09T18:21:14+00:00",
+            "watch_time_ms": 11760,
+            "playing_time_ms": 10205,
+            "completed": false,
+            "looped": false,
+            "loop_count": 0,
+            "exit_before_start": false,
+            "video_startup_time_ms": 689,
+            "rebuffer_count": 1,
+            "rebuffer_duration_ms": 740,
+            "seek_count": 0,
+            "seek_duration_ms": 0,
+            "avg_bitrate_bps": 1620000,
+            "rendition_change_count": 1,
+            "rendition_upshift_count": 0,
+            "rendition_downshift_count": 1,
+            "captions_enabled": true,
+            "device_category": "phone",
+            "device_manufacturer": "Samsung",
+            "device_model": "SM-S938B",
+            "device_name": "Galaxy S25 Ultra",
+            "os_name": "Android",
+            "os_version": "15",
+            "connection_type": "cellular",
+            "video_title": "Behind the Seams Ep. 4",
+            "video_duration_ms": 31500,
+            "client_app_name": "bloom-android",
+            "client_app_version": "3.11.2",
+            "custom_1": null,
+            "custom_2": null,
+            "custom_3": null,
+            "custom_4": null,
+            "custom_5": null
+          }
+        ]
+      }
     },
     "GET /v1/events/explore": {
       "tags": [
@@ -717,7 +2186,50 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "id": "evt_01hvd8x5mt",
+              "event_type": "playStart",
+              "user_id": "user_48291",
+              "session_id": "sess_01hvd8tq2v",
+              "view_session_id": "vs_01hvd8x4qz",
+              "content_id": "cnt_01hv8q3k7m",
+              "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+              "event_data": {},
+              "timestamp": "2026-06-09T18:24:11+00:00",
+              "received_at": "2026-06-09T18:24:12+00:00"
+            },
+            {
+              "id": "evt_01hvd8w8np",
+              "event_type": "playStart",
+              "user_id": "user_70114",
+              "session_id": "sess_01hvd8sr7x",
+              "view_session_id": "vs_01hvd8w9rk",
+              "content_id": "cnt_01hv9t5n2c",
+              "playback_id": "Mk7dW2pQfT9xC4vRnJ8bL5sYgHa3Ze",
+              "event_data": {},
+              "timestamp": "2026-06-09T18:21:02+00:00",
+              "received_at": "2026-06-09T18:21:03+00:00"
+            }
+          ],
+          "pagination": {
+            "total": 14237,
+            "page": 1,
+            "limit": 50,
+            "total_pages": 285
+          },
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_3b9e6c2a7f4d"
+          }
+        }
+      }
     },
     "GET /v1/events/types": {
       "tags": [
@@ -729,7 +2241,56 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "event_type": "watchProgress",
+              "count": 96412,
+              "view_count": 31280,
+              "session_count": 9874
+            },
+            {
+              "event_type": "impression",
+              "count": 51230,
+              "view_count": 51230,
+              "session_count": 10412
+            },
+            {
+              "event_type": "playStart",
+              "count": 48210,
+              "view_count": 48210,
+              "session_count": 10388
+            },
+            {
+              "event_type": "viewEnd",
+              "count": 47955,
+              "view_count": 47955,
+              "session_count": 10371
+            },
+            {
+              "event_type": "completion",
+              "count": 19873,
+              "view_count": 19873,
+              "session_count": 8642
+            },
+            {
+              "event_type": "like",
+              "count": 2417,
+              "view_count": 2380,
+              "session_count": 1903
+            }
+          ],
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_5f2a8d4b1c7e"
+          }
+        }
+      }
     },
     "GET /v1/events/views": {
       "tags": [
@@ -741,7 +2302,97 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "view_session_id": "vs_01hvd8x4qz",
+              "user_id": "user_48291",
+              "session_id": "sess_01hvd8tq2v",
+              "content_id": "cnt_01hv8q3k7m",
+              "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+              "content_title": "Summer Drop Teaser",
+              "started_at": "2026-06-09T18:24:11+00:00",
+              "ended_at": "2026-06-09T18:24:35+00:00",
+              "event_count": 5,
+              "summary": {
+                "view_session_id": "vs_01hvd8x4qz",
+                "watch_time_ms": 23480,
+                "playing_time_ms": 21934,
+                "completed": true,
+                "looped": false,
+                "loop_count": 0,
+                "video_startup_time_ms": 412,
+                "exit_before_start": false,
+                "rebuffer_count": 0,
+                "rebuffer_duration_ms": 0,
+                "avg_bitrate_bps": 2840000,
+                "rendition_change_count": 2,
+                "rendition_upshift_count": 2,
+                "rendition_downshift_count": 0,
+                "seek_count": 1,
+                "seek_duration_ms": 880,
+                "captions_enabled": false,
+                "os_name": "iOS",
+                "os_version": "18.5",
+                "device_category": "phone",
+                "device_manufacturer": "Apple",
+                "device_model": "iPhone16,2",
+                "connection_type": "wifi",
+                "user_agent": "ShortKit-iOS/0.2.55 (iPhone16,2; iOS 18.5)",
+                "client_app_name": "bloom-ios",
+                "client_app_version": "3.12.0"
+              },
+              "events": [
+                {
+                  "id": "evt_01hvd8xq8c",
+                  "event_type": "viewEnd",
+                  "user_id": "user_48291",
+                  "session_id": "sess_01hvd8tq2v",
+                  "view_session_id": "vs_01hvd8x4qz",
+                  "content_id": "cnt_01hv8q3k7m",
+                  "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+                  "event_data": {
+                    "viewSessionId": "vs_01hvd8x4qz",
+                    "watchTimeMs": 23480,
+                    "playingTimeMs": 21934,
+                    "completed": true
+                  },
+                  "timestamp": "2026-06-09T18:24:35+00:00",
+                  "received_at": "2026-06-09T18:24:36+00:00"
+                },
+                {
+                  "id": "evt_01hvd8x5mt",
+                  "event_type": "playStart",
+                  "user_id": "user_48291",
+                  "session_id": "sess_01hvd8tq2v",
+                  "view_session_id": "vs_01hvd8x4qz",
+                  "content_id": "cnt_01hv8q3k7m",
+                  "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+                  "event_data": {},
+                  "timestamp": "2026-06-09T18:24:11+00:00",
+                  "received_at": "2026-06-09T18:24:12+00:00"
+                }
+              ]
+            }
+          ],
+          "pagination": {
+            "total": null,
+            "page": 1,
+            "limit": 20,
+            "total_pages": null,
+            "has_next_page": true
+          },
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_9d4c7e1f6b2a"
+          }
+        }
+      }
     },
     "GET /v1/events/sessions": {
       "tags": [
@@ -753,7 +2404,122 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "session_id": "sess_01hvd8tq2v",
+              "user_id": "user_48291",
+              "started_at": "2026-06-09T18:23:54+00:00",
+              "ended_at": "2026-06-09T18:27:40+00:00",
+              "duration_ms": 226000,
+              "view_count": 1,
+              "event_count": 7,
+              "views": [
+                {
+                  "view_session_id": "vs_01hvd8x4qz",
+                  "user_id": "user_48291",
+                  "session_id": "sess_01hvd8tq2v",
+                  "content_id": "cnt_01hv8q3k7m",
+                  "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+                  "content_title": "Summer Drop Teaser",
+                  "started_at": "2026-06-09T18:24:11+00:00",
+                  "ended_at": "2026-06-09T18:24:35+00:00",
+                  "event_count": 5,
+                  "summary": {
+                    "view_session_id": "vs_01hvd8x4qz",
+                    "watch_time_ms": 23480,
+                    "playing_time_ms": 21934,
+                    "completed": true,
+                    "looped": false,
+                    "loop_count": 0,
+                    "video_startup_time_ms": 412,
+                    "exit_before_start": false,
+                    "rebuffer_count": 0,
+                    "rebuffer_duration_ms": 0,
+                    "avg_bitrate_bps": 2840000,
+                    "rendition_change_count": 2,
+                    "rendition_upshift_count": 2,
+                    "rendition_downshift_count": 0,
+                    "seek_count": 1,
+                    "seek_duration_ms": 880,
+                    "captions_enabled": false,
+                    "os_name": "iOS",
+                    "os_version": "18.5",
+                    "device_category": "phone",
+                    "device_manufacturer": "Apple",
+                    "device_model": "iPhone16,2",
+                    "connection_type": "wifi",
+                    "user_agent": "ShortKit-iOS/0.2.55 (iPhone16,2; iOS 18.5)",
+                    "client_app_name": "bloom-ios",
+                    "client_app_version": "3.12.0"
+                  },
+                  "events": [
+                    {
+                      "id": "evt_01hvd8xq8c",
+                      "event_type": "viewEnd",
+                      "user_id": "user_48291",
+                      "session_id": "sess_01hvd8tq2v",
+                      "view_session_id": "vs_01hvd8x4qz",
+                      "content_id": "cnt_01hv8q3k7m",
+                      "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+                      "event_data": {
+                        "viewSessionId": "vs_01hvd8x4qz",
+                        "watchTimeMs": 23480,
+                        "playingTimeMs": 21934,
+                        "completed": true
+                      },
+                      "timestamp": "2026-06-09T18:24:35+00:00",
+                      "received_at": "2026-06-09T18:24:36+00:00"
+                    },
+                    {
+                      "id": "evt_01hvd8x5mt",
+                      "event_type": "playStart",
+                      "user_id": "user_48291",
+                      "session_id": "sess_01hvd8tq2v",
+                      "view_session_id": "vs_01hvd8x4qz",
+                      "content_id": "cnt_01hv8q3k7m",
+                      "playback_id": "Xq3vT8wKbN5mY2cJfHdLpRz4Sg6aB",
+                      "event_data": {},
+                      "timestamp": "2026-06-09T18:24:11+00:00",
+                      "received_at": "2026-06-09T18:24:12+00:00"
+                    }
+                  ]
+                }
+              ],
+              "loose_events": [
+                {
+                  "id": "evt_01hvd8tr3w",
+                  "event_type": "feedEntry",
+                  "user_id": "user_48291",
+                  "session_id": "sess_01hvd8tq2v",
+                  "view_session_id": null,
+                  "content_id": null,
+                  "playback_id": null,
+                  "event_data": {},
+                  "timestamp": "2026-06-09T18:23:54+00:00",
+                  "received_at": "2026-06-09T18:23:55+00:00"
+                }
+              ]
+            }
+          ],
+          "pagination": {
+            "total": null,
+            "page": 1,
+            "limit": 20,
+            "total_pages": null,
+            "has_next_page": true
+          },
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_7e3a5c9d2b8f"
+          }
+        }
+      }
     },
     "GET /v1/dimensions/{dimension}/values": {
       "tags": [
@@ -765,79 +2531,28 @@
         {
           "secretKey": []
         }
-      ]
-    },
-    "POST /v1/events": {
-      "tags": [
-        "Client Runtime"
       ],
-      "summary": "Ingest events",
-      "description": "Submit a batch of up to 100 analytics events from a client app, such as playback, engagement, and view lifecycle events. Events are accepted asynchronously with a `202` response containing `received` and `failed` counts; events with timestamps older than 24 hours or with invalid timestamps are rejected and counted as `failed`. The ShortKit SDKs call this endpoint automatically.",
-      "security": [
-        {
-          "publishableKey": []
+      "responseExamples": {
+        "200": {
+          "data": [
+            {
+              "value": "iOS",
+              "total_views": 31420
+            },
+            {
+              "value": "Android",
+              "total_views": 16790
+            }
+          ],
+          "timeframe": [
+            1780444800,
+            1781049600
+          ],
+          "meta": {
+            "request_id": "req_2d6b9f4e7a1c"
+          }
         }
-      ]
-    },
-    "GET /v1/feed": {
-      "tags": [
-        "Feed"
-      ],
-      "summary": "Get the feed",
-      "description": "Returns the paginated feed of published content for your organization — videos, image carousels, video carousels, and live streams, with any configured ad slots and surveys interleaved automatically. Use `limit` (1–50) and the `next_cursor` value from `meta` to paginate; pass the `X-User-Id` and `X-Session-Id` headers so survey frequency rules apply per user and session. Active live streams are ranked by current viewers and appear at the top of the first page.",
-      "security": [
-        {
-          "publishableKey": []
-        }
-      ]
-    },
-    "GET /v1/feed/videos": {
-      "tags": [
-        "Feed"
-      ],
-      "summary": "Get the video feed",
-      "description": "Returns the feed restricted to video content only — image and video carousels are excluded. Accepts the same `limit` and `cursor` pagination parameters as the main feed, and still includes any configured ad slots and surveys.",
-      "security": [
-        {
-          "publishableKey": []
-        }
-      ]
-    },
-    "GET /v1/feed/filter": {
-      "tags": [
-        "Feed"
-      ],
-      "summary": "Get a filtered feed",
-      "description": "Returns the feed narrowed by `tags`, `section`, `author`, `content_type`, or custom metadata via repeated `metadata.<key>=<value>` query parameters (multiple values for the same key match any of them). Pagination works the same as the main feed via `limit` and `cursor`. If discovery is enabled for your organization and at least one filter is present, results are served from the randomized discovery pipeline instead of reverse-chronological order.",
-      "security": [
-        {
-          "publishableKey": []
-        }
-      ]
-    },
-    "GET /v1/feed/discovery": {
-      "tags": [
-        "Feed"
-      ],
-      "summary": "Get the discovery feed",
-      "description": "Returns a randomized feed that avoids repeating items a viewer has already been served. Pass the `X-User-Id` header to track seen items per viewer; without it, results are randomized but not deduplicated. When the viewer has seen nearly all available content, the response sets the `X-Near-Exhausted` or `X-Feed-Exhausted` headers and `meta.next_cursor` is omitted once the pool is exhausted.",
-      "security": [
-        {
-          "publishableKey": []
-        }
-      ]
-    },
-    "GET /v1/feed/filter/discovery": {
-      "tags": [
-        "Feed"
-      ],
-      "summary": "Get a filtered discovery feed",
-      "description": "Returns a randomized, per-viewer-deduplicated feed narrowed by `tags`, `section`, `author`, `content_type`, or `metadata.<key>` query parameters. At least one filter parameter is required — requests without any return a 400. Exhaustion behaves like the discovery feed: watch for the `X-Near-Exhausted` and `X-Feed-Exhausted` response headers.",
-      "security": [
-        {
-          "publishableKey": []
-        }
-      ]
+      }
     },
     "GET /v1/ad-config": {
       "tags": [
@@ -849,7 +2564,39 @@
         {
           "secretKey": []
         }
-      ]
+      ],
+      "responseExamples": {
+        "200": {
+          "data": {
+            "enabled": true,
+            "frequency": 4,
+            "firstAdOffset": 2,
+            "maxPerPage": 3,
+            "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/shortkit/feed&env=vp&output=vast",
+            "adUnitId": "/21775744923/shortkit/feed",
+            "skipPolicy": "skippable_after",
+            "skipDelaySeconds": 5,
+            "defaultTargeting": {
+              "content_type": "news",
+              "audience": "general"
+            },
+            "nativeEnabled": false,
+            "nativeFormatId": null,
+            "nativeAdUnitId": null,
+            "nativeVideoUrlKey": "video_url",
+            "nativeHeadlineKey": "headline",
+            "nativeCtaKey": "cta_text",
+            "nativeSponsorKey": "sponsor_name",
+            "nativeSponsorLogoKey": "sponsor_logo",
+            "sponsoredStreamingUrl": null,
+            "sponsoredHeadline": null,
+            "sponsoredCta": null
+          },
+          "meta": {
+            "request_id": "req_t5gb29xj7c"
+          }
+        }
+      }
     },
     "PUT /v1/ad-config": {
       "tags": [
@@ -861,19 +2608,39 @@
         {
           "secretKey": []
         }
-      ]
-    },
-    "POST /v1/identity/resolve": {
-      "tags": [
-        "Client Runtime"
       ],
-      "summary": "Resolve a user identity",
-      "description": "Links an anonymous device identity to a known user, typically called when a viewer signs in. Pass the device's `anonymousId` and your application's `userId`; the anonymous profile is merged into the identified user's profile so engagement history carries over. Calling it again with an already-linked pair is a no-op.",
-      "security": [
-        {
-          "publishableKey": []
+      "responseExamples": {
+        "200": {
+          "data": {
+            "enabled": true,
+            "frequency": 4,
+            "firstAdOffset": 2,
+            "maxPerPage": 3,
+            "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/shortkit/feed&env=vp&output=vast",
+            "adUnitId": "/21775744923/shortkit/feed",
+            "skipPolicy": "skippable_after",
+            "skipDelaySeconds": 3,
+            "defaultTargeting": {
+              "content_type": "news",
+              "audience": "general"
+            },
+            "nativeEnabled": true,
+            "nativeFormatId": "12007331",
+            "nativeAdUnitId": "/21775744923/shortkit/native-feed",
+            "nativeVideoUrlKey": "media_url",
+            "nativeHeadlineKey": "title",
+            "nativeCtaKey": "call_to_action",
+            "nativeSponsorKey": "sponsor_name",
+            "nativeSponsorLogoKey": "sponsor_logo",
+            "sponsoredStreamingUrl": "https://stream.media.shortkit.dev/Ab3xK9mQz7Tw01YV5Hc2NfRq8sLdJ4We.m3u8",
+            "sponsoredHeadline": "Summer Sale — up to 40% off",
+            "sponsoredCta": "Shop now"
+          },
+          "meta": {
+            "request_id": "req_m8qd53yk1r"
+          }
         }
-      ]
+      }
     }
   },
   "replacements": {

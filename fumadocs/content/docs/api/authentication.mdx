@@ -57,18 +57,11 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 
 ### Publishable key (`X-API-Key` header)
 
+Publishable keys authorize the SDK runtime: feed delivery, playback event ingestion, identity resolution, captions, and live viewer tokens. The SDKs call these endpoints internally — they are not part of the public REST surface and are not documented here. The publishable-key endpoints you may call directly:
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| [`/v1/feed`](/docs/api/feed/get-the-feed) | GET | Fetch the published-content feed |
-| [`/v1/feed/videos`](/docs/api/feed/get-the-video-feed) | GET | Fetch the video-only feed |
-| [`/v1/feed/filter`](/docs/api/feed/get-a-filtered-feed) | GET | Fetch a metadata-filtered feed |
-| [`/v1/feed/discovery`](/docs/api/feed/get-the-discovery-feed) | GET | Fetch the discovery feed |
-| [`/v1/feed/filter/discovery`](/docs/api/feed/get-a-filtered-discovery-feed) | GET | Fetch a filtered discovery feed |
-| [`/v1/events`](/docs/api/client-runtime/ingest-events) | POST | Ingest client-side playback and engagement events |
-| [`/v1/identity/resolve`](/docs/api/client-runtime/resolve-a-user-identity) | POST | Resolve a device or user identity |
-| [`/v1/captions`](/docs/api/client-runtime/get-captions-for-a-playback-id) | GET | Get caption tracks for a playback ID |
 | [`/v1/live-streams/status`](/docs/api/live-streams/get-live-stream-status) | GET | Check live stream status |
-| [`/v1/live-streams/{id}/viewer-token`](/docs/api/live-streams/create-viewer-token) | GET | Get a viewer token for watching a live stream |
 | [`/v1/surveys/{id}/responses`](/docs/api/surveys/submit-survey-response) | POST | Submit a survey response |
 
 ### Secret key (`Authorization: Bearer` header)
@@ -114,7 +107,7 @@ If authentication fails, the API returns `401` (`invalid_api_key`) or `403` (`fo
 
 <Accordions type="single">
   <Accordion title="Publishable keys are safe for client bundles">
-    Publishable keys grant access to feed delivery, event ingestion, and the other client-runtime endpoints listed above. They are designed to be shipped in mobile apps, web embeds, and client-side JavaScript. Treat them like a public identifier, not a secret.
+    Publishable keys grant access to feed delivery, event ingestion, and the other SDK runtime endpoints. They are designed to be shipped in mobile apps, web embeds, and client-side JavaScript. Treat them like a public identifier, not a secret.
   </Accordion>
   <Accordion title="Store secret keys in environment variables only">
     Never hard-code secret keys in source files or commit them to version control. Use environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault, `.env` files excluded from git):
