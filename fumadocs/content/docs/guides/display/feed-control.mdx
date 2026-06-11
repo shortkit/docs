@@ -1,10 +1,653 @@
 ---
 title: "Feed control"
-description: "Programmatic control: scroll, refresh, applyFilter, lock, deep-link seeding, activate/deactivate, preload/instant-first-frame, multi-surface lifecycle (absorbs PR #35)."
+description: "Drive the feed programmatically: scroll to an item, refresh, apply filters at runtime, lock scrolling, seed deep links, manage lifecycle across multiple surfaces, and preload for an instant first frame."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+The feed manages itself — pagination, playback, and lifecycle all work without intervention once it's [embedded](/docs/guides/display/feed). This page covers the imperative API for when your app needs to take the wheel: scrolling to a specific item, refreshing on demand, swapping filters, deep-linking into the feed, coordinating multiple feed surfaces, and preloading so the first frame is ready before your splash screen fades.
+
+For replacing the feed's content entirely with your own items, see [Custom feeds](/docs/guides/display/custom-feeds). For declarative configuration (layout, overlays, autoplay, filters at init), see the [FeedConfig reference](/docs/guides/reference/feed-config).
+
+## Get a reference to the feed
+
+All control methods live on the feed component itself. Hold on to the instance you create at embed time.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Keep a reference to the `ShortKitFeedViewController` you create (the SwiftUI `ShortKitFeedView` wraps the same controller — use UIKit embedding via `UIViewControllerRepresentable` when you need imperative access):
+
+```swift
+let feedVC = ShortKitFeedViewController(shortKit: shortKit, config: FeedConfig())
+```
+
+</Tab>
+<Tab value="Android">
+
+Keep a reference to the `ShortKitFeedFragment` returned by `newInstance`:
+
+```kotlin
+val feedFragment = ShortKitFeedFragment.newInstance(shortKit, FeedConfig())
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Create a `ShortKitFeedController` and pass it to the feed widget:
+
+```dart
+final feedController = ShortKitFeedController();
+
+ShortKitFeed(controller: feedController)
+```
+
+If you don't pass a controller, the feed creates an internal one you can't reach — always pass your own when you need programmatic control.
+
+</Tab>
+<Tab value="React Native">
+
+Attach a ref to `<ShortKitFeed>`. The ref exposes the `ShortKitFeedHandle` methods:
+
+```tsx
+import { useRef } from 'react';
+import { ShortKitFeed, type ShortKitFeedHandle } from '@shortkitsdk/react-native';
+
+const feedRef = useRef<ShortKitFeedHandle>(null);
+
+<ShortKitFeed ref={feedRef} style={{ flex: 1 }} />
+```
+
+</Tab>
+<Tab value="Web">
+
+`sk.createFeed()` returns the feed manager — store it:
+
+```js
+const feed = sk.createFeed(document.getElementById('feed'), { config: {} });
+```
+
+</Tab>
+</Tabs>
+
+## Scroll to an item
+
+Scroll the feed to a specific item by its ID. The item must already be in the loaded feed — to open the feed on an item that isn't loaded yet, use [deep-link seeding](#deep-link-into-the-feed) instead.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+feedVC.scrollToItem(id: "content_abc123", animated: true)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+feedFragment.scrollToItem("content_abc123", animated = true)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+feedController.scrollToItem('content_abc123', animated: true);
+```
+
+Requires `shortkit_flutter` 0.3.0 or later.
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+feedRef.current?.scrollToItem('content_abc123', { animated: true });
+```
+
+When replacing items and jumping in one operation, prefer `setFeedItems(items, { startAt })` — it avoids a visible scroll from the old position.
+
+</Tab>
+<Tab value="Web">
+
+Not yet supported on Web.
+
+</Tab>
+</Tabs>
+
+## Refresh the feed
+
+Trigger the same reload as a user pull-to-refresh: the feed refetches page one and resets pagination. The call is a no-op if a refresh is already in progress. Pull-to-refresh itself is on by default and controlled by the `pullToRefreshEnabled` config option — see the [FeedConfig reference](/docs/guides/reference/feed-config).
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+feedVC.refresh()
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+feedFragment.refresh()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+feedController.refresh();
+```
+
+Requires `shortkit_flutter` 0.3.0 or later.
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+feedRef.current?.refresh();
+```
+
+</Tab>
+<Tab value="Web">
+
+Not yet supported on Web.
+
+</Tab>
+</Tabs>
+
+## Apply a filter at runtime
+
+Replace the feed's active `FeedFilter` without recreating the feed. The feed refetches from page one with the new filter; pass `null`/`nil` to clear filtering and return to the full feed. Useful for category pickers and segmented controls above a single feed surface. For the `FeedFilter` shape (tags, sections, authors, content types, metadata), see the [FeedConfig reference](/docs/guides/reference/feed-config).
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+feedVC.applyFilter(FeedFilter(tags: ["sports"]))
+
+// Clear filtering
+feedVC.applyFilter(nil)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+feedFragment.applyFilter(FeedFilter(tags = listOf("sports")))
+
+// Clear filtering
+feedFragment.applyFilter(null)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+feedController.applyFilter(FeedFilter(tags: ['sports']));
+
+// Clear filtering
+feedController.applyFilter(null);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+feedRef.current?.applyFilter({ tags: ['sports'] });
+
+// Clear filtering
+feedRef.current?.applyFilter(null);
+```
+
+</Tab>
+<Tab value="Web">
+
+```js
+feed.applyFilter({ tags: ['sports'] });
+
+// Clear filtering
+feed.applyFilter(null);
+```
+
+</Tab>
+</Tabs>
+
+## Switch feed source
+
+<Callout type="info">
+Switching feed source at runtime is currently iOS-only. On other platforms, choose the source at embed time via the `feedSource` config option, or use `setFeedItems` to take over content directly — see [Custom feeds](/docs/guides/display/custom-feeds).
 </Callout>
 
-Programmatic control: scroll, refresh, applyFilter, lock, deep-link seeding, activate/deactivate, preload/instant-first-frame, multi-surface lifecycle (absorbs PR #35).
+A feed runs in one of two modes: `.algorithmic` (content from ShortKit's recommendation engine — the default) or `.custom` (content you supply as `FeedInput` items). On iOS you can flip between them on a live feed:
+
+```swift
+// Take over with your own items
+feedVC.switchFeedSource(to: .custom)
+feedVC.setFeedItems(myItems)
+
+// Hand control back to the recommendation engine
+feedVC.switchFeedSource(to: .algorithmic)
+
+// Check the current mode
+let source = feedVC.currentFeedSource
+```
+
+## Lock scrolling
+
+Disable swipe navigation while keeping playback running — for example during a survey, a checkout flow rendered in an overlay, or an ad that must complete.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Scroll locking lives on the player handle, so overlays can lock the feed without a reference to the view controller:
+
+```swift
+shortKit.player.setFeedScrollEnabled(false)
+
+// Re-enable when done
+shortKit.player.setFeedScrollEnabled(true)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+feedFragment.setFeedScrollEnabled(false)
+
+// Re-enable when done
+feedFragment.setFeedScrollEnabled(true)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Not yet supported on Flutter.
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+ShortKitCommands.setFeedScrollEnabled(false);
+
+// Re-enable when done
+ShortKitCommands.setFeedScrollEnabled(true);
+```
+
+</Tab>
+<Tab value="Web">
+
+Not yet supported on Web.
+
+</Tab>
+</Tabs>
+
+## Deep-link into the feed
+
+Three building blocks let a push notification or shared link open the feed directly on a specific video, with no flash of the wrong content:
+
+1. **`startAtItemId`** — start the feed on a given item instead of the first one. Set at embed time.
+2. **Seed thumbnail** — an image painted on the first cell before the video's first frame arrives, so a tapped thumbnail appears to expand seamlessly into the feed.
+3. **`prependSeedItem`** (iOS) — insert a known item at the top of an already-running algorithmic feed and scroll to it, so the deep-linked video plays immediately and the user continues into recommendations.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Pass `startAtItemId` at init, and optionally set `seedThumbnail` before the feed appears:
+
+```swift
+let feedVC = ShortKitFeedViewController(
+    shortKit: shortKit,
+    config: FeedConfig(),
+    startAtItemId: "content_abc123"
+)
+feedVC.seedThumbnail = thumbnailImage  // UIImage shown until first frame
+```
+
+For cold-start deep links where the target item isn't in the feed yet, build a `FeedInput` from the playback ID and prepend it:
+
+```swift
+feedVC.prependSeedItem(
+    .video(playbackId: "pbk_abc123"),
+    scrollToId: "pbk_abc123",   // pass the playback ID
+    animated: false             // false for cold entry — avoids a visible flash
+)
+```
+
+If the target is already in the loaded feed, `prependSeedItem` skips insertion and just scrolls. Only `.video` and `.liveStream` inputs are handled. Pass `animated: true` for warm transitions from elsewhere in your app.
+
+</Tab>
+<Tab value="Android">
+
+Pass `startAtItemId` to `newInstance`, and optionally set `seedThumbnail` before the fragment is attached:
+
+```kotlin
+val feedFragment = ShortKitFeedFragment.newInstance(
+    shortKit,
+    FeedConfig(),
+    startAtItemId = "content_abc123"
+)
+feedFragment.seedThumbnail = thumbnailBitmap  // Bitmap shown until first frame
+```
+
+Prepending a seed item into a running algorithmic feed is not yet supported on Android — use `startAtItemId` at creation, or custom feed mode.
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+ShortKitFeed(
+  controller: feedController,
+  startAtItemId: 'content_abc123',
+)
+```
+
+Seed thumbnails and seed-item prepending are not yet supported on Flutter.
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+<ShortKitFeed
+  ref={feedRef}
+  startAtItemId="content_abc123"
+  seedThumbnailUrl="https://cdn.example.com/thumbs/abc123.jpg"
+  style={{ flex: 1 }}
+/>
+```
+
+`seedThumbnailUrl` is resolved from cache when possible and painted on the first cell before playback starts. Seed-item prepending is not yet exposed in React Native — use `startAtItemId`, or `setFeedItems(items, { startAt })` in custom feed mode.
+
+</Tab>
+<Tab value="Web">
+
+Not yet supported on Web.
+
+</Tab>
+</Tabs>
+
+### Push native screens over the feed
+
+In React Native (iOS only), feed overlays can push a registered native screen onto the feed's navigation stack — wrapping your component instead of presenting it modally, with interactive swipe-back:
+
+```tsx
+import { pushFeedScreen, popFeedScreen } from '@shortkitsdk/react-native';
+
+// From an overlay tap handler
+pushFeedScreen('ProfileScreen', { author: item.author });
+
+// Wire to a back button
+popFeedScreen();
+```
+
+The first argument is the registered React component name; the second is serialized and passed as props.
+
+## Lifecycle and multiple feed surfaces
+
+By default the feed manages its own lifecycle from platform visibility events — it plays when it appears, suspends when it disappears, and you never call anything. Manual control exists for hosts where those events don't fire reliably, and for apps with more than one feed surface mounted at once (tab bars, feed + widget, picture-in-picture layouts).
+
+Playback resources are shared: one surface is **active** and owns the player pool. Activating a surface claims the players; deactivating yields them while keeping the current frame visible, so a backgrounded tab doesn't go black.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Opt out of automatic lifecycle by passing `lifecycle: .manual` at init, then drive activation yourself:
+
+```swift
+let feedVC = ShortKitFeedViewController(
+    shortKit: shortKit,
+    config: FeedConfig(),
+    lifecycle: .manual
+)
+
+// Tab became visible
+feedVC.activate()
+
+// Tab hidden — yields players, keeps the current frame on screen
+feedVC.deactivate()
+
+// Check which surface owns playback
+if feedVC.isActiveSurface { /* ... */ }
+```
+
+Use `.manual` whenever the feed is hosted in a container that doesn't deliver UIKit appearance callbacks (custom containment, tab hosts that keep all children mounted), or when you want the feed mounted but paused behind a splash screen.
+
+`setBridgeManaged()` is deprecated — pass `lifecycle: .manual` to the initializer instead; it removes the call-ordering constraint the old method had.
+
+</Tab>
+<Tab value="Android">
+
+Call `activate()` / `deactivate()` on the fragment when visibility changes outside the normal fragment lifecycle (for example, tab hosts that keep every fragment resumed):
+
+```kotlin
+// Tab became visible
+feedFragment.activate()
+
+// Tab hidden — yields players, keeps the current frame on screen
+feedFragment.deactivate()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Set the `active` prop. When `false`, the feed yields its players and pauses; flipping it back to `true` reclaims them:
+
+```dart
+ShortKitFeed(
+  controller: feedController,
+  active: isCurrentTab,
+)
+```
+
+Requires `shortkit_flutter` 0.3.0 or later.
+
+</Tab>
+<Tab value="React Native">
+
+Set the `active` prop — typically wired to navigation focus:
+
+```tsx
+import { useIsFocused } from '@react-navigation/native';
+
+const isFocused = useIsFocused();
+
+<ShortKitFeed ref={feedRef} active={isFocused} style={{ flex: 1 }} />
+```
+
+When `active` is `false` the feed releases its players back to the SDK and pauses; setting it `true` reclaims them.
+
+</Tab>
+<Tab value="Web">
+
+The Web SDK pauses automatically when the browser tab is hidden. Tear down explicitly when removing a feed from the page:
+
+```js
+feed.destroy();   // tear down this feed surface
+sk.destroy();     // tear down the entire SDK instance
+```
+
+</Tab>
+</Tabs>
+
+## Preload for an instant first frame
+
+Call `preloadFeed` as early as possible — typically at app initialization, before any UI is shown. It fetches the first feed page (and starts warming the first video) in the background; when the feed component later mounts with the preload attached, it resumes from that data instead of issuing a fresh network request.
+
+Pair it with `onFeedReady` — a callback that fires once when the feed has loaded its first item and is ready to display. That's the right moment to dismiss a custom splash or launch screen.
+
+To preload your own items instead of the algorithmic feed, pass `FeedInput` items to the preload call — see [Custom feeds](/docs/guides/display/custom-feeds).
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+`preloadFeed(filter:limit:)` returns a `FeedPreload` token. Pass it to `FeedConfig(preload:)`:
+
+```swift title="App.swift"
+import SwiftUI
+import ShortKitSDK
+
+@main
+struct MyApp: App {
+    @State private var shortKit: ShortKit
+    @State private var feedPreload: FeedPreload
+
+    init() {
+        let kit = ShortKit(apiKey: "pk_live_your_publishable_key")
+        _shortKit = State(initialValue: kit)
+        _feedPreload = State(initialValue: kit.preloadFeed())
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            RootView(shortKit: shortKit, feedPreload: feedPreload)
+        }
+    }
+}
+```
+
+For a splash screen handoff, combine the preload with `lifecycle: .manual` (so the feed doesn't auto-play while hidden) and `onFeedReady` (to know when to fade the splash). Start playback partway through the fade so video is already running when the splash clears:
+
+```swift title="RootView.swift"
+struct RootView: View {
+    let shortKit: ShortKit
+    let feedPreload: FeedPreload
+    @State private var splashOpacity: Double = 1.0
+
+    var body: some View {
+        FeedView(shortKit: shortKit, feedPreload: feedPreload, onFeedReady: dismissSplash)
+            .overlay {
+                SplashView()  // your launch screen view
+                    .opacity(splashOpacity)
+                    .allowsHitTesting(splashOpacity > 0)
+                    .ignoresSafeArea()
+            }
+            .task {
+                // Fallback — dismiss after 3 seconds regardless of feed state.
+                try? await Task.sleep(for: .seconds(3))
+                if splashOpacity > 0 { dismissSplash() }
+            }
+    }
+
+    private func dismissSplash() {
+        guard splashOpacity > 0 else { return }
+        withAnimation(.easeOut(duration: 0.4)) { splashOpacity = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            shortKit.player.play()
+        }
+    }
+}
+
+struct FeedView: UIViewControllerRepresentable {
+    let shortKit: ShortKit
+    let feedPreload: FeedPreload
+    var onFeedReady: (() -> Void)?
+
+    func makeUIViewController(context: Context) -> ShortKitFeedViewController {
+        let feedVC = ShortKitFeedViewController(
+            shortKit: shortKit,
+            config: FeedConfig(preload: feedPreload),
+            lifecycle: .manual
+        )
+        feedVC.onFeedReady = onFeedReady
+        return feedVC
+    }
+
+    func updateUIViewController(_ uiViewController: ShortKitFeedViewController, context: Context) {}
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+`preloadFeed(filter, limit)` returns a `FeedPreload` token. Pass it via `FeedConfig.preload`:
+
+```kotlin
+// As early as possible — e.g. in Application.onCreate or your splash Activity
+val shortKit = ShortKit(context = this, apiKey = "pk_live_your_publishable_key")
+val preload = shortKit.preloadFeed()
+
+// Later, when building the feed screen
+val feedFragment = ShortKitFeedFragment.newInstance(
+    shortKit,
+    FeedConfig(preload = preload)
+)
+feedFragment.onFeedReady = {
+    // dismiss splash
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+`preloadFeed` returns a preload ID string. Pass it to the feed's `preloadId` prop:
+
+```dart
+final preloadId = await ShortKitController.instance?.preloadFeed(null);
+
+ShortKitFeed(
+  controller: feedController,
+  preloadId: preloadId,
+  onFeedReady: () {
+    // dismiss splash
+  },
+)
+```
+
+</Tab>
+<Tab value="React Native">
+
+`preloadFeed` from `useShortKit()` resolves to a preload ID string. Pass it to the feed's `preloadId` prop:
+
+```tsx
+import { useShortKit, ShortKitFeed } from '@shortkitsdk/react-native';
+
+function Root() {
+  const { preloadFeed } = useShortKit();
+  const [preloadId, setPreloadId] = useState<string>();
+
+  useEffect(() => {
+    preloadFeed().then(setPreloadId);
+  }, []);
+
+  return (
+    <ShortKitFeed
+      preloadId={preloadId}
+      onFeedReady={() => {
+        // dismiss splash
+      }}
+      style={{ flex: 1 }}
+    />
+  );
+}
+```
+
+When both `feedItems` and `preloadId` are set, `preloadId` takes precedence.
+
+</Tab>
+<Tab value="Web">
+
+`sk.preloadFeed({ filter, limit })` fetches the first feed page and warms the browser cache with the first item's thumbnail and video manifest. The next `createFeed` benefits from the warm cache:
+
+```js
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+await sk.preloadFeed({ limit: 10 });
+
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: {},
+  onFeedReady: () => {
+    // hide loading state
+  },
+});
+```
+
+</Tab>
+</Tabs>
+
+## Next steps
+
+<Cards>
+  <Card title="Custom feeds" href="/docs/guides/display/custom-feeds" description="Supply your own items with setFeedItems, appendFeedItems, and FeedInput." />
+  <Card title="FeedConfig reference" href="/docs/guides/reference/feed-config" description="Every declarative feed option: layout, overlays, autoplay, filters, pull-to-refresh." />
+  <Card title="Player control" href="/docs/guides/reference/player" description="Play, pause, seek, mute, and observe playback state." />
+</Cards>

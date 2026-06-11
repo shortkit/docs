@@ -1,10 +1,203 @@
 ---
 title: "Custom data"
-description: "customDimensions and sendContentSignal, canonical (collapses three copies). Identity recap becomes a link."
+description: "Attach your own data to ShortKit analytics: custom dimensions for segmenting metrics, and content signals for steering recommendations."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+ShortKit collects playback and engagement events automatically — see the [analytics overview](/docs/guides/analytics/overview) for everything that's tracked out of the box. This page covers the two ways you add your own data on top:
+
+- **Custom dimensions** — up to 5 string values set at SDK init, attached to every view, and queryable as dimensions in the Analytics API.
+- **Content signals** — explicit positive or negative feedback you send to the recommendation engine on the user's behalf.
+
+## Custom dimensions
+
+Pass up to 5 string dimensions when you initialize the SDK. They attach to every `viewEnd` event and become queryable as dimensions in the [Analytics API](/docs/api/analytics/get-a-metric).
+
+Typical uses: content vertical (`sports`), subscription tier (`premium_user`), or an A/B experiment arm (`experiment_hero_v2`).
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift title="AppDelegate.swift"
+let shortKit = ShortKit(
+    apiKey: "pk_live_your_publishable_key",
+    clientAppName: "MyNewsApp",
+    clientAppVersion: "2.1.0",
+    customDimensions: [
+        "custom_1": "sports",
+        "custom_2": "premium_user",
+        "custom_3": "experiment_hero_v2"
+    ]
+)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin title="MainActivity.kt"
+val shortKit = ShortKit(
+    context = applicationContext,
+    apiKey = "pk_live_your_publishable_key",
+    clientAppName = "MyNewsApp",
+    clientAppVersion = "2.1.0",
+    customDimensions = mapOf(
+        "custom_1" to "sports",
+        "custom_2" to "premium_user",
+        "custom_3" to "experiment_hero_v2"
+    )
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart title="main.dart"
+ShortKitProvider.apiKey(
+  apiKey: 'pk_live_your_publishable_key',
+  clientAppName: 'MyNewsApp',
+  clientAppVersion: '2.1.0',
+  customDimensions: {
+    'custom_1': 'sports',
+    'custom_2': 'premium_user',
+    'custom_3': 'experiment_hero_v2',
+  },
+  child: MyApp(),
+)
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx title="App.tsx"
+import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+
+function App() {
+  return (
+    <ShortKitProvider
+      apiKey="pk_live_your_publishable_key"
+      clientAppName="MyNewsApp"
+      clientAppVersion="2.1.0"
+      customDimensions={{
+        custom_1: 'sports',
+        custom_2: 'premium_user',
+        custom_3: 'experiment_hero_v2',
+      }}
+    >
+      <ShortKitFeed />
+    </ShortKitProvider>
+  );
+}
+```
+
+</Tab>
+<Tab value="Web">
+
+```js title="app.js"
+const sk = new ShortKit({
+  apiKey: 'pk_live_your_publishable_key',
+  clientAppName: 'MyNewsApp',
+  clientAppVersion: '2.1.0',
+  customDimensions: {
+    custom_1: 'sports',
+    custom_2: 'premium_user',
+    custom_3: 'experiment_hero_v2',
+  },
+});
+```
+
+</Tab>
+</Tabs>
+
+### Rules
+
+- Keys must be `custom_1` through `custom_5`. Any other key is silently dropped.
+- Values are plain strings. Serialize anything else yourself.
+- All 5 slots are optional — set only the ones you need.
+
+<Callout type="warn" title="Immutable after init">
+Custom dimensions cannot be changed on a live SDK instance. To update them — for example, after a user upgrades their subscription — create a new SDK instance with the new values. Events recorded before the change keep the dimensions that were set when they were collected.
 </Callout>
 
-customDimensions and sendContentSignal, canonical (collapses three copies). Identity recap becomes a link.
+### App name and version
+
+`clientAppName` and `clientAppVersion` follow the same pattern: set at init, attached to every `viewEnd` event, immutable afterwards. Use them to segment analytics by app and release — for example, to compare startup time before and after a player change shipped.
+
+### Querying custom dimensions
+
+Custom dimensions appear as `custom_1` … `custom_5` in the Analytics API alongside built-in dimensions:
+
+- [Break down a metric](/docs/api/analytics/break-down-a-metric) — e.g. completion rate by `custom_2` to compare premium vs. free users.
+- [Get a metric](/docs/api/analytics/get-a-metric) — filter any metric to a single dimension value.
+- [List dimension values](/docs/api/analytics/list-dimension-values) — enumerate the values seen for a dimension.
+
+## Content signals
+
+`contentSignal` is the only analytics event you trigger manually. Use it to send explicit positive or negative feedback to the recommendation engine — typically wired to like/dislike or "show more/less like this" controls. The signal is recorded against the `contentId` of the currently active video.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+shortKit.player.sendContentSignal(.positive)
+shortKit.player.sendContentSignal(.negative)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+shortKit.player.sendContentSignal(ContentSignal.POSITIVE)
+shortKit.player.sendContentSignal(ContentSignal.NEGATIVE)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+final controller = ShortKit.of(context);
+
+// Positive signal (e.g. thumbs up)
+controller.sendContentSignal('positive');
+
+// Negative signal (e.g. thumbs down)
+controller.sendContentSignal('negative');
+```
+
+Inside a custom overlay, use `ShortKitOverlayCommands.sendContentSignal(ContentSignal.positive)` instead — overlay commands take the typed `ContentSignal` enum rather than a string.
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+import { Button } from 'react-native';
+import { useShortKitPlayer } from '@shortkitsdk/react-native';
+
+function SignalButtons() {
+  const { sendContentSignal } = useShortKitPlayer();
+
+  return (
+    <>
+      <Button title="Like" onPress={() => sendContentSignal('positive')} />
+      <Button title="Dislike" onPress={() => sendContentSignal('negative')} />
+    </>
+  );
+}
+```
+
+Inside a custom overlay component, hooks are unavailable — call `ShortKitCommands.sendContentSignal('positive')` instead.
+
+</Tab>
+<Tab value="Web">
+
+```js
+sk.player.sendContentSignal('positive');
+sk.player.sendContentSignal('negative');
+```
+
+</Tab>
+</Tabs>
+
+Content signals are fire-and-forget: they're batched and delivered with the rest of the event stream, and there is no return value or callback.
+
+## Who the data is attributed to
+
+Every event — including custom dimensions and content signals — carries a viewer identity: an anonymous device ID by default, or your own user ID once linked with `setUserId()`. See [Identity](/docs/guides/concepts/identity).

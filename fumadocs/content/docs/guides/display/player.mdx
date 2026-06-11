@@ -1,10 +1,397 @@
 ---
 title: "Player"
-description: "Single embeddable player component: PlayerConfig, activate/deactivate, click actions. Tabs; Flutter tab documents shipped surface (was 'Coming soon')."
+description: "Embed a single video anywhere in your app with the standalone player component."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+The player embeds one video outside the full-screen feed — hero sections, product pages, inline previews. By default, tapping the player expands into the full-screen feed starting at that video.
+
+For a carousel or grid of video cards, use the [widget](/docs/guides/display/widgets). For the full-screen vertical feed itself, see [Feed](/docs/guides/display/feed). For playback events and runtime commands on an active player, see the [player reference](/docs/guides/reference/player).
+
+<Callout type="info" title="Platform availability">
+The single player ships on iOS, Flutter, React Native, and Web. It is not yet supported on Android — see [platform support](/docs/guides/setup/platform-support).
 </Callout>
 
-Single embeddable player component: PlayerConfig, activate/deactivate, click actions. Tabs; Flutter tab documents shipped surface (was 'Coming soon').
+## Fetch content
+
+The player plays a `ContentItem` that you fetch first with `fetchContent`:
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+// Fetch up to 5 items
+let items = try await shortKit.fetchContent(limit: 5)
+
+// Fetch with a filter
+let filtered = try await shortKit.fetchContent(limit: 5, filter: FeedFilter(tags: ["sports"]))
+```
+</Tab>
+<Tab value="Android">
+```kotlin
+val items = shortKit.fetchContent(limit = 5) // suspend fun, optional filter param
+```
+</Tab>
+<Tab value="Flutter">
+```dart
+final controller = ShortKit.of(context);
+final items = await controller.fetchContent(limit: 5);
+
+// Fetch with a filter
+final filtered = await controller.fetchContent(
+  limit: 5,
+  filter: FeedFilter(tags: ['sports']),
+);
+```
+</Tab>
+<Tab value="React Native">
+```tsx
+const { fetchContent } = useShortKit();
+const items = await fetchContent(5);
+
+// Fetch with a filter
+const filtered = await fetchContent(5, { tags: ['sports'] });
+```
+</Tab>
+<Tab value="Web">
+```js
+const items = await sk.fetchContent({ limit: 5 });
+
+// Fetch with a filter
+const filtered = await sk.fetchContent({ limit: 5, filter: { tags: ['sports'] } });
+```
+</Tab>
+</Tabs>
+
+`fetchContent` returns resolved `ContentItem` objects with streaming URLs, metadata, and captions. `limit` defaults to `10`. Pass a `FeedFilter` to restrict results by tags, section, author, content type, or custom metadata — see the [feed configuration reference](/docs/guides/reference/feed-config). For the `ContentItem` model, see the [content model](/docs/guides/concepts/content-model).
+
+## PlayerConfig
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cornerRadius` | number | `12` | Corner radius of the player view. |
+| `clickAction` | enum | `feed` | What happens when the user taps the player. See [click actions](#click-actions). |
+| `autoplay` | boolean | `true` | Start playback automatically when a content item is set. |
+| `loop` | boolean | `true` | Restart playback from the beginning when the video ends. |
+| `muteOnStart` | boolean | `true` | Begin playback muted. |
+| `videoOverlay` / `overlay` | overlay mode | none | Overlay rendered on top of the video. Named `videoOverlay` on iOS, `overlay` on Flutter, React Native, and Web. See [Overlays](/docs/guides/customize/overlays). |
+| `feedConfig` | `FeedConfig` | default config | **iOS and React Native only.** Configuration applied to the full-screen feed presented when `clickAction` is `feed`. See the [feed configuration reference](/docs/guides/reference/feed-config). |
+| `previewMode` | `PreviewMode` | `.full` | **iOS only.** `.full` plays the full video; `.instantClip(seconds:)` plays a short looping preview of the first N seconds instead. |
+
+## Embed a player
+
+<Tabs groupId="platform" persist items={['iOS','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift title="ViewController.swift"
+import ShortKitSDK
+
+class ViewController: UIViewController {
+    private var shortKit: ShortKit!
+    private var playerVC: ShortKitPlayerViewController!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        shortKit = ShortKit(
+            apiKey: "pk_live_your_publishable_key",
+            config: FeedConfig()
+        )
+
+        let config = PlayerConfig(
+            cornerRadius: 16,
+            clickAction: .feed,
+            muteOnStart: true
+        )
+
+        playerVC = ShortKitPlayerViewController(shortKit: shortKit, config: config)
+        addChild(playerVC)
+        playerVC.view.frame = CGRect(x: 16, y: 100, width: 200, height: 350)
+        view.addSubview(playerVC.view)
+        playerVC.didMove(toParent: self)
+
+        Task {
+            let items = try await shortKit.fetchContent(limit: 5)
+            if let first = items.first {
+                playerVC.configure(with: first)
+                playerVC.activate()
+            }
+        }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        playerVC.deactivate()
+    }
+}
+```
+
+For SwiftUI, wrap the view controller in a `UIViewControllerRepresentable` so you can call `configure(with:)` and `activate()`:
+
+```swift title="InlinePlayer.swift"
+import SwiftUI
+import ShortKitSDK
+
+struct InlinePlayer: UIViewControllerRepresentable {
+    let shortKit: ShortKit
+    let item: ContentItem
+
+    func makeUIViewController(context: Context) -> ShortKitPlayerViewController {
+        let vc = ShortKitPlayerViewController(
+            shortKit: shortKit,
+            config: PlayerConfig(cornerRadius: 16, clickAction: .feed)
+        )
+        vc.configure(with: item)
+        vc.activate()
+        return vc
+    }
+
+    func updateUIViewController(_ vc: ShortKitPlayerViewController, context: Context) {}
+}
+```
+
+Store the `ShortKit` instance outside the view body — creating it inside `body` re-initializes it on every render pass.
+</Tab>
+<Tab value="Flutter">
+```dart title="player_screen.dart"
+import 'package:flutter/material.dart';
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+class PlayerScreen extends StatefulWidget {
+  const PlayerScreen({super.key});
+
+  @override
+  State<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen> {
+  ContentItem? _item;
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) {
+      _loaded = true;
+      _loadContent();
+    }
+  }
+
+  Future<void> _loadContent() async {
+    final controller = ShortKit.of(context);
+    final items = await controller.fetchContent(limit: 5);
+    if (items.isNotEmpty && mounted) {
+      setState(() => _item = items.first);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_item == null) return const SizedBox.shrink();
+
+    return SizedBox(
+      width: 200,
+      height: 350,
+      child: ShortKitPlayer(
+        contentItem: _item,
+        config: const PlayerConfig(
+          cornerRadius: 16,
+          clickAction: PlayerClickAction.feed,
+          muteOnStart: true,
+        ),
+      ),
+    );
+  }
+}
+```
+
+Wrap your app in a provider so `ShortKit.of(context)` resolves:
+
+```dart
+ShortKitProvider.apiKey(
+  apiKey: 'pk_live_your_publishable_key',
+  child: const PlayerScreen(),
+)
+```
+
+`ShortKitPlayer` props:
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `config` | `PlayerConfig?` | Player configuration. |
+| `contentItem` | `ContentItem?` | The video to play. |
+| `active` | `bool?` | Playback gate. Defaults to `config.autoplay` (`true` if unset). |
+| `onTap` | `VoidCallback?` | Called when the player is tapped. |
+</Tab>
+<Tab value="React Native">
+```tsx title="PlayerScreen.tsx"
+import React, { useEffect, useState } from 'react';
+import {
+  ShortKitProvider,
+  ShortKitPlayer,
+  useShortKit,
+} from '@shortkitsdk/react-native';
+import type { ContentItem } from '@shortkitsdk/react-native';
+
+function Player() {
+  const { fetchContent } = useShortKit();
+  const [item, setItem] = useState<ContentItem | null>(null);
+
+  useEffect(() => {
+    fetchContent(5).then((items) => {
+      if (items.length > 0) setItem(items[0]);
+    });
+  }, []);
+
+  if (!item) return null;
+
+  return (
+    <ShortKitPlayer
+      contentItem={item}
+      config={{
+        cornerRadius: 16,
+        clickAction: 'feed',
+        muteOnStart: true,
+      }}
+      style={{ width: 200, height: 350 }}
+    />
+  );
+}
+
+export default function PlayerScreen() {
+  return (
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      <Player />
+    </ShortKitProvider>
+  );
+}
+```
+
+`ShortKitPlayer` props:
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `config` | `PlayerConfig` | Player configuration. |
+| `contentItem` | `ContentItem` | The video to play. |
+| `active` | `boolean` | Playback gate. Defaults to `config.autoplay` (`true` if unset). |
+| `feedItems` | `FeedInput[]` | Seed items for the expanded feed. See [expanded feed](#customize-the-expanded-feed). |
+| `style` | `ViewStyle` | Standard React Native view styling. |
+| `onTap` | `() => void` | Called when the player is tapped, in addition to `clickAction`. |
+</Tab>
+<Tab value="Web">
+```js title="app.js"
+const sk = new ShortKit({
+  apiKey: 'pk_live_your_publishable_key',
+});
+
+const player = sk.createPlayer(document.getElementById('player'), {
+  config: {
+    cornerRadius: 16,
+    clickAction: 'feed',
+    muteOnStart: true,
+  },
+});
+
+// Option A: the player fetches content from your feed itself
+await player.init();
+
+// Option B: supply pre-fetched items
+const items = await sk.fetchContent({ limit: 5 });
+player.initWithItems(items);
+```
+
+`createPlayer` does not start anything by itself — call `player.init()` (the player fetches its own content; the first item plays) or `player.initWithItems(items)` (you supply pre-fetched items).
+
+After init you can adjust the player live with `setCornerRadius(radius)`, `setClickAction(action)`, `setLoop(loop)`, `setScale(scale)`, and `setPadding(padding)`. Call `player.destroy()` when removing the player from the page.
+</Tab>
+</Tabs>
+
+## Activate and deactivate
+
+The player does not manage its own visibility lifecycle. Tell it when it is on screen so it can acquire playback resources, and when it leaves so it can release them. This gives you full control in scroll views, tab bars, and navigation stacks.
+
+<Tabs groupId="platform" persist items={['iOS','Flutter','React Native','Web']}>
+<Tab value="iOS">
+| Method | Effect |
+| --- | --- |
+| `activate()` | Starts or resumes playback (respects `autoplay` and `muteOnStart`). |
+| `deactivate()` | Pauses playback, releases the active player resources, and shows the thumbnail. |
+
+Call `activate()` when the player becomes visible and `deactivate()` when it scrolls off screen or its screen disappears.
+</Tab>
+<Tab value="Flutter">
+Use the `active` prop instead of method calls. It defaults to `config.autoplay` (which is `true` by default). Set it to `false` to return the player to thumbnail-only mode without tearing down the view, and `true` to resume.
+
+```dart
+ShortKitPlayer(
+  contentItem: item,
+  active: isVisible,
+  config: const PlayerConfig(clickAction: PlayerClickAction.mute),
+)
+```
+</Tab>
+<Tab value="React Native">
+Use the `active` prop instead of method calls. It defaults to `config.autoplay` (which is `true` by default). Set it to `false` to return the player to thumbnail-only mode without tearing down the view, and `true` to resume.
+
+```tsx
+<ShortKitPlayer
+  contentItem={item}
+  active={isVisible}
+  config={{ clickAction: 'mute' }}
+  style={{ width: 200, height: 350 }}
+/>
+```
+</Tab>
+<Tab value="Web">
+Not applicable on Web — playback starts at `init()` / `initWithItems()` and ends at `destroy()`.
+</Tab>
+</Tabs>
+
+## Click actions
+
+`PlayerConfig.clickAction` controls what a tap does:
+
+| Value | Behavior |
+| --- | --- |
+| `feed` (`.feed` / `PlayerClickAction.feed` / `'feed'`) | Opens the full-screen feed starting at the tapped item. This is the default. |
+| `mute` | Toggles audio mute. |
+| `article` | **Web only.** Opens the item's `articleUrl` in a new tab. No-op when the item has no article URL. |
+| `none` | No action. Useful when you handle taps yourself via `onTap`. |
+
+## Customize the expanded feed
+
+When `clickAction` is `feed`, a tap expands the player into the full-screen feed. iOS and React Native let you customize that feed; Flutter and Web use the default expansion.
+
+<Tabs groupId="platform" persist items={['iOS','React Native']}>
+<Tab value="iOS">
+Set these on the `ShortKitPlayerViewController` instance:
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `setFeedItems(_:)` | `([FeedInput]) -> Void` | Seed list for the expanded feed. The inline player's own item is always prepended (deduped by playback ID) so the transition lands on the tapped clip; your items follow. Pass an empty array to clear. |
+| `feedMask` | `FeedMaskMode` | Mask composed around the feed during expansion. With a custom mask the feed is embedded in the mask's feed region instead of presented full-screen. Default `.none`. |
+| `onModalFeedPresented` | `((ShortKitFeedViewController) -> Void)?` | Called with the feed view controller just before it is presented, so you can configure it first. |
+| `onPreviewCompleted` | `(() -> Void)?` | When set, the natural end of playback invokes this callback **instead of** the `config.loop` restart — you take ownership of what happens when the preview completes. |
+
+Combine `setFeedItems(_:)` with `config.feedConfig.feedSource`: `.algorithmic` (default) plays the seeded items then continues paginating from your feed; `.custom` plays only the seeded items as a closed list. See [Custom feeds](/docs/guides/display/custom-feeds).
+</Tab>
+<Tab value="React Native">
+Pass `feedItems` on `<ShortKitPlayer>` to seed the expanded feed. The inline player's own `contentItem` is automatically prepended (deduped by playback ID), so the transition lands on the inline clip and your items follow. Has no effect when `clickAction` is not `'feed'`.
+
+```tsx
+<ShortKitPlayer
+  contentItem={item}
+  feedItems={[
+    { type: 'video', playbackId: 'pb_8Yt2KqWm01Lc' },
+    { type: 'video', playbackId: 'pb_3RnVx5Dk02Hf' },
+  ]}
+  config={{
+    clickAction: 'feed',
+    feedConfig: { feedSource: 'algorithmic' },
+  }}
+  style={{ width: 200, height: 350 }}
+/>
+```
+
+With `feedConfig.feedSource: 'algorithmic'` (default), the expanded feed plays the seeded items then continues paginating from your feed; with `'custom'` it plays only the seeded items as a closed list. See [Custom feeds](/docs/guides/display/custom-feeds).
+
+`PlayerConfig.feedMask` (applies on iOS only) embeds the expanded feed inside your component tree instead of presenting it full-screen.
+</Tab>
+</Tabs>

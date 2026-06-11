@@ -1,10 +1,305 @@
 ---
 title: "Live in the feed"
-description: "Client live-viewing surface: live fields, LiveOverlay/LiveEndedOverlay/room expansion (iOS tab), web badge/viewer count (Web tab); other tabs 'not yet supported'."
+description: "Render live streams in your feed: live fields, live overlays, the ended state, live room expansion on iOS, and the live badge and viewer count on Web."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Live streams appear in the feed alongside on-demand content with no extra setup. This page covers the client-side viewing surface: the live fields on each content item, the overlays the SDK renders on live cells, and how to customize them.
+
+Creating streams, broadcasting, ending streams, and clipping recordings are server-side operations — see [Live streams](/docs/guides/content/live-streams).
+
+<Callout type="info" title="Platform support">
+Live viewing ships on iOS and Web. Android, Flutter, and React Native do not support live playback yet. See [platform support](/docs/guides/setup/platform-support).
 </Callout>
 
-Client live-viewing surface: live fields, LiveOverlay/LiveEndedOverlay/room expansion (iOS tab), web badge/viewer count (Web tab); other tabs 'not yet supported'.
+## Live fields on the content item
+
+Every content item exposes live-specific fields you can read in a custom overlay. See the [content model](/docs/guides/concepts/content-model) for the full item shape.
+
+| Field | Type | Description |
+|---|---|---|
+| `isLive` | boolean | `true` while the broadcast is in progress, `false` after it ends |
+| `liveStreamStatus` | enum | `idle`, `active`, `ended`, or `dvr` — nil/absent on non-live items |
+| `liveStreamId` | string | The underlying live stream's UUID. Send this to your backend to address the stream itself, for example to [create clips](/docs/guides/content/live-streams) |
+| `currentViewers` | int | Concurrent viewer count (`0` for non-live items) |
+| `startedAt` | ISO 8601 string | When the broadcaster connected — useful for an elapsed-time display |
+| `endedAt` | ISO 8601 string | When the broadcast ended. May be filled in by a later status poll, so re-render when it changes |
+
+The `dvr` status means the broadcast ended and the recording is ready: render the item as regular on-demand video.
+
+You don't need to track viewers yourself. While a live item is the active playing item, the SDK fires a viewer heartbeat every 30 seconds on your behalf; every active viewer counts toward `currentViewers`.
+
+## Live overlays and customization
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+### Overlay modes
+
+Live cells use a dedicated overlay slot, separate from `videoOverlay` — live content has no scrubber or duration-based concepts. Configure it with `FeedConfig.liveOverlay`:
+
+| Mode | Behavior |
+|---|---|
+| `.default` | SDK-provided overlay: LIVE badge with pulsing red dot and elapsed stream time (the default) |
+| `.none` | No overlay |
+| `.custom { ... }` | Factory closure returning a `UIView & LiveOverlay` |
+| `.swiftUI { player in ... }` | A SwiftUI view; the player is passed in so you can subscribe to its publishers |
+
+```swift title="FeedSetup.swift"
+let config = FeedConfig(
+    liveOverlay: .swiftUI { player in
+        MyLiveOverlayView(player: player)
+    }
+)
+```
+
+See [FeedConfig](/docs/guides/reference/feed-config) for the full configuration reference.
+
+### The LiveOverlay protocol
+
+A custom UIKit live overlay conforms to `LiveOverlay`:
+
+```swift title="MyLiveOverlay.swift"
+final class MyLiveOverlay: UIView, LiveOverlay {
+    private weak var player: ShortKitPlayer?
+
+    func attach(player: ShortKitPlayer) {
+        self.player = player
+        // Subscribe to player publishers here.
+    }
+
+    func configure(with item: ContentItem) {
+        viewerLabel.text = "\(item.currentViewers) watching"
+    }
+
+    func activate() { /* cell became the active playback cell */ }
+    func deactivate() { /* cell left the active slot */ }
+
+    func liveStreamStatusDidChange(to status: LiveStreamStatus) {
+        switch status {
+        case .active: showLiveBadge()
+        case .idle: showReconnecting()
+        case .ended, .dvr: showEndedState()
+        }
+    }
+
+    func expand() { /* cell expanded into the fullscreen live room */ }
+    func collapse() { /* live room collapsed back to the feed cell */ }
+}
+```
+
+`liveStreamStatusDidChange(to:)`, `expand()`, and `collapse()` have default empty implementations, so implement only what you need.
+
+<Callout type="warn" title="Exhaustive switches on LiveStreamStatus">
+`LiveStreamStatus` gained a `.dvr` case in a recent release. If you switch exhaustively over the enum, add `case .dvr:` (or a `default:` clause) or your build breaks when updating the SDK.
+</Callout>
+
+### The ended state
+
+When a broadcast ends, the SDK swaps the player area for a static "stream ended" view. Configure it with `FeedConfig.liveEndedOverlay`:
+
+| Mode | Behavior |
+|---|---|
+| `.default` | SDK-provided "Stream ended" graphic with a timestamp label |
+| `.custom { ... }` | Factory returning a `UIView & LiveEndedOverlay` |
+| `.swiftUI { item in ... }` | A SwiftUI view built from the current `ContentItem` |
+
+The `LiveEndedOverlay` protocol has a single requirement:
+
+```swift
+public protocol LiveEndedOverlay: AnyObject {
+    func configure(with item: ContentItem)
+}
+```
+
+`configure(with:)` is called when the cell transitions to `.ended` and again on any reconfigure — for example when `endedAt` becomes non-nil after a later status poll. Re-render from `item.endedAt`, `item.startedAt`, and your own `item.customMetadata`.
+
+The ended view is mounted edge-to-edge in the cell, below your live overlay chrome, and the SDK disables its user interaction so taps pass through to the overlay above. If you need tappable elements in the ended state, put them in your `LiveOverlay` and show them when `liveStreamStatusDidChange(to: .ended)` fires.
+
+### Live room expand and collapse
+
+Tapping a live cell expands it into a fullscreen live room. The player is handed off without being recreated, so playback continues uninterrupted. Viewers dismiss the live room with a right swipe, which animates back to the originating feed cell.
+
+To suppress expansion for specific items, set the per-item gate:
+
+```swift title="FeedSetup.swift"
+let config = FeedConfig(
+    shouldExpandLiveRoom: { item in
+        item.liveStreamStatus == .active   // only expand while live
+    }
+)
+```
+
+When `shouldExpandLiveRoom` is `nil` (the default), all live cells expand on tap.
+
+To wrap your own chrome — a chat panel, gift bar, or viewer list — around the fullscreen player, provide a `LiveRoomMask`:
+
+```swift title="ChatRoomMask.swift"
+final class ChatRoomMask: UIView, LiveRoomMask {
+    // The SDK embeds the live player and overlay in this subview.
+    // Must be a descendant of this view, laid out with Auto Layout.
+    let liveRegion = UIView()
+
+    func attach(player: ShortKitPlayer) { /* store for commands */ }
+    func configure(with item: ContentItem) { /* render chat for item.liveStreamId */ }
+    func willDismiss() { /* tear down before the room closes */ }
+}
+```
+
+```swift
+let config = FeedConfig(
+    liveRoomMask: .custom { ChatRoomMask() }
+)
+```
+
+`LiveRoomMaskMode` is `.none` (player fills the screen, the default) or `.custom`.
+
+The player exposes the live room state and a programmatic dismiss:
+
+```swift
+player.isLiveRoomExpanded          // AnyPublisher<Bool, Never>
+player.isLiveRoomExpandedValue     // Bool, synchronous
+player.liveStreamStatus            // AnyPublisher<LiveStreamStatus?, Never>
+player.liveStreamStatusValue       // LiveStreamStatus?, synchronous
+player.dismissLiveRoom()           // collapse back to the feed cell
+```
+
+`liveStreamStatus` is `nil` for on-demand content or when no live item is active, and fires on every transition (`active` → `ended`, `active` → `idle`, and so on). SwiftUI overlays observe both publishers to toggle between compact and expanded layouts. See the [player reference](/docs/guides/reference/player) for the full publisher and command surface.
+
+### Live streams in custom feeds
+
+In custom feed mode, use the dedicated `.liveStream` input — not `.video` — so the SDK configures live playback, the live overlay, and the live room:
+
+```swift title="CustomFeed.swift"
+let inputs: [FeedInput] = [
+    .liveStream(playbackId: "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100"),
+    .video(playbackId: "qxBEB5mxLi6SDqBdtRGzSDdgWfX4LIqo"),
+]
+```
+
+### Program time for clipping
+
+`currentProgramDate()` returns the wall-clock `Date` of the video frame currently on screen, read from the stream's program date time metadata:
+
+```swift
+voteButton.addAction { [weak player] in
+    guard let pdt = player?.currentProgramDate() else { return }
+    api.markClipMoment(streamId: item.liveStreamId, at: pdt)
+}
+```
+
+Live manifests include program date time by default, so this returns a valid `Date` for any live ShortKit content once the first frame renders. It returns `nil` for on-demand items, before the item is ready to play, or when the manifest lacks timing metadata. Drop the event when it returns `nil` rather than falling back to wall clock — wall-clock timestamps can't be mapped back to the recorded asset for [clipping](/docs/guides/content/live-streams).
+
+</Tab>
+<Tab value="Android">
+
+Not yet supported on Android. See [platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+<Tab value="Flutter">
+
+Not yet supported on Flutter. See [platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+<Tab value="React Native">
+
+Not yet supported on React Native. See [platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+<Tab value="Web">
+
+### Live badge and viewer count
+
+The Web SDK renders a status-aware live badge on live cells automatically. While a stream is `active`, the badge shows a LIVE label, the current viewer count, and elapsed stream time, updating every second. Configure it with the `liveOverlay` constructor option:
+
+```js title="app.js"
+const sk = new ShortKit({
+  apiKey: 'pk_live_your_publishable_key',
+  userId: 'user-123',
+  liveOverlay: 'default',          // 'default' | 'none' | factory function
+  liveStatusPollIntervalMs: 30000, // status poll interval (default: 30s)
+});
+```
+
+| Option | Values | Description |
+|---|---|---|
+| `liveOverlay` | `'default'` \| `'none'` \| factory | `'default'` renders the built-in badge; `'none'` renders nothing; a factory function renders your own overlay |
+| `liveStatusPollIntervalMs` | number | How often the SDK polls live status and viewer counts for visible live items. Default `30000` |
+
+### Custom live overlay factory
+
+Pass a function as `liveOverlay` to render your own badge. The factory receives the player and returns an object with `mount`, `update`, and `destroy`:
+
+```js title="live-overlay.js"
+const sk = new ShortKit({
+  apiKey: 'pk_live_your_publishable_key',
+  liveOverlay: (player) => {
+    let container = null;
+
+    function render(item) {
+      if (!container) return;
+      const live = item.liveStreamStatus === 'active';
+      container.innerHTML = live
+        ? `<span class="badge">LIVE · ${item.currentViewers} watching</span>`
+        : '';
+    }
+
+    return {
+      mount(el, item) { container = el; render(item); },
+      update(item) { render(item); },       // status or viewer count changed
+      destroy() { container = null; },
+    };
+  },
+});
+```
+
+The SDK mounts your overlay into a container positioned over the live cell, calls `update(item)` whenever the item's live status or viewer count changes, and calls `destroy()` when the cell is recycled.
+
+### Live player events
+
+The player emits events as the SDK polls live status, so you can react to transitions (for example `active` → `ended`) without waiting for the next feed refresh:
+
+```js title="live-events.js"
+sk.player.on('liveItemActivate', ({ playbackId, item }) => {
+  // a live item became the active playing item
+});
+
+sk.player.on('liveStatusChange', ({ playbackId, status, prevStatus }) => {
+  if (status === 'ended') showEndedState(playbackId);
+});
+
+sk.player.on('viewerCountChange', ({ playbackId, currentViewers }) => {
+  updateViewerLabel(playbackId, currentViewers);
+});
+
+sk.player.on('liveItemDeactivate', ({ playbackId }) => {
+  // the live item left the active slot
+});
+```
+
+### Program time for clipping
+
+`sk.player.currentProgramDate()` returns the wall-clock `Date` of the video frame currently being rendered for the active live item, or `null` when no live item is active or timing metadata isn't available yet:
+
+```js
+const pdt = sk.player.currentProgramDate();
+if (pdt) {
+  markClipMoment(item.liveStreamId, pdt);
+}
+```
+
+Use this to capture timestamps that map back to the recorded asset for [clipping](/docs/guides/content/live-streams). Drop the event when it returns `null` rather than falling back to `Date.now()`.
+
+<Callout type="info" title="Broadcasting is not a browser feature">
+The Web SDK plays live streams; it does not broadcast them. Broadcasting goes through your encoder and the server-side credentials from [create live stream](/docs/api/live-streams/create-live-stream).
+</Callout>
+
+</Tab>
+</Tabs>
+
+## Related pages
+
+<Cards>
+  <Card title="Live streams" href="/docs/guides/content/live-streams" description="Create, broadcast, end, and clip live streams from your backend." />
+  <Card title="Player reference" href="/docs/guides/reference/player" description="Full publisher, event, and command surface of the player." />
+  <Card title="FeedConfig reference" href="/docs/guides/reference/feed-config" description="Every feed configuration option, including the live overlay modes." />
+</Cards>

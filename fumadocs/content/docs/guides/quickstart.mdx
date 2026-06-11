@@ -1,10 +1,177 @@
 ---
 title: "Quickstart"
-description: "Get keys, install (via per-SDK setup links), render a feed. Language tabs kept; versions sourced from snippets/versions.mdx."
+description: "Get your API keys, install the SDK for your platform, and render a short-form video feed."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Get your API keys, install the SDK, and display a feed. Your account comes with demo content, so you see a working feed before uploading anything.
+
+## 1. Get your API keys
+
+Sign up at [portal.shortkit.dev](https://portal.shortkit.dev), then go to **Settings** then **API Keys**. You need two keys:
+
+| Key | Prefix | Where it's used |
+|---|---|---|
+| Publishable key | `pk_live_...` | Client apps — initializes the SDK |
+| Secret key | `sk_live_...` | Your server — uploads, content management, the [REST API](/docs/api) |
+
+<Callout type="warn" title="Keep the secret key server-side">
+Never embed `sk_live_...` in a client app. The SDK only needs the publishable key.
 </Callout>
 
-Get keys, install (via per-SDK setup links), render a feed. Language tabs kept; versions sourced from snippets/versions.mdx.
+## 2. Install the SDK
+
+Follow the setup guide for your platform. Each covers installation, requirements, and initialization:
+
+<Cards>
+  <Card title="iOS" href="/docs/guides/setup/ios" description="Swift Package Manager — SwiftUI and UIKit" />
+  <Card title="Android" href="/docs/guides/setup/android" description="Gradle dependency from Maven Central" />
+  <Card title="Flutter" href="/docs/guides/setup/flutter" description="pub.dev package" />
+  <Card title="React Native" href="/docs/guides/setup/react-native" description="npm package — bare RN and Expo" />
+  <Card title="Web" href="/docs/guides/setup/web" description="CDN script tag or npm" />
+</Cards>
+
+See [platform support](/docs/guides/setup/platform-support) for a feature-by-feature comparison.
+
+## 3. Render a feed
+
+Create a screen and pass your publishable key. Every new account is seeded with demo videos, so the feed has content immediately.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift title="FeedScreen.swift"
+import SwiftUI
+import ShortKitSDK
+
+struct FeedScreen: View {
+    let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+
+    var body: some View {
+        ShortKitFeedView(shortKit: shortKit)
+            .ignoresSafeArea()
+    }
+}
+```
+
+Using UIKit instead? Embed `ShortKitFeedViewController` — see the [iOS setup guide](/docs/guides/setup/ios).
+
+</Tab>
+<Tab value="Android">
+
+```kotlin title="FeedActivity.kt"
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.shortkit.sdk.ShortKit
+import com.shortkit.sdk.config.FeedConfig
+import com.shortkit.sdk.feed.ShortKitFeedFragment
+
+class FeedActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_feed)
+
+        val shortKit = ShortKit(
+            context = this,
+            apiKey = "pk_live_your_publishable_key",
+        )
+
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.feed_container, ShortKitFeedFragment.newInstance(shortKit, FeedConfig()))
+                .commit()
+        }
+    }
+}
+```
+
+The layout needs a full-screen `FrameLayout` with id `feed_container` — see the [Android setup guide](/docs/guides/setup/android).
+
+</Tab>
+<Tab value="Flutter">
+
+```dart title="feed_screen.dart"
+import 'package:flutter/material.dart';
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+class FeedScreen extends StatelessWidget {
+  const FeedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShortKitProvider.apiKey(
+      apiKey: 'pk_live_your_publishable_key',
+      child: const Scaffold(
+        body: ShortKitFeed(),
+      ),
+    );
+  }
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx title="FeedScreen.tsx"
+import React from 'react';
+import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+
+export default function FeedScreen() {
+  return (
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      <ShortKitFeed style={{ flex: 1 }} />
+    </ShortKitProvider>
+  );
+}
+```
+
+Feed configuration goes on `<ShortKitFeed>`, not the provider — see [feed configuration](/docs/guides/reference/feed-config).
+
+</Tab>
+<Tab value="Web">
+
+```html title="index.html"
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { margin: 0; }
+    #feed { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="feed"></div>
+  <script src="https://sdk.shortkit.dev/web/0.5.0/shortkit.min.js"></script>
+  <script>
+    const { ShortKit } = window.ShortKit;
+    const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+    sk.createFeed(document.getElementById('feed'));
+  </script>
+</body>
+</html>
+```
+
+</Tab>
+</Tabs>
+
+Run your app. You should see a full-screen, vertically scrolling video feed playing the demo content.
+
+## 4. Add your own content
+
+Replace the demo videos with your own:
+
+- **Portal upload** — go to **Content** in the [Admin Portal](https://portal.shortkit.dev) and upload video files directly.
+- **Import from URLs** — bulk import from object storage, your CDN, or social links via the API.
+- **Direct upload** — request signed upload URLs from your server with the [upload content endpoint](/docs/api/content/upload-content).
+
+The [upload videos guide](/docs/guides/content/upload-videos) walks through all three.
+
+## Next steps
+
+<Cards>
+  <Card title="Configure the feed" href="/docs/guides/reference/feed-config" description="Mute behavior, filters, playback options" />
+  <Card title="Build an overlay" href="/docs/guides/customize/overlays" description="Your own titles, buttons, and UI on top of the player" />
+  <Card title="Identify users" href="/docs/guides/concepts/identity" description="Link feed activity to your logged-in users" />
+  <Card title="Track engagement" href="/docs/guides/analytics/overview" description="Watch time, completion rates, custom events" />
+</Cards>

@@ -1,10 +1,657 @@
 ---
 title: "Carousel control"
-description: "shortKit.carousel runtime: commands, publishers, cell gestures, recipes. Android tab written fresh (shipped, undocumented); Flutter tab marked per parity matrix."
+description: "Observe and control the active video carousel: programmatic navigation, reactive state, cell gestures, and completion events."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+A video carousel is a horizontally-swipeable collection of short videos within a single feed cell. The SDK owns the pager, the player handoff between pages, and the transition animations natively. This page covers the APIs you use to **observe** the active carousel, **navigate** it programmatically, and **react** to taps, long presses, and video completions.
+
+To render chrome (titles, page indicators, action buttons) on top of the native pager, see [Item overlays](/docs/guides/customize/item-overlays). For the `VideoCarouselItem` data shape and how carousels are created, see [Carousels](/docs/guides/content/carousels).
+
+<Callout type="info" title="Platform availability">
+Carousel control ships on iOS, Android, and React Native. The Flutter SDK renders video carousels but does not yet expose the control APIs on this page, and the Web SDK does not yet support video carousels. See [Platform support](/docs/guides/setup/platform-support).
 </Callout>
 
-shortKit.carousel runtime: commands, publishers, cell gestures, recipes. Android tab written fresh (shipped, undocumented); Flutter tab marked per parity matrix.
+## Default behavior
+
+When the current feed item is a video carousel, the SDK applies these rules automatically — no configuration required.
+
+| Trigger | Behavior |
+|---|---|
+| The carousel becomes visible for the first time | The SDK lands on the carousel's `initialPageIndex` (defaults to `0`) without a horizontal scroll animation. |
+| The user swipes vertically away from the carousel and back | The carousel resets to `initialPageIndex` again. Last-watched position is not preserved. |
+| A video in the carousel plays to its natural end | The SDK advances to the next video in the carousel and fires a completion event. |
+| The **last** video in the carousel plays to its natural end | The SDK loops that last video back to itself. The feed does **not** advance to the next feed item. A completion event fires with `wasLast: true` and `willAutoAdvance: false`. |
+| The user swipes horizontally, or your code calls an imperative method | The active video is paused and the target video begins playback. No completion event fires — completion is reserved for natural-end transitions. |
+| The user swipes vertically and the feed settles on a non-carousel item | Reactive state (`activeIndex`, `activeCarouselChanged`) clears to `nil` / `null`. |
+
+## Programmatic navigation
+
+Imperative methods move the active carousel without a user gesture. All three return a boolean indicating whether the command was accepted.
+
+These methods are **scoped to the current carousel** — they page between videos inside a single `VideoCarouselItem`. They are distinct from the feed-scoped skip commands (`shortKit.player.skipToNext()` / `ShortKitCommands.skipToNext()`), which navigate between feed items, including across carousels. See [Player reference](/docs/guides/reference/player).
+
+<Callout type="info" title="Declarative landing vs. imperative jump">
+`setActiveIndex` is for moving within an *already-active* carousel — for example, in response to a button tap inside an overlay. To land on a specific page on the *first* display (deep-linking, e.g. a "watch from video 3" CTA), set `initialPageIndex` on the `VideoCarouselItem` instead. The declarative path lands without a horizontal scroll animation; `setActiveIndex` only operates on the active cell and produces an animated scroll.
+</Callout>
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+Access the carousel API via `shortKit.carousel`. Methods are safe to call from any thread; they hop to the main queue internally.
+
+```swift title="CarouselControls.swift"
+import ShortKitSDK
+
+shortKit.carousel.next()              // returns Bool
+shortKit.carousel.previous()          // returns Bool
+shortKit.carousel.setActiveIndex(2)   // returns Bool
+```
+
+All three methods are marked `@discardableResult`, so you can ignore the return value for fire-and-forget usage:
+
+```swift
+@objc private func didTapNext() {
+    shortKit.carousel.next()
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+Access the carousel API via `shortKit.carousel` on your `ShortKit` instance. Methods are safe to call from any thread; off-main callers are routed to the main thread internally.
+
+```kotlin title="CarouselControls.kt"
+import com.shortkit.sdk.ShortKit
+
+shortKit.carousel.next()              // returns Boolean
+shortKit.carousel.previous()          // returns Boolean
+shortKit.carousel.setActiveIndex(2)   // returns Boolean
+```
+
+</Tab>
+<Tab value="React Native">
+
+Import `ShortKitCommands` — the same entry point used for player commands. These methods work from inside overlay components (which run in isolated surfaces without provider context).
+
+```tsx title="CarouselControls.tsx"
+import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+ShortKitCommands.carouselNext();              // returns boolean
+ShortKitCommands.carouselPrevious();          // returns boolean
+ShortKitCommands.carouselSetActiveIndex(2);   // returns boolean
+```
+
+Inside a React component, you can also use the [`useShortKitCarousel()` hook](#observing-active-state) — it exposes the same three methods alongside reactive state.
+
+</Tab>
+</Tabs>
+
+### Return value
+
+| Result | Meaning |
+|---|---|
+| `true` | The carousel accepted the command. Visual transition and playback handoff are in flight. |
+| `false` | Either no video carousel is currently active (the current feed item is a video, survey, ad, or image carousel), or the target index is out of range (`previous()` at index `0`, `next()` at the last index, or `setActiveIndex` outside the video range). |
+
+`setActiveIndex` with the current index returns `true` as a no-op.
+
+## Observing active state
+
+Subscribe to reactive state to keep overlay UI, badges, or host-app chrome in sync with the active carousel.
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+ShortKit exposes Combine publishers on `shortKit.carousel`. Always dispatch to the main queue with `.receive(on: DispatchQueue.main)` before updating UI.
+
+| Publisher | Type | Description |
+|---|---|---|
+| `activeIndex` | `AnyPublisher<Int?, Never>` | Zero-based index of the playing video. Emits `nil` when no video carousel is active. Duplicates are filtered. |
+| `activeCarouselChanged` | `AnyPublisher<VideoCarouselItem?, Never>` | The active carousel item. Emits `nil` when no video carousel is active. Duplicates are filtered. |
+
+```swift title="PageIndicator.swift"
+import Combine
+
+var cancellables = Set<AnyCancellable>()
+
+shortKit.carousel.activeIndex
+    .receive(on: DispatchQueue.main)
+    .sink { index in
+        guard let index = index else {
+            pageIndicator.isHidden = true
+            return
+        }
+        pageIndicator.isHidden = false
+        pageIndicator.currentPage = index
+    }
+    .store(in: &cancellables)
+```
+
+For one-off synchronous reads, use:
+
+| Accessor | Type | Description |
+|---|---|---|
+| `activeIndexValue` | `Int?` | Current active index, or `nil`. |
+| `videoCountValue` | `Int?` | Number of videos in the active carousel, or `nil`. |
+| `activeCarouselItemValue` | `VideoCarouselItem?` | The active carousel item, or `nil`. |
+
+```swift
+if let index = shortKit.carousel.activeIndexValue,
+   let count = shortKit.carousel.videoCountValue {
+    print("Playing video \(index + 1) of \(count)")
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+ShortKit exposes Kotlin coroutines flows on `shortKit.carousel`. Collect them with a lifecycle-aware scope.
+
+| Flow | Type | Description |
+|---|---|---|
+| `activeIndex` | `StateFlow<Int?>` | Zero-based index of the playing video. `null` when no video carousel is active. `StateFlow` filters duplicates. |
+| `activeCarouselChanged` | `StateFlow<VideoCarouselItem?>` | The active carousel item. `null` when no video carousel is active. |
+
+```kotlin title="PageIndicator.kt"
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
+import kotlinx.coroutines.launch
+
+lifecycleScope.launch {
+    repeatOnLifecycle(Lifecycle.State.STARTED) {
+        shortKit.carousel.activeIndex.collect { index ->
+            if (index == null) {
+                pageIndicator.isVisible = false
+            } else {
+                pageIndicator.isVisible = true
+                pageIndicator.currentPage = index
+            }
+        }
+    }
+}
+```
+
+For one-off synchronous reads, use:
+
+| Accessor | Type | Description |
+|---|---|---|
+| `activeIndexValue` | `Int?` | Current active index, or `null`. |
+| `videoCountValue` | `Int?` | Number of videos in the active carousel, or `null`. |
+| `activeCarouselItemValue` | `VideoCarouselItem?` | The active carousel item, or `null`. |
+
+```kotlin
+val index = shortKit.carousel.activeIndexValue
+val count = shortKit.carousel.videoCountValue
+if (index != null && count != null) {
+    Log.d("Carousel", "Playing video ${index + 1} of $count")
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+`useShortKitCarousel()` is a React hook that exposes reactive carousel state plus the three imperative methods. It subscribes to native events directly, so it works inside overlay components without a `<ShortKitProvider>` in the tree.
+
+```tsx title="PageIndicator.tsx"
+import { useShortKitCarousel } from '@shortkitsdk/react-native';
+
+function PageIndicator() {
+  const { activeIndex, videoCount } = useShortKitCarousel();
+  if (activeIndex == null) return null;
+  return <Text>{`${activeIndex + 1} / ${videoCount}`}</Text>;
+}
+```
+
+Return value:
+
+```ts
+interface ShortKitCarouselState {
+  activeIndex: number | null;         // null when no carousel is active
+  videoCount: number;                 // 0 when no carousel is active
+  activeCarouselItem: VideoCarouselItem | null;
+  next: () => boolean;
+  previous: () => boolean;
+  setActiveIndex: (index: number) => boolean;
+}
+```
+
+The component re-renders when the active carousel changes (vertical swipe onto/off of a video carousel) or when the active video index changes inside the current carousel (horizontal swipe or imperative call).
+
+</Tab>
+</Tabs>
+
+## Cell gesture events
+
+Two events fire on direct user interaction with a video-carousel cell:
+
+- `onVideoCarouselCellTap` — a discrete tap that didn't turn into a horizontal pan.
+- `onVideoCarouselCellLongPress` — the lifecycle of a sustained press.
+
+Both are **passive observers** on the cell. They run alongside the carousel's horizontal pan and the feed's vertical pan without intercepting either, so a press that becomes a horizontal swipe still pages the carousel, and a press that becomes a vertical swipe still advances the feed. Use these for analytics, custom interactions like double-tap-to-like, or hold-to-pause UX.
+
+### Tap
+
+Fires once per discrete tap on a carousel cell that did **not** trigger the inner horizontal pan. Quick taps qualify; presses that turn into pans do not.
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+Set the closure on your `ShortKitFeedViewController` instance.
+
+```swift title="FeedScreen.swift"
+feedVC.onVideoCarouselCellTap = { payload in
+    analytics.track("carousel_cell_tap", [
+        "carousel_id": payload.id,
+        "page_index": payload.pageIndex,
+    ])
+}
+```
+
+```swift
+public struct VideoCarouselCellTapPayload {
+    public let id: String       // VideoCarouselItem.id
+    public let index: Int       // Zero-based position of the carousel cell in the feed
+    public let pageIndex: Int   // Inner page visible at tap time
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+Set the callback on your `ShortKitFeedFragment` instance.
+
+```kotlin title="FeedScreen.kt"
+feedFragment.onVideoCarouselCellTap = { payload ->
+    analytics.track("carousel_cell_tap", mapOf(
+        "carousel_id" to payload.id,
+        "page_index" to payload.pageIndex,
+    ))
+}
+```
+
+```kotlin
+data class VideoCarouselCellTapPayload(
+    val id: String,       // VideoCarouselItem.id
+    val index: Int,       // Zero-based position of the carousel cell in the feed
+    val pageIndex: Int,   // Inner page visible at tap time
+)
+```
+
+</Tab>
+<Tab value="React Native">
+
+Pass the prop to `<ShortKitFeed>`.
+
+```tsx title="FeedScreen.tsx"
+<ShortKitFeed
+  onVideoCarouselCellTap={(event) => {
+    analytics.track('carousel_cell_tap', {
+      carousel_id: event.id,
+      page_index: event.pageIndex,
+    });
+  }}
+  /* ... */
+/>
+```
+
+```ts
+interface VideoCarouselCellTapEvent {
+  id: string;          // VideoCarouselItem.id
+  index: number;       // Zero-based position of the carousel cell in the feed
+  pageIndex: number;   // Inner page visible at tap time
+}
+```
+
+You only need this native event for video-carousel cells, where the pager owns the touch stream. For single-video and image-carousel cells, a JS `<Pressable>` in your overlay works as usual.
+
+</Tab>
+</Tabs>
+
+### Long press
+
+<Callout type="info" title="Availability">
+Long-press events require SDK 0.2.36 or later on iOS and React Native. The `x`/`y` coordinate fields require 0.2.55 on all three platforms.
+</Callout>
+
+Fires across the lifecycle of a sustained press: a `began` after 0.2 s of continuous touch within a small movement threshold (10 points on iOS; the system touch slop on Android), then exactly one terminal state — `ended` on touch release, or `cancelled` if the press is interrupted.
+
+The payload includes the touch coordinates `x` and `y` in screen space, captured at `began` **only** — they are `0` for `ended` and `cancelled`. Use them to anchor a context menu or reaction picker at the press location.
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+```swift title="FeedScreen.swift"
+feedVC.onVideoCarouselCellLongPress = { [weak self] payload in
+    switch payload.state {
+    case .began:
+        self?.shortKit.player.pause()
+    case .ended, .cancelled:
+        self?.shortKit.player.play()
+    }
+}
+```
+
+```swift
+public struct VideoCarouselCellLongPressPayload {
+    public let id: String       // VideoCarouselItem.id
+    public let index: Int       // Zero-based position of the carousel cell in the feed
+    public let pageIndex: Int   // Inner page visible when this lifecycle event fired
+    public let state: VideoCarouselCellLongPressState
+    public let x: CGFloat       // Screen-space touch x; captured at .began, 0 otherwise
+    public let y: CGFloat       // Screen-space touch y; captured at .began, 0 otherwise
+}
+
+public enum VideoCarouselCellLongPressState: String {
+    case began, ended, cancelled
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin title="FeedScreen.kt"
+import com.shortkit.sdk.feed.VideoCarouselCellLongPressState
+
+feedFragment.onVideoCarouselCellLongPress = { payload ->
+    when (payload.state) {
+        VideoCarouselCellLongPressState.BEGAN ->
+            shortKit.player.pause()
+        VideoCarouselCellLongPressState.ENDED,
+        VideoCarouselCellLongPressState.CANCELLED ->
+            shortKit.player.play()
+    }
+}
+```
+
+```kotlin
+data class VideoCarouselCellLongPressPayload(
+    val id: String,       // VideoCarouselItem.id
+    val index: Int,       // Zero-based position of the carousel cell in the feed
+    val pageIndex: Int,   // Inner page visible when this lifecycle event fired
+    val state: VideoCarouselCellLongPressState,
+    val x: Float,         // Screen-space touch x; captured at BEGAN, 0 otherwise
+    val y: Float,         // Screen-space touch y; captured at BEGAN, 0 otherwise
+)
+
+enum class VideoCarouselCellLongPressState { BEGAN, ENDED, CANCELLED }
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx title="FeedScreen.tsx"
+<ShortKitFeed
+  onVideoCarouselCellLongPress={(event) => {
+    if (event.state === 'began') {
+      ShortKitCommands.pause();
+    } else {
+      ShortKitCommands.play();
+    }
+  }}
+  /* ... */
+/>
+```
+
+```ts
+interface VideoCarouselCellLongPressEvent {
+  id: string;          // VideoCarouselItem.id
+  index: number;       // Zero-based position of the carousel cell in the feed
+  pageIndex: number;   // Inner page visible when this lifecycle event fired
+  state: 'began' | 'ended' | 'cancelled';
+  x: number;           // Screen-space touch x (like nativeEvent.pageX); captured at 'began', 0 otherwise
+  y: number;           // Screen-space touch y (like nativeEvent.pageY); captured at 'began', 0 otherwise
+}
+```
+
+</Tab>
+</Tabs>
+
+#### Lifecycle states
+
+| State | When it fires |
+|---|---|
+| `began` | After 0.2 s of continuous touch within the movement threshold of the touch origin. |
+| `ended` | When the user releases the touch with the press still active. |
+| `cancelled` | When the press is interrupted — by movement past the threshold, by the user starting a horizontal carousel pan or vertical feed scroll, or by the cell scrolling off-screen or being recycled. |
+
+Every press that reaches `began` is followed by exactly one terminal state — `ended` or `cancelled`. Touches that don't satisfy the recognizer (released too early, or moved too far before the delay elapses) never fire any long-press event. Use `began` to start an effect (pause, dim, show menu) and treat both `ended` and `cancelled` as the signal to undo it.
+
+### Recipe: hold-to-pause
+
+A common use is letting the user pause playback by holding the cell — a familiar pattern in short-video feeds.
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+```swift title="FeedScreen.swift"
+feedVC.onVideoCarouselCellLongPress = { [weak self] payload in
+    guard let self else { return }
+    switch payload.state {
+    case .began:
+        self.shortKit.player.pause()
+    case .ended, .cancelled:
+        self.shortKit.player.play()
+    }
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin title="FeedScreen.kt"
+feedFragment.onVideoCarouselCellLongPress = { payload ->
+    when (payload.state) {
+        VideoCarouselCellLongPressState.BEGAN ->
+            shortKit.player.pause()
+        else ->
+            shortKit.player.play()
+    }
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx title="FeedScreen.tsx"
+<ShortKitFeed
+  onVideoCarouselCellLongPress={(event) => {
+    if (event.state === 'began') {
+      ShortKitCommands.pause();
+    } else if (event.state === 'ended' || event.state === 'cancelled') {
+      ShortKitCommands.play();
+    }
+  }}
+  /* ... */
+/>
+```
+
+</Tab>
+</Tabs>
+
+Because the recognizer is a passive observer, a hold that turns into a horizontal swipe still pages the carousel — the `cancelled` arm is what restores playback when that happens.
+
+<Callout type="warn" title="Manual pauses">
+This minimal recipe resumes playback after a hold even if the user had manually paused the video before holding. To preserve manual pauses, track the player state and only call `play()` from the `ended`/`cancelled` arm if the video was playing before `began` fired.
+</Callout>
+
+## Completion events
+
+A completion event fires each time a carousel video reaches its natural end — after playback, not on skip. Use it for analytics, end-of-carousel CTAs, or host-level auto-advance behavior that extends what the SDK does by default.
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+Subscribe to the `activeVideoCompleted` publisher on `shortKit.carousel`. It emits a `CarouselCompletionEvent` per natural end.
+
+```swift title="CarouselAnalytics.swift"
+import Combine
+import ShortKitSDK
+
+shortKit.carousel.activeVideoCompleted
+    .receive(on: DispatchQueue.main)
+    .sink { event in
+        analytics.track("carousel_video_completed", [
+            "carousel_id": event.carouselItem.id,
+            "video_id": event.contentItem.id,
+            "index": event.indexInCarousel,
+            "was_last": event.wasLast,
+        ])
+    }
+    .store(in: &cancellables)
+```
+
+```swift
+public struct CarouselCompletionEvent: Equatable, Sendable {
+    public let contentItem: ContentItem
+    public let indexInCarousel: Int
+    public let carouselItem: VideoCarouselItem
+    public let wasLast: Bool
+    public let willAutoAdvance: Bool
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+Collect the `activeVideoCompleted` shared flow on `shortKit.carousel`. It emits a `CarouselCompletionEvent` per natural end.
+
+```kotlin title="CarouselAnalytics.kt"
+import com.shortkit.sdk.carousel.CarouselCompletionEvent
+
+lifecycleScope.launch {
+    repeatOnLifecycle(Lifecycle.State.STARTED) {
+        shortKit.carousel.activeVideoCompleted.collect { event ->
+            analytics.track("carousel_video_completed", mapOf(
+                "carousel_id" to event.carouselItem.id,
+                "video_id" to event.contentItem.id,
+                "index" to event.indexInCarousel,
+                "was_last" to event.wasLast,
+            ))
+        }
+    }
+}
+```
+
+```kotlin
+data class CarouselCompletionEvent(
+    val contentItem: ContentItem,
+    val indexInCarousel: Int,
+    val carouselItem: VideoCarouselItem,
+    val wasLast: Boolean,
+    val willAutoAdvance: Boolean,
+)
+```
+
+Unlike the `StateFlow` state above, `activeVideoCompleted` is a `SharedFlow` — it does not replay past events to new collectors, so subscribe before the first completion you care about.
+
+</Tab>
+<Tab value="React Native">
+
+Pass an `onCarouselActiveVideoCompleted` callback to `<ShortKitFeed>`. The callback receives a typed event object.
+
+```tsx title="CarouselAnalytics.tsx"
+import { ShortKitFeed } from '@shortkitsdk/react-native';
+
+<ShortKitFeed
+  onCarouselActiveVideoCompleted={(event) => {
+    analytics.track('carousel_video_completed', {
+      carousel_id: event.carouselItem.id,
+      video_id: event.contentItem.id,
+      index: event.indexInCarousel,
+      was_last: event.wasLast,
+    });
+  }}
+  /* ... */
+/>
+```
+
+```ts
+interface CarouselActiveVideoCompletedEvent {
+  surfaceId: string;
+  contentItem: ContentItem;
+  indexInCarousel: number;
+  carouselItem: VideoCarouselItem;
+  wasLast: boolean;
+  willAutoAdvance: boolean;
+}
+```
+
+</Tab>
+</Tabs>
+
+### Event field reference
+
+| Field | Type | Description |
+|---|---|---|
+| `contentItem` | `ContentItem` | The video that just completed. Same shape as any feed `ContentItem` — see [Content model](/docs/guides/concepts/content-model). |
+| `indexInCarousel` | `Int` | Zero-based index of `contentItem` within `carouselItem.videos`. |
+| `carouselItem` | `VideoCarouselItem` | The carousel that owns the completed video. |
+| `wasLast` | `Bool` | `true` when the completed video was the last one in `carouselItem.videos`. |
+| `willAutoAdvance` | `Bool` | `true` when the SDK will auto-advance to the next video after this event. Equivalent to `!wasLast` — provided explicitly so downstream logic doesn't have to restate the rule. |
+| `surfaceId` *(React Native only)* | `string` | Identifier for the feed surface that produced the event. Only meaningful when an app mounts multiple `<ShortKitFeed>` instances simultaneously; use it to route the event to the correct feed's state. |
+
+The event fires **only** on natural end-of-playback. It does not fire when:
+
+- The user swipes to a different video in the carousel.
+- Your code calls `next()`, `previous()`, or `setActiveIndex`.
+- The feed navigates vertically (by swipe or programmatically) to a different feed item.
+
+### Recipe: end-of-carousel CTA
+
+A common use case is showing a "Read the full article" or "Subscribe" card after the user has watched every video in a carousel. Because the last video loops by default (rather than spilling into the next feed item), your host app is in full control of what happens next.
+
+<Tabs groupId="platform" persist items={['iOS','Android','React Native']}>
+<Tab value="iOS">
+
+```swift title="EndOfCarouselCTA.swift"
+shortKit.carousel.activeVideoCompleted
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] event in
+        guard event.wasLast, !event.willAutoAdvance else { return }
+        self?.showEndOfCarouselCTA(for: event.carouselItem)
+    }
+    .store(in: &cancellables)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin title="EndOfCarouselCTA.kt"
+lifecycleScope.launch {
+    repeatOnLifecycle(Lifecycle.State.STARTED) {
+        shortKit.carousel.activeVideoCompleted.collect { event ->
+            if (event.wasLast && !event.willAutoAdvance) {
+                showEndOfCarouselCTA(event.carouselItem)
+            }
+        }
+    }
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx title="EndOfCarouselCTA.tsx"
+<ShortKitFeed
+  onCarouselActiveVideoCompleted={(event) => {
+    if (event.wasLast && !event.willAutoAdvance) {
+      setEndOfCarouselCTA(event.carouselItem);
+    }
+  }}
+/>
+```
+
+</Tab>
+</Tabs>
+
+The `wasLast && !willAutoAdvance` check is the idiomatic "user reached the end of the carousel" signal. Because the video keeps looping silently underneath, you can display the CTA without worrying about playback changing out from under you — the user is either watching the last video loop or is about to swipe away.
+
+## Related
+
+<Cards>
+  <Card title="Item overlays" href="/docs/guides/customize/item-overlays" description="Render chrome on top of the native carousel pager." />
+  <Card title="Carousels" href="/docs/guides/content/carousels" description="Create video carousels and the VideoCarouselItem data shape." />
+  <Card title="Feed control" href="/docs/guides/display/feed-control" description="Feed-scoped navigation and runtime control." />
+  <Card title="Player reference" href="/docs/guides/reference/player" description="Single-video playback control — the non-carousel analog." />
+</Cards>

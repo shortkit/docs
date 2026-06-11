@@ -67,8 +67,11 @@ const out = {
   components: { schemas, securitySchemes: overlay.securitySchemes },
 };
 
-// --- vendor scrub gate (fail closed) ---------------------------------------
-const serialized = JSON.stringify(out, null, 2);
+// --- scrub replacements (overlay-driven), then gate (fail closed) ----------
+let serialized = JSON.stringify(out, null, 2);
+for (const [from, to] of Object.entries(overlay.replacements ?? {})) {
+  serialized = serialized.split(from).join(to);
+}
 const leak = serialized.match(FORBIDDEN);
 if (leak) {
   throw new Error(

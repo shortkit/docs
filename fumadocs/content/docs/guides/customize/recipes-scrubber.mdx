@@ -1,10 +1,614 @@
 ---
 title: "Recipe: custom scrubber"
-description: "Worked scrubber + thumbnails tutorial extracted from overlays; language tabs."
+description: "Build a draggable scrubber with seek thumbnails as a custom video overlay."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+This recipe builds a draggable scrubber as a custom video overlay: a progress track that shows played and buffered position, follows the user's finger during a drag, shows a thumbnail preview at the seek position, and seeks playback on release.
+
+<Callout type="info" title="Prerequisites">
+This recipe assumes you know how to register a custom video overlay. See [Custom overlays](/docs/guides/customize/overlays) for the overlay lifecycle and registration on each platform, and the [player reference](/docs/guides/reference/player) for the full player API.
 </Callout>
 
-Worked scrubber + thumbnails tutorial extracted from overlays; language tabs.
+## How it works
+
+Every platform follows the same three rules:
+
+1. **Drive the track from player time updates** — but only when the cell is the active playback cell and the user is not dragging. Guard your time handler on `isActive && !isScrubbing`.
+2. **During a drag, drive the UI from the gesture position.** Don't seek continuously — playback continues uninterrupted while the user scrubs, and only the visuals (progress bar, thumbnail, time label) follow the finger.
+3. **On release, seek once** with the seek-and-play command, then hand the UI back to the time stream.
+
+## Build the scrubber
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Conform to `FeedOverlay`. Subscribe to `player.time` in `attach(player:)`, reset stale state in `configure(with:)` (the cell is being reused for a new item), and start reacting to time updates after `activatePlayback()`. Thumbnails come from `player.seekThumbnail(at:)`, which returns a storyboard frame for the given time in seconds.
+
+```swift title="ScrubberOverlay.swift"
+import Combine
+import ShortKit
+import UIKit
+
+final class ScrubberOverlay: UIView, FeedOverlay {
+
+    private var player: ShortKitPlayer!
+    private var subscriptions = Set<AnyCancellable>()
+    private var isActive = false
+    private var isScrubbing = false
+    private var videoDuration: Double = 0
+
+    // MARK: - UI
+
+    private let track = UIView()
+    private let playedProgress = UIView()
+    private let bufferedProgress = UIView()
+    private let thumbnailPreview = UIImageView()
+    private let timeLabel = UILabel()
+
+    private var playedWidth: NSLayoutConstraint!
+    private var bufferedWidth: NSLayoutConstraint!
+    private var handleCenterX: NSLayoutConstraint!
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - FeedOverlay
+
+    func attach(player: ShortKitPlayer) {
+        self.player = player
+        player.time
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] time in
+                guard let self, self.isActive, !self.isScrubbing else { return }
+                self.videoDuration = time.duration
+                let fraction = time.duration > 0 ? time.current / time.duration : 0
+                self.playedWidth.constant = self.track.bounds.width * fraction
+                let buffered = time.duration > 0 ? time.buffered / time.duration : 0
+                self.bufferedWidth.constant = self.track.bounds.width * buffered
+            }
+            .store(in: &subscriptions)
+    }
+
+    func configure(with item: ContentItem) {
+        // Cell is being reused for a new item — reset stale state.
+        isActive = false
+        isScrubbing = false
+        videoDuration = item.duration
+        playedWidth.constant = 0
+        bufferedWidth.constant = 0
+        thumbnailPreview.isHidden = true
+        timeLabel.isHidden = true
+    }
+
+    func activatePlayback() { isActive = true }
+
+    // MARK: - Scrub gesture
+
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        let x = gesture.location(in: track).x
+        let fraction = max(0, min(1, x / track.bounds.width))
+        let seekTime = videoDuration * fraction
+
+        switch gesture.state {
+        case .began:
+            isScrubbing = true
+            thumbnailPreview.isHidden = false
+            timeLabel.isHidden = false
+
+        case .changed:
+            handleCenterX.constant = track.bounds.width * fraction
+            playedWidth.constant = track.bounds.width * fraction
+
+            if let thumb = player.seekThumbnail(at: seekTime) {
+                thumbnailPreview.image = thumb
+            }
+            let m = Int(seekTime) / 60, s = Int(seekTime) % 60
+            timeLabel.text = String(format: "%d:%02d", m, s)
+            thumbnailPreview.center.x = handleCenterX.constant
+
+        case .ended, .cancelled:
+            isScrubbing = false
+            thumbnailPreview.isHidden = true
+            timeLabel.isHidden = true
+            player.seekAndPlay(to: seekTime)
+
+        default: break
+        }
+    }
+
+    // MARK: - Setup (abbreviated — layout constraints omitted for brevity)
+
+    private func setupUI() {
+        track.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        addSubview(track)
+        track.addSubview(bufferedProgress)
+        track.addSubview(playedProgress)
+        addSubview(thumbnailPreview)
+        addSubview(timeLabel)
+
+        // ... constraint setup for track at bottom, progress bars, thumbnail above track
+
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+        track.addGestureRecognizer(pan)
+    }
+}
+```
+
+Register the overlay in your feed config:
+
+```swift
+config.videoOverlay = .custom { ScrubberOverlay() }
+```
+
+</Tab>
+<Tab value="Android">
+
+Implement the `FeedOverlay` interface. Android's `PlayerTime` reports milliseconds as `Long` values (`currentMs`, `durationMs`, `bufferedMs`), and `seekThumbnail(atMs:)` takes milliseconds — but `seekAndPlay(seconds:)` takes seconds as a `Double`, so convert on release.
+
+```kotlin title="ScrubberOverlay.kt"
+class ScrubberOverlay @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : FrameLayout(context, attrs), FeedOverlay {
+
+    private lateinit var player: ShortKitPlayer
+    private var isActive = false
+    private var isScrubbing = false
+    private var videoDurationMs = 0L
+
+    private val track: View
+    private val playedProgress: View
+    private val bufferedProgress: View
+    private val thumbnailPreview: ImageView
+    private val timeLabel: TextView
+
+    init {
+        inflate(context, R.layout.scrubber_overlay, this)
+        track = findViewById(R.id.track)
+        playedProgress = findViewById(R.id.playedProgress)
+        bufferedProgress = findViewById(R.id.bufferedProgress)
+        thumbnailPreview = findViewById(R.id.thumbnailPreview)
+        timeLabel = findViewById(R.id.timeLabel)
+
+        track.setOnTouchListener { _, event -> handleTouch(event) }
+    }
+
+    // FeedOverlay
+
+    override fun attach(player: ShortKitPlayer) {
+        this.player = player
+        findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
+            player.time.collect { time ->
+                if (!isActive || isScrubbing) return@collect
+                videoDurationMs = time.durationMs
+                val fraction = if (time.durationMs > 0)
+                    time.currentMs.toFloat() / time.durationMs else 0f
+                playedProgress.layoutParams.width = (track.width * fraction).toInt()
+                playedProgress.requestLayout()
+                val buffered = if (time.durationMs > 0)
+                    time.bufferedMs.toFloat() / time.durationMs else 0f
+                bufferedProgress.layoutParams.width = (track.width * buffered).toInt()
+                bufferedProgress.requestLayout()
+            }
+        }
+    }
+
+    override fun configure(item: ContentItem) {
+        // Cell is being reused for a new item — reset stale state.
+        isActive = false
+        isScrubbing = false
+        videoDurationMs = (item.duration * 1000).toLong()
+        playedProgress.layoutParams.width = 0
+        bufferedProgress.layoutParams.width = 0
+        thumbnailPreview.visibility = View.GONE
+        timeLabel.visibility = View.GONE
+    }
+
+    override fun activatePlayback() { isActive = true }
+
+    override fun fadeOutForTransition() { animate().alpha(0.3f).setDuration(150).start() }
+
+    override fun restoreFromTransition() { animate().alpha(1f).setDuration(150).start() }
+
+    private fun handleTouch(event: MotionEvent): Boolean {
+        val fraction = (event.x / track.width).coerceIn(0f, 1f)
+        val seekTimeMs = (videoDurationMs * fraction).toLong()
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                isScrubbing = true
+                thumbnailPreview.visibility = View.VISIBLE
+                timeLabel.visibility = View.VISIBLE
+            }
+            MotionEvent.ACTION_MOVE -> {
+                playedProgress.layoutParams.width = (track.width * fraction).toInt()
+                playedProgress.requestLayout()
+
+                player.seekThumbnail(seekTimeMs)?.let { thumbnailPreview.setImageBitmap(it) }
+
+                val totalSeconds = seekTimeMs / 1000
+                timeLabel.text = String.format("%d:%02d", totalSeconds / 60, totalSeconds % 60)
+                thumbnailPreview.x = track.width * fraction - thumbnailPreview.width / 2
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isScrubbing = false
+                thumbnailPreview.visibility = View.GONE
+                timeLabel.visibility = View.GONE
+                player.seekAndPlay(seekTimeMs / 1000.0)  // seekAndPlay takes seconds
+            }
+        }
+        return true
+    }
+}
+```
+
+Register the overlay in your feed config:
+
+```kotlin
+val config = FeedConfig(
+    videoOverlay = VideoOverlayMode.Custom { ScrubberOverlay(context) },
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Overlay builders receive `(context, item, state)` and rebuild whenever `state` changes — `state.time` carries `current`, `duration`, and `buffered` in seconds. Track scrub state in a `StatefulWidget` so the bar follows the drag instead of playback, and send commands through `ShortKitOverlayCommands.of(context)`.
+
+```dart title="scrubber_overlay.dart"
+class ScrubberOverlay extends StatefulWidget {
+  const ScrubberOverlay({super.key, required this.item, required this.state});
+
+  final ContentItem item;
+  final OverlayState state;
+
+  @override
+  State<ScrubberOverlay> createState() => _ScrubberOverlayState();
+}
+
+class _ScrubberOverlayState extends State<ScrubberOverlay> {
+  bool _isScrubbing = false;
+  double _scrubFraction = 0.0;
+
+  double _clampFraction(double dx) {
+    final width = MediaQuery.of(context).size.width;
+    return (dx / width).clamp(0.0, 1.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final commands = ShortKitOverlayCommands.of(context);
+    final time = widget.state.time;
+
+    // Scrubbing → gesture position; otherwise → playback position.
+    final progress = _isScrubbing
+        ? _scrubFraction
+        : (time.duration > 0 ? time.current / time.duration : 0.0);
+    final buffered = time.duration > 0 ? time.buffered / time.duration : 0.0;
+
+    return Stack(
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 44,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              setState(() {
+                _isScrubbing = true;
+                _scrubFraction = _clampFraction(details.localPosition.dx);
+              });
+            },
+            onHorizontalDragUpdate: (details) {
+              setState(() {
+                _scrubFraction = _clampFraction(details.localPosition.dx);
+              });
+            },
+            onHorizontalDragEnd: (details) {
+              commands.seekAndPlay(_scrubFraction * time.duration);
+              setState(() => _isScrubbing = false);
+            },
+            child: SizedBox(
+              height: _isScrubbing ? 10 : 3,
+              child: Stack(
+                children: [
+                  Container(color: Colors.white24),
+                  FractionallySizedBox(
+                    widthFactor: buffered,
+                    child: Container(color: Colors.white30),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: progress,
+                    child: Container(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+```
+
+For thumbnail previews, fetch storyboard data once per item and render the tile that matches the scrub position:
+
+```dart
+// In initState or on first scrub:
+commands.prefetchStoryboard(widget.item.playbackId!);
+final storyboard = await commands.getStoryboardData(widget.item.playbackId!);
+
+// During a drag: find the last tile with start <= seek time, then render
+// storyboard.url as a sprite sheet offset by -tile.x / -tile.y, sized from
+// storyboard.tileWidth / tileHeight.
+```
+
+Register the builder in your overlay entry point, then reference it by name in the feed config:
+
+```dart
+ShortKitOverlayEngine.initialize(overlays: {
+  'scrubber': (context, item, state) => ScrubberOverlay(item: item, state: state),
+});
+
+// FeedConfig:
+FeedConfig(overlay: OverlayConfigCustom('scrubber'))
+```
+
+</Tab>
+<Tab value="React Native">
+
+Overlay components run in isolated React surfaces — they receive `OverlayProps` (`item`, `isActive`, `time`, `playerState`, ...) and cannot use the `useShortKitPlayer()` hook. Send commands through `ShortKitCommands` instead. Use `PanResponder` with `onPanResponderTerminationRequest: () => false` so the feed's pan recognizer can't steal the gesture mid-drag.
+
+```tsx title="ScrubberOverlay.tsx"
+import { useMemo, useRef, useState } from "react";
+import { PanResponder, Text, View, StyleSheet } from "react-native";
+import { ShortKitCommands, type OverlayProps } from "@shortkitsdk/react-native";
+
+export function ScrubberOverlay({ item, isActive, time }: OverlayProps) {
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubFraction, setScrubFraction] = useState(0);
+
+  // Track geometry — measured in window coordinates so the responder
+  // can convert pageX into a fraction.
+  const trackRef = useRef<View>(null);
+  const trackWidthRef = useRef(1);
+  const trackPageXRef = useRef(0);
+
+  // Stable ref so the responder closure always reads the latest duration.
+  const durationRef = useRef(time.duration);
+  durationRef.current = time.duration;
+
+  // Scrubbing → gesture position; otherwise → playback position.
+  const progress = isScrubbing
+    ? scrubFraction
+    : isActive && time.duration > 0
+      ? time.current / time.duration
+      : 0;
+  const buffered = time.duration > 0 ? time.buffered / time.duration : 0;
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        // Don't let the feed scroll steal the gesture once scrubbing starts.
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: (evt) => {
+          setIsScrubbing(true);
+          const localX = evt.nativeEvent.pageX - trackPageXRef.current;
+          setScrubFraction(Math.max(0, Math.min(1, localX / trackWidthRef.current)));
+        },
+        onPanResponderMove: (evt) => {
+          const localX = evt.nativeEvent.pageX - trackPageXRef.current;
+          setScrubFraction(Math.max(0, Math.min(1, localX / trackWidthRef.current)));
+          // Don't seek during the drag — only the visuals follow the finger.
+        },
+        onPanResponderRelease: (evt) => {
+          const localX = evt.nativeEvent.pageX - trackPageXRef.current;
+          const fraction = Math.max(0, Math.min(1, localX / trackWidthRef.current));
+          if (durationRef.current > 0) {
+            ShortKitCommands.seekAndPlay(fraction * durationRef.current);
+          }
+          setIsScrubbing(false);
+        },
+      }),
+    []
+  );
+
+  const seekTime = scrubFraction * time.duration;
+  const minutes = Math.floor(seekTime / 60);
+  const seconds = Math.floor(seekTime % 60);
+
+  return (
+    <View style={styles.overlay} pointerEvents="box-none">
+      {isScrubbing && (
+        <View style={[styles.preview, { left: `${scrubFraction * 100}%` }]}>
+          <Text style={styles.time}>{`${minutes}:${String(seconds).padStart(2, "0")}`}</Text>
+        </View>
+      )}
+      <View
+        ref={trackRef}
+        style={[styles.track, isScrubbing && styles.trackExpanded]}
+        onLayout={() => {
+          trackRef.current?.measureInWindow((x, _y, width) => {
+            trackPageXRef.current = x;
+            trackWidthRef.current = width;
+          });
+        }}
+        {...panResponder.panHandlers}
+      >
+        <View style={[styles.buffered, { width: `${buffered * 100}%` }]} />
+        <View style={[styles.played, { width: `${progress * 100}%` }]} />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-end" },
+  track: { height: 3, backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 44 },
+  trackExpanded: { height: 10 },
+  played: { height: "100%", backgroundColor: "#fff", position: "absolute" },
+  buffered: { height: "100%", backgroundColor: "rgba(255,255,255,0.3)", position: "absolute" },
+  preview: { position: "absolute", bottom: 60, alignItems: "center", marginLeft: -30 },
+  time: { color: "#fff", fontSize: 12, fontVariant: ["tabular-nums"] },
+});
+```
+
+For thumbnail previews, fetch storyboard data once per item and render the matching sprite tile during a drag:
+
+```tsx
+const json = await ShortKitCommands.getStoryboardData(item.playbackId);
+const storyboard = typeof json === "string" ? JSON.parse(json) : json;
+// storyboard: { url, tileWidth, tileHeight, imageWidth, imageHeight, tiles }
+// Find the last tile with tile.start <= seekTime, then render <Image
+// source={{uri: storyboard.url}}> inside a clipping View, offset by
+// -tile.x / -tile.y and scaled from tileWidth/tileHeight.
+```
+
+Register the component in the feed config on `<ShortKitFeed>`:
+
+```tsx
+<ShortKitFeed
+  config={{
+    overlay: { type: "custom", name: "scrubber", component: ScrubberOverlay },
+  }}
+/>
+```
+
+</Tab>
+<Tab value="Web">
+
+The overlay callback receives the cell's overlay container plus a scoped `player`. Subscribe to `timeUpdate` for progress, and use pointer events with pointer capture for the drag. `player.seekThumbnail(time)` returns CSS background properties (`backgroundImage`, `backgroundPosition`, `backgroundSize`) pre-scaled for an 80px-wide preview element, or `null` if no storyboard is available yet.
+
+```js title="scrubber.js"
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+sk.createFeed(document.getElementById('feed'), {
+  config: {
+    overlay: (container, { item, player }) => {
+      let isScrubbing = false;
+      let duration = 0;
+
+      // Build scrubber UI
+      const track = document.createElement('div');
+      track.style.cssText =
+        'position:absolute;bottom:0;left:0;right:0;height:16px;cursor:pointer;touch-action:none;';
+      const bar = document.createElement('div');
+      bar.style.cssText =
+        'position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.2);';
+      const buffered = document.createElement('div');
+      buffered.style.cssText = 'height:100%;background:rgba(255,255,255,0.3);width:0%;';
+      const played = document.createElement('div');
+      played.style.cssText =
+        'position:absolute;bottom:0;left:0;height:100%;background:#fff;width:0%;';
+      bar.appendChild(buffered);
+      bar.appendChild(played);
+      track.appendChild(bar);
+
+      const preview = document.createElement('div');
+      preview.style.cssText =
+        'position:absolute;bottom:24px;width:80px;height:142px;display:none;' +
+        'border-radius:4px;overflow:hidden;background-repeat:no-repeat;';
+      const timeLabel = document.createElement('div');
+      timeLabel.style.cssText =
+        'position:absolute;bottom:4px;width:100%;text-align:center;color:#fff;font-size:12px;';
+      preview.appendChild(timeLabel);
+
+      container.appendChild(preview);
+      container.appendChild(track);
+
+      // Progress from playback — skip while the user is dragging.
+      player.on('timeUpdate', ({ current, duration: d, buffered: buf }) => {
+        duration = d;
+        if (isScrubbing || d <= 0) return;
+        played.style.width = `${(current / d) * 100}%`;
+        buffered.style.width = `${(buf / d) * 100}%`;
+      });
+
+      const fractionFrom = (e) => {
+        const rect = track.getBoundingClientRect();
+        return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      };
+
+      const updateScrub = (e) => {
+        const fraction = fractionFrom(e);
+        played.style.width = `${fraction * 100}%`;
+
+        const seekTime = fraction * duration;
+        const thumb = player.seekThumbnail(seekTime);
+        if (thumb) Object.assign(preview.style, thumb);
+        preview.style.left = `calc(${fraction * 100}% - 40px)`;
+
+        const m = Math.floor(seekTime / 60);
+        const s = String(Math.floor(seekTime % 60)).padStart(2, '0');
+        timeLabel.textContent = `${m}:${s}`;
+        return seekTime;
+      };
+
+      track.addEventListener('pointerdown', (e) => {
+        isScrubbing = true;
+        track.setPointerCapture(e.pointerId);
+        preview.style.display = 'block';
+        updateScrub(e);
+      });
+      track.addEventListener('pointermove', (e) => {
+        if (isScrubbing) updateScrub(e);
+      });
+      track.addEventListener('pointerup', (e) => {
+        if (!isScrubbing) return;
+        isScrubbing = false;
+        preview.style.display = 'none';
+        const seekTime = updateScrub(e);
+        player.seek(seekTime);
+        player.play();
+      });
+    },
+  },
+});
+```
+
+</Tab>
+</Tabs>
+
+## Seek thumbnail APIs
+
+Each platform exposes storyboard frames differently:
+
+| Platform | API | Returns |
+|---|---|---|
+| iOS | `player.seekThumbnail(at:)` (seconds) | `UIImage?` |
+| Android | `player.seekThumbnail(atMs:)` (milliseconds) | `Bitmap?` |
+| Flutter | `commands.prefetchStoryboard(playbackId)` + `commands.getStoryboardData(playbackId)` | `StoryboardData?` sprite sheet (`url`, `tileWidth`, `tileHeight`, `tiles` with `start`/`x`/`y`) |
+| React Native | `ShortKitCommands.prefetchStoryboard(playbackId)` + `ShortKitCommands.getStoryboardData(playbackId)` | Storyboard sprite-sheet data (same shape as Flutter) |
+| Web | `player.seekThumbnail(time)` (seconds) | CSS background properties for an 80px-wide preview, or `null` |
+
+Thumbnails resolve from cached storyboard data, so the first drag on a freshly loaded item may return `null` for a moment. Treat a `null` result as "skip this frame" — the scrubber works without thumbnails.
+
+## Avoiding snap-back after seek
+
+Seeks are asynchronous. If you flip `isScrubbing` back to `false` the instant the finger lifts, the progress bar snaps to the stale pre-seek position for a few frames until the player catches up, then jumps to the target.
+
+To avoid this, hold the bar at the seek target after release:
+
+1. On release, store the target fraction and keep rendering from it.
+2. Watch the player state: when it leaves `seeking`, the seek has landed — resume rendering from the time stream.
+3. Add a short fallback timeout (~500ms) in case the seek completes before the state change is observed.
+
+On platforms where the overlay receives `playerState` (Flutter's `OverlayState`, React Native's `OverlayProps`), compare against the `seeking` state directly. On iOS and Android, subscribe to the player's state stream alongside the time stream.
+
+## Next steps
+
+<Cards>
+  <Card title="Custom overlays" href="/docs/guides/customize/overlays" description="Overlay lifecycle, registration, and the full protocol on each platform." />
+  <Card title="Recipe: closed captions" href="/docs/guides/customize/recipes-captions" description="Render and reposition caption cues with the active-cue stream." />
+  <Card title="Player reference" href="/docs/guides/reference/player" description="Every player stream, command, and synchronous accessor." />
+</Cards>

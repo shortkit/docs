@@ -1,10 +1,70 @@
 ---
 title: "Platform support"
-description: "Feature x platform parity matrix with Since X / Unreleased badges, current SDK versions, and standardized tab-label conventions. The single place parity status lives outside tabs."
+description: "Feature availability across the iOS, Android, Flutter, React Native, and Web SDKs, current SDK versions, and the conventions the docs use to mark platform and version availability."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
-</Callout>
+ShortKit ships five client SDKs. Platform parity is the product goal: every SDK converges on the same feature surface, and the docs describe each feature once with platform tabs for syntax. This page is the single place where availability status lives outside those tabs — use it to check what's shipped on your platform before you start integrating.
 
-Feature x platform parity matrix with Since X / Unreleased badges, current SDK versions, and standardized tab-label conventions. The single place parity status lives outside tabs.
+## Current SDK versions
+
+| Platform | Version | Package |
+|---|---|---|
+| iOS | 0.2.55 | Swift Package Manager (`ShortKit`) |
+| Android | 0.2.55 | Maven Central (`dev.shortkit:shortkit`) |
+| Flutter | 0.2.22 | pub.dev (`shortkit_flutter`) |
+| React Native | 0.2.55 | npm (`@shortkitsdk/react-native`) |
+| Web | 0.5.0 | npm / CDN (`@shortkitsdk/web`) |
+
+The Web SDK is versioned independently of the native SDKs. See the per-platform setup pages for install instructions: [iOS](/docs/guides/setup/ios), [Android](/docs/guides/setup/android), [Flutter](/docs/guides/setup/flutter), [React Native](/docs/guides/setup/react-native), [Web](/docs/guides/setup/web).
+
+## Feature availability
+
+✓ = shipped &nbsp;&nbsp; — = not yet supported
+
+| Feature | iOS | Android | Flutter | React Native | Web |
+|---|:---:|:---:|:---:|:---:|:---:|
+| [Feed](/docs/guides/display/feed) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [Player](/docs/guides/display/player) | ✓ | — | ✓ | ✓ | ✓ |
+| [Widgets](/docs/guides/display/widgets) | ✓ | — | ✓ | ✓ | ✓ |
+| [Video overlays](/docs/guides/customize/overlays) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [Item overlays](/docs/guides/customize/item-overlays) | ✓ | ✓ | ✓ | ✓ | — |
+| [Carousel control](/docs/guides/customize/carousel-control) | ✓ | ✓ | — | ✓ | — |
+| [Live viewing](/docs/guides/customize/live) | ✓ | — | — | — | ✓ |
+| [Live broadcast](/docs/guides/content/live-streams) | API | API | API | API | API |
+| [Downloads](/docs/guides/content/downloads) | ✓ | — | — | ✓ | — |
+| [Ads](/docs/guides/monetization/ads) | ✓ | ✓ | — | — | — |
+| [Surveys](/docs/guides/customize/item-overlays) | ✓ | ✓ | — | — | — |
+
+Notes on specific rows:
+
+- **Player and widgets on Android** — the standalone `ShortKitPlayer` and widget components have not shipped on Android. The feed embed (`ShortKitFeedFragment`) is the only display surface today.
+- **Item overlays** — custom overlays for image carousels and video carousels. The Web SDK does not yet render carousel items in the feed, so it has no item-overlay surface.
+- **Carousel control** — the programmatic carousel API (active index, next/previous, completion events). Flutter renders carousels and supports carousel overlays but does not expose the carousel controller.
+- **Live viewing** — the in-feed live surface (live badge, viewer count, live-room behavior) ships on iOS and Web only.
+- **Live broadcast** — broadcasting is server-side on every platform: you [create a live stream](/docs/api/live-streams/create-live-stream) through the REST API and push to its RTMP ingest URL from encoder software. No SDK exposes a client-side broadcast surface.
+- **Downloads** — on-device video downloads with progress callbacks ship on iOS and React Native. The REST API also exposes [download URLs](/docs/api/content/get-download-url) for server-side use on any platform.
+- **Surveys** — the built-in survey overlay surface ships on iOS and Android. Surveys themselves are created and managed through the [REST API](/docs/api/surveys/create-survey) regardless of platform.
+
+## How the docs mark availability
+
+### The "Not yet supported" tab convention
+
+Feature pages describe each feature once, in platform-agnostic prose, with a tab per platform for code. Every page uses the same five tab labels in the same order: **iOS, Android, Flutter, React Native, Web**.
+
+A platform tab contains one of exactly two things:
+
+1. Real, shipped API for that platform.
+2. A single line: *Not yet supported on \{platform\}.* — usually with a link back to this page.
+
+A tab never shows speculative or analogized code for a platform that lacks the feature. If you see working code in a tab, it reflects the shipped SDK at the versions listed above.
+
+Where a feature is exclusive to a subset of platforms (for example, live viewing on iOS and Web), the page says so once in a callout and tabs only the supported platforms.
+
+### Version annotations
+
+- **Since X** — the API was added in SDK version X. Integrations pinned below X won't have it.
+- **Unreleased** — the API is merged but not yet published to the package registry. Don't build against it until the version that includes it ships.
+
+<Callout type="info" title="Flutter 0.3.0 is pending">
+A batch of Flutter features is merged but not yet published to pub.dev (latest published: 0.2.22). This includes pull-to-refresh, `scrollToItem`, the `active` prop, and array-valued `FeedFilter` metadata with OR semantics — the last of which already ships on iOS, Android, React Native, Web, and the REST API. These appear in the docs marked **Unreleased** until 0.3.0 ships.
+</Callout>

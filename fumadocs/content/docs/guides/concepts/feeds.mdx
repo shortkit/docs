@@ -1,10 +1,130 @@
 ---
 title: "Feeds"
-description: "Ranked vs custom feeds, publish lifecycle, fallback URLs, deep-link seeding, corrected FeedFilter semantics. Platform-agnostic prose; SDK code lives in Display pages."
+description: "How ShortKit feeds work: ranked vs custom feeds, the publish lifecycle, fallback URLs, deep-link seeding, and FeedFilter semantics."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+A feed is the ordered stream of items — videos, live streams, carousels, surveys, and ad slots — that a ShortKit feed component renders. This page explains the concepts that apply on every platform: where feed content comes from, what makes an item eligible to appear, and how filtering works. For platform code, see [Embedding a feed](/docs/guides/display/feed), [Custom feeds](/docs/guides/display/custom-feeds), and the [FeedConfig & FeedFilter reference](/docs/guides/reference/feed-config).
+
+For the item types a feed can contain and their data models, see [Content model](/docs/guides/concepts/content-model).
+
+## Ranked vs custom feeds
+
+Every feed runs in one of two modes, selected by the `feedSource` setting on `FeedConfig`:
+
+| | Ranked (default) | Custom |
+|---|---|---|
+| `feedSource` | `algorithmic` | `custom` |
+| Who decides the order | ShortKit's recommendation engine | Your app |
+| Content source | Your published content library, fetched from the feed API | `FeedInput` items you construct from playback IDs |
+| Pagination | Automatic — the SDK fetches more as the user scrolls | You append items when you want more |
+| Filtering | `FeedFilter`, applied server-side on every request | Not applicable — you control the list |
+| Publish lifecycle | Enforced — only eligible content is served | Bypassed — the feed renders exactly what you pass |
+| Fallback URLs | Not applicable | Supported per item |
+
+**Ranked feeds** are the default. The SDK requests an ordered, personalized page of items from ShortKit, renders it, and paginates automatically as the user scrolls. Ranking improves as viewers interact — watch time, skips, likes, and shares all feed back into the engine. You don't manage the item list; you control *what's eligible* through the publish lifecycle and `FeedFilter`.
+
+**Custom feeds** invert the contract: your app assembles the item list itself by passing `FeedInput` values that reference playback IDs. Use this when your backend already decides ordering — search results, a creator's profile grid, editorially curated rails — and you want ShortKit's player, overlays, and analytics on top. See [Custom feeds](/docs/guides/display/custom-feeds) for the `FeedInput` shapes and the set/append APIs on each platform.
+
+The two modes aren't permanently exclusive: a feed can switch sources at runtime (for example, ranked by default, custom after a search). See [Feed control](/docs/guides/display/feed-control).
+
+## Publish lifecycle
+
+Ranked feeds only serve content that is eligible. Eligibility is governed by two independent fields on each content item:
+
+- **`uploadStatus`** — whether the media is processed and playable (`ready`).
+- **`publishStatus`** — whether the item is visible in the feed (`published` or `unpublished`).
+
+An item appears in a ranked feed when **all** of these are true:
+
+1. `uploadStatus` is `ready`
+2. `publishStatus` is `published`
+3. `publishAt` is `null` or in the past
+4. `expiresAt` is `null` or in the future
+
+### Auto-publish
+
+By default, organizations have auto-publish enabled: content flips to `published` automatically the moment processing completes, so uploads appear in the feed with no extra API call. If you disable auto-publish in organization settings, new content starts `unpublished` and you publish it explicitly with [Update content](/docs/api/content/update-content):
+
+```bash
+curl -X PATCH https://api.shortkit.dev/v1/content/{id} \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"publishStatus": "published"}'
+```
+
+Unpublishing works the same way in reverse — set `publishStatus` to `"unpublished"` and the item disappears from feeds on the next request. Deleting an item archives it and removes it from the feed immediately.
+
+### Live streams
+
+Live streams ride the same lifecycle with two automatic transitions:
+
+- When the broadcaster goes live, the stream is published automatically — it appears in the feed with no separate publish step.
+- When the broadcast ends, the item is unpublished automatically, so viewers never land on a dead live stream.
+
+After the recording finishes processing, the same content item holds the recorded video instead of the live stream. Republish it (`publishStatus: "published"`) to put the recording into the feed as on-demand content. See [Live streams](/docs/guides/content/live-streams).
+
+<Callout type="info" title="Scheduling">
+Use `publishAt` to hold published content until an embargo lifts, and `expiresAt` to pull time-sensitive content automatically. Both are timestamps on the content item — no cron jobs needed on your side.
 </Callout>
 
-Ranked vs custom feeds, publish lifecycle, fallback URLs, deep-link seeding, corrected FeedFilter semantics. Platform-agnostic prose; SDK code lives in Display pages.
+## Fallback URLs
+
+In custom feed mode, each `FeedInput` video can carry an optional `fallbackUrl` — a static MP4 the SDK plays if the primary stream fails. This is designed for library migrations: keep your existing hosted MP4 URLs as a safety net while you transition playback to ShortKit.
+
+The SDK activates a fallback automatically in three scenarios:
+
+1. **Player error** — the stream fails during playback; the SDK switches to the fallback MP4 and resumes from the same position.
+2. **Proactive next-slot detection** — the SDK pre-checks the next item in the feed; if its stream fails before the user swipes, the fallback is swapped in so the transition is seamless.
+3. **Missing primary URL** — if the item's streaming URL is empty or invalid, the fallback is used immediately.
+
+Each activation is tracked as a `playbackFallback` engagement event with a `reason` of `player_failed`, `proactive_next_slot`, or `no_primary_url`, so you can monitor how often fallbacks fire.
+
+<Callout type="warn" title="Custom feeds only">
+Fallback URLs apply only to items you construct yourself in custom feed mode. Ranked feed items are served with ShortKit streaming URLs and don't accept a fallback.
+</Callout>
+
+## Deep-link seeding
+
+When a user arrives from a push notification, a shared URL, or a tap on a [widget](/docs/guides/display/widgets), you usually want the feed to open *on that item* — instantly — rather than at the top of the ranked feed.
+
+ShortKit supports this with two cooperating mechanisms:
+
+- **Start-at item** — the feed component accepts a starting item ID. The feed opens with that item in the first slot instead of the rank-one item.
+- **Seed item and thumbnail** — for custom and mixed flows, you can seed the feed with the linked item (and optionally a pre-fetched thumbnail image) so the first frame paints immediately while the rest of the feed loads behind it. Subsequent swipes continue into ranked or custom content as configured.
+
+The exact APIs vary by platform; see [Feed control](/docs/guides/display/feed-control) for the seeding and scroll-to-item calls, and [Custom feeds](/docs/guides/display/custom-feeds) for seeding item lists.
+
+## Filtering with FeedFilter
+
+`FeedFilter` narrows which content a ranked feed serves. Set it on `FeedConfig` and the SDK applies it server-side on every request — initial load, pagination, and pull-to-refresh. When unset, the full ranked feed is returned.
+
+| Field | Type | Matching |
+|---|---|---|
+| `tags` | `[String]` | OR — content matching **any** listed tag is included |
+| `section` | `String` | Exact match |
+| `author` | `String` | Exact match |
+| `contentType` | `String` | One of `"video"`, `"carousel"`, `"video_carousel"` |
+| `metadata` | `Map<String, [String]>` | OR within a key, AND across keys |
+
+The combination rules:
+
+- **Across fields: AND.** Content must satisfy every field you set. `tags: ["politics"], author: "Jane Doe"` returns politics content by Jane Doe only.
+- **Within `tags`: OR.** `tags: ["sports", "news"]` returns content tagged sports *or* news.
+- **Within `metadata`: OR per key, AND across keys.** Each metadata key maps to a *list* of acceptable values. `metadata: {"language": ["es", "pt"], "region": ["latam"]}` returns content whose `language` is Spanish *or* Portuguese, *and* whose `region` is `latam`.
+
+<Callout type="info" title="Metadata values are lists">
+`FeedFilter.metadata` is `Map<String, [String]>` — each key takes a list of values with OR semantics, not a single string. On Flutter, the multi-value shape ships in an upcoming release; the currently published package accepts one value per key.
+</Callout>
+
+Filters only apply to ranked feeds. In custom mode you already control the item list, so the filter is ignored. Filters can also be changed at runtime without rebuilding the feed — see [Feed control](/docs/guides/display/feed-control).
+
+For full type signatures, defaults, and per-platform code, see the [FeedConfig & FeedFilter reference](/docs/guides/reference/feed-config).
+
+## Next steps
+
+<Cards>
+  <Card title="Embedding a feed" href="/docs/guides/display/feed" description="Drop the feed component into your app on any platform." />
+  <Card title="Custom feeds" href="/docs/guides/display/custom-feeds" description="Build the item list yourself with FeedInput." />
+  <Card title="Feed control" href="/docs/guides/display/feed-control" description="Scroll, refresh, filter, and seed the feed programmatically." />
+  <Card title="FeedConfig & FeedFilter reference" href="/docs/guides/reference/feed-config" description="Every configuration field, per platform." />
+</Cards>

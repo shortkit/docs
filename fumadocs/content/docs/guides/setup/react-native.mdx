@@ -1,10 +1,158 @@
 ---
-title: "React Native"
-description: "Short page: npm/Expo install, corrected ShortKitProvider usage (config belongs on <ShortKitFeed>), first render."
+title: "Install & initialize (React Native)"
+description: "Install the ShortKit React Native SDK with npm or Expo, wrap your app in ShortKitProvider, and render your first feed."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+Install the package, wrap your app in `<ShortKitProvider>` with your publishable key, and render a `<ShortKitFeed>`. That's the whole setup.
+
+## Requirements
+
+| Requirement | Minimum |
+|---|---|
+| React Native | 0.76+ |
+| iOS | 16.0+ |
+| Android | API 24 (Android 7.0)+ |
+| Expo (if used) | SDK 52+ |
+
+The SDK ships as a single npm package, `@shortkitsdk/react-native`, with the native iOS and Android SDKs bundled — no separate native installs.
+
+## Install with React Native CLI
+
+Install the package with your preferred package manager:
+
+```bash title="npm"
+npm install @shortkitsdk/react-native
+```
+
+```bash title="yarn"
+yarn add @shortkitsdk/react-native
+```
+
+The current version is `0.2.55`.
+
+Then install the iOS native dependencies:
+
+```bash
+cd ios && pod install
+```
+
+Make sure `ios/Podfile` has `platform :ios, '16.0'` and your Android `minSdkVersion` is 24 or higher.
+
+## Install with Expo
+
+Install the package using the Expo CLI:
+
+```bash
+npx expo install @shortkitsdk/react-native
+```
+
+Add `@shortkitsdk/react-native` to the `plugins` array in your `app.json` (or `app.config.js`):
+
+```json title="app.json"
+{
+  "expo": {
+    "plugins": [
+      "@shortkitsdk/react-native"
+    ]
+  }
+}
+```
+
+The plugin automatically sets the iOS deployment target to 16.0 and the Android `minSdkVersion` to 24.
+
+After adding the plugin, regenerate the native projects and run:
+
+```bash
+npx expo prebuild --clean
+npx expo run:ios     # or: npx expo run:android
+```
+
+<Callout type="warn" title="Expo Go is not supported">
+The SDK includes native modules, so it cannot run inside Expo Go. Use a development build (`npx expo run:ios` / `npx expo run:android`) or [EAS Build](https://docs.expo.dev/build/introduction/), where the config plugin runs automatically during the cloud build — no local `prebuild` needed.
 </Callout>
 
-Short page: npm/Expo install, corrected ShortKitProvider usage (config belongs on `<ShortKitFeed>`), first render.
+## Initialize
+
+Wrap your app (or the screen tree that hosts feeds) in a single `<ShortKitProvider>` with your publishable key:
+
+```tsx title="App.tsx"
+import { ShortKitProvider } from '@shortkitsdk/react-native';
+
+export default function App() {
+  return (
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      {/* your app */}
+    </ShortKitProvider>
+  );
+}
+```
+
+The provider takes the API key and SDK-level options such as `userId` for identifying logged-in users. It does **not** take a `config` prop — feed configuration belongs on each `<ShortKitFeed>`, so one provider can power multiple feed surfaces with different configs.
+
+<Callout type="info">
+Get your publishable key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development. Never embed a secret key in client code.
+</Callout>
+
+## Render your first feed
+
+```tsx title="FeedScreen.tsx"
+import React from 'react';
+import { ShortKitFeed } from '@shortkitsdk/react-native';
+
+export default function FeedScreen() {
+  return <ShortKitFeed style={{ flex: 1 }} />;
+}
+```
+
+`<ShortKitFeed>` must render inside the provider. It uses a default feed configuration unless you pass one with the `config` prop:
+
+```tsx title="FeedScreen.tsx"
+<ShortKitFeed
+  style={{ flex: 1 }}
+  config={{ muteOnStart: true }}
+/>
+```
+
+Run your app. You should see a full-screen, vertically-scrolling video feed. New accounts come seeded with demo content, so the feed works before you upload anything.
+
+<Callout type="info" title="Using tab navigation?">
+If the feed lives in a tab or pager, pass `active={useIsFocused()}` (from React Navigation) to `<ShortKitFeed>` so playback suspends when the tab loses focus. See [Display a feed](/docs/guides/display/feed).
+</Callout>
+
+## Troubleshooting
+
+<Accordions type="single">
+  <Accordion title="Native module not found or app crashes on launch">
+    The native module was not linked into the binary.
+
+    1. Re-run `cd ios && pod install` after installing the package
+    2. Rebuild the app from scratch — Metro hot reload cannot load new native modules
+    3. On Expo, confirm the config plugin is in `app.json` and re-run `npx expo prebuild --clean`
+    4. Confirm you are running a development build, not Expo Go
+  </Accordion>
+  <Accordion title="iOS build fails on deployment target">
+    ShortKit requires iOS 16.0 or later.
+
+    1. Set `platform :ios, '16.0'` in `ios/Podfile`
+    2. Run `cd ios && pod install` again
+    3. In Xcode, set **Minimum Deployments** to iOS 16.0 on the app target
+  </Accordion>
+  <Accordion title="Android build fails on minSdkVersion">
+    ShortKit requires Android API 24 (Android 7.0) or later. Set `minSdkVersion = 24` in `android/build.gradle` and rebuild. On Expo, the config plugin handles this — re-run `npx expo prebuild --clean` if the value did not apply.
+  </Accordion>
+  <Accordion title="Feed loads but shows no content">
+    The SDK initialized, but the feed is empty.
+
+    1. Confirm at least one video exists in your account under **Content** in the [Admin Portal](https://portal.shortkit.dev)
+    2. Verify the video status is **Ready** — processing takes 1-2 minutes after upload
+    3. Check the API key matches the environment your content lives in (`pk_live_...` vs `pk_test_...`)
+    4. A 401 error means the key is invalid — double-check the full key string and confirm it has not been revoked
+  </Accordion>
+</Accordions>
+
+## Next steps
+
+- [Quickstart](/docs/guides/quickstart) — get your API key and upload your first video
+- [Display a feed](/docs/guides/display/feed) — configure feed behavior, feed sources, and multi-feed setups

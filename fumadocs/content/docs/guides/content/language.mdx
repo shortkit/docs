@@ -1,10 +1,169 @@
 ---
 title: "Language detection"
-description: "BCP 47 customMetadata.language, und handling, canonical filter-by-language examples; sdk/configuration duplicate deleted."
+description: "ShortKit automatically detects the spoken language of every video and stores it as customMetadata.language, so you can serve language-specific feeds without any extra work on upload."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Every video uploaded to ShortKit is analyzed for spoken language automatically. The result is stored as `customMetadata.language` on the content item using a [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) language code. No configuration is required.
+
+## How it works
+
+1. You upload a video — no special parameters needed.
+2. Once the video reaches `ready` status, language detection runs in the background.
+3. Within a few minutes, `customMetadata.language` is set on the content item.
+
+<Callout type="info" title="Detection is asynchronous">
+Language detection runs after the video reaches `ready` status. The `language` key will not be present immediately when `uploadStatus` first transitions to `ready` — expect it within a few minutes.
 </Callout>
 
-BCP 47 customMetadata.language, und handling, canonical filter-by-language examples; sdk/configuration duplicate deleted.
+## The `language` field
+
+`customMetadata.language` contains a [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) language code (e.g. `"en"`, `"es"`, `"ja"`). It appears on the content object alongside any other custom metadata you set at upload time:
+
+```json
+{
+  "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "contentType": "video",
+  "title": "Morning Headlines",
+  "uploadStatus": "ready",
+  "customMetadata": {
+    "language": "en",
+    "articleUrl": "https://example.com/morning-headlines"
+  }
+}
+```
+
+`"und"` is returned when no spoken language is detected — for example, music-only or ambient audio content.
+
+## Language codes
+
+Detection covers a broad range of languages. The table below lists the most commonly returned codes, but others may appear as valid [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) codes.
+
+| Code | Language |
+|------|----------|
+| `ar` | Arabic |
+| `zh` | Chinese |
+| `nl` | Dutch |
+| `en` | English |
+| `fr` | French |
+| `de` | German |
+| `hi` | Hindi |
+| `id` | Indonesian |
+| `it` | Italian |
+| `ja` | Japanese |
+| `ko` | Korean |
+| `pl` | Polish |
+| `pt` | Portuguese |
+| `ru` | Russian |
+| `es` | Spanish |
+| `sv` | Swedish |
+| `tr` | Turkish |
+| `uk` | Ukrainian |
+| `und` | Undetermined (no detectable speech) |
+
+## Filtering the feed by language
+
+Use the `metadata` field on `FeedFilter` to serve a feed that contains only content in a specific language. Each metadata key maps to a list of accepted values, with OR semantics within a key — pass `["es", "pt"]` to match Spanish or Portuguese content. The SDK applies the filter server-side on every request — initial load, pagination, and pull-to-refresh.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+let config = FeedConfig(
+    filter: FeedFilter(metadata: ["language": ["es"]])
+)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+val config = FeedConfig(
+    filter = FeedFilter(metadata = mapOf("language" to listOf("es")))
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+final config = FeedConfig(
+  filter: FeedFilter(metadata: {'language': ['es']}),
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+Pass the config on `<ShortKitFeed>`, not the provider:
+
+```tsx
+<ShortKitFeed
+  config={{ filter: { metadata: { language: ['es'] } } }}
+  style={{ flex: 1 }}
+/>
+```
+
+</Tab>
+<Tab value="Web">
+
+```js
+sk.createFeed(el, {
+  config: { filter: { metadata: { language: ['es'] } } },
+});
+```
+
+</Tab>
+</Tabs>
+
+You can combine a language filter with other filters. For example, to show only Spanish-language sports content:
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+let config = FeedConfig(
+    filter: FeedFilter(tags: ["sports"], metadata: ["language": ["es"]])
+)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+val config = FeedConfig(
+    filter = FeedFilter(tags = listOf("sports"), metadata = mapOf("language" to listOf("es")))
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+final config = FeedConfig(
+  filter: FeedFilter(tags: ['sports'], metadata: {'language': ['es']}),
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```tsx
+<ShortKitFeed
+  config={{ filter: { tags: ['sports'], metadata: { language: ['es'] } } }}
+  style={{ flex: 1 }}
+/>
+```
+
+</Tab>
+<Tab value="Web">
+
+```js
+sk.createFeed(el, {
+  config: { filter: { tags: ['sports'], metadata: { language: ['es'] } } },
+});
+```
+
+</Tab>
+</Tabs>
+
+See the [FeedConfig reference](/docs/guides/reference/feed-config) for the full `FeedFilter` shape and combining rules, and [Captions & metadata](/docs/guides/content/captions-and-metadata) for working with custom metadata more broadly.

@@ -1,10 +1,264 @@
 ---
 title: "Carousels"
-description: "Create image/video carousels, upload images, reorder."
+description: "Create image and video carousels, upload and order slides, and manage them after creation."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Carousels are swipeable multi-slide feed items. ShortKit supports two kinds:
+
+- **Image carousels** (`contentType: "carousel"`) — slides are images you upload directly to the carousel.
+- **Video carousels** (`contentType: "video_carousel"`) — slides reference videos that already exist in your library.
+
+Unlike videos, carousels skip the processing pipeline entirely. They come back with `uploadStatus: "ready"` the moment you create them — no polling, no callbacks. For how carousels fit into the broader content model, see [Content model](/docs/guides/concepts/content-model).
+
+<Callout type="warn" title="Carousels can publish before they have slides">
+Because a carousel is `ready` at creation, auto-publish (on by default) makes it feed-eligible immediately — before you've added any slides. Empty video carousels are excluded from the feed automatically, but empty image carousels are not. Add images right after creating, or create with a future `publishAt` and publish once the slides are in place.
 </Callout>
 
-Create image/video carousels, upload images, reorder.
+## Create a carousel
+
+`POST /v1/content` with `contentType` set to `"carousel"` or `"video_carousel"`. The metadata fields are the same as for videos: `title` is required; `description`, `tags`, `section`, `author`, `publishAt`, and `expiresAt` are optional. See the [Create carousel API reference](/docs/api/content/create-content) for the full request and response schema.
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "carousel",
+        "title": "Spring collection",
+        "description": "Preview our new arrivals",
+        "tags": ["fashion", "spring"],
+        "section": "Style",
+        "author": "Editorial Team"
+      }'
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    resp = requests.post(
+        "https://api.shortkit.dev/v1/content",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "contentType": "carousel",
+            "title": "Spring collection",
+            "description": "Preview our new arrivals",
+            "tags": ["fashion", "spring"],
+            "section": "Style",
+            "author": "Editorial Team",
+        },
+    )
+
+    carousel_id = resp.json()["data"]["id"]
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```javascript
+    const response = await fetch("https://api.shortkit.dev/v1/content", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contentType: "carousel",
+        title: "Spring collection",
+        description: "Preview our new arrivals",
+        tags: ["fashion", "spring"],
+        section: "Style",
+        author: "Editorial Team",
+      }),
+    });
+
+    const { data } = await response.json();
+    const carouselId = data.id;
+    ```
+  </Tab>
+</Tabs>
+
+The response is the full [content object](/docs/api/content/get-content) with `uploadStatus: "ready"`. Hold on to `data.id` — every slide operation below targets it.
+
+## Image carousels
+
+### Upload images
+
+`POST /v1/content/{contentId}/images` adds one image per request using multipart form data. Each carousel holds up to 10 images. `file` is required (JPEG, PNG, or WebP); `position` (0-based, default `0`) and `altText` are optional. See the [Upload carousel images API reference](/docs/api/content/add-carousel-image).
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST "https://api.shortkit.dev/v1/content/${carouselId}/images" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -F "file=@photo1.jpg" \
+      -F "position=0" \
+      -F "altText=Model wearing spring jacket"
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    for i, (filename, alt) in enumerate([
+        ("photo1.jpg", "Model wearing spring jacket"),
+        ("photo2.jpg", "Close-up of fabric texture"),
+        ("photo3.jpg", "Full outfit on runway"),
+    ]):
+        with open(filename, "rb") as f:
+            requests.post(
+                f"https://api.shortkit.dev/v1/content/{carousel_id}/images",
+                headers={"Authorization": "Bearer sk_live_your_secret_key"},
+                files={"file": (filename, f, "image/jpeg")},
+                data={"position": i, "altText": alt},
+            )
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```javascript
+    import { createReadStream } from "fs";
+
+    const images = [
+      { file: "photo1.jpg", alt: "Model wearing spring jacket" },
+      { file: "photo2.jpg", alt: "Close-up of fabric texture" },
+      { file: "photo3.jpg", alt: "Full outfit on runway" },
+    ];
+
+    for (let i = 0; i < images.length; i++) {
+      const form = new FormData();
+      form.append("file", createReadStream(images[i].file));
+      form.append("position", i.toString());
+      form.append("altText", images[i].alt);
+
+      await fetch(
+        `https://api.shortkit.dev/v1/content/${carouselId}/images`,
+        {
+          method: "POST",
+          headers: { "Authorization": "Bearer sk_live_your_secret_key" },
+          body: form,
+        }
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Each upload returns the created image object (`id`, `imageUrl`, `altText`, `position`). The carousel's `thumbnailUrl` in content and feed responses is always the image at position 0.
+
+### Reorder images
+
+`PUT /v1/content/{contentId}/images/order` with every image ID in the desired order. Each image's position becomes its index in the array, and the response returns the full re-sorted image list. See the [Reorder carousel images API reference](/docs/api/content/reorder-carousel-images).
+
+```bash
+curl -X PUT "https://api.shortkit.dev/v1/content/${carouselId}/images/order" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageIds": ["img-uuid-3", "img-uuid-1", "img-uuid-2"]
+  }'
+```
+
+### Delete an image
+
+```bash
+curl -X DELETE "https://api.shortkit.dev/v1/content/${carouselId}/images/${imageId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## Video carousels
+
+A video carousel doesn't own its slides — it references videos already in your library. Each referenced video must be `contentType: "video"` with `uploadStatus: "ready"`, so [upload your videos](/docs/guides/content/upload-videos) first.
+
+### Add videos
+
+`POST /v1/content/{contentId}/videos` accepts a batch of entries, each with the video's `contentId` and a 0-based `position`. A carousel holds up to 10 videos; videos already in the carousel are skipped silently.
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST "https://api.shortkit.dev/v1/content/${carouselId}/videos" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "videos": [
+          { "contentId": "9b2f6c1e-4a8d-4f3b-9c2a-1e5d7b8a0c3f", "position": 0 },
+          { "contentId": "d41c0a77-58e2-49bd-8f06-3a9e2c4b7d15", "position": 1 }
+        ]
+      }'
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    resp = requests.post(
+        f"https://api.shortkit.dev/v1/content/{carousel_id}/videos",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "videos": [
+                {"contentId": "9b2f6c1e-4a8d-4f3b-9c2a-1e5d7b8a0c3f", "position": 0},
+                {"contentId": "d41c0a77-58e2-49bd-8f06-3a9e2c4b7d15", "position": 1},
+            ]
+        },
+    )
+
+    entries = resp.json()["data"]  # [{id, videoContentId, position}, ...]
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```javascript
+    const response = await fetch(
+      `https://api.shortkit.dev/v1/content/${carouselId}/videos`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer sk_live_your_secret_key",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          videos: [
+            { contentId: "9b2f6c1e-4a8d-4f3b-9c2a-1e5d7b8a0c3f", position: 0 },
+            { contentId: "d41c0a77-58e2-49bd-8f06-3a9e2c4b7d15", position: 1 },
+          ],
+        }),
+      }
+    );
+
+    const { data: entries } = await response.json(); // [{id, videoContentId, position}, ...]
+    ```
+  </Tab>
+</Tabs>
+
+The response lists the carousel's entries, each with an entry `id`, the `videoContentId`, and its `position`. Keep the entry IDs — removal targets the entry, not the video.
+
+### Reorder videos
+
+`PUT /v1/content/{contentId}/videos/order` takes **video content IDs** (not entry IDs) in the desired order:
+
+```bash
+curl -X PUT "https://api.shortkit.dev/v1/content/${carouselId}/videos/order" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "videoIds": ["d41c0a77-58e2-49bd-8f06-3a9e2c4b7d15", "9b2f6c1e-4a8d-4f3b-9c2a-1e5d7b8a0c3f"]
+  }'
+```
+
+### Remove a video
+
+`DELETE /v1/content/{contentId}/videos/{entryId}` takes the **entry ID** returned when the video was added. The underlying video stays in your library — only the carousel reference is removed.
+
+```bash
+curl -X DELETE "https://api.shortkit.dev/v1/content/${carouselId}/videos/${entryId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## Carousels in the feed
+
+Published carousels appear in `/v1/feed` responses as polymorphic items: `type: "image_carousel"` with the ordered image list, or `type: "video_carousel"` where each slide carries a playback ID the SDK resolves into streaming and thumbnail URLs (see the [v0.3.0 migration](/docs/changelog/migrations/v0-3-0-carousel-playback-ids)). A video carousel is omitted from the feed until at least one of its videos is `ready`.
+
+To control carousel playback and gestures in the client SDKs, see [Carousel control](/docs/guides/customize/carousel-control).
+
+## Manage after creation
+
+Carousels share the standard content lifecycle with videos: update metadata with `PATCH /v1/content/{contentId}` (including `publishStatus` to publish or unpublish), and delete with `DELETE /v1/content/{contentId}`. See [Captions and metadata](/docs/guides/content/captions-and-metadata) for the workflow and the [Content API reference](/docs/api/content/get-content) for field details.

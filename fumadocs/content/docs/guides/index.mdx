@@ -1,10 +1,85 @@
 ---
 title: "Overview"
-description: "Product overview, platform cards, and links into setup and API Reference."
+description: "Drop short-form video into your app with the ShortKit feed SDK and manage content with the REST API."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
-</Callout>
+ShortKit is drop-in short-form video for your app. You add a feed component to your screen, and ShortKit handles the rest: vertical paging, preloading, playback, adaptive streaming, analytics, and content delivery. Your team manages videos, carousels, and live streams through the dashboard or the REST API.
 
-Product overview, platform cards, and links into setup and API Reference.
+There are two halves to the product:
+
+- **The feed SDK** renders a full-featured short-form video feed inside your app. It ships on five platforms — iOS, Android, Flutter, React Native, and Web — with a consistent API surface and native playback on each.
+- **The REST API** is the server-side interface for uploading and importing content, managing publication, creating live streams, receiving webhooks, and querying feeds.
+
+## Start here
+
+<Cards>
+  <Card
+    title="Quickstart"
+    href="/docs/guides/quickstart"
+    description="Get a feed playing in your app in under ten minutes."
+  />
+  <Card
+    title="Content model"
+    href="/docs/guides/concepts/content-model"
+    description="Videos, carousels, and live streams — how content is structured and published."
+  />
+</Cards>
+
+## Set up your platform
+
+Each SDK has its own installation and configuration guide.
+
+<Cards>
+  <Card
+    title="iOS"
+    href="/docs/guides/setup/ios"
+    description="Swift Package Manager or CocoaPods. Current version 0.2.55."
+  />
+  <Card
+    title="Android"
+    href="/docs/guides/setup/android"
+    description="Gradle dependency on com.shortkit.sdk. Current version 0.2.55."
+  />
+  <Card
+    title="Flutter"
+    href="/docs/guides/setup/flutter"
+    description="The shortkit_flutter package on pub.dev. Current version 0.2.22."
+  />
+  <Card
+    title="React Native"
+    href="/docs/guides/setup/react-native"
+    description="The @shortkitsdk/react-native package on npm. Current version 0.2.55."
+  />
+  <Card
+    title="Web"
+    href="/docs/guides/setup/web"
+    description="Embed the feed in any web page or web app. Current version 0.5.0."
+  />
+</Cards>
+
+Not sure which features ship where? See [platform support](/docs/guides/setup/platform-support) for the full matrix.
+
+## Build with the SDK
+
+<Cards>
+  <Card
+    title="Display a feed"
+    href="/docs/guides/display/feed"
+    description="Embed the feed component, configure it, and control playback."
+  />
+  <Card
+    title="API reference"
+    href="/docs/api"
+    description="Upload content, create live streams, query feeds, and receive webhooks from your server."
+  />
+</Cards>
+
+## Stay current
+
+<Cards>
+  <Card
+    title="Changelog"
+    href="/docs/changelog"
+    description="SDK and API release notes, plus migration guides for breaking changes."
+  />
+</Cards>

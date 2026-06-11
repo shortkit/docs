@@ -1,10 +1,224 @@
 ---
 title: "Identity"
-description: "Anonymous UUID, setUserId/clearUserId model, /v1/identity/resolve mechanics. Canonical; analytics pages link here."
+description: "How ShortKit tracks anonymous and identified users across sessions and devices, and how identity resolution merges their history."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+ShortKit assigns every device an anonymous ID on first launch. When your user signs in, you promote them to an identified user and ShortKit merges their anonymous history into the identified profile. Every analytics metric, view record, and event is attributed through this identity model — the `user_id` dimension you filter on in [analytics](/docs/guides/analytics/overview) is the ID described on this page.
+
+## Anonymous by default
+
+On first initialization, the SDK generates a random UUID and persists it in device storage (browser local storage on Web). This anonymous ID is attached to every API request and analytics event automatically via the `X-User-Id` request header. No setup is required.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+  <Tab value="iOS">
+    ```swift title="AppDelegate.swift"
+    // No userId passed — the SDK uses its persisted anonymous UUID.
+    let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+    ```
+  </Tab>
+  <Tab value="Android">
+    ```kotlin title="MainActivity.kt"
+    import com.shortkit.sdk.ShortKit
+
+    // No userId passed — the SDK uses its persisted anonymous UUID.
+    val shortKit = ShortKit(context, apiKey = "pk_live_your_publishable_key")
+    ```
+  </Tab>
+  <Tab value="Flutter">
+    ```dart title="main.dart"
+    // No userId passed — the SDK uses its persisted anonymous UUID.
+    ShortKitProvider.apiKey(
+      apiKey: 'pk_live_your_publishable_key',
+      child: const ShortKitFeed(),
+    )
+    ```
+  </Tab>
+  <Tab value="React Native">
+    ```tsx title="App.tsx"
+    import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+
+    // No userId prop — the SDK uses its persisted anonymous UUID.
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      <ShortKitFeed />
+    </ShortKitProvider>
+    ```
+  </Tab>
+  <Tab value="Web">
+    ```js title="app.js"
+    // No userId passed — the SDK uses its persisted anonymous UUID.
+    const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+    ```
+  </Tab>
+</Tabs>
+
+The anonymous ID survives app restarts and page reloads. It is only replaced when you call `clearUserId()`, which discards it and generates a fresh one.
+
+## Setting an identified user
+
+Call `setUserId` when the user signs in. The SDK switches all subsequent requests and events to this ID and triggers [identity resolution](#how-identity-resolution-works) on the backend.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+  <Tab value="iOS">
+    ```swift
+    shortKit.setUserId("user_abc123")
+    ```
+  </Tab>
+  <Tab value="Android">
+    ```kotlin
+    shortKit.setUserId("user_abc123")
+    ```
+  </Tab>
+  <Tab value="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+    await controller.setUserId('user_abc123');
+    ```
+  </Tab>
+  <Tab value="React Native">
+    ```tsx
+    import { useShortKit } from '@shortkitsdk/react-native';
+
+    function useSignIn() {
+      const { setUserId } = useShortKit();
+      return (id: string) => setUserId(id);
+    }
+    ```
+
+    Alternatively, drive identity declaratively: set the `userId` prop on `ShortKitProvider` and the SDK calls `setUserId` for you whenever the prop changes. Clearing the prop reverts to anonymous mode.
+  </Tab>
+  <Tab value="Web">
+    ```js
+    sk.setUserId('user_abc123');
+    ```
+  </Tab>
+</Tabs>
+
+If the user is already signed in when your app launches, pass the user ID at initialization instead of calling `setUserId` afterwards:
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+  <Tab value="iOS">
+    ```swift
+    let shortKit = ShortKit(
+        apiKey: "pk_live_your_publishable_key",
+        userId: "user_abc123"
+    )
+    ```
+  </Tab>
+  <Tab value="Android">
+    ```kotlin
+    val shortKit = ShortKit(
+        context,
+        apiKey = "pk_live_your_publishable_key",
+        userId = "user_abc123",
+    )
+    ```
+  </Tab>
+  <Tab value="Flutter">
+    ```dart
+    ShortKitProvider.apiKey(
+      apiKey: 'pk_live_your_publishable_key',
+      userId: 'user_abc123',
+      child: const ShortKitFeed(),
+    )
+    ```
+  </Tab>
+  <Tab value="React Native">
+    ```tsx
+    <ShortKitProvider apiKey="pk_live_your_publishable_key" userId="user_abc123">
+      <ShortKitFeed />
+    </ShortKitProvider>
+    ```
+  </Tab>
+  <Tab value="Web">
+    ```js
+    const sk = new ShortKit({
+      apiKey: 'pk_live_your_publishable_key',
+      userId: 'user_abc123',
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info" title="Use your own user IDs">
+The user ID is any stable string from your own system — a database primary key, an auth provider subject, or a hashed account identifier. ShortKit treats it as opaque. Avoid raw email addresses or other direct personal identifiers.
 </Callout>
 
-Anonymous UUID, setUserId/clearUserId model, /v1/identity/resolve mechanics. Canonical; analytics pages link here.
+## Clearing identity
+
+Call `clearUserId` on sign-out. The SDK reverts to anonymous mode with a **fresh** UUID — the previous anonymous ID is discarded, so activity after sign-out is never linked back to the signed-in user.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+  <Tab value="iOS">
+    ```swift
+    shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab value="Android">
+    ```kotlin
+    shortKit.clearUserId()
+    ```
+  </Tab>
+  <Tab value="Flutter">
+    ```dart
+    final controller = ShortKit.of(context);
+    await controller.clearUserId();
+    ```
+  </Tab>
+  <Tab value="React Native">
+    ```tsx
+    import { useShortKit } from '@shortkitsdk/react-native';
+
+    function useSignOut() {
+      const { clearUserId } = useShortKit();
+      return () => clearUserId();
+    }
+    ```
+  </Tab>
+  <Tab value="Web">
+    ```js
+    sk.clearUserId();
+    ```
+  </Tab>
+</Tabs>
+
+## How identity resolution works
+
+When `setUserId` is called, the SDK sends a `POST /v1/identity/resolve` request (authenticated with your publishable key) carrying both the device's anonymous ID and the identified user ID:
+
+```json title="Request body"
+{
+  "anonymousId": "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+  "userId": "user_abc123"
+}
+```
+
+The backend then:
+
+1. **Finds or creates** the identified user profile for `userId` in your organization.
+2. **Links the device** by appending the anonymous ID to the identified profile's linked device IDs (deduplicated — resolving the same pair twice is a no-op).
+3. **Deletes the anonymous profile.** All events and views previously attributed to the anonymous ID become queryable under the identified user.
+
+```json title="Response"
+{
+  "data": { "status": "ok" },
+  "meta": { "request_id": "req_01h..." }
+}
+```
+
+Because the same `userId` can be resolved from multiple devices, an identified profile accumulates one linked device ID per device the user signs in on. This is how ShortKit unifies a user's history across their phone, tablet, and browser.
+
+The SDK calls this endpoint for you — you only need it directly if you're building a custom client. See the [identity resolve endpoint reference](/docs/api/client-runtime/resolve-a-user-identity) for full details.
+
+## Identity on analytics events
+
+Every analytics event the SDK emits carries the current user ID — anonymous or identified — in the `X-User-Id` request header. You never attach user IDs to events manually; the SDK handles it at the network layer. The same header attributes feed requests, so personalized ranking and watch-history deduplication follow the user across sign-in.
+
+To attach additional user attributes to events (plan tier, cohort, A/B variant), use [custom dimensions](/docs/guides/analytics/custom-data) — they complement the user ID rather than replacing it.
+
+## Related
+
+<Cards>
+  <Card title="Analytics overview" href="/docs/guides/analytics/overview" description="Query metrics and views by user ID and other dimensions." />
+  <Card title="Custom data" href="/docs/guides/analytics/custom-data" description="Attach custom dimensions to every event alongside the user ID." />
+  <Card title="Identity resolve endpoint" href="/docs/api/client-runtime/resolve-a-user-identity" description="REST reference for POST /v1/identity/resolve." />
+</Cards>

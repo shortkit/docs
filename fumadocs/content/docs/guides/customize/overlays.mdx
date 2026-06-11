@@ -1,10 +1,427 @@
 ---
 title: "Video overlays"
-description: "VideoOverlayMode, FeedOverlay protocol, registration, SwiftUI mode. RN's props/commands model documented inside the RN tab only; phantom APIs removed."
+description: "Build a custom UI layer on top of every video cell in the ShortKit feed — overlay modes, the overlay lifecycle, registration, and playback control on iOS, Android, Flutter, React Native, and Web."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+An overlay is your UI rendered on top of the video in each feed cell — title, author, scrubber, captions, action buttons. The SDK creates overlay instances per cell, binds them to content as cells are reused, and tells them when their cell becomes the active playback cell. You build the view; the SDK owns the lifecycle.
+
+This page covers overlays for standard video cells. Other cell types have their own overlay surfaces — see [Item overlays](/docs/guides/customize/item-overlays) for carousel, video carousel, survey, and ad overlays, and [Live experiences](/docs/guides/customize/live) for live stream overlays.
+
+## How overlays work
+
+The model is the same on every platform, even though the API shape differs:
+
+1. **One overlay per cell.** The SDK creates your overlay lazily the first time a cell needs it and keeps it as the cell is reused for new content.
+2. **The SDK binds content.** When a cell receives a new item, the SDK hands your overlay the new `ContentItem` so it can update metadata-driven UI and discard stale state.
+3. **State in, commands out.** Your overlay reads playback state (time, player state, mute, captions) from the SDK and issues commands (play, pause, seek, mute) back to it.
+
+On iOS and Android your overlay is a native view conforming to a protocol. On Flutter it's a widget builder running in a dedicated overlay engine. On React Native it's a plain React component that receives props. On Web it's a callback that builds DOM into a container element.
+
+For the full list of player streams, state fields, and commands available to overlays, see the [Player reference](/docs/guides/reference/player).
+
+## Add a custom overlay
+
+By default the feed renders bare video — no overlay, no controls. Enable a custom overlay through `FeedConfig`:
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+`VideoOverlayMode` controls what the SDK renders on video cells:
+
+| Mode | Behavior |
+|---|---|
+| `.none` | Bare video, no UI. The default. |
+| `.custom { ... }` | A factory returning a `UIView` that conforms to `FeedOverlay`. |
+| `.swiftUI { player, cellContent in ... }` | A SwiftUI `View` — see [SwiftUI overlays](#swiftui-overlays) below. |
+
+Pass the mode in the `FeedConfig` you give the feed component:
+
+```swift title="FeedScreen.swift"
+import ShortKitSDK
+
+let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+
+let config = FeedConfig(videoOverlay: .custom {
+    NewsOverlay(theme: .dark)
+})
+
+let feedVC = ShortKitFeedViewController(shortKit: shortKit, config: config)
+```
+
+The factory closure runs once per cell, lazily on first use. It's your opportunity to inject dependencies — themes, services, feature flags — at construction time. The SDK provides its own dependency, the player, separately through `attach(player:)`.
+
+</Tab>
+<Tab value="Android">
+
+`VideoOverlayMode` controls what the SDK renders on video cells:
+
+| Mode | Behavior |
+|---|---|
+| `VideoOverlayMode.None` | Bare video, no UI. The default. |
+| `VideoOverlayMode.Custom { ... }` | A factory returning a `View` that implements `FeedOverlay`. |
+
+Pass the mode in the `FeedConfig` you give `ShortKitFeedFragment`:
+
+```kotlin title="FeedActivity.kt"
+import com.shortkit.sdk.ShortKit
+import com.shortkit.sdk.config.FeedConfig
+import com.shortkit.sdk.config.VideoOverlayMode
+import com.shortkit.sdk.feed.ShortKitFeedFragment
+
+val shortKit = ShortKit(context, apiKey = "pk_live_your_publishable_key")
+
+val config = FeedConfig(
+    videoOverlay = VideoOverlayMode.Custom {
+        NewsOverlay(context)
+    }
+)
+
+val fragment = ShortKitFeedFragment.newInstance(shortKit, config)
+```
+
+The factory runs once per cell, lazily on first use. The view it returns is added as a full-size child of the cell's overlay container; if it implements `FeedOverlay`, the SDK drives it through the lifecycle methods below.
+
+</Tab>
+<Tab value="Flutter">
+
+Flutter overlays are referenced by name in `FeedConfig` and registered separately in a dedicated overlay engine (see [Register Flutter overlays](#register-flutter-overlays) below):
+
+```dart title="feed_screen.dart"
+ShortKitFeed(
+  config: FeedConfig(
+    // Custom overlay, registered under the name 'news'
+    overlay: OverlayConfigCustom('news'),
+  ),
+)
+```
+
+Pass `OverlayConfigNone()` (or omit `overlay`) for bare video. The related `carouselOverlay` and `videoCarouselOverlay` fields configure overlays for carousel cells — see [Item overlays](/docs/guides/customize/item-overlays).
+
+</Tab>
+<Tab value="React Native">
+
+Pass your overlay component in the `config` prop of `<ShortKitFeed>`:
+
+```tsx title="FeedScreen.tsx"
+import { ShortKitProvider, ShortKitFeed } from '@shortkitsdk/react-native';
+import { NewsOverlay } from './NewsOverlay';
+
+export function FeedScreen() {
+  return (
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      <ShortKitFeed
+        config={{
+          overlay: { type: 'custom', name: 'news', component: NewsOverlay },
+        }}
+      />
+    </ShortKitProvider>
+  );
+}
+```
+
+Pass `overlay: 'none'` (or omit it) for bare video. The `name` is required — it keys the native surface that hosts your component, and registration is idempotent, so reusing the same name and component across feeds is safe.
+
+<Callout type="info" title="React Native naming">
+The React Native config key is `overlay` — not `videoOverlay` as on iOS and Android. The config object goes on `<ShortKitFeed>`, not on `<ShortKitProvider>`. The related `carouselOverlay` and `videoCarouselOverlay` keys configure carousel cell overlays — see [Item overlays](/docs/guides/customize/item-overlays).
 </Callout>
 
-VideoOverlayMode, FeedOverlay protocol, registration, SwiftUI mode. RN's props/commands model documented inside the RN tab only; phantom APIs removed.
+</Tab>
+<Tab value="Web">
+
+The Web overlay is a callback in the feed config. There is no registration step — the callback is the overlay:
+
+```js title="app.js"
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+sk.createFeed(document.getElementById('feed'), {
+  config: {
+    overlay: (overlayEl, { item, player, feed }) => {
+      const title = document.createElement('div');
+      title.className = 'feed-title';
+      title.textContent = item.title;
+      overlayEl.appendChild(title);
+    },
+  },
+});
+```
+
+Omit `overlay` for bare video. See the lifecycle section below for the callback contract.
+
+</Tab>
+</Tabs>
+
+## The overlay lifecycle
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Custom overlays conform to `FeedOverlay`:
+
+```swift
+public protocol FeedOverlay: AnyObject {
+    func attach(player: ShortKitPlayer)
+    func configure(with item: ContentItem)
+    func activatePlayback()
+    func captionTracksResolved(_ tracks: [CaptionTrack]) // optional, default no-op
+}
+```
+
+| Method | When the SDK calls it | What your overlay should do |
+|---|---|---|
+| `attach(player:)` | Once, immediately after creation. | Store the player reference and subscribe to its reactive streams (`time`, `playerState`, `isMuted`, `activeCue`, …). |
+| `configure(with:)` | The cell receives a new content item — initial load or cell reuse. | Update labels, thumbnails, and metadata-driven UI. Also clear stale playback state from the previous item: scrubber position, caption text. |
+| `activatePlayback()` | The cell becomes the active playback cell. | Begin processing `player.time` updates to drive your scrubber, captions, and time-dependent UI. |
+| `captionTracksResolved(_:)` | Caption tracks for the current item resolve asynchronously after the item becomes active (custom feeds fetch tracks lazily). | Refresh your CC button state without a full reconfigure. Optional — the default implementation does nothing. |
+
+A minimal conformance:
+
+```swift title="NewsOverlay.swift"
+import Combine
+import ShortKitSDK
+import UIKit
+
+final class NewsOverlay: UIView, FeedOverlay {
+    private var player: ShortKitPlayer!
+    private var subscriptions = Set<AnyCancellable>()
+    private var isActive = false
+    private let titleLabel = UILabel()
+
+    func attach(player: ShortKitPlayer) {
+        self.player = player
+        player.time
+            .sink { [weak self] time in
+                guard let self, self.isActive else { return }
+                // Drive scrubber / time label from `time.current` and `time.duration`
+            }
+            .store(in: &subscriptions)
+    }
+
+    func configure(with item: ContentItem) {
+        titleLabel.text = item.title
+        isActive = false // cell reused — discard state from the previous item
+    }
+
+    func activatePlayback() {
+        isActive = true
+    }
+}
+```
+
+Guard time-driven updates on your own active flag: every cell's overlay shares the player streams, but only the active cell should render playback progress.
+
+</Tab>
+<Tab value="Android">
+
+Custom overlays implement `FeedOverlay`:
+
+```kotlin
+interface FeedOverlay {
+    fun attach(player: ShortKitPlayer)
+    fun configure(item: ContentItem)
+    fun activatePlayback()
+    fun fadeOutForTransition()
+    fun restoreFromTransition()
+    fun release() {}
+    fun captionTracksResolved(tracks: List<CaptionTrack>) {}
+}
+```
+
+| Method | When the SDK calls it | What your overlay should do |
+|---|---|---|
+| `attach(player)` | Once, immediately after creation. | Store the player reference and collect its flows (`time`, `playerState`, `isMuted`, `activeCue`, …). |
+| `configure(item)` | The cell receives a new content item — initial load or cell reuse. | Update metadata-driven UI and clear stale playback state from the previous item. |
+| `activatePlayback()` | The cell becomes the active playback cell. | Begin processing time updates. |
+| `fadeOutForTransition()` / `restoreFromTransition()` | A feed swipe transition begins / ends. | Hide overlay chrome during the swipe, then restore it. |
+| `release()` | Fragment teardown. | Cancel flow subscriptions and release resources. Optional — default is a no-op. |
+| `captionTracksResolved(tracks)` | Caption tracks resolve lazily after the item becomes active. | Refresh CC button state. Optional — default is a no-op. |
+
+<Callout type="info" title="Android time units">
+`PlayerTime` on Android reports milliseconds (`currentMs`, `durationMs`, `bufferedMs`), unlike the seconds-based fields on the other platforms. See the [Player reference](/docs/guides/reference/player).
+</Callout>
+
+</Tab>
+<Tab value="Flutter">
+
+Flutter overlays don't implement a protocol. You register a builder function that the SDK calls with the cell's content item and a state snapshot:
+
+```dart
+typedef ShortKitOverlayBuilder = Widget Function(
+  BuildContext context,
+  ContentItem item,
+  OverlayState state,
+);
+```
+
+The builder re-runs whenever any field on `OverlayState` changes:
+
+| Field | Type | Description |
+|---|---|---|
+| `playerState` | `PlayerState` | Current playback state. |
+| `time` | `PlayerTime` | `current`, `duration`, `buffered` in seconds. |
+| `isMuted` | `bool` | Current mute state. |
+| `playbackRate` | `double` | Current playback speed. |
+| `captionsEnabled` | `bool` | Whether captions are on. |
+| `activeCaptionTrack` | `CaptionTrack?` | The selected caption track, or `null`. |
+| `activeCue` | `CaptionCue?` | The active caption cue at the current time, or `null` between cues. |
+| `feedScrollPhase` | `FeedScrollPhase?` | Current feed scroll state — use it to fade your overlay during swipes. |
+| `isActive` | `bool` | Whether this cell is the active playback cell. |
+
+Issue player commands from inside your overlay widget with `ShortKitOverlayCommands.of(context)`:
+
+```dart
+final commands = ShortKitOverlayCommands.of(context);
+commands.seekAndPlay(15.0);
+commands.setMuted(false);
+```
+
+The command surface mirrors the player API — `play`, `pause`, `seek`, `seekAndPlay`, `skipToNext`, `skipToPrevious`, `setMuted`, `setPlaybackRate`, `setCaptionsEnabled`, `selectCaptionTrack`, `sendContentSignal`, `setMaxBitrate`, and storyboard helpers. See the [Player reference](/docs/guides/reference/player).
+
+</Tab>
+<Tab value="React Native">
+
+React Native overlays follow a **props-in, commands-out** model. There is no protocol and no lifecycle methods: your component is a plain React component that re-renders as its props change.
+
+<Callout type="warn" title="Overlays run in isolated surfaces">
+Overlay components render in isolated React surfaces outside your app's provider tree. `useShortKitPlayer()` and other context hooks are **not available** inside an overlay and will throw. State arrives via `OverlayProps`; commands go through the `ShortKitCommands` module.
+</Callout>
+
+Props your component receives:
+
+| Prop | Type | Description |
+|---|---|---|
+| `item` | `ContentItem` | The content item for this cell. |
+| `isActive` | `boolean` | Whether this cell is the active playback cell. |
+| `playerState` | `PlayerState` | Current playback state. |
+| `time` | `PlayerTime` | `current`, `duration`, `buffered` in seconds. Only updates while `isActive` is true. |
+| `isMuted` | `boolean` | Current mute state. |
+| `playbackRate` | `number` | Current playback speed. |
+| `captionsEnabled` | `boolean` | Whether captions are on. |
+| `activeCue` | `{ text, startTime, endTime } \| null` | The active caption cue, or `null` between cues. |
+| `feedScrollPhase` | `FeedScrollPhase \| null` | Current feed scroll state — use it to fade your overlay during swipes. |
+
+Commands are imperative calls on `ShortKitCommands`:
+
+```tsx title="NewsOverlay.tsx"
+import { Pressable, Text, View } from 'react-native';
+import { ShortKitCommands, type OverlayProps } from '@shortkitsdk/react-native';
+
+export function NewsOverlay({ item, isActive, isMuted }: OverlayProps) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
+      <Text style={{ color: '#fff' }}>{item.title}</Text>
+      <Pressable onPress={() => ShortKitCommands.setMuted(!isMuted)}>
+        <Text style={{ color: '#fff' }}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+      </Pressable>
+    </View>
+  );
+}
+```
+
+`ShortKitCommands` covers the full player surface — `play`, `pause`, `seek`, `seekAndPlay`, `skipToNext`, `skipToPrevious`, `setMuted`, `setPlaybackRate`, `setCaptionsEnabled`, `selectCaptionTrack`, `sendContentSignal`, `setMaxBitrate`, plus `setFeedScrollEnabled` for granting gesture exclusivity to overlay-owned drags (used by scrubbers — see the [scrubber recipe](/docs/guides/customize/recipes-scrubber)) and storyboard helpers for seek previews. See the [Player reference](/docs/guides/reference/player).
+
+</Tab>
+<Tab value="Web">
+
+The overlay callback runs when a cell's item becomes the active item. It receives the cell's overlay container element and a context object:
+
+```js
+overlay: (overlayEl, { item, player, feed }) => {
+  const progress = document.createElement('div');
+  progress.className = 'feed-progress';
+  overlayEl.appendChild(progress);
+
+  player.on('timeUpdate', ({ current, duration }) => {
+    if (duration > 0) progress.style.width = `${(current / duration) * 100}%`;
+  });
+}
+```
+
+| Argument | Description |
+|---|---|
+| `overlayEl` | The cell's positioned overlay container. Build your DOM into it. |
+| `item` | The `ContentItem` for this cell. |
+| `player` | A scoped player: state getters (`currentTime`, `duration`, `isMuted`, `playbackRate`, `captionsEnabled`), `on`/`off` event subscription, and commands (`play`, `pause`, `seek`, `setMuted`, `setPlaybackRate`, `setCaptionsEnabled`, `selectCaptionTrack`, `sendContentSignal`, `skipToNext`, `skipToPrevious`, `seekThumbnail`). |
+| `feed` | Feed navigation: `dismiss()`, `navigateUp()`, `navigateDown()`. |
+
+Event listeners registered through the scoped `player` are removed automatically when the cell deactivates; your overlay DOM stays in place. See the [Player reference](/docs/guides/reference/player) for the event and command catalog.
+
+</Tab>
+</Tabs>
+
+## Register Flutter overlays
+
+Flutter overlays run in a dedicated overlay engine, separate from your app's main engine. Register your builders in a top-level entry point named exactly `shortKitOverlayMain`, annotated with `@pragma('vm:entry-point')` — the SDK launches the overlay engine at this function:
+
+```dart title="main.dart"
+import 'package:flutter/material.dart';
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+@pragma('vm:entry-point')
+void shortKitOverlayMain() {
+  ShortKitOverlayEngine.initialize(
+    overlays: {
+      'news': (context, item, state) => NewsOverlay(item: item, state: state),
+    },
+    loadingWidget: (context) => const Center(
+      child: CircularProgressIndicator(),
+    ),
+  );
+}
+```
+
+`initialize` also accepts `carouselOverlays` and `videoCarouselOverlays` maps for carousel cell overlays — see [Item overlays](/docs/guides/customize/item-overlays). The optional `loadingWidget` renders while the feed loads.
+
+The names you register here are what `OverlayConfigCustom('news')` resolves against in your `FeedConfig`.
+
+<Callout type="info" title="Overlay engine isolation">
+Because overlays run in their own engine, they don't share state with your main app — no providers, inherited widgets, or globals cross the boundary. Pass everything your overlay needs through `ContentItem.customMetadata`, and use `ShortKitOverlayCommands` for player control.
+</Callout>
+
+## SwiftUI overlays
+
+On iOS, use `.swiftUI` instead of `.custom` to build your overlay as a SwiftUI `View`. The builder receives the shared `ShortKitPlayer` and a per-cell `CellContent`:
+
+```swift
+let config = FeedConfig(videoOverlay: .swiftUI { player, cellContent in
+    NewsOverlayView(player: player, cellContent: cellContent)
+})
+```
+
+`CellContent` is an `ObservableObject` with a single `@Published item: ContentItem?` property. The SDK updates it as the cell is reused, so your view reacts to content changes automatically:
+
+```swift title="NewsOverlayView.swift"
+import SwiftUI
+import ShortKitSDK
+
+struct NewsOverlayView: View {
+    let player: ShortKitPlayer
+    @ObservedObject var cellContent: CellContent
+
+    var body: some View {
+        VStack {
+            Spacer()
+            if let item = cellContent.item {
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding()
+    }
+}
+```
+
+Under the hood, the SDK wraps your view in a hosting view that conforms to `FeedOverlay` — you don't implement the protocol yourself.
+
+## Report engagement
+
+When your overlay includes actions like likes, shares, or "not interested", report them with `sendContentSignal` so the recommendation engine can adapt the feed — and attach your own metadata to content so overlays can render domain-specific UI. Both are covered in [Custom data and signals](/docs/guides/analytics/custom-data).
+
+## Next steps
+
+<Cards>
+  <Card title="Scrubber recipe" href="/docs/guides/customize/recipes-scrubber" description="A draggable progress bar with seek thumbnails, built as a custom overlay." />
+  <Card title="Captions recipe" href="/docs/guides/customize/recipes-captions" description="A repositionable caption label driven by the active cue stream." />
+  <Card title="Item overlays" href="/docs/guides/customize/item-overlays" description="Overlays for carousel, video carousel, survey, and ad cells." />
+  <Card title="Player reference" href="/docs/guides/reference/player" description="Every reactive stream, state field, and command available to overlays." />
+</Cards>

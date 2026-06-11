@@ -1,10 +1,321 @@
 ---
 title: "Captions & metadata"
-description: "Caption upload, language tagging, PATCH merge semantics, publication URLs."
+description: "Upload caption tracks, update content metadata with PATCH merge semantics, and attach publication URLs."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+After content is created, you can manage it entirely through the REST API: add caption tracks in any language, update titles, tags, and custom metadata, and attach external links. These operations apply to existing content of any type — see [Upload videos](/docs/guides/content/upload-videos) and [Carousels](/docs/guides/content/carousels) for the creation workflows.
+
+## Captions
+
+Every uploaded video gets an auto-generated caption track and spoken-language detection shortly after processing completes. The detected language is stored as `customMetadata.language` (a [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) code such as `"en"`, `"es"`, `"ja"`) — see [Language detection](/docs/guides/content/language) for how to filter feeds by language.
+
+To add your own tracks — translations, corrected transcripts, or captions produced by your own pipeline — upload VTT or SRT files directly.
+
+### Upload a caption track
+
+Upload a caption file with multipart form data:
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/captions" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -F "file=@subtitles-es.vtt" \
+      -F "language=es" \
+      -F "label=Spanish"
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    with open("subtitles-es.vtt", "rb") as f:
+        resp = requests.post(
+            f"https://api.shortkit.dev/v1/content/{content_id}/captions",
+            headers={"Authorization": "Bearer sk_live_your_secret_key"},
+            files={"file": ("subtitles-es.vtt", f, "text/vtt")},
+            data={"language": "es", "label": "Spanish"},
+        )
+
+    track_id = resp.json()["data"]["id"]
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```javascript
+    import { readFileSync } from "fs";
+
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([readFileSync("subtitles-es.vtt")], { type: "text/vtt" }),
+      "subtitles-es.vtt"
+    );
+    form.append("language", "es");
+    form.append("label", "Spanish");
+
+    const resp = await fetch(
+      `https://api.shortkit.dev/v1/content/${contentId}/captions`,
+      {
+        method: "POST",
+        headers: { "Authorization": "Bearer sk_live_your_secret_key" },
+        body: form,
+      }
+    );
+
+    const { data } = await resp.json();
+    const trackId = data.id;
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `file` | File | Yes | -- | `.vtt` or `.srt` file |
+| `language` | string | No | `"en"` | BCP 47 language code |
+| `label` | string | No | `"English"` | Human-readable label shown in the player's caption selector |
+
+The response returns the new track with status `201`:
+
+```json
+{
+  "data": {
+    "id": "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
+    "language": "es",
+    "label": "Spanish",
+    "source": "external",
+    "url": "https://storage.shortkit.dev/captions/...",
+    "status": "ready",
+    "createdAt": "2026-06-10T12:00:00+00:00"
+  }
+}
+```
+
+Uploaded tracks are `ready` immediately — there is no processing delay. They appear in feed responses under `captionTracks[]` alongside any auto-generated track, and the SDK player renders them automatically.
+
+### Delete a caption track
+
+```bash
+curl -X DELETE "https://api.shortkit.dev/v1/content/${contentId}/captions/${trackId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+The track is removed from the content and its file is deleted from media storage.
+
+## Update metadata
+
+Use `PATCH /v1/content/{contentId}` to update metadata after creation. All fields are optional — only the fields you include are changed.
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X PATCH "https://api.shortkit.dev/v1/content/${contentId}" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "title": "Updated Title",
+        "tags": ["breaking", "politics"],
+        "section": "Politics",
+        "customMetadata": {
+          "campaignId": "spring-2026-v2",
+          "newField": "added",
+          "obsoleteField": null
+        }
+      }'
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    resp = requests.patch(
+        f"https://api.shortkit.dev/v1/content/{content_id}",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "title": "Updated Title",
+            "tags": ["breaking", "politics"],
+            "section": "Politics",
+            "customMetadata": {
+                "campaignId": "spring-2026-v2",
+                "newField": "added",
+                "obsoleteField": None,
+            },
+        },
+    )
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```javascript
+    const resp = await fetch(
+      `https://api.shortkit.dev/v1/content/${contentId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Authorization": "Bearer sk_live_your_secret_key",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "Updated Title",
+          tags: ["breaking", "politics"],
+          section: "Politics",
+          customMetadata: {
+            campaignId: "spring-2026-v2",
+            newField: "added",
+            obsoleteField: null,
+          },
+        }),
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `title` | string | Replaced outright |
+| `description` | string | Replaced outright |
+| `tags` | string[] | Replaced outright — send the full array |
+| `section` | string | Grouping label for filtering |
+| `author` | string | Author name |
+| `publishStatus` | string | `"published"` or `"unpublished"`; publishing requires the content to be `ready` |
+| `publishAt` | string | ISO 8601; must be in the future; rejected on currently published content |
+| `expiresAt` | string | ISO 8601; must be in the future and after `publishAt` |
+| `customMetadata` | object | **Shallow merge** — see below |
+| `origin` | string | `"ios_upload"` or `"other"`; see [Upload videos](/docs/guides/content/upload-videos) |
+
+### Merge semantics
+
+`customMetadata` is the one field that does not get replaced. It uses **shallow merge** semantics:
+
+- Keys in your request that don't exist yet are **added**.
+- Keys that already exist are **overwritten**.
+- Keys set to `null` are **removed**.
+- Keys you omit are **untouched**.
+
+If the content above started with `{"campaignId": "spring-2026", "obsoleteField": "old", "region": "us"}`, the PATCH in the example leaves it as:
+
+```json
+{
+  "campaignId": "spring-2026-v2",
+  "newField": "added",
+  "region": "us"
+}
+```
+
+Every other field is replaced outright. In particular, `tags` is a full replacement — to add one tag, send the existing array plus the new value.
+
+<Callout type="info" title="Scheduling and publishing interact">
+Setting `publishStatus` to `"published"` clears any pending `publishAt`. To schedule a future publish, the content must currently be unpublished.
 </Callout>
 
-Caption upload, language tagging, PATCH merge semantics, publication URLs.
+## Publication URLs
+
+Attach external links to content — the source article, a product page, an episode landing page. Each URL has an optional label and a position. The URL at position 0 is surfaced as `publisherUrl` on feed items, where the SDK can render it as a tappable link.
+
+### Add a publication URL
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "url": "https://example.com/article/spring-launch",
+        "label": "Read the full article",
+        "position": 0
+      }'
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    resp = requests.post(
+        f"https://api.shortkit.dev/v1/content/{content_id}/publication-urls",
+        headers={
+            "Authorization": "Bearer sk_live_your_secret_key",
+            "Content-Type": "application/json",
+        },
+        json={
+            "url": "https://example.com/article/spring-launch",
+            "label": "Read the full article",
+            "position": 0,
+        },
+    )
+
+    url_id = resp.json()["data"]["id"]
+    ```
+  </Tab>
+  <Tab value="Node.js">
+    ```javascript
+    const resp = await fetch(
+      `https://api.shortkit.dev/v1/content/${contentId}/publication-urls`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer sk_live_your_secret_key",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: "https://example.com/article/spring-launch",
+          label: "Read the full article",
+          position: 0,
+        }),
+      }
+    );
+
+    const { data } = await resp.json();
+    const urlId = data.id;
+    ```
+  </Tab>
+</Tabs>
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `url` | string | Yes | -- | The external link |
+| `label` | string | No | `null` | Display text for the link |
+| `position` | integer | No | `0` | 0-based ordering; position 0 becomes `publisherUrl` in the feed |
+
+### Update a publication URL
+
+Change the `url` or `label` of an existing entry. Only the fields you send are changed.
+
+```bash
+curl -X PUT "https://api.shortkit.dev/v1/content/${contentId}/publication-urls/${urlId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "label": "Read the story" }'
+```
+
+### Reorder publication URLs
+
+Pass all URL IDs in the desired order. Each entry's position is set to its index in the array — the first ID becomes the feed's `publisherUrl`.
+
+```bash
+curl -X PUT "https://api.shortkit.dev/v1/content/${contentId}/publication-urls/order" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urlIds": ["url-uuid-2", "url-uuid-1", "url-uuid-3"]
+  }'
+```
+
+The response returns the full list in its new order.
+
+### Delete a publication URL
+
+```bash
+curl -X DELETE "https://api.shortkit.dev/v1/content/${contentId}/publication-urls/${urlId}" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+## Next steps
+
+<Cards>
+  <Card title="Language detection" href="/docs/guides/content/language" description="Filter feeds by detected spoken language via customMetadata.language." />
+  <Card title="Webhooks" href="/docs/guides/content/webhooks" description="Get notified as content moves through the processing pipeline." />
+  <Card title="Upload content API" href="/docs/api/content/upload-content" description="Full reference for the content creation endpoint." />
+</Cards>

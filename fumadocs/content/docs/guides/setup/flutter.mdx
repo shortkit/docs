@@ -1,10 +1,157 @@
 ---
-title: "Flutter"
-description: "Short page: pub.dev install, init, troubleshooting, first render."
+title: "Install & initialize (Flutter)"
+description: "Install the ShortKit Flutter SDK from pub.dev, initialize it with your publishable key, and render your first feed."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+Add the package, wrap your screen in a `ShortKitProvider` with your publishable key, and embed a `ShortKitFeed` widget. That's the whole setup.
+
+## Requirements
+
+| Requirement | Minimum |
+|---|---|
+| Flutter | 3.38+ |
+| Dart | 3.10+ |
+| iOS | 16.0+ |
+| Android | API 24 (Android 7.0)+ |
+
+The SDK ships as a Flutter plugin package, `shortkit_flutter`, with the native iOS and Android SDKs bundled — you don't add them separately.
+
+<Callout type="info" title="Version numbers">
+The Flutter package is versioned independently from the native SDKs. The current pub.dev release is `0.2.22`; the iOS and Android SDKs it bundles carry their own version numbers, so don't expect them to match.
 </Callout>
 
-Short page: pub.dev install, init, troubleshooting, first render.
+## Install from pub.dev
+
+Add ShortKit to your `pubspec.yaml`:
+
+```yaml title="pubspec.yaml"
+dependencies:
+  shortkit_flutter: ^0.2.22
+```
+
+Then install:
+
+```bash
+flutter pub get
+```
+
+### iOS setup
+
+Ensure your iOS deployment target is 16.0 or higher in `ios/Podfile`:
+
+```ruby title="ios/Podfile"
+platform :ios, '16.0'
+```
+
+Then run `flutter pub get` again — it handles CocoaPods automatically.
+
+### Android setup
+
+Ensure your `minSdk` is 24 or higher in `android/app/build.gradle`:
+
+```groovy title="android/app/build.gradle"
+android {
+    defaultConfig {
+        minSdk = 24
+    }
+}
+```
+
+Import the package in your code with `import 'package:shortkit_flutter/shortkit_flutter.dart';`.
+
+## Initialize
+
+Wrap the part of your widget tree that hosts the feed in a `ShortKitProvider`. The `ShortKitProvider.apiKey` constructor creates and manages the SDK controller for you:
+
+```dart title="ShortKit initialization"
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+ShortKitProvider.apiKey(
+  apiKey: 'pk_live_your_publishable_key',
+  child: const ShortKitFeed(),
+)
+```
+
+`ShortKitProvider.apiKey` also accepts optional parameters such as `userId` for identifying logged-in users, plus `clientAppName`, `clientAppVersion`, and `customDimensions`. Feed configuration is not part of the provider — each `ShortKitFeed` takes its own `FeedConfig`, so one provider can power multiple surfaces.
+
+If you need to manage the controller's lifecycle yourself (for example, to call `ShortKitController` methods before any feed renders), create one directly and pass it to the default `ShortKitProvider` constructor. Descendant widgets can retrieve the controller with `ShortKit.of(context)`.
+
+<Callout type="info">
+Get your publishable key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development. Never embed a secret key in client code.
+</Callout>
+
+## Render your first feed
+
+```dart title="feed_screen.dart"
+import 'package:flutter/material.dart';
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+class FeedScreen extends StatelessWidget {
+  const FeedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShortKitProvider.apiKey(
+      apiKey: 'pk_live_your_publishable_key',
+      child: const Scaffold(
+        body: ShortKitFeed(),
+      ),
+    );
+  }
+}
+```
+
+Add `FeedScreen()` to your app's navigation or set it as your home route, then run your app. You should see a full-screen, vertically-scrolling video feed. New accounts come seeded with demo content, so the feed works before you upload anything.
+
+<Callout type="warn" title="Test in profile or release mode">
+Flutter's debug mode runs Dart in a JIT that significantly degrades video and scroll performance. Always judge feed smoothness with `flutter run --profile` or a release build — debug-mode jank is not representative of what your users will see.
+</Callout>
+
+## Troubleshooting
+
+<Accordions type="single">
+  <Accordion title="iOS build fails with a deployment target error">
+    ShortKit requires iOS 16.0 or later.
+
+    1. Set `platform :ios, '16.0'` in `ios/Podfile`
+    2. Run `cd ios && pod install`, or simply `flutter pub get` followed by `flutter run`
+    3. If the error persists, delete `ios/Podfile.lock` and the `ios/Pods` directory, then run `pod install` again
+  </Accordion>
+  <Accordion title="Android build fails with a minSdkVersion error">
+    ShortKit requires Android API 24 (Android 7.0) or later.
+
+    1. Open `android/app/build.gradle`
+    2. Set `minSdk = 24` (or higher) inside `defaultConfig`
+    3. Run `flutter clean` and rebuild
+  </Accordion>
+  <Accordion title="ShortKit.of() throws 'No ShortKitProvider found'">
+    `ShortKitFeed` and `ShortKit.of(context)` must be used below a `ShortKitProvider` in the widget tree.
+
+    1. Confirm the widget calling `ShortKit.of(context)` is a descendant of `ShortKitProvider`
+    2. If you navigate to a new route, remember that routes pushed with `Navigator` do not inherit the provider from the originating screen unless the provider sits above the `Navigator` — place `ShortKitProvider` above your routes, or wrap each feed screen in its own provider
+  </Accordion>
+  <Accordion title="Feed loads but shows no content">
+    The SDK initialized, but the feed is empty.
+
+    1. Confirm at least one video exists in your account under **Content** in the [Admin Portal](https://portal.shortkit.dev)
+    2. Verify the video status is **Ready** — processing takes 1-2 minutes after upload
+    3. Check the API key matches the environment your content lives in (`pk_live_...` vs `pk_test_...`)
+    4. A 401 error means the key is invalid — double-check the full key string and confirm it has not been revoked
+  </Accordion>
+  <Accordion title="Playback is choppy or scrolling stutters">
+    Run in profile or release mode before investigating further:
+
+    ```bash
+    flutter run --profile
+    ```
+
+    Debug builds run Dart in a JIT and disable many rendering optimizations, which produces jank that does not occur in release builds.
+  </Accordion>
+</Accordions>
+
+## Next steps
+
+- [Quickstart](/docs/guides/quickstart) — get your API key and upload your first video
+- [Display a feed](/docs/guides/display/feed) — configure feed height, mute behavior, and feed sources

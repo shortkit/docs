@@ -1,10 +1,173 @@
 ---
 title: "Webhooks"
-description: "Canonical callback event payloads and retry semantics for upload, import, and clip flows."
+description: "Canonical callback event payloads, delivery, and retry semantics for upload, import, clip, and live recording flows."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+ShortKit pushes processing events to your backend as HTTPS `POST` requests with JSON bodies. This page is the canonical reference for every event payload and the delivery contract. For a task-oriented walkthrough, see the [Webhooks guide](/docs/guides/content/webhooks).
+
+## Registration
+
+| Mechanism | Scope | Where to register |
+|-----------|-------|-------------------|
+| `callbackUrl` body field | Per request | [`POST /v1/content/upload`](/docs/api/content/upload-content), [`POST /v1/content/import`](/docs/api/content/import-content), [`POST /v1/live-streams/{id}/clips`](/docs/api/live-streams/create-clips) |
+| Live VOD Webhook URL | Per organization | Organization settings in the ShortKit dashboard |
+
+## Delivery contract
+
+| Property | Value |
+|----------|-------|
+| Method | `POST`, `Content-Type: application/json` |
+| Protocol | HTTPS |
+| Success | Any `2xx` response within **10 seconds** |
+| Attempts | **3** (initial attempt + 2 retries) |
+| Retry delays | 1 second, then 5 seconds |
+| After 3 failed attempts | Event abandoned — recover by [polling](#missed-events) |
+| Signing | None — [verify by re-fetching](#securing-your-endpoint) |
+
+Callbacks are fire-and-forget. A failed delivery never affects processing: the video keeps transcoding, the clip is still created, and the recording swap still happens.
+
+## Event index
+
+| Event | `status` | Trigger | Delivered via |
+|-------|----------|---------|---------------|
+| [`content.imported`](#contentimported-video) (video) | `"processing"` | File received, transcoding started | `callbackUrl` |
+| [`content.imported`](#contentimported-video) (video) | `"ready"` | Transcoding complete, all quality levels available | `callbackUrl` |
+| [`content.import_failed`](#contentimport_failed) | `"error"` | Processing failed | `callbackUrl` |
+| [`content.imported`](#contentimported-carousel) (carousel) | `"ready"` / `"errored"` | All carousel images validated | `callbackUrl` |
+| [`content.playback_id_updated`](#contentplayback_id_updated) | — | Ended live stream's recording is available | Organization webhook |
+
+## `content.imported` (video)
+
+Up to two per video — first with `status: "processing"`, then with `status: "ready"` — whether the video arrived by direct upload, URL import, or as a clip from a live stream. The `source` field tells you which.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Always `"content.imported"` |
+| `contentId` | string | The content item's UUID |
+| `externalId` | string \| null | The idempotency key you provided on the original request, or `null` |
+| `status` | string | `"processing"` or `"ready"` |
+| `playbackId` | string \| null | Resolves streaming and thumbnail URLs; may be `null` on `"processing"`, always present on `"ready"` |
+| `title` | string | The content item's title |
+| `source` | string | `"upload"` (direct upload), `"url"` (URL import), or `"clip"` (live stream clip) |
+| `timestamp` | string | ISO 8601 timestamp |
+
+```json title="content.imported — processing"
+{
+  "event": "content.imported",
+  "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
+  "status": "processing",
+  "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
+  "title": "Product Launch Teaser",
+  "source": "upload",
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
+
+The `ready` payload is identical with `status: "ready"`. At `"processing"` the video is already streamable if `playbackId` is non-null, but viewers of longer videos may buffer near the end until transcoding finishes.
+
+## `content.import_failed`
+
+Sent instead of the `ready` callback if processing fails. No `playbackId` is included.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Always `"content.import_failed"` |
+| `contentId` | string | The content item's UUID |
+| `externalId` | string \| null | Your idempotency key, or `null` |
+| `status` | string | Always `"error"` |
+| `error` | string | Human-readable failure description |
+| `title` | string | The content item's title |
+| `source` | string | `"upload"`, `"url"`, or `"clip"` |
+| `timestamp` | string | ISO 8601 timestamp |
+
+```json title="content.import_failed"
+{
+  "event": "content.import_failed",
+  "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
+  "status": "error",
+  "error": "Video processing failed",
+  "title": "Product Launch Teaser",
+  "source": "upload",
+  "timestamp": "2026-03-10T14:35:00.000Z"
+}
+```
+
+## `content.imported` (carousel)
+
+One callback per carousel, sent once all images are validated. `status` is `"ready"` if at least one image processed successfully, `"errored"` if all failed. Only successfully processed images appear in `images`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Always `"content.imported"` |
+| `contentId` | string | The content item's UUID |
+| `externalId` | string \| null | Your idempotency key, or `null` |
+| `contentType` | string | Always `"carousel"` |
+| `status` | string | `"ready"` or `"errored"` |
+| `title` | string | The content item's title |
+| `images` | array | Successfully processed images: `position` (integer), `url` (string), `alt` (string \| null) |
+| `timestamp` | string | ISO 8601 timestamp |
+
+```json title="content.imported — carousel"
+{
+  "event": "content.imported",
+  "contentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "externalId": null,
+  "contentType": "carousel",
+  "status": "ready",
+  "title": "Top 5 Weekend Destinations",
+  "images": [
+    { "position": 0, "url": "https://media.shortkit.dev/...", "alt": null },
+    { "position": 1, "url": "https://media.shortkit.dev/...", "alt": null }
+  ],
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
+
+## `content.playback_id_updated`
+
+Sent to your organization's Live VOD Webhook URL when an ended live stream's recording becomes available and ShortKit swaps the playback ID from the live broadcast to the on-demand recording.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Always `"content.playback_id_updated"` |
+| `content_id` | string | The live stream's UUID — the same `id` returned by [Create live stream](/docs/api/live-streams/create-live-stream) |
+| `org_id` | string | Your organization's UUID |
+| `new_playback_id` | string | Playback ID of the on-demand recording |
+| `previous_playback_id` | string | Playback ID of the live broadcast being replaced |
+| `timestamp` | integer | Unix epoch seconds |
+
+```json title="content.playback_id_updated"
+{
+  "event": "content.playback_id_updated",
+  "content_id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+  "org_id": "9f8e7d6c-5b4a-3210-fedc-ba9876543210",
+  "new_playback_id": "DEFuvw456NewRecordingPlaybackId",
+  "previous_playback_id": "ABCxyz123LiveBroadcastPlaybackId",
+  "timestamp": 1749571200
+}
+```
+
+<Callout type="warn" title="Different field naming">
+This event uses snake_case field names and a numeric timestamp, unlike the camelCase `content.imported` family. Match on the `event` field, not on payload shape.
 </Callout>
 
-Canonical callback event payloads and retry semantics for upload, import, and clip flows.
+## Missed events
+
+If your endpoint was down through all three attempts, poll the content item for current state:
+
+```bash title="Recover current status"
+curl https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+The response includes `uploadStatus` and the playback ID. See [Get content](/docs/api/content/get-content).
+
+## Securing your endpoint
+
+Callback requests are not signed. Treat events as hints, not authoritative state:
+
+- Include a hard-to-guess token in the URL you register (for example `https://your-backend.com/webhooks/shortkit/3f9a1c70d2e84b56`) and reject other paths.
+- Confirm the reported state with `GET /v1/content/{id}` before acting on it — this also makes your handler idempotent across retries.
+- Respond `2xx` quickly and do heavy work asynchronously; ShortKit counts a response slower than 10 seconds as a failed attempt.

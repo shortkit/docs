@@ -1,10 +1,267 @@
 ---
 title: "Downloads"
-description: "Watermarked download flow: download-url, 202 preparing lifecycle, retrieval. SDK download methods in tabs (iOS/RN real; others 'not yet supported')."
+description: "Let users save videos as MP4 files — fetch download URLs from the API, handle the preparing lifecycle, and trigger downloads from the iOS and React Native SDKs."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+ShortKit can produce a downloadable MP4 file for any video in your library. If your organization has a watermark logo configured, the MP4 is rendered with your watermark baked in; otherwise you get a plain MP4 rendition of the source video.
+
+Downloads are an organization-level feature. If they aren't enabled for your organization yet, contact ShortKit support.
+
+There are two ways to consume downloads:
+
+- **REST API** — fetch a download URL (or redirect straight to the file) from your backend or client.
+- **SDKs** — call `downloadVideo` and the SDK fetches the file to local storage, reporting progress along the way. Shipped on iOS and React Native today.
+
+## How MP4s are prepared
+
+MP4 renditions are generated asynchronously after a video finishes processing — they are not available the instant a video reaches `ready`. For watermarked organizations there's a second step: once the plain rendition exists, ShortKit composites your watermark logo onto it and stores the result. The download endpoints expose this lifecycle directly:
+
+| State | What the API returns |
+|-------|----------------------|
+| MP4 ready | `200` with a `downloadUrl` |
+| Still preparing | `202` with `{ "status": "preparing" }` — poll again later |
+| Not available | `404` — downloads not enabled, or the rendition failed |
+
+## Get a download URL
+
+`GET /v1/content/{id}/download-url` returns a URL for the MP4. It accepts either a **secret key** or a **publishable key**, so you can call it from a server or directly from a client.
+
+The `{id}` can be the content ID or, for live stream recordings, the live stream ID — ShortKit resolves either to the same video.
+
+<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
+<Tab value="cURL">
+```bash title="Fetch download URL"
+curl https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890/download-url \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+</Tab>
+<Tab value="Python">
+```python title="Fetch download URL"
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890/download-url",
+    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+)
+
+if resp.status_code == 202:
+    print("MP4 still preparing — retry shortly")
+else:
+    download_url = resp.json()["data"]["downloadUrl"]
+```
+</Tab>
+<Tab value="Node.js">
+```javascript title="Fetch download URL"
+const response = await fetch(
+  "https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890/download-url",
+  { headers: { Authorization: "Bearer sk_live_your_secret_key" } }
+);
+
+if (response.status === 202) {
+  // MP4 still preparing — retry shortly
+} else {
+  const { data } = await response.json();
+  const downloadUrl = data.downloadUrl;
+}
+```
+</Tab>
+</Tabs>
+
+When the file is ready:
+
+```json title="200 OK"
+{
+  "data": {
+    "downloadUrl": "https://media.shortkit.dev/downloads/...",
+    "status": "ready"
+  }
+}
+```
+
+While the rendition (or the watermark composite) is still being generated:
+
+```json title="202 Accepted"
+{
+  "data": {
+    "status": "preparing"
+  }
+}
+```
+
+There is no callback for rendition completion — poll the endpoint until you get a `200`. For freshly uploaded videos, the plain rendition typically lands shortly after the video reaches `ready`; the watermarked file follows once compositing finishes.
+
+### Watermark resolution order
+
+For watermark-enabled organizations the endpoint resolves in this order:
+
+1. **Watermarked MP4 ready** → `200` with the watermarked file's URL.
+2. **Plain rendition ready, watermark still compositing** → `202 preparing`. The endpoint never hands out the unwatermarked file to a watermark-enabled organization.
+3. **Neither ready** → `202 preparing` (or `404` if the rendition errored).
+
+Organizations without a watermark logo skip straight to the plain MP4 rendition.
+
+## Redirect endpoint
+
+`GET /v1/content/{id}/download` responds with a `302` redirect to the MP4 itself, instead of returning JSON. This is convenient for direct links (e.g. a "Download" anchor in a web page or an email) where you want the browser to follow through to the file.
+
+```bash title="Redirect to the MP4"
+curl -L https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890/download \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -o video.mp4
+```
+
+This endpoint is for watermark-enabled organizations: it redirects to the watermarked MP4 when ready, and falls back to the plain rendition during the compositing window (unlike `download-url`, which returns `202` in that window). It returns `404` if your organization has no watermark configured — use `download-url` instead.
+
+## Downloading from the SDK
+
+The SDKs handle the whole flow for you: they read the `downloadUrl` already present on the feed item, transparently re-fetch it from the API if the rendition was still preparing at feed-fetch time, download the file, and report progress. One download runs at a time.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Check `item.isDownloadable` to decide whether to show a download button, then call `downloadVideo`. The returned `URL` points to an MP4 in a temporary directory — move it somewhere permanent (or hand it to the Photos library) before the system cleans it up.
+
+```swift title="DownloadButton.swift"
+let fileURL = try await shortKit.downloadVideo(item)
+// Persist the file — the temporary location is not durable.
+let destination = FileManager.default
+    .urls(for: .documentDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("\(item.id).mp4")
+try FileManager.default.moveItem(at: fileURL, to: destination)
+```
+
+Inside a custom overlay where you have the player but not the `ShortKit` instance, use the convenience wrapper:
+
+```swift title="OverlayView.swift"
+let fileURL = try await player.downloadCurrentItem()
+```
+
+**Bandwidth modes.** The `mode` parameter controls how the download competes with playback:
+
+| Mode | Behavior |
+|------|----------|
+| `.nonInterruptive` (default) | Download yields to playback — low priority, background network service. Playback is never starved. |
+| `.interruptive` | Download competes equally with playback. Fastest, but may cause buffering. |
+
+```swift
+let fileURL = try await shortKit.downloadVideo(item, mode: .interruptive)
+```
+
+**Observing progress.** Set `shortKit.downloadDelegate` to receive lifecycle callbacks. All methods are optional and dispatched on the main thread. The delegate reference is weak — keep a strong reference to your observer.
+
+```swift title="DownloadObserver.swift"
+final class DownloadObserver: ShortKitDownloadDelegate {
+    func shortKit(_ shortKit: ShortKit, didStartDownload item: ContentItem) {
+        // Show progress UI
+    }
+
+    func shortKit(_ shortKit: ShortKit, didUpdateDownloadProgress item: ContentItem, progress: Double) {
+        // progress is 0.0–1.0
+    }
+
+    func shortKit(_ shortKit: ShortKit, didCompleteDownload item: ContentItem, fileURL: URL) {
+        // Move the file, present a share sheet, etc.
+    }
+
+    func shortKit(_ shortKit: ShortKit, didFailDownload item: ContentItem, error: ShortKitDownloadError) {
+        // Surface the error
+    }
+}
+
+shortKit.downloadDelegate = observer
+```
+
+**Cancelling.** `shortKit.cancelDownload()` cancels the active download; the delegate receives `didFailDownload` with `.cancelled`.
+
+**Errors.** `downloadVideo` throws `ShortKitDownloadError`:
+
+| Case | Meaning |
+|------|---------|
+| `.downloadNotAvailable` | The item has no download URL — downloads may not be enabled for your organization, or the rendition isn't ready yet |
+| `.downloadInProgress` | Another download is already running; only one at a time is supported |
+| `.networkError(Error)` | A network-level failure during the download |
+| `.httpError(statusCode:)` | The download URL returned a non-success status code |
+| `.cancelled` | `cancelDownload()` was called |
+
+</Tab>
+<Tab value="Android">
+
+Not yet supported on Android. See [platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+<Tab value="Flutter">
+
+Not yet supported on Flutter. See [platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+<Tab value="React Native">
+
+<Callout type="info" title="iOS only">
+React Native downloads run on the native iOS layer. On Android the promise rejects with `UNSUPPORTED`.
 </Callout>
 
-Watermarked download flow: download-url, 202 preparing lifecycle, retrieval. SDK download methods in tabs (iOS/RN real; others 'not yet supported').
+Trigger a download with `ShortKitCommands.downloadVideo`. The promise resolves to a local file URL string for the downloaded MP4 (in a temporary directory — move it before relying on it):
+
+```tsx title="DownloadButton.tsx"
+import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+const fileUrl = await ShortKitCommands.downloadVideo(item.id, {
+  mode: 'nonInterruptive', // or 'interruptive'
+});
+```
+
+| Mode | Behavior |
+|------|----------|
+| `'nonInterruptive'` (default) | Download yields to playback bandwidth |
+| `'interruptive'` | Download competes equally with playback — fastest, may cause buffering |
+
+**Observing progress.** The `useShortKit()` hook exposes a reactive `downloadState`:
+
+```tsx title="DownloadProgress.tsx"
+import { useShortKit } from '@shortkitsdk/react-native';
+
+function DownloadProgress() {
+  const { downloadState } = useShortKit();
+
+  if (downloadState.status === 'downloading') {
+    return <ProgressBar value={downloadState.progress} />; // 0.0–1.0
+  }
+  if (downloadState.status === 'completed') {
+    return <Text>Saved to {downloadState.fileUrl}</Text>;
+  }
+  if (downloadState.status === 'failed') {
+    return <Text>{downloadState.error}</Text>;
+  }
+  return null;
+}
+```
+
+| `DownloadState` field | Type | Meaning |
+|------|------|---------|
+| `status` | `'idle' \| 'downloading' \| 'completed' \| 'failed'` | Current phase |
+| `itemId` | `string?` | Content item being downloaded |
+| `progress` | `number` | 0.0–1.0 fraction |
+| `fileUrl` | `string?` | Local file URL after success |
+| `error` | `string?` | Error message after failure |
+
+**Cancelling.** `ShortKitCommands.cancelDownload()` cancels the active download; `downloadState` transitions to `failed` with a cancellation error.
+
+</Tab>
+<Tab value="Web">
+
+Not yet supported on Web. See [platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+</Tabs>
+
+<Callout type="info" title="Feed items carry the download URL">
+Feed responses include a `downloadUrl` field on each video item when a rendition is ready. The SDKs use it directly; if it's `null` because the rendition was still preparing when the feed was fetched, the SDK re-queries `download-url` on demand — you don't need to handle that case yourself.
+</Callout>
+
+## Related
+
+<Cards>
+  <Card title="Upload videos" href="/docs/guides/content/upload-videos" description="Get videos into ShortKit and track processing status." />
+  <Card title="Content model" href="/docs/guides/concepts/content-model" description="Content types, statuses, and the feed item shape." />
+  <Card title="Authentication" href="/docs/api/authentication" description="Secret vs. publishable keys and which endpoints accept each." />
+</Cards>

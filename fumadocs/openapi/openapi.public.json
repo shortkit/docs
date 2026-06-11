@@ -12,15 +12,420 @@
   ],
   "tags": [
     {
+      "name": "Feed",
+      "description": "Retrieve ranked and filtered feeds."
+    },
+    {
       "name": "Content",
       "description": "Upload, import, and manage videos and carousels."
     },
     {
       "name": "Live Streams",
       "description": "Create and manage live streams that appear in your feed."
+    },
+    {
+      "name": "Surveys",
+      "description": "Create surveys and collect responses in the feed."
+    },
+    {
+      "name": "Analytics",
+      "description": "Metrics, views, and event data for your content."
+    },
+    {
+      "name": "Ad Configuration",
+      "description": "Configure ad serving in your feeds."
+    },
+    {
+      "name": "Client Runtime",
+      "description": "Endpoints the SDKs call with publishable keys."
     }
   ],
   "paths": {
+    "/v1/ad-config": {
+      "get": {
+        "summary": "Get ad configuration",
+        "operationId": "get_ad_config_v1_ad_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ad Configuration"
+        ],
+        "description": "Returns the current ad configuration for your organization — placement settings (`frequency`, `firstAdOffset`, `maxPerPage`), skip behavior, targeting, native ad format mappings, and sponsored content fields. If no configuration has been saved yet, default values are returned.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update ad configuration",
+        "operationId": "put_ad_config_v1_ad_config_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdConfigWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ad Configuration"
+        ],
+        "description": "Updates ad configuration settings for your organization. This is a sparse update — only the fields you include in the request body are changed, and omitted fields keep their current values. A configuration is created automatically on first update, and the response returns the full resulting configuration.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content": {
+      "post": {
+        "summary": "Create content",
+        "operationId": "create_content_v1_content_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Create a content item without uploading media. Set `contentType` to `video` (default), `carousel`, or `video_carousel`; carousels are created ready so you can attach images or videos right away, while videos start in `waiting_for_upload`. Optional `publishAt` and `expiresAt` schedule when the item enters and leaves the feed.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "List content",
+        "operationId": "list_content_v1_content_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tags"
+            }
+          },
+          {
+            "name": "uploadStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uploadstatus"
+            }
+          },
+          {
+            "name": "publishStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Publishstatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Returns a paginated list of content items in your organization, newest first. Filter with `uploadStatus`, `publishStatus`, and `tags` (comma-separated, matches any tag); page with `limit` (max 100) and the `cursor` from a previous response's `meta.nextCursor`.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/search": {
+      "get": {
+        "summary": "Search content",
+        "description": "Search your content library by keyword. Every whitespace-separated term in `q` must match the title, description, author, tags, or custom metadata. Returns up to `limit` results (max 50), newest first.",
+        "operationId": "search_content_v1_content_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/count": {
+      "get": {
+        "summary": "Count content",
+        "description": "Returns the total number of content items in your organization, optionally filtered by `uploadStatus` and `publishStatus`.",
+        "operationId": "get_content_count_v1_content_count_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "uploadStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uploadstatus"
+            }
+          },
+          {
+            "name": "publishStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Publishstatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
     "/v1/content/{content_id}": {
       "get": {
         "summary": "Get content",
@@ -63,6 +468,1835 @@
         "security": [
           {
             "secretKey": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update content",
+        "operationId": "update_content_v1_content__content_id__patch",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Update fields on a content item — only the fields you include in the body are modified. `customMetadata` merges key by key (a `null` value removes a key), and setting `publishStatus` to `published` requires processing to be finished and clears any scheduled `publishAt`. Returns 400 if `publishAt` or `expiresAt` is in the past, or if `expiresAt` is not after `publishAt`.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete content",
+        "operationId": "delete_content_v1_content__content_id__delete",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Delete a content item. It is removed from the feed immediately and excluded from list results; this operation is not reversible through the API.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/images": {
+      "post": {
+        "summary": "Add carousel image",
+        "operationId": "upload_carousel_image_v1_content__content_id__images_post",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_carousel_image_v1_content__content_id__images_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Add an image to an image carousel via multipart upload. Send the image bytes as `file`, plus optional `position` and `altText` form fields. Carousels hold at most 10 images; returns the created image with a 201.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/images/{image_id}": {
+      "delete": {
+        "summary": "Delete carousel image",
+        "operationId": "delete_carousel_image_v1_content__content_id__images__image_id__delete",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Image Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Remove an image from an image carousel. The stored image file is deleted along with the record.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/images/order": {
+      "put": {
+        "summary": "Reorder carousel images",
+        "operationId": "reorder_carousel_images_v1_content__content_id__images_order_put",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderImagesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Reorder the images in a carousel. Send `imageIds` containing the image IDs in the desired display order — positions are assigned from the array index. Returns the full image list in the new order.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/videos": {
+      "post": {
+        "summary": "Add carousel videos",
+        "description": "Add videos to a video carousel. Each entry in `videos` references an existing video by `contentId` with a `position`; videos must be fully processed (`ready`), a carousel holds at most 10, and videos already in the carousel are skipped. Returns the carousel's entries in order.",
+        "operationId": "add_videos_to_carousel_v1_content__content_id__videos_post",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVideosToCarouselRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/videos/order": {
+      "put": {
+        "summary": "Reorder carousel videos",
+        "description": "Reorder the videos in a video carousel. Send `videoIds` containing the video content IDs in the desired display order — positions are assigned from the array index.",
+        "operationId": "reorder_carousel_videos_v1_content__content_id__videos_order_put",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderVideosRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/videos/{entry_id}": {
+      "delete": {
+        "summary": "Remove carousel video",
+        "description": "Remove a video entry from a video carousel by its entry ID. Remaining entries are renumbered so positions stay contiguous.",
+        "operationId": "remove_video_from_carousel_v1_content__content_id__videos__entry_id__delete",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/captions": {
+      "post": {
+        "summary": "Upload caption track",
+        "operationId": "upload_caption_track_v1_content__content_id__captions_post",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_caption_track_v1_content__content_id__captions_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Upload a caption track for a content item via multipart upload. Send a VTT or SRT file as `file`, plus `language` (default `en`) and `label` (default `English`) form fields. The track is available immediately and returned with a 201; other file types are rejected with a 400.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/captions/{track_id}": {
+      "delete": {
+        "summary": "Delete caption track",
+        "operationId": "delete_caption_track_v1_content__content_id__captions__track_id__delete",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "track_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Track Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Delete a caption track from a content item. The stored caption file is removed along with the record.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/publication-urls": {
+      "post": {
+        "summary": "Add publication URL",
+        "operationId": "add_publication_url_v1_content__content_id__publication_urls_post",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPublicationUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Attach a publication URL to a content item — a link to the original or related article for this content. Provide `url`, plus an optional `label` and `position`. Returns the created URL with a 201.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/publication-urls/order": {
+      "put": {
+        "summary": "Reorder publication URLs",
+        "operationId": "reorder_publication_urls_v1_content__content_id__publication_urls_order_put",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderPublicationUrlsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Reorder a content item's publication URLs. Send `urlIds` containing the URL IDs in the desired display order — positions are assigned from the array index. Returns the full list in the new order.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/publication-urls/{url_id}": {
+      "put": {
+        "summary": "Update publication URL",
+        "operationId": "update_publication_url_v1_content__content_id__publication_urls__url_id__put",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Url Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePublicationUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Update a publication URL's `url` or `label`. Only the fields you provide are changed.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete publication URL",
+        "operationId": "delete_publication_url_v1_content__content_id__publication_urls__url_id__delete",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "url_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Url Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Delete a publication URL from a content item.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/events": {
+      "post": {
+        "summary": "Ingest events",
+        "operationId": "ingest_events_v1_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventsBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Client Runtime"
+        ],
+        "description": "Submit a batch of up to 100 analytics events from a client app, such as playback, engagement, and view lifecycle events. Events are accepted asynchronously with a `202` response containing `received` and `failed` counts; events with timestamps older than 24 hours or with invalid timestamps are rejected and counted as `failed`. The ShortKit SDKs call this endpoint automatically.",
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/events/explore": {
+      "get": {
+        "summary": "List events",
+        "description": "Return a paginated list of raw analytics events, newest first, including the event type, viewer, session identifiers, and the full event payload. Filter by `event_type`, `content_id`, or `viewer_id`, plus the standard `timeframe[]` parameter. `limit` accepts up to 200 events per page.",
+        "operationId": "explore_events_v1_events_explore_get",
+        "parameters": [
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "viewer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/events/types": {
+      "get": {
+        "summary": "List event types",
+        "description": "Return the distinct event types recorded in a timeframe, ordered by frequency. Each entry includes the raw event count plus the number of distinct views and sessions that contained that event type.",
+        "operationId": "list_event_types_v1_events_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/events/views": {
+      "get": {
+        "summary": "List views with event timelines",
+        "description": "Return a paginated list of views, each with summary playback metrics and the full timeline of raw events that made up the view. Filter by `content_id`, `viewer_id`, or repeated `event_type` parameters — when multiple event types are given, only views containing all of them are returned. Pass `count_only=true` to fetch just the total count without row data.",
+        "operationId": "list_event_views_v1_events_views_get",
+        "parameters": [
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "viewer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "count_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Count Only"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/events/sessions": {
+      "get": {
+        "summary": "List sessions",
+        "description": "Return a paginated list of viewing sessions, each grouping its views (with their event timelines) plus any events not tied to a specific view. Each session includes its duration, view count, and event count. Supports the same `event_type`, `content_id`, `viewer_id`, and `count_only` parameters as the views endpoint.",
+        "operationId": "list_event_sessions_v1_events_sessions_get",
+        "parameters": [
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "viewer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "count_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Count Only"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/feed": {
+      "get": {
+        "summary": "Get the feed",
+        "operationId": "get_feed_v1_feed_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "name": "X-Session-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ],
+        "description": "Returns the paginated feed of published content for your organization — videos, image carousels, video carousels, and live streams, with any configured ad slots and surveys interleaved automatically. Use `limit` (1–50) and the `next_cursor` value from `meta` to paginate; pass the `X-User-Id` and `X-Session-Id` headers so survey frequency rules apply per user and session. Active live streams are ranked by current viewers and appear at the top of the first page.",
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/feed/videos": {
+      "get": {
+        "summary": "Get the video feed",
+        "operationId": "get_video_feed_v1_feed_videos_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "name": "X-Session-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ],
+        "description": "Returns the feed restricted to video content only — image and video carousels are excluded. Accepts the same `limit` and `cursor` pagination parameters as the main feed, and still includes any configured ad slots and surveys.",
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/feed/filter": {
+      "get": {
+        "summary": "Get a filtered feed",
+        "operationId": "get_filtered_feed_v1_feed_filter_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tags"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Author"
+            }
+          },
+          {
+            "name": "content_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Type"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "name": "X-Session-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Session-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ],
+        "description": "Returns the feed narrowed by `tags`, `section`, `author`, `content_type`, or custom metadata via repeated `metadata.<key>=<value>` query parameters (multiple values for the same key match any of them). Pagination works the same as the main feed via `limit` and `cursor`. If discovery is enabled for your organization and at least one filter is present, results are served from the randomized discovery pipeline instead of reverse-chronological order.",
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/feed/filter/discovery": {
+      "get": {
+        "summary": "Get a filtered discovery feed",
+        "description": "Returns a randomized, per-viewer-deduplicated feed narrowed by `tags`, `section`, `author`, `content_type`, or `metadata.<key>` query parameters. At least one filter parameter is required — requests without any return a 400. Exhaustion behaves like the discovery feed: watch for the `X-Near-Exhausted` and `X-Feed-Exhausted` response headers.",
+        "operationId": "get_filtered_discovery_feed_v1_feed_filter_discovery_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tags"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Author"
+            }
+          },
+          {
+            "name": "content_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Type"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ],
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/feed/discovery": {
+      "get": {
+        "summary": "Get the discovery feed",
+        "description": "Returns a randomized feed that avoids repeating items a viewer has already been served. Pass the `X-User-Id` header to track seen items per viewer; without it, results are randomized but not deduplicated. When the viewer has seen nearly all available content, the response sets the `X-Near-Exhausted` or `X-Feed-Exhausted` headers and `meta.next_cursor` is omitted once the pool is exhausted.",
+        "operationId": "discovery_feed_v1_feed_discovery_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Feed"
+        ],
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/captions": {
+      "get": {
+        "summary": "Get captions for a playback ID",
+        "description": "Resolves the ready caption tracks for a video by its `playback_id` query parameter, returning each track's `language`, `label`, `source`, and a `url` to the WebVTT file. Useful in custom feed mode where the client has a playback ID but not the full content object. Returns an empty list if the playback ID is unknown or no tracks are ready.",
+        "operationId": "get_captions_by_playback_id_v1_captions_get",
+        "parameters": [
+          {
+            "name": "playback_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Playback ID",
+              "title": "Playback Id"
+            },
+            "description": "Playback ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Client Runtime"
+        ],
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/identity/resolve": {
+      "post": {
+        "summary": "Resolve a user identity",
+        "operationId": "resolve_identity_v1_identity_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentityResolveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Client Runtime"
+        ],
+        "description": "Links an anonymous device identity to a known user, typically called when a viewer signs in. Pass the device's `anonymousId` and your application's `userId`; the anonymous profile is merged into the identified user's profile so engagement history carries over. Calling it again with an already-linked pair is a no-op.",
+        "security": [
+          {
+            "publishableKey": []
           }
         ]
       }
@@ -112,6 +2346,312 @@
         ]
       }
     },
+    "/v1/content/import/status": {
+      "get": {
+        "summary": "Get import status",
+        "description": "Returns your organization's current import queue status: items queued and processing, counts of items completed and failed today, your daily quota and how much of it is used, and an estimated time to drain the queue.",
+        "operationId": "import_status_v1_content_import_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/import": {
+      "post": {
+        "summary": "Import content",
+        "operationId": "import_content_v1_content_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Import up to 100 content items from URLs in a single request — provide a `sourceUrl` for each video or an `images` array for each carousel, plus the usual metadata. Items are processed asynchronously: track progress with `callbackUrl` or the import status endpoint. `externalId` makes imports idempotent (re-imports are skipped), and the request returns 429 if it would exceed your daily import quota or queue limit.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/import/tiktok": {
+      "post": {
+        "summary": "Import from TikTok",
+        "operationId": "import_from_tiktok_v1_content_import_tiktok_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TikTokImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Import videos from TikTok. Accepts up to 20 `urls` — individual video links or profile links, which are expanded up to `maxVideosPerProfile` (default 500). Returns a `jobId` with counts of videos queued and skipped (previously imported videos are deduplicated); processing is asynchronous, with optional progress delivery to `callbackUrl`.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/import/instagram": {
+      "post": {
+        "summary": "Import from Instagram",
+        "operationId": "import_from_instagram_v1_content_import_instagram_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstagramImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Import Reels from Instagram. Accepts up to 20 `urls` — individual Reel links or profile links, which are expanded up to `maxReelsPerProfile` (default 500). Returns a `jobId` with counts of Reels queued and skipped (previously imported Reels are deduplicated); processing is asynchronous, with optional progress delivery to `callbackUrl`.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/finalize": {
+      "post": {
+        "summary": "Finalize carousel upload",
+        "operationId": "finalize_content_v1_content__content_id__finalize_post",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Finalize a carousel created via the upload endpoint after sending the image files to their signed upload URLs. Each image slot is validated — the file must exist, be an image, and be 10 MB or less — and the carousel becomes `ready` if at least one image is valid, otherwise `errored`. Returns per-image results; only applies to carousels still awaiting upload.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/download-url": {
+      "get": {
+        "summary": "Get download URL",
+        "operationId": "get_download_url_v1_content__content_id__download_url_get",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "description": "Get an MP4 download URL for a content item (a live stream ID also resolves to its recording). Returns `{downloadUrl, status: \"ready\"}` when the file is available, 202 with `{status: \"preparing\"}` while it is still being prepared, and 404 if downloads are not enabled for your organization.",
+        "security": [
+          {
+            "secretKey": []
+          },
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/content/{content_id}/download": {
+      "get": {
+        "summary": "Download content",
+        "description": "Download a content item's MP4 directly. Responds with a 302 redirect to the file (a live stream ID also resolves to its recording); returns 404 if no downloadable file is available.",
+        "operationId": "download_watermarked_mp4_v1_content__content_id__download_get",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Content"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          },
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
     "/v1/live-streams": {
       "post": {
         "tags": [
@@ -155,11 +2695,1945 @@
             "secretKey": []
           }
         ]
+      },
+      "get": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "List live streams",
+        "description": "List your organization's live streams, newest first. Filter with the `status` query parameter (`idle`, `active`, `ended`) and page size with `limit` (1–100, default 20). Each entry includes ingest credentials, current status, and `currentViewers`.",
+        "operationId": "list_live_streams_v1_live_streams_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/status": {
+      "get": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Get live stream status",
+        "description": "Poll the current state of one or more live streams by playback ID — pass up to 50 IDs in the comma-separated `playback_ids` query parameter. Returns `status`, `startedAt`, `endedAt`, and `currentViewers` per playback ID. Authenticated with your publishable key, so it's safe to call directly from client apps.",
+        "operationId": "get_live_stream_status_v1_live_streams_status_get",
+        "parameters": [
+          {
+            "name": "playback_ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated playback IDs",
+              "title": "Playback Ids"
+            },
+            "description": "Comma-separated playback IDs"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/{stream_id}/viewer-token": {
+      "get": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Create viewer token",
+        "description": "Issue a short-lived viewer token (about 15 minutes) for watching a WebRTC live stream, along with the `wsUrl` to connect to. Only available for streams created with `protocol: \"webrtc\"` — returns 400 for HLS streams. Authenticated with your publishable key, so clients can call it directly.",
+        "operationId": "get_viewer_token_v1_live_streams__stream_id__viewer_token_get",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/{stream_id}/publisher-token": {
+      "get": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Create publisher token",
+        "description": "Issue a short-lived publisher token (about 4 hours) for broadcasting to a WebRTC live stream, along with the `wsUrl` and WHIP ingest details. Only available for streams created with `protocol: \"webrtc\"` — returns 400 for HLS streams. Requires your secret key, so call it from your backend and hand the token to the broadcasting client.",
+        "operationId": "get_publisher_token_v1_live_streams__stream_id__publisher_token_get",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/{stream_id}": {
+      "get": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Get live stream",
+        "description": "Retrieve a single live stream by ID, including its status, ingest credentials, configuration, and `currentViewers`. Returns 404 if the stream does not exist or does not belong to your organization.",
+        "operationId": "get_live_stream_v1_live_streams__stream_id__get",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Delete live stream",
+        "description": "Delete a live stream and remove its content item from your feed. If the stream is still active, the broadcast is ended first. Clips already created from the stream are preserved as standalone content items.",
+        "operationId": "delete_live_stream_v1_live_streams__stream_id__delete",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/{stream_id}/start": {
+      "post": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Start live stream",
+        "description": "Mark a WebRTC live stream as `active` and publish it to your feed. Call this after your WebRTC publisher has connected and begun sending media — HLS streams go active automatically when the encoder connects, so they don't need this call. Idempotent: calling it on an already-active stream returns the current stream unchanged.",
+        "operationId": "start_live_stream_v1_live_streams__stream_id__start_post",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/{stream_id}/end": {
+      "post": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "End live stream",
+        "description": "End a live stream immediately, regardless of whether the broadcaster is still connected. The response returns the stream in its current state; for HLS streams the `status` transitions to `ended` asynchronously, so poll the stream or its status endpoint to confirm. Once ended, the recording becomes available for clipping.",
+        "operationId": "end_live_stream_v1_live_streams__stream_id__end_post",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/live-streams/{stream_id}/clips": {
+      "post": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "Create clips",
+        "description": "Create one or more on-demand video clips from a live stream's recording — pass up to 20 ranges in `clips`, each with `startSec`, `endSec`, and an optional `title`. Works while the stream is `active` (real-time clipping) or after it has `ended`; returns 409 if the recording isn't available yet or the stream is in another state, and clipping is not supported for WebRTC streams. Each clip becomes a standalone video content item that starts in `processing`; supply a `callbackUrl` to be notified when each clip is ready.",
+        "operationId": "create_clips_v1_live_streams__stream_id__clips_post",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClipsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Live Streams"
+        ],
+        "summary": "List clips",
+        "description": "List all clips created from a live stream, newest first. Each entry includes the clip's content ID, playback ID, time range, `uploadStatus`, `publishStatus`, and thumbnail URL.",
+        "operationId": "list_clips_v1_live_streams__stream_id__clips_get",
+        "parameters": [
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stream Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/views": {
+      "get": {
+        "summary": "List views",
+        "description": "Return a paginated list of video views, one row per completed viewing session, including watch time, completion, startup time, rebuffering, device, and custom metadata fields. Filter by `viewer_id`, `content_id`, `timeframe[]`, and `filters[]`; sort with `order_by` (`view_start`, `watch_time_ms`, or `playing_time_ms`) and `order_direction`. `limit` accepts up to 100 rows per page.",
+        "operationId": "list_views_v1_views_get",
+        "parameters": [
+          {
+            "name": "viewer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer Id"
+            }
+          },
+          {
+            "name": "content_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "view_start",
+              "title": "Order By"
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(asc|desc)$",
+              "default": "desc",
+              "title": "Order Direction"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/views/{view_id}": {
+      "get": {
+        "summary": "Get a view",
+        "description": "Retrieve full detail for a single video view by ID, including engagement, playback-quality, device, and custom metadata fields. Returns 404 if the view does not exist or belongs to another organization.",
+        "operationId": "get_view_v1_views__view_id__get",
+        "parameters": [
+          {
+            "name": "view_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "View Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/exports/views": {
+      "get": {
+        "summary": "Export views",
+        "description": "Download raw view data for a timeframe as a file attachment. Set `format` to `json` (default) or `csv`; the standard `timeframe[]` and `filters[]` parameters apply. Exports are capped at 100,000 rows, newest first — when the cap is hit, the response includes an `X-Truncated: true` header.",
+        "operationId": "export_views_v1_exports_views_get",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(json|csv)$",
+              "default": "json",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/metrics/batch": {
+      "post": {
+        "summary": "Batch metric queries",
+        "description": "Execute multiple metric queries in a single request with a shared `timeframe` and `filters`. Pass an array of `queries`, each naming a `metric` and optional `measurement`; results are keyed by metric name (or `metric__measurement` when the same metric is queried with multiple measurements). Useful for loading a dashboard of stats in one round trip.",
+        "operationId": "batch_metrics_v1_metrics_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetricsBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/metrics/{metric}": {
+      "get": {
+        "summary": "Get a metric",
+        "description": "Return a single aggregate value for a metric over a timeframe, such as `views`, `unique_viewers`, `watch_time`, or `avg_session_duration`. Control the time range with `timeframe[]` (relative like `7:days` or two Unix timestamps), narrow results with `filters[]` (`key:value` dimension pairs), and override the aggregation with `measurement` (`sum`, `avg`, `median`, or `count`). For time-bucketed data, use the timeseries endpoint instead.",
+        "operationId": "get_metric_v1_metrics__metric__get",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Metric"
+            }
+          },
+          {
+            "name": "measurement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Measurement"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/metrics/{metric}/breakdown": {
+      "get": {
+        "summary": "Break down a metric",
+        "description": "Group a metric by a dimension such as `content_id`, `os_name`, `device_category`, or `country`. The required `dimension` parameter selects the grouping; `limit` (default 10, max 100) caps the number of rows and `order_by` sorts by metric `value` or by `views`. When breaking down by `content_id`, each row is enriched with the content title and thumbnail URL.",
+        "operationId": "get_metric_breakdown_v1_metrics__metric__breakdown_get",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Metric"
+            }
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dimension"
+            }
+          },
+          {
+            "name": "measurement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Measurement"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(value|views)$",
+              "default": "value",
+              "title": "Order By"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/metrics/{metric}/timeseries": {
+      "get": {
+        "summary": "Get metric timeseries",
+        "description": "Return time-bucketed values for a metric, suitable for charting. Granularity is automatic — hourly for ranges of 24 hours or less, daily otherwise — with empty buckets zero-filled and bucket boundaries aligned to your organization's timezone. Accepts the same `timeframe[]`, `filters[]`, and `measurement` parameters as the scalar metric endpoint.",
+        "operationId": "get_metric_timeseries_v1_metrics__metric__timeseries_get",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Metric"
+            }
+          },
+          {
+            "name": "measurement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Measurement"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/metrics/{metric}/heatmap": {
+      "get": {
+        "summary": "Get metric heatmap",
+        "description": "Return metric values grouped by calendar date (`YYYY-MM-DD`) and hour of day (0–23) in your organization's timezone, for rendering day-by-hour heatmaps. Defaults to the last 14 days; accepts the standard `timeframe[]`, `filters[]`, and `measurement` parameters.",
+        "operationId": "get_metric_heatmap_v1_metrics__metric__heatmap_get",
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Metric"
+            }
+          },
+          {
+            "name": "measurement",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Measurement"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/dimensions/{dimension}/values": {
+      "get": {
+        "summary": "List dimension values",
+        "description": "Return the distinct values observed for a dimension (such as `os_name`, `device_category`, `country`, or `custom_1`) within a timeframe, each with its view count, ordered by views descending. Useful for populating filter dropdowns. `limit` accepts up to 500 values.",
+        "operationId": "get_dimension_values_v1_dimensions__dimension__values_get",
+        "parameters": [
+          {
+            "name": "dimension",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dimension"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/surveys": {
+      "post": {
+        "summary": "Create survey",
+        "operationId": "create_survey_v1_surveys_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSurveyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Create an in-feed survey with a `question`, answer `options` (each with `text` and `position`), and `placementRules` controlling when it appears. `placementRules` must include at least one `min_videos_before` rule with a non-negative integer `n`; supported rule types are `min_videos_before`, `once_per_user`, `once_per_session`, and `max_per_session`. Surveys start in `draft` status unless you pass `status: \"active\"`.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "List surveys",
+        "operationId": "list_surveys_v1_surveys_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Returns all surveys in your organization ordered by priority (highest first), including each survey's options, placement rules, and response counts. Filter by lifecycle state with the `status` query parameter (`draft`, `active`, `paused`, or `archived`).",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/surveys/{survey_id}": {
+      "get": {
+        "summary": "Get survey",
+        "operationId": "get_survey_v1_surveys__survey_id__get",
+        "parameters": [
+          {
+            "name": "survey_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Survey Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Retrieve a single survey by ID, including its options with per-option response counts, placement rules, and total responses.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update survey",
+        "operationId": "update_survey_v1_surveys__survey_id__put",
+        "parameters": [
+          {
+            "name": "survey_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Survey Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSurveyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Update a survey. All fields are optional — include only what you want to change. Passing `options` or `placementRules` replaces the existing set entirely rather than merging; note that replacing options resets their response counts since responses are tied to option IDs.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete survey",
+        "operationId": "delete_survey_v1_surveys__survey_id__delete",
+        "parameters": [
+          {
+            "name": "survey_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Survey Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Archive a survey. This sets its status to `archived` and removes it from the feed immediately, but preserves all response data — archived surveys can still be retrieved and listed.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/surveys/priorities": {
+      "put": {
+        "summary": "Reorder survey priorities",
+        "operationId": "reorder_survey_priorities_v1_surveys_priorities_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderSurveyPrioritiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Set the display order of multiple surveys in one call. Pass `surveyIds` ordered from highest to lowest priority; each survey's `priority` is reassigned to match the list position. Returns 404 if any ID does not belong to your organization, in which case no changes are committed.",
+        "security": [
+          {
+            "secretKey": []
+          }
+        ]
+      }
+    },
+    "/v1/surveys/{survey_id}/responses": {
+      "post": {
+        "summary": "Submit survey response",
+        "operationId": "submit_survey_response_v1_surveys__survey_id__responses_post",
+        "parameters": [
+          {
+            "name": "survey_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Survey Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSurveyResponseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Surveys"
+        ],
+        "description": "Record a user's answer to an active survey. The SDK calls this automatically when a viewer responds; pass the selected `optionId` plus the responding `userId`, and optionally `sessionId` and `deviceInfo`. Each user may respond to a survey only once — a duplicate submission returns 409, and responding to a non-active survey returns 400.",
+        "security": [
+          {
+            "publishableKey": []
+          }
+        ]
       }
     }
   },
   "components": {
     "schemas": {
+      "AdConfigWrite": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "frequency": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency"
+          },
+          "firstAdOffset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firstadoffset"
+          },
+          "maxPerPage": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxperpage"
+          },
+          "adTagUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adtagurl"
+          },
+          "adUnitId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adunitid"
+          },
+          "skipPolicy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skippolicy"
+          },
+          "skipDelaySeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skipdelayseconds"
+          },
+          "defaultTargeting": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defaulttargeting"
+          },
+          "nativeEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativeenabled"
+          },
+          "nativeFormatId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativeformatid"
+          },
+          "nativeAdUnitId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativeadunitid"
+          },
+          "nativeVideoUrlKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativevideourlkey"
+          },
+          "nativeHeadlineKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativeheadlinekey"
+          },
+          "nativeCtaKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativectakey"
+          },
+          "nativeSponsorKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativesponsorkey"
+          },
+          "nativeSponsorLogoKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nativesponsorlogokey"
+          },
+          "sponsoredStreamingUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sponsoredstreamingurl"
+          },
+          "sponsoredHeadline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sponsoredheadline"
+          },
+          "sponsoredCta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sponsoredcta"
+          }
+        },
+        "type": "object",
+        "title": "AdConfigWrite",
+        "description": "Sparse update payload for PUT /v1/ad-config. All fields optional."
+      },
+      "AddPublicationUrlRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "AddPublicationUrlRequest"
+      },
+      "AddVideosToCarouselRequest": {
+        "properties": {
+          "videos": {
+            "items": {
+              "$ref": "#/components/schemas/VideoCarouselEntryInput"
+            },
+            "type": "array",
+            "title": "Videos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "videos"
+        ],
+        "title": "AddVideosToCarouselRequest"
+      },
+      "ApiResponse": {
+        "properties": {
+          "data": {
+            "title": "Data"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ErrorItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ApiResponse"
+      },
+      "Body_upload_caption_track_v1_content__content_id__captions_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "en"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": "English"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_caption_track_v1_content__content_id__captions_post"
+      },
+      "Body_upload_carousel_image_v1_content__content_id__images_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "default": 0
+          },
+          "altText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alttext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_carousel_image_v1_content__content_id__images_post"
+      },
+      "ClipRange": {
+        "properties": {
+          "startSec": {
+            "type": "number",
+            "minimum": 0,
+            "title": "Startsec"
+          },
+          "endSec": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "title": "Endsec"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "startSec",
+          "endSec"
+        ],
+        "title": "ClipRange"
+      },
+      "CreateClipsRequest": {
+        "properties": {
+          "clips": {
+            "items": {
+              "$ref": "#/components/schemas/ClipRange"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Clips"
+          },
+          "callbackUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callbackurl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clips"
+        ],
+        "title": "CreateClipsRequest"
+      },
+      "CreateContentRequest": {
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "title": "Contenttype",
+            "default": "video"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "publishAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishat"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiresat"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ios_upload",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "CreateContentRequest"
+      },
       "CreateLiveStreamRequest": {
         "properties": {
           "title": {
@@ -222,6 +4696,197 @@
         "type": "object",
         "title": "CreateLiveStreamRequest"
       },
+      "CreateSurveyRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title"
+          },
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Question"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "draft"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "default": 0
+          },
+          "autoAdvanceDelay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Autoadvancedelay"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyOptionInput"
+            },
+            "type": "array",
+            "title": "Options",
+            "default": []
+          },
+          "placementRules": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementRuleInput"
+            },
+            "type": "array",
+            "title": "Placementrules"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "question"
+        ],
+        "title": "CreateSurveyRequest"
+      },
+      "ErrorItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorItem"
+      },
+      "EventItem": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "contentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contentid"
+          },
+          "playbackId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Playbackid"
+          },
+          "userId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Userid"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "viewSessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewsessionid"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "timestamp"
+        ],
+        "title": "EventItem"
+      },
+      "EventsBatchRequest": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventItem"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "EventsBatchRequest"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -234,6 +4899,623 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "IdentityResolveRequest": {
+        "properties": {
+          "anonymousId": {
+            "type": "string",
+            "title": "Anonymousid"
+          },
+          "userId": {
+            "type": "string",
+            "title": "Userid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "anonymousId",
+          "userId"
+        ],
+        "title": "IdentityResolveRequest"
+      },
+      "ImportImageItem": {
+        "properties": {
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "altText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alttext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sourceUrl"
+        ],
+        "title": "ImportImageItem"
+      },
+      "ImportItem": {
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "title": "Contenttype"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "customMetadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Custommetadata"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          },
+          "publishAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishat"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiresat"
+          },
+          "generateSubtitles": {
+            "type": "boolean",
+            "title": "Generatesubtitles",
+            "default": false
+          },
+          "encodingTier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encodingtier"
+          },
+          "sourceUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceurl"
+          },
+          "externalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Externalid"
+          },
+          "images": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportImageItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Images"
+          }
+        },
+        "type": "object",
+        "required": [
+          "contentType",
+          "title"
+        ],
+        "title": "ImportItem"
+      },
+      "ImportRequest": {
+        "properties": {
+          "callbackUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callbackurl"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportItem"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ImportRequest"
+      },
+      "InstagramImportRequest": {
+        "properties": {
+          "callbackUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callbackurl"
+          },
+          "urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Urls"
+          },
+          "maxReelsPerProfile": {
+            "type": "integer",
+            "maximum": 10000,
+            "minimum": 1,
+            "title": "Maxreelsperprofile",
+            "default": 500
+          }
+        },
+        "type": "object",
+        "required": [
+          "urls"
+        ],
+        "title": "InstagramImportRequest"
+      },
+      "MetricQuery": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "measurement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measurement"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metric"
+        ],
+        "title": "MetricQuery",
+        "description": "A single metric query within a batch request."
+      },
+      "MetricsBatchRequest": {
+        "properties": {
+          "queries": {
+            "items": {
+              "$ref": "#/components/schemas/MetricQuery"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Queries"
+          },
+          "timeframe": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Timeframe"
+          },
+          "filters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Filters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queries"
+        ],
+        "title": "MetricsBatchRequest",
+        "description": "POST /v1/metrics/batch request body."
+      },
+      "PlacementRuleInput": {
+        "properties": {
+          "ruleType": {
+            "type": "string",
+            "title": "Ruletype"
+          },
+          "ruleValue": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Rulevalue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ruleType"
+        ],
+        "title": "PlacementRuleInput"
+      },
+      "ReorderImagesRequest": {
+        "properties": {
+          "imageIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Imageids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "imageIds"
+        ],
+        "title": "ReorderImagesRequest"
+      },
+      "ReorderPublicationUrlsRequest": {
+        "properties": {
+          "urlIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Urlids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "urlIds"
+        ],
+        "title": "ReorderPublicationUrlsRequest"
+      },
+      "ReorderSurveyPrioritiesRequest": {
+        "properties": {
+          "surveyIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Surveyids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "surveyIds"
+        ],
+        "title": "ReorderSurveyPrioritiesRequest"
+      },
+      "ReorderVideosRequest": {
+        "properties": {
+          "videoIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Videoids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "videoIds"
+        ],
+        "title": "ReorderVideosRequest"
+      },
+      "SubmitSurveyResponseRequest": {
+        "properties": {
+          "optionId": {
+            "type": "string",
+            "title": "Optionid"
+          },
+          "userId": {
+            "type": "string",
+            "title": "Userid"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "deviceInfo": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deviceinfo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "optionId",
+          "userId"
+        ],
+        "title": "SubmitSurveyResponseRequest"
+      },
+      "SurveyOptionInput": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Text"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "position"
+        ],
+        "title": "SurveyOptionInput"
+      },
+      "TikTokImportRequest": {
+        "properties": {
+          "callbackUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callbackurl"
+          },
+          "urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Urls"
+          },
+          "maxVideosPerProfile": {
+            "type": "integer",
+            "maximum": 10000,
+            "minimum": 1,
+            "title": "Maxvideosperprofile",
+            "default": 500
+          }
+        },
+        "type": "object",
+        "required": [
+          "urls"
+        ],
+        "title": "TikTokImportRequest"
+      },
+      "UpdatePublicationUrlRequest": {
+        "properties": {
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "title": "UpdatePublicationUrlRequest"
+      },
+      "UpdateSurveyRequest": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "autoAdvanceDelay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Autoadvancedelay"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SurveyOptionInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "placementRules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PlacementRuleInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placementrules"
+          }
+        },
+        "type": "object",
+        "title": "UpdateSurveyRequest"
       },
       "UploadImageSlot": {
         "properties": {
@@ -451,6 +5733,24 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VideoCarouselEntryInput": {
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "title": "Contentid"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "contentId",
+          "position"
+        ],
+        "title": "VideoCarouselEntryInput"
       }
     },
     "securitySchemes": {
@@ -458,6 +5758,12 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Secret API key (`sk_live_...` or `sk_test_...`) sent as a Bearer token. Server-side only — never ship secret keys in client apps."
+      },
+      "publishableKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Publishable API key (`pk_live_...` or `pk_test_...`). Safe to include in client apps; grants read-only access to feed and SDK runtime endpoints."
       }
     }
   }

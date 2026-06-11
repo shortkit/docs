@@ -1,10 +1,149 @@
 ---
 title: "v0.3.0: Carousel playback IDs"
-description: "Migration guide for the FeedInput.videoCarousel breaking change shipping in SDK 0.3.0."
+description: "Migrate videoCarousel feed inputs from host-built URLs to playback IDs for SDK 0.3.0."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+<Callout type="warn" title="Staged for 0.3.0 — not yet released">
+This guide applies to SDK 0.3.0, which has not shipped yet. The current SDK versions are 0.2.55 (iOS, Android, React Native) and 0.2.22 (Flutter). Nothing on this page applies until you upgrade to 0.3.0.
 </Callout>
 
-Migration guide for the FeedInput.videoCarousel breaking change shipping in SDK 0.3.0.
+In v0.3.0, the `videoCarousel` feed input stops accepting fully-built URLs and takes only playback IDs — matching how the single-video feed input already works. This is a breaking change for custom feeds that include video carousels.
+
+Video carousels render on iOS, Android, Flutter, and React Native. The Web SDK does not render carousels yet.
+
+## Why this changed
+
+Before v0.3.0, every host app constructed `streamingUrl` and `thumbnailUrl` strings for each carousel slide. This forced each integrator to reinvent URL construction, and divergence between host-built URLs and the SDK's canonical streaming domains caused a carousel thumbnail caching bug in at least one integration. The SDK already knew how to build these URLs — it just wasn't exposing that capability for carousels.
+
+In v0.3.0, you pass a playback ID per slide and the SDK constructs the streaming and thumbnail URLs internally, exactly as it does for `video` feed inputs.
+
+## What changed
+
+### Before (v0.2.x)
+
+```ts title="feedInput.ts"
+const feedInput: FeedInput = {
+  type: 'videoCarousel',
+  item: {
+    id: 'thread-42',
+    videos: [
+      {
+        id: 'thread-42-v1',
+        playbackId: 'abc123',
+        title: 'Question',
+        duration: 15,
+        streamingUrl: 'https://stream.example-cdn.com/abc123.m3u8',
+        thumbnailUrl: 'https://images.example-cdn.com/abc123/thumbnail.jpg?time=0',
+        captionTracks: [],
+      },
+      // ... one full object per slide ...
+    ],
+    title: 'Community AMA',
+  },
+};
+```
+
+### After (v0.3.0)
+
+```ts title="feedInput.ts"
+const feedInput: FeedInput = {
+  type: 'videoCarousel',
+  item: {
+    id: 'thread-42',
+    videos: [
+      { playbackId: 'abc123' },
+      { playbackId: 'def456' },
+      { playbackId: 'ghi789', fallbackUrl: 'https://cdn.example.com/ghi789.mp4' },
+    ],
+    title: 'Community AMA',
+  },
+};
+```
+
+Each slide carries only `playbackId` and an optional `fallbackUrl`. Carousel-level fields (`id`, `title`, `description`, `author`, `section`, `articleUrl`) are unchanged.
+
+## Per-slide metadata
+
+The new slide input does not carry titles, durations, or other per-slide fields. If your overlay needs per-slide metadata (question text, author names, etc.) that isn't in ShortKit's backend, maintain your own `playbackId → slideContext` map on your side and look it up inside your overlay component using the `activeVideo.playbackId` field, which is still provided in full on every page change via `VideoCarouselOverlayProps.activeVideo`. See [carousel control](/docs/guides/customize/carousel-control) for the overlay surface.
+
+## Upgrade steps
+
+1. Update your package to 0.3.0.
+2. In your feed mapper, delete URL construction for carousel slides.
+3. Return only `{ playbackId, fallbackUrl? }` objects for each video.
+4. If your custom carousel overlay iterated `carouselItem.videos[].streamingUrl`, refactor to use `activeVideo` for the current slide and maintain a host-side map for the rest.
+
+## Update each platform
+
+<Tabs groupId="platform" persist items={['iOS', 'Android', 'Flutter', 'React Native']}>
+<Tab value="iOS">
+
+Replace `VideoCarouselItem` with `VideoCarouselInput` at the `FeedInput.videoCarousel` construction site:
+
+```swift title="FeedMapper.swift"
+let input = FeedInput.videoCarousel(
+    VideoCarouselInput(
+        id: "thread-42",
+        videos: [
+            VideoCarouselVideoInput(playbackId: "abc123"),
+            VideoCarouselVideoInput(playbackId: "def456"),
+        ],
+        title: "Community AMA"
+    )
+)
+```
+
+</Tab>
+<Tab value="Android">
+
+Replace `VideoCarouselItem` with `VideoCarouselInput` at the `FeedInput.VideoCarousel` construction site:
+
+```kotlin title="FeedMapper.kt"
+val input = FeedInput.VideoCarousel(
+    VideoCarouselInput(
+        id = "thread-42",
+        videos = listOf(
+            VideoCarouselVideoInput(playbackId = "abc123"),
+            VideoCarouselVideoInput(playbackId = "def456"),
+        ),
+        title = "Community AMA",
+    )
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Replace `VideoCarouselItem` with `VideoCarouselInput` at the `FeedInput.videoCarousel` construction site:
+
+```dart title="feed_mapper.dart"
+final input = FeedInput.videoCarousel(
+  item: VideoCarouselInput(
+    id: 'thread-42',
+    videos: [
+      VideoCarouselVideoInput(playbackId: 'abc123'),
+      VideoCarouselVideoInput(playbackId: 'def456'),
+    ],
+    title: 'Community AMA',
+  ),
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```bash
+npm install @shortkitsdk/react-native@^0.3.0
+```
+
+Return the compact shape from your feed mapper, as shown in the before/after above. Your overlay still receives the fully-hydrated `carouselItem` via `VideoCarouselOverlayProps` — only the input shape changes.
+
+</Tab>
+</Tabs>
+
+## Related pages
+
+<Cards>
+  <Card title="Custom feeds" href="/docs/guides/display/custom-feeds" description="How feed inputs drive a custom feed." />
+  <Card title="Carousel control" href="/docs/guides/customize/carousel-control" description="Overlay props and imperative carousel APIs." />
+</Cards>

@@ -1,10 +1,182 @@
 ---
-title: "Web"
-description: "Short page: CDN vs npm distribution (hls.js peer dep), constructor options, init()/initWithItems(), first render."
+title: "Install & initialize (Web)"
+description: "Install the ShortKit Web SDK from npm or the CDN, initialize it with your publishable key, and render your first feed."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+Add the SDK to your page, create a `ShortKit` instance with your publishable key, and call `createFeed` on a container element. That's the whole setup.
+
+## Requirements
+
+| Requirement | Minimum |
+|---|---|
+| Chrome | 80+ |
+| Safari | 14+ |
+| Firefox | 78+ |
+| Edge | 80+ |
+| Node.js (npm installs) | 16+ |
+
+The SDK uses [hls.js](https://github.com/video-dev/hls.js) for adaptive streaming in browsers without native HLS support. You can let ShortKit bundle it for you (the **full** build) or provide it yourself (the **slim** build) — both options exist on npm and the CDN.
+
+## Install
+
+The current Web SDK version is `0.5.0`. The Web SDK versions independently of the mobile SDKs.
+
+### Option A: npm
+
+```bash
+npm install @shortkitsdk/web
+```
+
+The default import is the **slim** build — `hls.js` is an optional peer dependency. Pick one of two paths:
+
+```js title="app.js (full build — hls.js bundled)"
+import { ShortKit } from '@shortkitsdk/web/full';
+```
+
+```js title="app.js (slim build — bring your own hls.js)"
+import Hls from 'hls.js';
+import { ShortKit } from '@shortkitsdk/web';
+
+window.Hls = Hls; // the SDK detects hls.js via the global
+```
+
+If you use the slim import without making `Hls` available globally, the feed renders but videos will not play in browsers without native HLS support (Chrome, Firefox, Edge).
+
+### Option B: CDN
+
+Add a script tag to your HTML. The full bundle includes hls.js:
+
+```html title="index.html"
+<script src="https://sdk.shortkit.dev/web/0.5.0/shortkit.min.js"></script>
+```
+
+Or use the slim bundle if you already load hls.js:
+
+```html title="index.html"
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script src="https://sdk.shortkit.dev/web/0.5.0/shortkit.slim.min.js"></script>
+```
+
+CDN builds are versioned and immutable — pin the version in the URL and bump it deliberately. The script sets a `window.ShortKit` namespace containing the SDK's exports:
+
+```js
+const { ShortKit } = window.ShortKit;
+```
+
+## Initialize
+
+Create a single `ShortKit` instance with your publishable key and share it across your page:
+
+```js title="ShortKit initialization"
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+```
+
+The constructor throws if `apiKey` is missing. All other options are optional:
+
+| Option | Type | Description |
+|---|---|---|
+| `apiKey` | `string` | **Required.** Your publishable key (`pk_live_...` or `pk_test_...`) |
+| `userId` | `string` | Identify the logged-in user. See [Identity](/docs/guides/concepts/identity) |
+| `clientAppName` | `string` | App name reported with analytics events |
+| `clientAppVersion` | `string` | App version reported with analytics events |
+| `customDimensions` | `object` | Key-value pairs attached to analytics events |
+| `loadingView` | `function` | Custom loading element factory shown while a surface fetches content |
+| `onContentTapped` | `function` | Called when a viewer taps a content item |
+| `onRefreshRequested` | `function` | Called when a viewer pulls to refresh |
+| `onDidFetchContentItems` | `function` | Called after each batch of items is fetched |
+| `liveOverlay` | `'default' \| 'none' \| function` | Live badge and viewer-count overlay for live stream items |
+| `liveStatusPollIntervalMs` | `number` | Live status poll interval, default `30000` |
+
+Feed configuration is not part of the constructor — each surface takes its own config, so one `ShortKit` instance can power multiple surfaces. See [Feed configuration](/docs/guides/reference/feed-config).
+
+<Callout type="info">
+Get your publishable key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development. Never embed a secret key in client code.
 </Callout>
 
-Short page: CDN vs npm distribution (hls.js peer dep), constructor options, init()/initWithItems(), first render.
+## Render your first feed
+
+Pass a container element to `createFeed`. The returned feed manager initializes itself — no further call is needed:
+
+```html title="index.html (CDN)"
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ShortKit Feed</title>
+  <style>
+    body { margin: 0; }
+    #feed { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="feed"></div>
+  <script src="https://sdk.shortkit.dev/web/0.5.0/shortkit.min.js"></script>
+  <script>
+    const { ShortKit } = window.ShortKit;
+    const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+    sk.createFeed(document.getElementById('feed'));
+  </script>
+</body>
+</html>
+```
+
+With npm, the same two lines apply after your import:
+
+```js title="app.js (npm)"
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+sk.createFeed(document.getElementById('feed'));
+```
+
+Open the page. You should see a vertically-scrolling video feed filling the container. New accounts come seeded with demo content, so the feed works before you upload anything.
+
+### The manager pattern
+
+Every surface factory returns a manager object you keep a reference to:
+
+- `sk.createFeed(el, { config })` returns a feed manager — **auto-initializes**.
+- `sk.createPlayer(el, { config })` returns a single-player manager — you must call `player.init()` (the player fetches its own content) or `player.initWithItems(items)` (you supply the items).
+- `sk.createWidget(el, { config })` returns a widget manager — you must call `widget.init()`.
+
+Managers expose playback and content methods (`play`, `pause`, `setMuted`, `setFeedItems`, and more) and a `destroy()` method for teardown. Call `sk.destroy()` to tear down every surface and flush analytics at once. See [Display a feed](/docs/guides/display/feed) and the [Player reference](/docs/guides/reference/player) for the full API.
+
+## Troubleshooting
+
+<Accordions type="single">
+  <Accordion title="'ShortKit is not defined' (CDN)">
+    Your code ran before the SDK script loaded.
+
+    1. Place the SDK script tag above your initialization script, or use `defer` and initialize in a `DOMContentLoaded` listener
+    2. Check the browser console for network errors loading the script
+    3. Verify the casing — the global is `ShortKit` (capital S, capital K), and the class is destructured from it: `const { ShortKit } = window.ShortKit;`
+  </Accordion>
+  <Accordion title="Feed renders but videos never play">
+    The slim build is loaded without hls.js available.
+
+    1. With npm: install `hls.js` and set `window.Hls = Hls;` before constructing `ShortKit`, or switch to `import { ShortKit } from '@shortkitsdk/web/full';`
+    2. With the CDN: load the hls.js script tag before `shortkit.slim.min.js`, or switch to `shortkit.min.js` which bundles it
+    3. Playback may still work in Safari without hls.js (native HLS support) — test in Chrome or Firefox to confirm the fix
+  </Accordion>
+  <Accordion title="Feed container is empty or has zero height">
+    The feed fills its container, so a zero-height container renders nothing.
+
+    1. Give the container element explicit dimensions, e.g. `width: 100%; height: 100vh;`
+    2. Confirm the element exists when `createFeed` runs — a `null` element is the most common cause when scripts execute before the DOM is parsed
+  </Accordion>
+  <Accordion title="Feed loads but shows no content">
+    The SDK initialized, but the feed is empty.
+
+    1. Confirm at least one video exists in your account under **Content** in the [Admin Portal](https://portal.shortkit.dev)
+    2. Verify the video status is **Ready** — processing takes 1-2 minutes after upload
+    3. Check the API key matches the environment your content lives in (`pk_live_...` vs `pk_test_...`)
+    4. A 401 error means the key is invalid — double-check the full key string and confirm it has not been revoked
+  </Accordion>
+</Accordions>
+
+## Next steps
+
+- [Quickstart](/docs/guides/quickstart) — get your API key and upload your first video
+- [Display a feed](/docs/guides/display/feed) — configure feed height, mute behavior, and feed sources
+- [Platform support](/docs/guides/setup/platform-support) — what ships on Web vs the mobile SDKs

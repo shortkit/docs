@@ -1,10 +1,386 @@
 ---
 title: "Item overlays & ads"
-description: "Carousel/VideoCarousel/Survey/Ad overlay protocols, NativeAdContent. Per-tab availability notes (RN survey = template-only, etc.)."
+description: "Build custom overlays for image carousels, video carousels, surveys, and native ads — and render ad creative with NativeAdContent."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Video isn't the only item type in a feed. Image carousels, video carousels, surveys, and native ads each have their own overlay mode that follows the same pattern as [video overlays](/docs/guides/customize/overlays): the SDK owns the cell lifecycle, and your overlay provides the UI. For the data shapes behind each item type, see the [content model](/docs/guides/concepts/content-model).
+
+<Callout type="info" title="Platform availability">
+Carousel and video carousel overlays ship on iOS, Android, Flutter, and React Native. Survey and ad overlays ship on iOS and Android only — React Native and Flutter have no survey or ad overlay surface. None of these item types render on Web yet. See [platform support](/docs/guides/setup/platform-support).
 </Callout>
 
-Carousel/VideoCarousel/Survey/Ad overlay protocols, NativeAdContent. Per-tab availability notes (RN survey = template-only, etc.).
+## Configure overlay modes
+
+Each item type has its own field on the feed config. Every mode defaults to `none`.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native']}>
+<Tab value="iOS">
+
+```swift title="FeedSetup.swift"
+let config = FeedConfig(
+    carouselOverlay: .custom { ProductCarouselOverlay() },
+    videoCarouselOverlay: .custom { ProductVideoCarouselOverlay() },
+    surveyOverlay: .custom { PollOverlay() },
+    adOverlay: .custom { SponsoredAdOverlay() }
+)
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin title="FeedSetup.kt"
+val config = FeedConfig(
+    carouselOverlay = CarouselOverlayMode.Custom { ProductCarouselOverlay(context) },
+    videoCarouselOverlay = VideoCarouselOverlayMode.Custom { ProductVideoCarouselOverlay(context) },
+    surveyOverlay = SurveyOverlayMode.Custom { PollOverlay(context) },
+    adOverlay = AdOverlayMode.Custom { SponsoredAdOverlay(context) }
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Flutter overlays run in a separate engine. Register named builders from an overlay entry point, then reference them by name in the feed config:
+
+```dart title="main.dart"
+@pragma('vm:entry-point')
+void shortKitOverlayMain() {
+  ShortKitOverlayEngine.initialize(
+    carouselOverlays: {
+      'productCarousel': (context, item, isActive, activeImageIndex) =>
+          ProductCarouselOverlay(item: item, activeImageIndex: activeImageIndex),
+    },
+    videoCarouselOverlays: {
+      'productVideoCarousel': (context, state) =>
+          ProductVideoCarouselOverlay(state: state),
+    },
+  );
+}
+```
+
+```dart title="feed_screen.dart"
+ShortKitFeed(
+  config: FeedConfig(
+    carouselOverlay: CarouselOverlayConfigCustom('productCarousel'),
+    videoCarouselOverlay: VideoCarouselOverlayConfigCustom('productVideoCarousel'),
+  ),
+)
+```
+
+Flutter has no `surveyOverlay` or `adOverlay` field.
+
+</Tab>
+<Tab value="React Native">
+
+Overlay config goes on `<ShortKitFeed>` (not the provider). Each config takes a unique `name` and a component — the feed registers the component for you on mount:
+
+```tsx title="FeedScreen.tsx"
+import { ShortKitFeed } from '@shortkitsdk/react-native';
+
+<ShortKitFeed
+  config={{
+    carouselOverlay: {
+      type: 'custom',
+      name: 'productCarousel',
+      component: ProductCarouselOverlay,
+    },
+    videoCarouselOverlay: {
+      type: 'custom',
+      name: 'productVideoCarousel',
+      component: ProductVideoCarouselOverlay,
+    },
+  }}
+/>
+```
+
+React Native has no survey or ad overlay config.
+
+</Tab>
+</Tabs>
+
+| Mode | `custom` | `none` |
+|------|----------|--------|
+| Carousel | You own the entire carousel UI for the cell. | No carousel UI is rendered. |
+| Video carousel | The SDK handles video paging and playback natively; your overlay provides chrome (titles, buttons, page indicators) on top. | The SDK renders the native video pager with built-in page indicators. |
+| Survey | You own the survey UI and report responses via callbacks. | No survey UI is rendered. |
+| Ad | You own the native ad UI and must handle policy compliance. | No ad overlay UI is rendered. |
+
+## Carousel overlays
+
+On iOS and Android, a custom carousel overlay owns everything: image display, paging, auto-scroll, text, and actions. There is no player — the SDK provides the carousel data and manages the cell lifecycle. On Flutter and React Native, the SDK renders the native image pager and your component draws chrome on top, receiving the active image index as it changes.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native']}>
+<Tab value="iOS">
+
+```swift
+public protocol CarouselOverlay: AnyObject {
+    var cachedImage: ((String) -> UIImage?)? { get set }
+    func configure(with item: ImageCarouselItem)
+    func resetState()
+
+    // Optional — default implementations provided
+    var wantsNativeImagePrefetch: Bool { get }   // default true
+    func activatePlayback()
+    func updateActiveImage(index: Int)
+    func resetToFirstImage()
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+interface CarouselOverlay {
+    var cachedImage: ((String) -> Bitmap?)?
+    fun configure(item: ImageCarouselItem)
+    fun resetState()
+    fun fadeOutForTransition()
+    fun restoreFromTransition()
+
+    // Optional — default no-op implementations
+    fun activatePlayback() {}
+    fun updateActiveImage(index: Int) {}
+    fun resetToFirstImage() {}
+}
+```
+
+`fadeOutForTransition()` and `restoreFromTransition()` are required on Android: the SDK calls them to hide and restore your overlay during vertical swipe transitions.
+
+</Tab>
+<Tab value="Flutter">
+
+Carousel overlays are builders registered with `ShortKitOverlayEngine.initialize`:
+
+```dart
+typedef ShortKitCarouselOverlayBuilder = Widget Function(
+  BuildContext context,
+  ImageCarouselItem item,
+  bool isActive,
+  int activeImageIndex,
+);
+```
+
+`isActive` is true while the carousel cell is the active on-screen cell. `activeImageIndex` is the zero-based index of the visible image, updated in real time as the user swipes — use it to render page indicators.
+
+</Tab>
+<Tab value="React Native">
+
+Carousel overlay components receive props directly:
+
+```tsx
+interface CarouselOverlayProps {
+  item: ImageCarouselItem;
+  isActive: boolean;
+  activeImageIndex: number;
+}
+```
+
+Your component re-renders when the cell becomes active or inactive (vertical swipe) and when the visible image changes (horizontal swipe).
+
+</Tab>
+</Tabs>
+
+Lifecycle on iOS and Android:
+
+| Member | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `cachedImage` | Set by the SDK before `configure`. | Use this closure to look up prefetched images by URL and avoid redundant downloads. |
+| `configure` | A cell receives a new carousel item (initial load or cell reuse). | Load images, set up page indicators, populate text and metadata from the `ImageCarouselItem`. |
+| `resetState` | The cell is being prepared for new content. | Cancel auto-scroll timers, clear images, reset page position and expanded text state. |
+| `activatePlayback` | The cell becomes the active (on-screen) cell. | Start auto-scroll or animations. Optional. |
+| `updateActiveImage` | The visible image changes (horizontal swipe). | Update page indicators. Optional. |
+| `resetToFirstImage` | The user swipes vertically away from the cell. | Reset horizontal scroll back to the first image so the next visit starts fresh. Optional. |
+
+On iOS, `wantsNativeImagePrefetch` (default `true`) controls whether the SDK prefetches carousel images into its native cache. Return `false` if your overlay manages its own image pipeline, to avoid duplicate downloads.
+
+## Video carousel overlays
+
+Unlike image carousels, the SDK handles horizontal video paging and playback natively — your overlay provides only the chrome layer (titles, buttons, page indicators) rendered on top. To control the active carousel programmatically or react to video completions, see [carousel control](/docs/guides/customize/carousel-control).
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native']}>
+<Tab value="iOS">
+
+```swift
+public protocol VideoCarouselOverlay: AnyObject {
+    func configure(with item: VideoCarouselItem)
+    func updateActiveVideo(index: Int, item: ContentItem)
+    func resetState()
+
+    // Optional — default implementations provided
+    func attach(player: ShortKitPlayer)
+    func activatePlayback()
+    func deactivatePlayback()
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+interface VideoCarouselOverlay {
+    fun configure(item: VideoCarouselItem)
+    fun updateActiveVideo(index: Int, item: ContentItem)
+    fun resetState()
+
+    // Optional — default no-op implementations
+    fun attach(player: ShortKitPlayer) {}
+    fun activatePlayback() {}
+    fun deactivatePlayback() {}
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Video carousel overlay builders receive a single state object:
+
+```dart
+typedef ShortKitVideoCarouselOverlayBuilder = Widget Function(
+  BuildContext context,
+  VideoCarouselOverlayState state,
+);
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `carouselItem` | `VideoCarouselItem` | The carousel and its videos. |
+| `activeVideo` | `ContentItem` | The currently active video within the carousel. |
+| `activeVideoIndex` | `int` | Zero-based index of the active video. |
+| `state` | `OverlayState` | Playback state for the active video — `playerState`, `time`, `isMuted`, `isActive`, and the rest of the standard [overlay state](/docs/guides/customize/overlays). |
+
+The builder is re-invoked when the active video changes, when the cell becomes active or inactive, and when player state updates.
+
+</Tab>
+<Tab value="React Native">
+
+Video carousel overlay components receive props directly:
+
+```tsx
+interface VideoCarouselOverlayProps {
+  carouselItem: VideoCarouselItem;
+  activeVideo: ContentItem;
+  activeVideoIndex: number;
+  isActive: boolean;
+  time: PlayerTime;
+  playerState: PlayerState;
+  isMuted: boolean;
+}
+```
+
+Your component re-renders when the active video changes (horizontal swipe), when the cell becomes active or inactive (vertical swipe), and when player state updates. Use `activeVideoIndex` for page indicators and `carouselItem` for carousel-level metadata.
+
+</Tab>
+</Tabs>
+
+Lifecycle on iOS and Android:
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure` | A cell receives a new video carousel item (initial load or cell reuse). | Populate carousel-level metadata (title, author, section) and set up page indicators for the carousel's video count. |
+| `updateActiveVideo` | The user swipes horizontally to a different video page. | Update the active page indicator and per-video metadata. The `item` parameter is the `ContentItem` for the newly active video. |
+| `resetState` | The cell is being prepared for new content. | Clear text, reset page indicators, cancel pending animations. |
+| `attach` | Once, after creation. | Store the player reference and subscribe to its reactive streams (`time`, `playerState`, `isMuted` — see the [player reference](/docs/guides/reference/player)). |
+| `activatePlayback` | The cell becomes the active (on-screen) cell. | Begin processing player time updates to drive scrubbers, captions, and similar UI. |
+| `deactivatePlayback` | The cell scrolls off-screen. | Stop processing time updates and pause overlay animations. |
+
+## Survey overlays
+
+Survey overlays ship on iOS and Android only. The protocol includes two callback properties that the SDK sets on your overlay after creation. Your overlay calls them when the user selects an option — the SDK forwards the response to your delegate and scrolls the feed.
+
+<Tabs groupId="platform" persist items={['iOS','Android']}>
+<Tab value="iOS">
+
+```swift
+public protocol SurveyOverlay: AnyObject {
+    var onSurveyResponse: ((String, SurveyOption) -> Void)? { get set }
+    var onAutoAdvance: (() -> Void)? { get set }
+    func configure(with item: SurveyItem)
+    func resetState()
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+interface SurveyOverlay {
+    var onSurveyResponse: ((surveyId: String, option: SurveyOption) -> Unit)?
+    var onAutoAdvance: (() -> Unit)?
+    fun configure(item: SurveyItem)
+    fun resetState()
+    fun fadeOutForTransition()
+    fun restoreFromTransition()
+}
+```
+
+`fadeOutForTransition()` and `restoreFromTransition()` hide and restore your overlay during vertical swipe transitions.
+
+</Tab>
+</Tabs>
+
+| Member | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure` | A cell receives a new survey item. | Display the question and option buttons from the `SurveyItem`. |
+| `resetState` | The cell is being prepared for new content. | Cancel pending auto-advance timers, clear selection state, reset button styling. |
+| `onSurveyResponse` | Set by the SDK after creation. | Call it with the survey ID and selected option when the user taps an answer. |
+| `onAutoAdvance` | Set by the SDK after creation. | Call it after a short delay following selection (for example 500ms). The SDK scrolls to the next feed item. |
+
+Surveys are created and targeted via the [Surveys API](/docs/api/surveys/create-survey).
+
+## Ad overlays
+
+Ad overlays ship on iOS and Android only. They apply to native ads — ads whose video plays through ShortKit's own player pool and whose creative metadata arrives via `NativeAdContent`. Ads rendered by the ad provider's own UI are unaffected by this setting. For ad slot configuration, see [Ads](/docs/guides/monetization/ads).
+
+<Tabs groupId="platform" persist items={['iOS','Android']}>
+<Tab value="iOS">
+
+```swift
+public protocol AdOverlay: AnyObject {
+    func configure(with content: NativeAdContent)
+    func resetState()
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+interface AdOverlay {
+    fun configure(content: NativeAdContent)
+    fun resetState()
+    fun fadeOutForTransition()
+    fun restoreFromTransition()
+}
+```
+
+`fadeOutForTransition()` and `restoreFromTransition()` hide and restore your overlay during vertical swipe transitions.
+
+</Tab>
+</Tabs>
+
+| Method | When the SDK calls it | What your overlay should do |
+|--------|----------------------|----------------------------|
+| `configure` | A cell receives native ad content. | Display the headline, sponsor logo, CTA button, Ad badge, and AdChoices icon. Call `content.recordImpression?()` when the ad becomes visible. |
+| `resetState` | The cell is being prepared for new content. | Clear creative assets, reset impression state. |
+
+### NativeAdContent
+
+`NativeAdContent` provides all creative assets and action handlers:
+
+| Field | Type (iOS / Android) | Description |
+|-------|------|-------------|
+| `videoUrl` | `String` | The ad video URL the SDK plays in its player pool. |
+| `headline` | `String?` | Headline text. |
+| `body` | `String?` | Description text. |
+| `callToAction` | `String?` | CTA label (for example "Learn More", "Shop Now"). |
+| `advertiser` | `String?` | Advertiser or sponsor name. |
+| `sponsorIcon` | `UIImage?` / `Bitmap?` | Sponsor logo. |
+| `adChoicesIcon` | `UIImage?` / `Bitmap?` | AdChoices icon from your ad SDK. |
+| `ctaClickHandler` | closure | Call when the user taps the CTA. |
+| `adChoicesClickHandler` | closure | Call when the user taps the AdChoices icon. |
+| `recordImpression` | closure | Call when the ad becomes visible. |
+| `aspectRatio` | — / `Float?` | Creative aspect ratio. Android only. |
+
+<Callout type="warn" title="Ad policy compliance">
+When building a custom ad overlay, you are responsible for rendering the required policy elements: an "Ad" badge and a tappable AdChoices icon (minimum 15x15pt). Verify your implementation meets your ad provider's display requirements.
+</Callout>

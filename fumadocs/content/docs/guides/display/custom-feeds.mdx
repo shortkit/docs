@@ -1,10 +1,446 @@
 ---
 title: "Custom feeds"
-description: "FeedInput shapes, setFeedItems/appendFeedItems, FeedSource.custom, live playbackId seeding. Language tabs."
+description: "Drive the feed with your own content: FeedSource.custom, FeedInput shapes, setFeedItems and appendFeedItems, and seeding live streams by playback ID."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+By default the feed pulls content from ShortKit's recommendation engine. Custom feed mode puts your app in charge instead: you decide exactly what plays and in what order, and the SDK still handles streaming URLs, thumbnails, player rotation, prefetching, and analytics.
+
+Use custom feed mode when you rank content yourself, build curated playlists or deep-linked feeds, or power a "following" tab alongside an algorithmic one. If you only need to narrow algorithmic results (by tag, section, or metadata), use a feed filter instead — see the [FeedConfig reference](/docs/guides/reference/feed-config).
+
+Custom feed mode has three parts:
+
+1. Set `feedSource` to custom in your `FeedConfig`. The feed skips the server fetch and waits for your items.
+2. Supply items as `FeedInput` values — lightweight references built from playback IDs, not full content models.
+3. Replace the list with `setFeedItems` and paginate with `appendFeedItems`.
+
+## Turn on custom feed mode
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+Pass `FeedConfig(feedSource: .custom)` to the feed view controller, then supply items with `setFeedItems(_:)`. Calling it before the feed appears is safe — the SDK applies the items once the view loads.
+
+```swift title="CustomFeedViewController.swift"
+import ShortKitSDK
+
+let shortKit = ShortKit(apiKey: "pk_live_your_publishable_key")
+
+let feedVC = ShortKitFeedViewController(
+    shortKit: shortKit,
+    config: FeedConfig(feedSource: .custom)
+)
+navigationController?.pushViewController(feedVC, animated: true)
+
+feedVC.setFeedItems([
+    .video(playbackId: "Xw5BJN2tZkM4q7vLdR9c"),
+    .video(
+        playbackId: "f8RkQ01dWcP3mY6aT2hs",
+        fallbackUrl: "https://cdn.example.com/highlights.mp4"
+    ),
+])
+```
+
+In SwiftUI, `ShortKitFeedView(shortKit:config:)` accepts the same config; use its `Coordinator.feedViewController` to reach `setFeedItems(_:)`.
+
+</Tab>
+<Tab value="Android">
+
+Pass `FeedConfig(feedSource = FeedSource.CUSTOM)` to `ShortKitFeedFragment.newInstance`, then supply items with `setFeedItems()`. Commit the fragment synchronously (or wait for `onFeedReady`) so the fragment's view exists before you call it.
+
+```kotlin title="CustomFeedActivity.kt"
+import com.shortkit.sdk.ShortKit
+import com.shortkit.sdk.config.FeedConfig
+import com.shortkit.sdk.config.FeedSource
+import com.shortkit.sdk.feed.ShortKitFeedFragment
+import com.shortkit.sdk.model.FeedInput
+
+val shortKit = ShortKit(context = this, apiKey = "pk_live_your_publishable_key")
+
+val feedFragment = ShortKitFeedFragment.newInstance(
+    shortKit = shortKit,
+    config = FeedConfig(feedSource = FeedSource.CUSTOM),
+)
+supportFragmentManager.beginTransaction()
+    .replace(R.id.container, feedFragment)
+    .commitNow()
+
+feedFragment.setFeedItems(
+    listOf(
+        FeedInput.Video(playbackId = "Xw5BJN2tZkM4q7vLdR9c"),
+        FeedInput.Video(
+            playbackId = "f8RkQ01dWcP3mY6aT2hs",
+            fallbackUrl = "https://cdn.example.com/highlights.mp4",
+        ),
+    )
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Create a `ShortKitFeedController`, attach it to the `ShortKitFeed` widget along with `FeedConfig(feedSource: FeedSource.custom)`, and supply items through the controller.
+
+```dart title="custom_feed_screen.dart"
+import 'package:flutter/material.dart';
+import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+class CustomFeedScreen extends StatefulWidget {
+  const CustomFeedScreen({super.key});
+
+  @override
+  State<CustomFeedScreen> createState() => _CustomFeedScreenState();
+}
+
+class _CustomFeedScreenState extends State<CustomFeedScreen> {
+  final _feedController = ShortKitFeedController();
+
+  @override
+  void initState() {
+    super.initState();
+    _feedController.setFeedItems([
+      FeedInput.video(playbackId: 'Xw5BJN2tZkM4q7vLdR9c'),
+      FeedInput.video(playbackId: 'f8RkQ01dWcP3mY6aT2hs'),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ShortKitFeed(
+        controller: _feedController,
+        config: FeedConfig(feedSource: FeedSource.custom),
+      ),
+    );
+  }
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+Set `feedSource: 'custom'` in the `config` prop on `<ShortKitFeed>` (not on the provider). Pass initial items via the `feedItems` prop — they are delivered as construction-time props, so the first cell renders on the very first frame with no loading flash. Use the ref for post-mount updates.
+
+```tsx title="CustomFeedScreen.tsx"
+import React, { useRef } from 'react';
+import {
+  ShortKitProvider,
+  ShortKitFeed,
+  type ShortKitFeedHandle,
+} from '@shortkitsdk/react-native';
+
+export default function CustomFeedScreen() {
+  const feedRef = useRef<ShortKitFeedHandle>(null);
+
+  return (
+    <ShortKitProvider apiKey="pk_live_your_publishable_key">
+      <ShortKitFeed
+        ref={feedRef}
+        style={{ flex: 1 }}
+        config={{ feedSource: 'custom' }}
+        feedItems={[
+          { type: 'video', playbackId: 'Xw5BJN2tZkM4q7vLdR9c' },
+          {
+            type: 'video',
+            playbackId: 'f8RkQ01dWcP3mY6aT2hs',
+            fallbackUrl: 'https://cdn.example.com/highlights.mp4',
+          },
+        ]}
+      />
+    </ShortKitProvider>
+  );
+}
+```
+
+</Tab>
+<Tab value="Web">
+
+Set `feedSource: 'custom'` in the feed config. The container renders empty until you call `setFeedItems()` on the returned feed object.
+
+```js title="app.js"
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: { feedSource: 'custom' },
+});
+
+feed.setFeedItems([
+  { type: 'video', playbackId: 'Xw5BJN2tZkM4q7vLdR9c' },
+  {
+    type: 'video',
+    playbackId: 'f8RkQ01dWcP3mY6aT2hs',
+    fallbackUrl: 'https://cdn.example.com/highlights.mp4',
+  },
+]);
+```
+
+</Tab>
+</Tabs>
+
+## FeedInput shapes
+
+A `FeedInput` identifies content by playback ID. The SDK constructs the streaming URL and thumbnail URL internally — never build these URLs yourself.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+public enum FeedInput: Sendable {
+    case video(
+        playbackId: String,
+        origin: ContentOrigin = .other,
+        fallbackUrl: String? = nil,
+        contentId: String? = nil
+    )
+    case liveStream(playbackId: String)
+    case imageCarousel(ImageCarouselItem)
+    case videoCarousel(VideoCarouselInput)
+}
+
+public enum ContentOrigin: String, Codable, Sendable {
+    case iosUpload = "ios_upload"
+    case other
+}
+```
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+sealed class FeedInput {
+    data class Video(
+        val playbackId: String,
+        val fallbackUrl: String? = null,
+        val contentId: String? = null,
+    ) : FeedInput()
+    data class ImageCarousel(val item: ImageCarouselItem) : FeedInput()
+    data class VideoCarousel(val item: VideoCarouselInput) : FeedInput()
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+sealed class FeedInput {
+  factory FeedInput.video({
+    required String playbackId,
+    ContentOrigin origin,
+    String? fallbackUrl,
+  });
+  factory FeedInput.imageCarousel({required ImageCarouselItem item});
+  factory FeedInput.videoCarousel({required VideoCarouselInput item});
+}
+```
+
+<Callout type="info">
+On the current pub.dev release (0.2.22), `FeedInput.video` accepts `playbackId` only, and video carousels use the older fully-hydrated `VideoCarouselItem` shape. The `origin` and `fallbackUrl` parameters and the compact `VideoCarouselInput` shape ship in the next Flutter release — see the [carousel migration guide](/docs/changelog/migrations/v0-3-0-carousel-playback-ids).
 </Callout>
 
-FeedInput shapes, setFeedItems/appendFeedItems, FeedSource.custom, live playbackId seeding. Language tabs.
+</Tab>
+<Tab value="React Native">
+
+```ts
+type FeedInput =
+  | { type: 'video'; playbackId: string; origin?: ContentOrigin; fallbackUrl?: string }
+  | { type: 'imageCarousel'; item: ImageCarouselItem }
+  | { type: 'videoCarousel'; item: VideoCarouselInput };
+
+type ContentOrigin = 'ios_upload' | 'other';
+```
+
+</Tab>
+<Tab value="Web">
+
+The Web SDK accepts plain objects. Custom feeds support videos only — carousel rendering is not yet available on Web.
+
+```js
+// Playback ID reference — the SDK derives all URLs
+{ type: 'video', playbackId: 'Xw5BJN2tZkM4q7vLdR9c', fallbackUrl: 'https://...' }
+
+// Optional display metadata is passed through to the overlay
+{
+  type: 'video',
+  playbackId: 'Xw5BJN2tZkM4q7vLdR9c',
+  title: 'Game highlights',
+  author: 'Jane Doe',
+  section: 'SPORTS',
+  articleUrl: 'https://example.com/article',
+}
+```
+
+Pre-resolved content items (objects that already carry a `streamingUrl`, e.g. from a previous feed fetch) are passed through unchanged. Inputs that have neither a `playbackId` nor a `fallbackUrl` are skipped with a console warning.
+
+</Tab>
+</Tabs>
+
+Video input fields:
+
+| Field | Required | Description |
+|---|---|---|
+| `playbackId` | Yes | The content's playback ID. See [Where playback IDs come from](#where-playback-ids-come-from). |
+| `origin` | No | Set to `ios_upload` for videos captured and uploaded on iOS so the SDK fetches the color-accurate poster; defaults to `other`. Available on iOS, React Native, and Flutter; Android support ships in an upcoming release. |
+| `fallbackUrl` | No | Static MP4 URL the SDK switches to automatically if the primary stream fails. See [How feeds work](/docs/guides/concepts/feeds). |
+| `contentId` | No | iOS and Android only. The ShortKit content ID used for analytics attribution. When omitted, the SDK generates a synthetic local ID — so the same playback ID can safely appear at multiple positions in one feed. |
+
+### Video carousels
+
+Video carousel inputs follow the same playback-ID-only principle: each slide is a compact `{ playbackId, fallbackUrl? }` reference, and carousel-level metadata (title, author, section) rides on the wrapper.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+
+```swift
+let carousel = VideoCarouselInput(
+    id: "thread-42",
+    videos: [
+        VideoCarouselVideoInput(playbackId: "Xw5BJN2tZkM4q7vLdR9c"),
+        VideoCarouselVideoInput(playbackId: "f8RkQ01dWcP3mY6aT2hs"),
+        VideoCarouselVideoInput(
+            playbackId: "mB7nT4cV9xK2pQ6wJ1zr",
+            fallbackUrl: "https://cdn.example.com/answer-3.mp4"
+        ),
+    ],
+    title: "Community AMA"
+)
+
+feedVC.setFeedItems([.videoCarousel(carousel)])
+```
+
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`. Per-slide inputs accept `origin`, same as `FeedInput.video`.
+
+</Tab>
+<Tab value="Android">
+
+```kotlin
+val carousel = VideoCarouselInput(
+    id = "thread-42",
+    videos = listOf(
+        VideoCarouselVideoInput(playbackId = "Xw5BJN2tZkM4q7vLdR9c"),
+        VideoCarouselVideoInput(playbackId = "f8RkQ01dWcP3mY6aT2hs"),
+        VideoCarouselVideoInput(
+            playbackId = "mB7nT4cV9xK2pQ6wJ1zr",
+            fallbackUrl = "https://cdn.example.com/answer-3.mp4",
+        ),
+    ),
+    title = "Community AMA",
+)
+
+feedFragment.setFeedItems(listOf(FeedInput.VideoCarousel(carousel)))
+```
+
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`.
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+final carousel = VideoCarouselInput(
+  id: 'thread-42',
+  videos: [
+    VideoCarouselVideoInput(playbackId: 'Xw5BJN2tZkM4q7vLdR9c'),
+    VideoCarouselVideoInput(playbackId: 'f8RkQ01dWcP3mY6aT2hs'),
+    VideoCarouselVideoInput(
+      playbackId: 'mB7nT4cV9xK2pQ6wJ1zr',
+      fallbackUrl: 'https://cdn.example.com/answer-3.mp4',
+    ),
+  ],
+  title: 'Community AMA',
+);
+
+_feedController.setFeedItems([FeedInput.videoCarousel(item: carousel)]);
+```
+
+The compact `VideoCarouselInput` shape ships in the next Flutter release; the current pub.dev release (0.2.22) takes a fully-hydrated `VideoCarouselItem` — see the [migration guide](/docs/changelog/migrations/v0-3-0-carousel-playback-ids).
+
+</Tab>
+<Tab value="React Native">
+
+```ts
+const carousel: FeedInput = {
+  type: 'videoCarousel',
+  item: {
+    id: 'thread-42',
+    videos: [
+      { playbackId: 'Xw5BJN2tZkM4q7vLdR9c' },
+      { playbackId: 'f8RkQ01dWcP3mY6aT2hs' },
+      {
+        playbackId: 'mB7nT4cV9xK2pQ6wJ1zr',
+        fallbackUrl: 'https://cdn.example.com/answer-3.mp4',
+      },
+    ],
+    title: 'Community AMA',
+  },
+};
+
+feedRef.current?.setFeedItems([carousel]);
+```
+
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`. Per-slide inputs accept `origin`.
+
+</Tab>
+<Tab value="Web">
+
+Not yet supported on Web. See [Platform support](/docs/guides/setup/platform-support).
+
+</Tab>
+</Tabs>
+
+The SDK hydrates each playback ID into a full content item before rendering, so your overlay still receives complete per-slide models. If your overlay needs per-slide metadata that isn't stored in ShortKit, keep a `playbackId → context` map on your side and look it up from the active video's `playbackId`. If you're upgrading from the older shape where carousel slides carried full URLs, see the [migration guide](/docs/changelog/migrations/v0-3-0-carousel-playback-ids).
+
+### Image carousels
+
+`FeedInput.imageCarousel` takes a fully built `ImageCarouselItem` — images are your own URLs, so there's nothing for the SDK to resolve. See [Content model](/docs/guides/concepts/content-model) for the full shape.
+
+## Seed a live stream by playback ID
+
+<Callout type="info">
+Live stream seeding is available on iOS only. See [Platform support](/docs/guides/setup/platform-support).
+</Callout>
+
+`FeedInput.liveStream(playbackId:)` places a live stream in a custom feed. Pass the playback ID returned by the [create live stream endpoint](/docs/api/live-streams/create-live-stream).
+
+```swift title="Seeding a live item"
+feedVC.setFeedItems([
+    .liveStream(playbackId: "kL3mV8xR2cQ9nT5wYb4j"),
+    .video(playbackId: "Xw5BJN2tZkM4q7vLdR9c"),
+])
+```
+
+A seeded live item is treated as actively broadcasting: it renders with the live overlay, its `isLive` flag is set, and its thumbnail tracks the latest frame of the broadcast rather than a fixed poster. Live items never count toward ad-slot cadence. For creating and broadcasting streams, see [Live streams](/docs/guides/content/live-streams).
+
+<Callout type="warn">
+Don't pass live playback IDs as `.video(playbackId:)` — the item would render as a regular video without the live overlay or live status handling.
+</Callout>
+
+## Replace and append items
+
+Two methods manage the list after the initial load:
+
+| Platform | Replace | Append |
+|---|---|---|
+| iOS | `feedVC.setFeedItems(_:startAtId:)` | `feedVC.appendFeedItems(_:)` |
+| Android | `feedFragment.setFeedItems(items, startAtId)` | `feedFragment.appendFeedItems(items)` |
+| Flutter | `feedController.setFeedItems(items)` | `feedController.appendFeedItems(items)` |
+| React Native | `feedRef.setFeedItems(items, { startAt })` | `feedRef.appendFeedItems(items)` |
+| Web | `feed.setFeedItems(items)` | `feed.appendFeedItems(items)` |
+
+`setFeedItems` replaces the entire feed atomically and scrolls back to the first item. On iOS, Android, and React Native, the optional `startAtId` / `startAt` argument focuses a specific item after the new list applies — use it for set-and-scroll in one step (deep links, restoring position). The override applies to that call only.
+
+`appendFeedItems` adds items to the end without disrupting the currently playing video — use it for pagination. To know when the user is approaching the end of your list, listen for the remaining-content-count callback described in [Controlling the feed](/docs/guides/display/feed-control).
+
+Notes:
+
+- **Ad slots still work.** On iOS, Android, React Native, and Flutter, a configured ad provider interleaves ad slots into custom feeds (after every fifth video by default).
+- **Repeated playback IDs are fine.** The SDK assigns each input a synthetic local ID, so the same video can appear at multiple positions. On iOS and Android, pass `contentId` when you want analytics attributed to the real content record.
+- **Feed filters don't apply.** `FeedFilter` narrows algorithmic fetches; in custom mode you control the list directly, so `applyFilter` has no effect (the Web SDK logs a warning).
+- **Custom feeds can be preloaded.** Pass your items to the SDK's feed preload API before the feed mounts to render the first cell instantly — see [Controlling the feed](/docs/guides/display/feed-control).
+
+## Where playback IDs come from
+
+A playback ID is assigned when processing completes, so it isn't in the initial upload or import response. Retrieve it from:
+
+- The [get content endpoint](/docs/api/content/get-content) — poll after an [upload](/docs/api/content/upload-content) until processing finishes, or fetch any existing content record.
+- The `content.imported` [webhook](/docs/api/webhooks) for imported content.
+- The [create live stream endpoint](/docs/api/live-streams/create-live-stream) for live streams (iOS seeding).
+
+Store playback IDs alongside your own content records so your ranking service can return them directly to the client.

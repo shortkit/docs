@@ -1,10 +1,478 @@
 ---
 title: "Recipe: captions overlay"
-description: "Worked captions overlay tutorial extracted from overlays; language tabs."
+description: "Build a custom captions overlay: render the active cue, add a CC toggle, and let viewers reposition the caption label."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
-</Callout>
+This recipe builds a captions overlay for the video feed: a caption label that follows the active cue, a CC button that toggles captions on and off, and (on mobile) drag-to-reposition so viewers can move the label out of the way.
 
-Worked captions overlay tutorial extracted from overlays; language tabs.
+It assumes you already have a custom video overlay registered. If not, start with [Video overlays](/docs/guides/customize/overlays) — it covers the overlay lifecycle and how to register a custom overlay on each platform. Captions also need to exist on the content: see [Captions & metadata](/docs/guides/content/captions-and-metadata) for uploading caption tracks.
+
+## The pieces you need
+
+The SDK handles cue timing internally — it parses the caption track, tracks playback time, and tells you which cue is active right now. Your overlay just renders whatever text it receives.
+
+| Platform | Active cue | Captions on/off | Toggle command |
+|----------|-----------|-----------------|----------------|
+| iOS | `player.activeCue` — `AnyPublisher<VTTCue?, Never>` | `player.captionsEnabled` publisher | `player.setCaptionsEnabled(_:)` |
+| Android | `player.activeCue` — `StateFlow<VttCue?>` | `player.captionsEnabled` — `StateFlow<Boolean>` | `player.setCaptionsEnabled(enabled)` |
+| Flutter | `state.activeCue` — `CaptionCue?` on `OverlayState` | `state.captionsEnabled` | `ShortKitOverlayCommands.of(context).setCaptionsEnabled(enabled)` |
+| React Native | `activeCue` prop on `OverlayProps` | `captionsEnabled` prop | `ShortKitCommands.setCaptionsEnabled(enabled)` |
+| Web | `cueChange` player event / `player.activeCue` getter | `captionsChange` event / `player.captionsEnabled` getter | `player.setCaptionsEnabled(enabled)` |
+
+Cue objects carry the text plus timing. Note the platform type names and units:
+
+| Platform | Cue type | Fields |
+|----------|----------|--------|
+| iOS | `VTTCue` | `startTime`, `endTime` (seconds), `text` |
+| Android | `VttCue` | `startMs`, `endMs` (milliseconds), `text` |
+| Flutter | `CaptionCue` | `startTime`, `endTime` (seconds), `text` |
+| React Native | `{ text, startTime, endTime }` | seconds |
+| Web | plain object | `startTime`, `endTime` (seconds), `text` |
+
+The active cue is `null` whenever no cue covers the current playback time — hide the label in that case rather than leaving stale text on screen.
+
+## Build the overlay
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+  <Tab value="iOS">
+    The overlay conforms to `FeedOverlay`. Subscribe to `activeCue` and `captionsEnabled` in `attach(player:)`, clear stale caption state when the cell is reconfigured for a new item in `configure(with:)`, and only render cues once `activatePlayback()` has marked the cell active.
+
+    ```swift title="CaptionOverlay.swift"
+    import Combine
+    import ShortKit
+    import UIKit
+
+    final class CaptionOverlay: UIView, FeedOverlay {
+
+        private var player: ShortKitPlayer!
+        private var subscriptions = Set<AnyCancellable>()
+        private var isActive = false
+        private var captionsOn = false
+        private var captionBottomOffset: NSLayoutConstraint!
+
+        private let captionLabel: UILabel = {
+            let label = UILabel()
+            label.numberOfLines = 0
+            label.textAlignment = .center
+            label.textColor = .white
+            label.font = .systemFont(ofSize: 16, weight: .semibold)
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+            label.layer.cornerRadius = 6
+            label.clipsToBounds = true
+            label.isUserInteractionEnabled = true
+            label.translatesAutoresizingMaskIntoConstraints = false
+            return label
+        }()
+
+        private let captionToggle = UIButton(type: .system)
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            setupUI()
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        // MARK: - FeedOverlay
+
+        func attach(player: ShortKitPlayer) {
+            self.player = player
+
+            player.activeCue
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] cue in
+                    guard let self, self.isActive else { return }
+                    if let cue {
+                        self.captionLabel.text = "  \(cue.text)  "
+                        self.captionLabel.isHidden = false
+                    } else {
+                        self.captionLabel.isHidden = true
+                    }
+                }
+                .store(in: &subscriptions)
+
+            player.captionsEnabled
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] enabled in
+                    self?.captionsOn = enabled
+                    self?.captionToggle.alpha = enabled ? 1.0 : 0.5
+                    if !enabled { self?.captionLabel.isHidden = true }
+                }
+                .store(in: &subscriptions)
+        }
+
+        func configure(with item: ContentItem) {
+            // The cell received a new item: clear stale caption state.
+            isActive = false
+            captionLabel.text = nil
+            captionLabel.isHidden = true
+            captionBottomOffset.constant = -100
+        }
+
+        func activatePlayback() {
+            isActive = true
+        }
+
+        // MARK: - Interaction
+
+        @objc private func handleDrag(_ gesture: UIPanGestureRecognizer) {
+            captionBottomOffset.constant += gesture.translation(in: self).y
+            gesture.setTranslation(.zero, in: self)
+        }
+
+        @objc private func toggleCaptions() {
+            player.setCaptionsEnabled(!captionsOn)
+        }
+
+        private func setupUI() {
+            addSubview(captionLabel)
+            addSubview(captionToggle)
+
+            captionBottomOffset = captionLabel.bottomAnchor.constraint(
+                equalTo: bottomAnchor, constant: -100
+            )
+            NSLayoutConstraint.activate([
+                captionLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+                captionLabel.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -48),
+                captionBottomOffset,
+            ])
+
+            captionLabel.addGestureRecognizer(
+                UIPanGestureRecognizer(target: self, action: #selector(handleDrag))
+            )
+            captionToggle.addTarget(self, action: #selector(toggleCaptions), for: .touchUpInside)
+        }
+    }
+    ```
+
+    Register it in your feed config:
+
+    ```swift
+    let config = FeedConfig(
+        videoOverlay: .custom { CaptionOverlay() }
+    )
+    ```
+  </Tab>
+  <Tab value="Android">
+    The overlay implements `FeedOverlay`. Collect `activeCue` and `captionsEnabled` flows in `attach(player:)`, clear stale state in `configure(item:)`, fade the whole overlay during feed transitions, and cancel your collection jobs in `release()`.
+
+    ```kotlin title="CaptionOverlay.kt"
+    class CaptionOverlay @JvmOverloads constructor(
+        context: Context,
+        attrs: AttributeSet? = null
+    ) : FrameLayout(context, attrs), FeedOverlay {
+
+        private lateinit var player: ShortKitPlayer
+        private var isActive = false
+        private val jobs = mutableListOf<Job>()
+
+        private val captionLabel: TextView
+        private val captionToggle: ImageButton
+        private var captionOffsetY = 0f
+
+        init {
+            inflate(context, R.layout.caption_overlay, this)
+            captionLabel = findViewById(R.id.captionLabel)
+            captionToggle = findViewById(R.id.captionToggle)
+
+            // Drag to reposition
+            captionLabel.setOnTouchListener { view, event ->
+                if (event.action == MotionEvent.ACTION_MOVE) {
+                    captionOffsetY += event.y - view.height / 2
+                    view.translationY = captionOffsetY
+                }
+                true
+            }
+
+            captionToggle.setOnClickListener {
+                player.setCaptionsEnabled(!player.captionsEnabled.value)
+            }
+        }
+
+        override fun attach(player: ShortKitPlayer) {
+            this.player = player
+            val scope = findViewTreeLifecycleOwner()?.lifecycleScope ?: return
+
+            jobs += scope.launch {
+                player.activeCue.collect { cue ->
+                    if (!isActive) return@collect
+                    captionLabel.text = cue?.text
+                    captionLabel.visibility = if (cue != null) View.VISIBLE else View.GONE
+                }
+            }
+            jobs += scope.launch {
+                player.captionsEnabled.collect { enabled ->
+                    captionToggle.alpha = if (enabled) 1.0f else 0.5f
+                    if (!enabled) captionLabel.visibility = View.GONE
+                }
+            }
+        }
+
+        override fun configure(item: ContentItem) {
+            // The cell received a new item: clear stale caption state.
+            isActive = false
+            captionLabel.text = null
+            captionLabel.visibility = View.GONE
+            captionOffsetY = 0f
+            captionLabel.translationY = 0f
+        }
+
+        override fun activatePlayback() {
+            isActive = true
+        }
+
+        override fun fadeOutForTransition() {
+            animate().alpha(0f).setDuration(150).start()
+        }
+
+        override fun restoreFromTransition() {
+            animate().alpha(1f).setDuration(150).start()
+        }
+
+        override fun release() {
+            jobs.forEach { it.cancel() }
+            jobs.clear()
+        }
+    }
+    ```
+
+    Register it in your feed config:
+
+    ```kotlin
+    val config = FeedConfig(
+        videoOverlay = VideoOverlayMode.Custom { CaptionOverlay(context) }
+    )
+    ```
+
+    `captionsEnabled` is a `StateFlow`, so the toggle reads the current value synchronously via `player.captionsEnabled.value`. Cue times are in milliseconds (`startMs`, `endMs`) — consistent with all other Android SDK time values.
+  </Tab>
+  <Tab value="Flutter">
+    Flutter overlays are plain widget builders that receive the `ContentItem` and an `OverlayState` snapshot. Read `state.activeCue` and `state.captionsEnabled`, and send the toggle through `ShortKitOverlayCommands`.
+
+    ```dart title="caption_overlay.dart"
+    Widget captionOverlay(BuildContext context, ContentItem item, OverlayState state) {
+      final commands = ShortKitOverlayCommands.of(context);
+      final cueText = state.activeCue?.text;
+
+      return Stack(
+        children: [
+          if (state.isActive && state.captionsEnabled && cueText != null)
+            Positioned(
+              bottom: 100,
+              left: 24,
+              right: 24,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    cueText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            bottom: 60,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => commands.setCaptionsEnabled(!state.captionsEnabled),
+              child: Opacity(
+                opacity: state.captionsEnabled ? 1.0 : 0.5,
+                child: const Text(
+                  'CC',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    ```
+
+    Register the builder under a name in your overlay entry point, then reference that name in the feed config:
+
+    ```dart title="main.dart"
+    @pragma('vm:entry-point')
+    void shortKitOverlayMain() {
+      ShortKitOverlayEngine.initialize(
+        overlays: {
+          'captions': captionOverlay,
+        },
+      );
+    }
+    ```
+
+    ```dart
+    final config = FeedConfig(
+      overlay: OverlayConfigCustom('captions'),
+    );
+    ```
+
+    The cue type is `CaptionCue` with `startTime`, `endTime` (seconds), and `text`.
+  </Tab>
+  <Tab value="React Native">
+    React Native overlays run in an isolated surface and receive everything as `OverlayProps` — including `activeCue`, `captionsEnabled`, `isActive`, and `feedScrollPhase`. The `useShortKitPlayer()` hook is **not** available inside overlay components; send commands through the `ShortKitCommands` module instead.
+
+    ```tsx title="CaptionOverlay.tsx"
+    import { View, Text, Pressable, StyleSheet } from "react-native";
+    import { Gesture, GestureDetector } from "react-native-gesture-handler";
+    import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
+    import { ShortKitCommands, type OverlayProps } from "@shortkitsdk/react-native";
+
+    export function CaptionOverlay({
+      isActive,
+      captionsEnabled,
+      activeCue,
+      feedScrollPhase,
+    }: OverlayProps) {
+      const offsetY = useSharedValue(0);
+
+      const cueText = isActive ? activeCue?.text : null;
+      const isDragging = feedScrollPhase?.phase === "dragging";
+
+      const dragGesture = Gesture.Pan().onUpdate((e) => {
+        offsetY.value += e.translationY;
+      });
+
+      const captionStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: offsetY.value }],
+      }));
+
+      return (
+        <View style={[styles.overlay, isDragging && styles.dimmed]}>
+          {cueText && captionsEnabled && (
+            <GestureDetector gesture={dragGesture}>
+              <Animated.View style={[styles.captionBox, captionStyle]}>
+                <Text style={styles.captionText}>{cueText}</Text>
+              </Animated.View>
+            </GestureDetector>
+          )}
+          <Pressable
+            style={[styles.toggle, !captionsEnabled && styles.toggleOff]}
+            onPress={() => ShortKitCommands.setCaptionsEnabled(!captionsEnabled)}
+          >
+            <Text style={styles.toggleIcon}>CC</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    const styles = StyleSheet.create({
+      overlay: { ...StyleSheet.absoluteFillObject },
+      dimmed: { opacity: 0.3 },
+      captionBox: {
+        position: "absolute", bottom: 100, alignSelf: "center",
+        backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6,
+      },
+      captionText: { color: "#fff", fontSize: 16, fontWeight: "600", textAlign: "center" },
+      toggle: {
+        position: "absolute", bottom: 60, right: 16, width: 44, height: 44,
+        justifyContent: "center", alignItems: "center",
+      },
+      toggleOff: { opacity: 0.5 },
+      toggleIcon: { color: "#fff", fontSize: 16, fontWeight: "700" },
+    });
+    ```
+
+    Register the component in the feed config — overlay configs take a `name` and a `component`, and config goes on `<ShortKitFeed>` (not the provider):
+
+    ```tsx
+    <ShortKitFeed
+      config={{
+        overlay: { type: "custom", name: "captions", component: CaptionOverlay },
+      }}
+    />
+    ```
+
+    There is no `isTransitioning` prop — use `feedScrollPhase` (`{ phase: 'dragging', fromId }` or `{ phase: 'settled' }`) to dim the overlay while the user swipes between items.
+  </Tab>
+  <Tab value="Web">
+    The web overlay callback receives the cell's container element and a scoped `player`. Listeners added via `player.on` inside the callback are cleaned up automatically when the cell is reused.
+
+    ```js title="feed.js"
+    const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+    sk.createFeed(document.getElementById('feed'), {
+      config: {
+        overlay: (container, { item, player }) => {
+          const cueEl = document.createElement('div');
+          cueEl.style.cssText =
+            'position:absolute;bottom:80px;left:16px;right:16px;color:#fff;' +
+            'font-size:16px;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.8);';
+          container.appendChild(cueEl);
+
+          const toggle = document.createElement('button');
+          toggle.textContent = 'CC';
+          toggle.style.cssText =
+            'position:absolute;bottom:24px;right:16px;color:#fff;' +
+            'background:none;border:1px solid #fff;border-radius:4px;padding:4px 8px;';
+          container.appendChild(toggle);
+
+          player.on('cueChange', (cue) => {
+            cueEl.textContent = cue ? cue.text : '';
+          });
+
+          player.on('captionsChange', (enabled) => {
+            toggle.style.opacity = enabled ? '1' : '0.5';
+            if (!enabled) cueEl.textContent = '';
+          });
+
+          toggle.addEventListener('click', () => {
+            player.setCaptionsEnabled(!player.captionsEnabled);
+          });
+        },
+      },
+    });
+    ```
+
+    `player.captionsEnabled` and `player.activeCue` are also available as synchronous getters if you need to read state outside an event handler.
+  </Tab>
+</Tabs>
+
+## Selecting a caption track
+
+When content has multiple caption tracks, select one by BCP 47 language code — `player.selectCaptionTrack(language:)` on iOS and Android, `commands.selectCaptionTrack(language)` on Flutter, `ShortKitCommands.selectCaptionTrack(language)` on React Native, and `player.selectCaptionTrack(language)` on Web:
+
+```text
+selectCaptionTrack("en")
+```
+
+The available tracks are exposed on the content item as `captionTracks` (each track has a language and label). See the [Player reference](/docs/guides/reference/player) for the full caption state surface, including `activeCaptionTrack`.
+
+### Lazily resolved tracks (iOS and Android)
+
+In custom feed mode, the SDK fetches caption tracks asynchronously after an item becomes active. iOS and Android overlays get a `captionTracksResolved(tracks)` callback (optional — it has a default empty implementation) so a CC button or track picker can refresh its state without a full reconfigure:
+
+```swift
+func captionTracksResolved(_ tracks: [CaptionTrack]) {
+    captionToggle.isHidden = tracks.isEmpty
+}
+```
+
+## How it works
+
+- The SDK owns cue timing. `activeCue` emits a cue when one becomes active and `null` (or `nil`) when no cue covers the current playback time — your overlay never compares timestamps itself.
+- Guard cue rendering on the cell being active. Overlays exist on offscreen cells too; without the `isActive` guard, a recycled cell can briefly flash a caption from playback it isn't showing.
+- Clear caption state when the cell is configured for a new item, so stale text from the previous video never appears during scroll.
+- Toggling captions off hides the label immediately rather than waiting for the next cue boundary — that's why the examples also react to the captions-enabled state, not just the cue stream.
+
+## Related
+
+<Cards>
+  <Card title="Video overlays" href="/docs/guides/customize/overlays" description="Overlay registration, lifecycle, and the full protocol surface per platform." />
+  <Card title="Recipe: custom scrubber" href="/docs/guides/customize/recipes-scrubber" description="Worked scrubber and seek-thumbnail overlay tutorial." />
+  <Card title="Captions & metadata" href="/docs/guides/content/captions-and-metadata" description="Upload caption tracks and tag languages on your content." />
+  <Card title="Player reference" href="/docs/guides/reference/player" description="Every player stream, getter, and command, including the caption APIs." />
+</Cards>

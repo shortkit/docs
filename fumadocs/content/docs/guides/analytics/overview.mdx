@@ -1,10 +1,95 @@
 ---
 title: "Analytics overview"
-description: "Auto-collected engagement/QoE/session metrics; pointers to the Analytics API group."
+description: "Every metric the SDK collects automatically — engagement, quality of experience, fallback playback, feed sessions, ads, and context — and how to query them through the Analytics API."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
-</Callout>
+The SDK automatically collects playback and engagement events the moment the feed is displayed. No setup is required.
 
-Auto-collected engagement/QoE/session metrics; pointers to the Analytics API group.
+Events are batched and delivered in the background. If the app is terminated before a batch is sent, events are persisted to disk and retried on the next launch.
+
+The SDK collects metrics for every video view. A view session starts when a content item becomes active in the feed and ends when the user swipes away, the feed leaves the screen, or the app backgrounds.
+
+Every event carries a viewer identity — an anonymous device ID by default, or your own user ID once linked. See [Identity](/docs/guides/concepts/identity).
+
+## Engagement
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `watchTimeMs` | integer | Wall-clock time from view start to end (ms). Includes time spent buffering and paused. |
+| `playingTimeMs` | integer | Actual playing time accumulated at 1 Hz (ms). Excludes buffering and pauses. |
+| `videoStartupTimeMs` | integer, optional | Time from impression to player ready (ms). Absent if the player never started. |
+| `exitBeforeStart` | boolean | `true` if the user swiped away before playback began. |
+| `completed` | boolean | `true` if the video played to its natural end at least once. |
+| `looped` | boolean | `true` if the video completed and restarted. |
+| `loopCount` | integer | Total number of completions. 0 if the video never reached the end. |
+
+## Quality of experience
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `rebufferCount` | integer | Number of rebuffering stalls during playback. |
+| `rebufferDurationMs` | integer | Total time spent rebuffering (ms). |
+| `seekCount` | integer | Number of user-initiated seek operations. |
+| `seekDurationMs` | integer | Total time spent seeking (ms). |
+| `avgBitrateBps` | integer, optional | Weighted average playback bitrate (bits per second). Absent if no samples were collected. |
+| `renditionChangeCount` | integer | Total HLS rendition (quality) switches. |
+| `renditionUpshiftCount` | integer | Switches to a higher-quality rendition. |
+| `renditionDownshiftCount` | integer | Switches to a lower-quality rendition. |
+
+## Fallback playback
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `reason` | string | Why the fallback activated: `player_failed` (HLS error during playback), `proactive_next_slot` (HLS error detected on the prefetched next video), or `no_primary_url` (primary streaming URL was empty or invalid). |
+| `primaryUrl` | string | The original HLS streaming URL that failed. |
+| `fallbackUrl` | string | The static MP4 URL the SDK switched to. |
+
+Emitted as a `playbackFallback` event once per fallback activation. Only fires when a [fallback URL](/docs/guides/concepts/content-model#fallback-urls) was provided. When this event fires, the player does not enter the `error` state — it resumes playback from the fallback URL.
+
+## Feed session
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `totalSessionTime` | number | Total time the feed was on screen (seconds). |
+| `videosWatched` | integer | Number of videos the user viewed during the session. |
+
+## Ads
+
+Collected automatically when an [ad provider](/docs/guides/monetization/ads) is configured.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `filled` | boolean | Whether the ad request returned a creative. |
+| `errorReason` | string, optional | Failure reason if the ad was not filled (`no_fill`, `timeout`, `network_error`, `provider_error`). |
+| `quartile` | string | Playback milestone reached (`first_quartile`, `midpoint`, `third_quartile`, `complete`). |
+| `watchTime` | number | Watch time before the user skipped the ad (seconds). |
+
+## Context
+
+Collected once per view and attached automatically.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `captionsEnabled` | boolean | Whether captions were enabled during the view. |
+| `deviceInfo` | object | Device and connection metadata: `osName`, `osVersion`, `deviceCategory`, `deviceManufacturer`, `deviceModel`, `connectionType`. |
+| `clientAppName` | string, optional | App name passed at SDK init. |
+| `clientAppVersion` | string, optional | App version passed at SDK init. |
+| `customDimensions` | object, optional | Custom dimensions (`custom_1` through `custom_5`), if set at init. |
+
+To attach your own segmentation values — custom dimensions and recommendation signals — see [Custom data](/docs/guides/analytics/custom-data).
+
+## Querying analytics data
+
+Everything the SDK collects is queryable through the Analytics API, which supports aggregation, dimension breakdowns, timeseries, filtering, and raw data export:
+
+- **[Metrics](/docs/api/analytics/get-a-metric)** — aggregate any metric, [break it down by dimension](/docs/api/analytics/break-down-a-metric) (including your custom dimensions), or [chart it over time](/docs/api/analytics/get-metric-timeseries).
+- **[Views](/docs/api/analytics/list-views)** — list raw per-view records or [export them in bulk](/docs/api/analytics/export-views).
+- **[Events](/docs/api/analytics/list-events)** — retrieve raw event data for individual views and sessions.
+
+Analytics endpoints use your secret key. See [Authentication](/docs/api/authentication).
+
+<Cards>
+  <Card title="Custom data" href="/docs/guides/analytics/custom-data" description="Attach custom dimensions at init and send content signals to the recommendation engine." />
+  <Card title="Identity" href="/docs/guides/concepts/identity" description="How anonymous device IDs and your user IDs flow into the viewer_id dimension." />
+  <Card title="Analytics API" href="/docs/api/analytics/get-a-metric" description="Query metrics, breakdowns, timeseries, and raw views over REST." />
+</Cards>

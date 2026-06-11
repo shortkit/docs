@@ -1,10 +1,143 @@
 ---
-title: "Android"
-description: "Short page: Gradle install, corrected init (required context, correct package name), troubleshooting, first render."
+title: "Install & initialize (Android)"
+description: "Install the ShortKit Android SDK with Gradle, initialize it, and render your first feed."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+Install the SDK, create a `ShortKit` instance with your publishable key, and embed a feed fragment. That's the whole setup.
+
+## Requirements
+
+| Requirement | Minimum |
+|---|---|
+| Android | API 24+ (Android 7.0) |
+| Kotlin | 1.9+ |
+| Android Studio | Hedgehog+ |
+
+The SDK ships as a Maven artifact (`dev.shortkit:shortkit`) with Media3 (ExoPlayer), OkHttp, AndroidX Fragment, and ViewPager2 as its key dependencies. Gradle resolves transitive dependencies automatically.
+
+## Install via Gradle
+
+Add the dependency to your app-level `build.gradle.kts`:
+
+```kotlin title="build.gradle.kts"
+dependencies {
+    implementation("dev.shortkit:shortkit:0.2.55")
+}
+```
+
+Sync your project. In Android Studio, click **Sync Now** when prompted, or go to **File** then **Sync Project with Gradle Files**.
+
+No custom repository URL is needed — ShortKit is published to Maven Central, which is included by default in Android projects.
+
+<Callout type="info" title="Package name vs. Maven coordinate">
+The Maven coordinate is `dev.shortkit:shortkit`, but the code lives in the `com.shortkit.sdk` package. Import from `com.shortkit.sdk.*` in your Kotlin files.
 </Callout>
 
-Short page: Gradle install, corrected init (required context, correct package name), troubleshooting, first render.
+## Initialize
+
+Create a single `ShortKit` instance with a `Context` and your publishable key, and share it across your app:
+
+```kotlin title="ShortKit initialization"
+import com.shortkit.sdk.ShortKit
+
+val shortKit = ShortKit(
+    context = this,
+    apiKey = "pk_live_your_publishable_key"
+)
+```
+
+`context` is required and comes first. Feed configuration is not part of the constructor — each feed fragment takes its own `FeedConfig`, so one `ShortKit` instance can power multiple surfaces. The constructor also accepts optional parameters such as `userId` for identifying logged-in users.
+
+<Callout type="info">
+Get your publishable key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development. Never embed a secret key in client code.
+</Callout>
+
+## Render your first feed
+
+Embed `ShortKitFeedFragment` in an activity. Create it with `ShortKitFeedFragment.newInstance(shortKit, config)` — both arguments are required:
+
+```kotlin title="FeedActivity.kt"
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.shortkit.sdk.ShortKit
+import com.shortkit.sdk.config.FeedConfig
+import com.shortkit.sdk.feed.ShortKitFeedFragment
+
+class FeedActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_feed)
+
+        val shortKit = ShortKit(
+            context = this,
+            apiKey = "pk_live_your_publishable_key"
+        )
+
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(
+                    R.id.feed_container,
+                    ShortKitFeedFragment.newInstance(shortKit, FeedConfig())
+                )
+                .commit()
+        }
+    }
+}
+```
+
+Your layout needs a container for the fragment:
+
+```xml title="res/layout/activity_feed.xml"
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/feed_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+```
+
+Run your app. You should see a full-screen, vertically-scrolling video feed. New accounts come seeded with demo content, so the feed works before you upload anything.
+
+<Callout type="info" title="Jetpack Compose">
+The SDK does not ship a composable. `ShortKitFeedFragment` is the embed path — Compose apps host it with standard fragment interop (`AndroidFragment` or a `FragmentContainerView` inside `AndroidView`).
+</Callout>
+
+## Troubleshooting
+
+<Accordions type="single">
+  <Accordion title="Dependency resolution failed">
+    Gradle cannot resolve the ShortKit dependency.
+
+    1. Confirm your project includes Maven Central in its repositories — most new Android projects include it by default in `settings.gradle.kts`
+    2. Check your internet connection and any proxy configuration
+    3. Run `./gradlew --refresh-dependencies` to clear the dependency cache
+    4. Confirm your `minSdk` is 24 or higher
+  </Accordion>
+  <Accordion title="Unresolved reference to ShortKit imports">
+    The import path is wrong, not the dependency.
+
+    1. Import from `com.shortkit.sdk.*` — the Maven coordinate `dev.shortkit` is not the package name
+    2. Key classes: `com.shortkit.sdk.ShortKit`, `com.shortkit.sdk.config.FeedConfig`, `com.shortkit.sdk.feed.ShortKitFeedFragment`
+    3. If imports still fail after a sync, run **File** then **Invalidate Caches** in Android Studio
+  </Accordion>
+  <Accordion title="Duplicate class errors">
+    Another dependency in your project includes a conflicting version of a transitive dependency (e.g., Media3 or OkHttp).
+
+    1. Run `./gradlew app:dependencies` to inspect the full dependency tree
+    2. Use Gradle's `resolutionStrategy` or `constraints` block to force a consistent version
+  </Accordion>
+  <Accordion title="Feed loads but shows no content">
+    The SDK initialized, but the feed is empty.
+
+    1. Confirm at least one video exists in your account under **Content** in the [Admin Portal](https://portal.shortkit.dev)
+    2. Verify the video status is **Ready** — processing takes 1-2 minutes after upload
+    3. Check the API key matches the environment your content lives in (`pk_live_...` vs `pk_test_...`)
+    4. A 401 error means the key is invalid — double-check the full key string and confirm it has not been revoked
+  </Accordion>
+</Accordions>
+
+## Next steps
+
+- [Quickstart](/docs/guides/quickstart) — get your API key and upload your first video
+- [Display a feed](/docs/guides/display/feed) — configure feed height, mute behavior, and feed sources

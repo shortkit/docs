@@ -1,10 +1,569 @@
 ---
 title: "FeedConfig & FeedFilter"
-description: "Canonical FeedConfig/FeedFilter reference with corrected Map<String,[String]> OR semantics. Guides link here, never duplicate. Language tabs."
+description: "Canonical reference for SDK initialization parameters, FeedConfig fields, overlay modes, and FeedFilter semantics across all platforms."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Every configuration field has a sensible default. A `FeedConfig` with no arguments produces a working feed.
+
+Configuration lives in two places:
+
+- **SDK initialization** — identity, analytics metadata, and app-level options. Set once per app.
+- **`FeedConfig`** — layout, overlays, playback behavior, and filtering. Set per feed surface, so two feeds in the same app can use different configurations.
+
+## SDK initialization parameters
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+public final class ShortKit {
+    public init(
+        apiKey: String,
+        userId: String? = nil,
+        adProvider: ShortKitAdProvider? = nil,
+        clientAppName: String? = nil,
+        clientAppVersion: String? = nil,
+        customDimensions: [String: String]? = nil,
+        loadingViewProvider: (() -> UIView)? = nil,
+        debugPanelEnabled: Bool = false,
+        serverTracingEnabled: Bool = false,
+        consoleTracingEnabled: Bool = false
+    )
+}
+```
+
+`FeedConfig` is not an initializer parameter. Pass it to the feed surface:
+
+```swift
+let feedVC = ShortKitFeedViewController(shortKit: shortKit, config: FeedConfig())
+```
+</Tab>
+<Tab value="Android">
+```kotlin
+class ShortKit(
+    context: Context,
+    apiKey: String,
+    userId: String? = null,
+    adProvider: ShortKitAdProvider? = null,
+    val clientAppName: String? = null,
+    val clientAppVersion: String? = null,
+    val customDimensions: Map<String, String>? = null,
+    val debugPanelEnabled: Boolean = false,
+    val serverTracingEnabled: Boolean = false,
+    val consoleTracingEnabled: Boolean = false,
+)
+```
+
+`context` is required and comes first. `FeedConfig` is not a constructor parameter — pass it to the feed fragment:
+
+```kotlin
+val fragment = ShortKitFeedFragment.newInstance(shortKit, FeedConfig())
+```
+</Tab>
+<Tab value="Flutter">
+```dart
+ShortKitProvider.apiKey(
+  apiKey: 'pk_live_your_publishable_key',
+  userId: 'user-2841',                       // optional
+  clientAppName: 'MyNewsApp',                // optional
+  clientAppVersion: '2.4.1',                 // optional
+  customDimensions: {'custom_1': 'sports'},  // optional
+  child: const ShortKitFeed(),
+)
+```
+
+`FeedConfig` is not a provider parameter. Pass it to the feed widget:
+
+```dart
+ShortKitFeed(config: FeedConfig())
+```
+</Tab>
+<Tab value="React Native">
+```typescript
+interface ShortKitProviderProps {
+  apiKey: string;
+  userId?: string;
+  clientAppName?: string;
+  clientAppVersion?: string;
+  customDimensions?: Record<string, string>;
+  loadingViewComponent?: React.ComponentType<{}>;
+  debugPanel?: boolean;
+  serverTracingEnabled?: boolean;
+  consoleTracingEnabled?: boolean;
+  children: React.ReactNode;
+}
+```
+
+`ShortKitProvider` has **no `config` prop**. Pass `FeedConfig` to the feed component:
+
+```tsx
+<ShortKitFeed config={{ muteOnStart: true }} style={{ flex: 1 }} />
+```
+</Tab>
+<Tab value="Web">
+```js
+const sk = new ShortKit({
+  apiKey: 'pk_live_your_publishable_key',
+  userId: 'user-2841',                      // optional
+  clientAppName: 'MyNewsApp',               // optional
+  clientAppVersion: '2.4.1',                // optional
+  customDimensions: { custom_1: 'sports' }, // optional
+});
+```
+
+Pass feed configuration to `createFeed`:
+
+```js
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: { muteOnStart: true },
+});
+```
+</Tab>
+</Tabs>
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `apiKey` | string | **required** | Your publishable API key. Starts with `pk_live_` or `pk_test_`. |
+| `userId` | string | none | Known user ID. When provided, the SDK starts in identified mode immediately, skipping the anonymous-first flow. See [Identity](/docs/guides/concepts/identity). |
+| `adProvider` | `ShortKitAdProvider` | none | Ad provider for monetization. Omit to disable ads. iOS and Android only. |
+| `clientAppName` | string | none | App name included in analytics metadata. |
+| `clientAppVersion` | string | none | App version included in analytics metadata. |
+| `customDimensions` | string map | none | Custom key-value pairs for analytics segmentation. Keys must be `"custom_1"` through `"custom_5"`. |
+
+<Callout type="warn" title="feedItems is not an initialization parameter">
+Content for custom feed mode (`feedSource: custom`) is supplied to the feed surface, not the SDK initializer: the `feedItems` prop on `<ShortKitFeed>` in React Native, or `setFeedItems()` / `appendFeedItems()` on the feed surface elsewhere. See [Custom feeds](/docs/guides/display/custom-feeds).
 </Callout>
 
-Canonical FeedConfig/FeedFilter reference with corrected Map`<String,[String]>` OR semantics. Guides link here, never duplicate. Language tabs.
+## FeedConfig
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+public struct FeedConfig: Codable {
+    public init(
+        feedHeight: FeedHeight = .fullscreen,
+        scrollAxis: ScrollAxis = .vertical,
+        videoOverlay: VideoOverlayMode = .none,
+        carouselOverlay: CarouselOverlayMode = .none,
+        videoCarouselOverlay: VideoCarouselOverlayMode = .none,
+        surveyOverlay: SurveyOverlayMode = .none,
+        adOverlay: AdOverlayMode = .none,
+        liveOverlay: LiveOverlayMode = .default,
+        liveEndedOverlay: LiveEndedOverlayMode = .default,
+        liveRoomMask: LiveRoomMaskMode = .none,
+        muteOnStart: Bool = true,
+        autoplay: Bool = true,
+        feedSource: FeedSource = .algorithmic,
+        coldStartEnabled: Bool = false,
+        pullToRefreshEnabled: Bool = true,
+        filter: FeedFilter? = nil,
+        preload: FeedPreload? = nil,
+        shouldExpandLiveRoom: ((ContentItem) -> Bool)? = nil
+    )
+}
+```
+
+Each overlay mode is `.none` or `.custom` with a factory closure that returns a `UIView` conforming to the matching overlay protocol — for example `VideoOverlayMode.custom { MyOverlay() }`. SwiftUI overlays use the `.swiftUI { player, cellContent in ... }` helper. See [Overlays](/docs/guides/customize/overlays).
+</Tab>
+<Tab value="Android">
+```kotlin
+data class FeedConfig(
+    val feedHeight: FeedHeight = FeedHeight.Fullscreen,
+    val videoOverlay: VideoOverlayMode = VideoOverlayMode.None,
+    val carouselOverlay: CarouselOverlayMode = CarouselOverlayMode.None,
+    val videoCarouselOverlay: VideoCarouselOverlayMode = VideoCarouselOverlayMode.None,
+    val surveyOverlay: SurveyOverlayMode = SurveyOverlayMode.None,
+    val adOverlay: AdOverlayMode = AdOverlayMode.None,
+    val muteOnStart: Boolean = true,
+    val autoplay: Boolean = true,
+    val feedSource: FeedSource = FeedSource.ALGORITHMIC,
+    val pullToRefreshEnabled: Boolean = true,
+    val preload: FeedPreload? = null,
+    val filter: FeedFilter? = null,
+    val scrollAxis: ScrollAxis = ScrollAxis.Vertical,
+)
+```
+
+Each overlay mode is `None` or `Custom(factory: () -> View)` where the returned view implements the matching overlay interface. `FeedSource` values are `ALGORITHMIC` and `CUSTOM`. `FeedHeight.Percentage` takes a `Float` (e.g. `0.85f`). See [Overlays](/docs/guides/customize/overlays).
+</Tab>
+<Tab value="Flutter">
+```dart
+const FeedConfig({
+  FeedHeight? feedHeight,           // FeedHeightFullscreen() or FeedHeightPercentage(0.85)
+  ScrollAxis? scrollAxis,           // ScrollAxis.vertical or ScrollAxis.horizontal
+  OverlayConfig? overlay,           // OverlayConfigNone() or OverlayConfigCustom('name')
+  CarouselOverlayConfig? carouselOverlay,
+  VideoCarouselOverlayConfig? videoCarouselOverlay,
+  bool? muteOnStart,                // default: true
+  FeedSource? feedSource,           // FeedSource.algorithmic or FeedSource.custom
+  bool? autoplay,                   // default: true
+  FeedFilter? filter,
+})
+```
+
+Flutter names the video overlay field `overlay` (not `videoOverlay`) and uses sealed classes for enum-like types. Custom overlays are referenced by registered name — `CarouselOverlayConfigCustom('name')`, `VideoCarouselOverlayConfigCustom('name')`. Flutter has no survey or ad overlay fields. See [Overlays](/docs/guides/customize/overlays).
+</Tab>
+<Tab value="React Native">
+```typescript
+interface FeedConfig {
+  feedHeight?: FeedHeight;
+  scrollAxis?: ScrollAxis;
+  overlay?: OverlayConfig;
+  carouselOverlay?: CarouselOverlayConfig;
+  videoCarouselOverlay?: VideoCarouselOverlayConfig;
+  muteOnStart?: boolean;
+  feedSource?: 'algorithmic' | 'custom';
+  autoplay?: boolean;
+  filter?: FeedFilter;
+  pullToRefreshEnabled?: boolean;
+  onDidFetchContentItems?: (items: ContentItem[]) => void;
+}
+
+type FeedHeight =
+  | { type: 'fullscreen' }
+  | { type: 'percentage'; value: number };
+
+type ScrollAxis = 'vertical' | 'horizontal';
+
+type OverlayConfig =
+  | 'none'
+  | { type: 'custom'; name: string; component: React.ComponentType<OverlayProps> };
+
+type CarouselOverlayConfig =
+  | 'none'
+  | { type: 'custom'; name: string; component: React.ComponentType<CarouselOverlayProps> };
+
+type VideoCarouselOverlayConfig =
+  | 'none'
+  | { type: 'custom'; name: string; component: React.ComponentType<VideoCarouselOverlayProps> };
+```
+
+React Native names the video overlay field `overlay` (not `videoOverlay`), and every custom overlay config requires a `name` matching its registration. React Native has no survey or ad overlay fields. See [Overlays](/docs/guides/customize/overlays).
+</Tab>
+<Tab value="Web">
+```js
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: {
+    feedHeight: 'fullscreen',     // or { type: 'percentage', value: 0.85 }
+    muteOnStart: true,
+    autoplay: true,
+    feedSource: 'algorithmic',    // or 'custom'
+    filter: { tags: ['breaking'] },
+    overlay: (container, { item, player, feed }) => {
+      // render callback for a custom overlay
+    },
+  },
+});
+```
+
+Web does not support `scrollAxis` — the web feed is always vertical. Carousel, survey, and ad overlay fields are not available on web. Live overlays on web are configured via the `liveOverlay` constructor option, not `FeedConfig`. See [Live experiences](/docs/guides/customize/live).
+</Tab>
+</Tabs>
+
+### Core fields
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `feedHeight` | fullscreen | Fullscreen fills the entire screen. Percentage sets a fraction of screen height (e.g. `0.85` for 85%), leaving room for your own chrome such as a tab bar. |
+| `scrollAxis` | vertical | Vertical for a standard up/down swipe feed, horizontal for left/right. Each cell fills the feed container in both modes. Not supported on Web. |
+| `muteOnStart` | `true` | Whether video starts muted. Once the user unmutes, the unmuted state persists for the session. |
+| `autoplay` | `true` | Whether video plays automatically when the feed loads or the user swipes to a new item. |
+| `feedSource` | algorithmic | Algorithmic fetches content from ShortKit's recommendation engine. Custom uses client-provided items — see [Custom feeds](/docs/guides/display/custom-feeds). |
+| `filter` | none | Server-side content filter applied to every feed request. See [FeedFilter](#feedfilter) below. |
+| `pullToRefreshEnabled` | `true` | Whether the user can pull down to refresh the feed. iOS, Android, and React Native. **Unreleased** on Flutter — merged but not yet published. |
+
+### Overlay modes
+
+Each content format has its own overlay slot. Every mode defaults to none; a custom mode renders your own component on top of the SDK's cell. Building overlays — protocols, props, registration, and recipes — is covered in [Overlays](/docs/guides/customize/overlays).
+
+| Property | Default | Applies to | Availability |
+|----------|---------|------------|--------------|
+| `videoOverlay` (`overlay` on Flutter, React Native, and Web) | none | Video cells | All platforms |
+| `carouselOverlay` | none | Image carousel cells | iOS, Android, Flutter, React Native |
+| `videoCarouselOverlay` | none | Video carousel cells — custom overlays render on top of the SDK's native video pager and its page indicators | iOS, Android, Flutter, React Native |
+| `surveyOverlay` | none | Survey cells | iOS, Android |
+| `adOverlay` | none | Native ad cells only; system-defined ads are unaffected | iOS, Android |
+
+### Live fields (iOS)
+
+Live stream viewing ships on iOS and Web. On iOS the live surface is configured through `FeedConfig`; on Web it is a constructor option (`liveOverlay`). See [Live experiences](/docs/guides/customize/live) for the full live surface.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `liveOverlay` | default | Overlay for live cells (LIVE badge, viewer count). Modes: default, none, or custom. |
+| `liveEndedOverlay` | default | Overlay shown when a live stream ends while on screen. |
+| `liveRoomMask` | none | Custom mask rendered over the expanded fullscreen live room. |
+| `shouldExpandLiveRoom` | none | Per-item gate for live room expansion. Return `false` to suppress the fullscreen live room for a given item; when unset, all live cells expand on tap. |
+
+### Advanced fields
+
+| Property | Default | Description | Availability |
+|----------|---------|-------------|--------------|
+| `preload` | none | Preloaded feed data from `preloadFeed(...)`. When set, the feed consumes it instead of starting a new fetch — useful for instant first frames after a splash screen. | iOS, Android, Web |
+| `coldStartEnabled` | `false` | Serve a locally cached first item before the network responds on app launch. | iOS |
+
+### Example: percentage height
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+// 70% of screen height, leaving room for a tab bar
+let config = FeedConfig(feedHeight: .percentage(0.7))
+```
+</Tab>
+<Tab value="Android">
+```kotlin
+// 70% of screen height, leaving room for a tab bar
+val config = FeedConfig(feedHeight = FeedHeight.Percentage(0.7f))
+```
+</Tab>
+<Tab value="Flutter">
+```dart
+// 70% of screen height, leaving room for a tab bar
+ShortKitFeed(
+  config: FeedConfig(feedHeight: FeedHeightPercentage(0.7)),
+)
+```
+</Tab>
+<Tab value="React Native">
+```tsx
+// 70% of screen height, leaving room for a tab bar
+<ShortKitFeed
+  config={{ feedHeight: { type: 'percentage', value: 0.7 } }}
+  style={{ flex: 1 }}
+/>
+```
+</Tab>
+<Tab value="Web">
+```js
+// 70% of viewport height, leaving room for a tab bar
+const feed = sk.createFeed(document.getElementById('feed'), {
+  config: { feedHeight: { type: 'percentage', value: 0.7 } },
+});
+```
+</Tab>
+</Tabs>
+
+### Example: horizontal feed
+
+Set `scrollAxis` to horizontal for a left/right swipe feed. Each cell still fills the full feed container — only the swipe direction changes.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+let config = FeedConfig(scrollAxis: .horizontal)
+```
+</Tab>
+<Tab value="Android">
+```kotlin
+val config = FeedConfig(scrollAxis = ScrollAxis.Horizontal)
+```
+</Tab>
+<Tab value="Flutter">
+```dart
+ShortKitFeed(
+  config: FeedConfig(scrollAxis: ScrollAxis.horizontal),
+)
+```
+</Tab>
+<Tab value="React Native">
+```tsx
+<ShortKitFeed config={{ scrollAxis: 'horizontal' }} style={{ flex: 1 }} />
+```
+</Tab>
+<Tab value="Web">
+Not yet supported on Web — the web feed is always vertical.
+</Tab>
+</Tabs>
+
+## FeedFilter
+
+`FeedFilter` controls which content the SDK fetches from the server. When set on `FeedConfig`, all feed requests — initial load, pagination, and pull-to-refresh — apply the filter. When unset, the full unfiltered feed is returned.
+
+Combination semantics:
+
+- **Across fields: AND.** Content must match every field you set.
+- **Within `tags`: OR.** Content matching any of the listed tags is included.
+- **Within a `metadata` key: OR.** Each metadata key maps to an **array of values**; content matching any value for that key is included. Across different metadata keys: AND.
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+public struct FeedFilter: Codable, Equatable, Sendable {
+    public init(
+        tags: [String]? = nil,
+        section: String? = nil,
+        author: String? = nil,
+        contentType: String? = nil,
+        metadata: [String: [String]]? = nil
+    )
+}
+```
+</Tab>
+<Tab value="Android">
+```kotlin
+data class FeedFilter(
+    val tags: List<String>? = null,
+    val section: String? = null,
+    val author: String? = null,
+    val contentType: String? = null,
+    val metadata: Map<String, List<String>>? = null,
+)
+```
+</Tab>
+<Tab value="Flutter">
+```dart
+const FeedFilter({
+  List<String>? tags,
+  String? section,
+  String? author,
+  String? contentType,
+  Map<String, String>? metadata,  // one value per key on the published release
+})
+```
+
+<Callout type="info" title="Unreleased: multi-value metadata">
+The published Flutter release accepts a single string value per metadata key. Multi-value OR filtering (`Map<String, List<String>>`) is merged but not yet published — it ships in the next Flutter release. All other filter semantics are identical.
+</Callout>
+</Tab>
+<Tab value="React Native">
+```typescript
+interface FeedFilter {
+  tags?: string[];
+  section?: string;
+  author?: string;
+  contentType?: string;
+  metadata?: Record<string, string | string[]>;
+}
+```
+
+A plain string metadata value is shorthand for a one-element array.
+</Tab>
+<Tab value="Web">
+```js
+const filter = {
+  tags: ['sports', 'news'],                  // OR within the array
+  section: 'front-page',                     // exact match
+  author: 'Jane Doe',                        // exact match
+  contentType: 'video',                      // 'video', 'carousel', or 'video_carousel'
+  metadata: { country: ['Japan', 'Korea'] }, // OR within a key, AND across keys
+};
+```
+
+A plain string metadata value is shorthand for a one-element array.
+</Tab>
+</Tabs>
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `tags` | string array | Filter by content tags. OR semantics — content matching **any** listed tag is included. |
+| `section` | string | Exact match on content section. |
+| `author` | string | Exact match on content author. |
+| `contentType` | string | Filter by content type: `"video"`, `"carousel"`, or `"video_carousel"`. See [Content model](/docs/guides/concepts/content-model). |
+| `metadata` | map of string to string array | Filter by custom metadata. OR semantics within each key's array; AND across keys. |
+
+<Callout type="info" title="Language filtering">
+ShortKit detects the spoken language of every video and stores it as the `language` metadata key (a BCP 47 code), so filtering on `metadata: ["language": ["es"]]` serves a Spanish-only feed with no extra work at upload. See [Language detection](/docs/guides/content/language).
+</Callout>
+
+### Examples
+
+<Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
+<Tab value="iOS">
+```swift
+// Sports and news content only
+let config = FeedConfig(
+    filter: FeedFilter(tags: ["sports", "news"])
+)
+
+// A specific author's content tagged "politics"
+let config = FeedConfig(
+    filter: FeedFilter(tags: ["politics"], author: "Jane Doe")
+)
+
+// Metadata: (country is Japan OR Korea) AND (vibe is cultural)
+let config = FeedConfig(
+    filter: FeedFilter(metadata: [
+        "country": ["Japan", "Korea"],
+        "vibe": ["cultural"]
+    ])
+)
+```
+</Tab>
+<Tab value="Android">
+```kotlin
+// Sports and news content only
+val config = FeedConfig(
+    filter = FeedFilter(tags = listOf("sports", "news"))
+)
+
+// A specific author's content tagged "politics"
+val config = FeedConfig(
+    filter = FeedFilter(tags = listOf("politics"), author = "Jane Doe")
+)
+
+// Metadata: (country is Japan OR Korea) AND (vibe is cultural)
+val config = FeedConfig(
+    filter = FeedFilter(metadata = mapOf(
+        "country" to listOf("Japan", "Korea"),
+        "vibe" to listOf("cultural")
+    ))
+)
+```
+</Tab>
+<Tab value="Flutter">
+```dart
+// Sports and news content only
+final config = FeedConfig(
+  filter: FeedFilter(tags: ['sports', 'news']),
+);
+
+// A specific author's content tagged "politics"
+final config = FeedConfig(
+  filter: FeedFilter(tags: ['politics'], author: 'Jane Doe'),
+);
+
+// Metadata: one value per key on the published release
+final config = FeedConfig(
+  filter: FeedFilter(metadata: {'country': 'Japan', 'vibe': 'cultural'}),
+);
+```
+</Tab>
+<Tab value="React Native">
+```tsx
+// Sports and news content only
+<ShortKitFeed
+  config={{ filter: { tags: ['sports', 'news'] } }}
+  style={{ flex: 1 }}
+/>
+
+// Metadata: (country is Japan OR Korea) AND (vibe is cultural)
+<ShortKitFeed
+  config={{
+    filter: {
+      metadata: { country: ['Japan', 'Korea'], vibe: 'cultural' },
+    },
+  }}
+  style={{ flex: 1 }}
+/>
+```
+</Tab>
+<Tab value="Web">
+```js
+// Sports and news content only
+sk.createFeed(el, {
+  config: { filter: { tags: ['sports', 'news'] } },
+});
+
+// Metadata: (country is Japan OR Korea) AND (vibe is cultural)
+sk.createFeed(el, {
+  config: {
+    filter: {
+      metadata: { country: ['Japan', 'Korea'], vibe: 'cultural' },
+    },
+  },
+});
+```
+</Tab>
+</Tabs>
+
+To change the filter after the feed is on screen, use the feed surface's `applyFilter` method — see [Feed control](/docs/guides/display/feed-control).

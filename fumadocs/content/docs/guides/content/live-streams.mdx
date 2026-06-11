@@ -1,10 +1,239 @@
 ---
 title: "Live streams"
-description: "Server-side lifecycle, hls/webrtc protocols, broadcasting (ffmpeg/OBS), clips, token flow; lifecycle reactivation claim corrected. Client viewing surface lives in customize/live tabs."
+description: "Create live streams from your backend, broadcast over RTMP or WebRTC, manage the stream lifecycle, and turn recordings into clips."
 ---
 
-<Callout type="info" title="Pilot stub">
-This page is part of the Fumadocs pilot navigation skeleton. Content lands during full execution of the docs restructure.
+Live streams are real-time broadcasts that appear in your feed alongside on-demand content. You create and manage them entirely from your backend with your secret key; the SDK plays them in the feed like any other item.
+
+This guide covers the server side: the stream lifecycle, choosing a protocol, broadcasting, clips, and ending a stream.
+
+<Callout type="info" title="Viewing live streams in your app">
+Live viewing currently ships on **iOS** and **Web**. For the client surface — live fields on `ContentItem`, the live badge, viewer counts, and live overlays — see [Live in the feed](/docs/guides/customize/live).
 </Callout>
 
-Server-side lifecycle, hls/webrtc protocols, broadcasting (ffmpeg/OBS), clips, token flow; lifecycle reactivation claim corrected. Client viewing surface lives in customize/live tabs.
+## Lifecycle
+
+A live stream moves through three statuses:
+
+| Status | Meaning |
+|--------|---------|
+| `idle` | Created; waiting for the broadcaster to connect |
+| `active` | Receiving video; the stream is published into the feed automatically |
+| `ended` | The broadcast stopped — explicitly, or (for `hls` streams) after the broadcaster stayed disconnected past the `reconnectWindow` |
+
+Key transitions:
+
+- **Going live is automatic.** As soon as ShortKit receives video, the status flips to `active` and the stream is published into your feed — no separate publish step. (The one exception is direct WebRTC publishing, where your backend calls a start endpoint; see [WebRTC streams](#webrtc-streams).)
+- **Ending unpublishes the live item.** When the status moves to `ended`, the live item leaves the feed immediately.
+- **The recording can return as on-demand video** (`hls` streams only). A recording of the broadcast is processed after the stream ends. If your organization has live-recording auto-publish enabled, it's published back into the feed automatically once ready; otherwise, publish it yourself with `PATCH /v1/content/{contentId}` and `"publishStatus": "published"`. In feed responses, the item's `liveStreamStatus` reports a derived `dvr` value once the recording is ready.
+- **An ended `hls` stream can reactivate.** The stream key stays valid, so if the broadcaster reconnects after the stream has ended, the stream returns to `active` and is re-published into the feed automatically. You don't need to create a new stream for a follow-up broadcast — though creating one per broadcast keeps recordings and analytics cleanly separated.
+
+Brief encoder drops *within* the `reconnectWindow` don't end the stream at all: the item stays in the feed and viewers see a slate image (customizable via `reconnectSlateUrl`) until the encoder reconnects or the window expires.
+
+Clients can poll status changes with `GET /v1/live-streams/status?playback_ids=...` using your publishable key, and your backend can subscribe to lifecycle [webhooks](/docs/guides/content/webhooks).
+
+## Choosing a protocol
+
+Pick a protocol when you create the stream — it can't be changed afterwards:
+
+| Protocol | Viewer latency | Best for |
+|----------|---------------|----------|
+| `hls` (default) | A few seconds | Most broadcasts — broadest encoder compatibility, recordings, clips, tunable via `latencyMode` |
+| `webrtc` | Under one second | Highly interactive streams where near-instant delivery matters |
+
+Differences to know before choosing:
+
+- `latencyMode`, `reconnectWindow`, and `reconnectSlateUrl` apply only to `hls` streams.
+- **Recordings and [clips](#turning-a-stream-into-clips) are `hls`-only.** A `webrtc` stream leaves no on-demand recording, and clip creation returns `409` for it.
+- `webrtc` playback requires a short-lived viewer token. The SDK fetches it for you; see [Viewer tokens](#viewer-tokens) if you're building custom playback.
+- Ending a `webrtc` stream is final — it cannot reactivate.
+
+## Creating a stream
+
+Create a stream from your backend with your secret key:
+
+```bash title="Create a live stream"
+curl -X POST https://api.shortkit.dev/v1/live-streams \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Friday morning yoga",
+    "protocol": "hls",
+    "latencyMode": "low",
+    "reconnectWindow": 60,
+    "customMetadata": { "instructor": "maya" }
+  }'
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `title` | string | Shown on the content item |
+| `protocol` | `"hls"` \| `"webrtc"` | Default `"hls"`; immutable after creation |
+| `latencyMode` | `"low"` \| `"reduced"` \| `"standard"` | `hls` only; default `"low"` |
+| `reconnectWindow` | integer (seconds) | `hls` only; 0–1800, default `60` |
+| `reconnectSlateUrl` | string (URL) | `hls` only; per-stream override of the slate image shown during reconnects |
+| `customMetadata` | object (string values) | Carried onto the content item |
+
+The response includes the broadcast credentials:
+
+```json title="Response (hls)"
+{
+  "data": {
+    "id": "5a7b8c9d-e0f1-4234-5678-90abcdef1234",
+    "streamingProtocol": "hls",
+    "playbackId": "DS00Spx1CV3C00bv7n7CnG02ROsPIxQ100",
+    "status": "idle",
+    "title": "Friday morning yoga",
+    "latencyMode": "low",
+    "reconnectWindow": 60,
+    "rtmpUrl": "rtmps://ingest.shortkit.dev:443/app/abc123def456...",
+    "streamKey": "abc123def456...",
+    "currentViewers": 0,
+    "createdAt": "2026-06-10T14:30:00Z"
+  }
+}
+```
+
+A `webrtc` stream's response additionally includes `whipUrl` and `whipToken` for WHIP ingest.
+
+<Callout type="warn" title="Broadcast credentials are secrets">
+Anyone with `rtmpUrl` or `streamKey` can broadcast as you. Forward them only to the broadcaster. Don't log them, expose them in your client app, or commit them to source control.
+</Callout>
+
+See the [Create live stream reference](/docs/api/live-streams/create-live-stream) for the full request and response shape.
+
+## Broadcasting
+
+Point your encoder at the `rtmpUrl` from the create response. This works the same for `hls` and `webrtc` streams — `rtmpUrl` already embeds the stream key, so tools that take a single URL can use it directly:
+
+```bash title="Broadcast with ffmpeg"
+# RTMP_URL is the rtmpUrl value from the create response
+ffmpeg -re \
+  -i your-input.mp4 \
+  -c:v libx264 -preset veryfast -tune zerolatency -b:v 2500k \
+  -c:a aac -b:a 128k \
+  -f flv "$RTMP_URL"
+```
+
+For broadcast software with separate **Server** and **Stream Key** fields (OBS, Wirecast, and similar), split the URL at the key boundary:
+
+| Field | Value |
+|-------|-------|
+| Server | Everything in `rtmpUrl` up to and including the last `/` |
+| Stream Key | The `streamKey` value from the response |
+
+For example, with `rtmpUrl` of `rtmps://ingest.shortkit.dev:443/app/abc123def456`:
+
+- **Server**: `rtmps://ingest.shortkit.dev:443/app/`
+- **Stream Key**: `abc123def456`
+
+Once video arrives, the stream goes `active` and appears in the feed automatically.
+
+## WebRTC streams
+
+A `webrtc` stream accepts three ingest paths:
+
+1. **RTMP** — use `rtmpUrl` exactly as above. Activation is automatic.
+2. **WHIP** — for encoders that support WHIP, use `whipUrl` as the server and `whipToken` as the bearer token / stream key. Activation is automatic.
+3. **Direct WebRTC publishing** — publish camera/microphone tracks straight from a browser or app, with no encoder. This path uses publisher tokens and requires an explicit start call:
+
+```bash title="Get a publisher token (secret key)"
+curl https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/publisher-token \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json title="Response"
+{
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "wsUrl": "wss://rt.shortkit.dev",
+    "whipUrl": "https://rt.shortkit.dev/w",
+    "expiresAt": "2026-06-10T18:30:00Z"
+  }
+}
+```
+
+Hand `token` and `wsUrl` to your publishing client to connect and publish tracks. Publisher tokens are valid for about 4 hours and require your secret key — mint them on your backend and pass them to the broadcaster's client; never embed your secret key in an app.
+
+Because direct WebRTC publishing bypasses the ingest pipeline, ShortKit doesn't detect the broadcast start automatically. Once your publisher is connected and publishing, mark the stream live from your backend:
+
+```bash title="Mark the stream active"
+curl -X POST https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/start \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+This flips the status to `active` and publishes the stream into the feed. It's idempotent — calling it on an already-active stream is a no-op.
+
+### Viewer tokens
+
+Playback of a `webrtc` stream requires a short-lived viewer token. **The ShortKit SDK handles this automatically** — when a `webrtc` live item becomes the active feed cell, the SDK fetches a token with your publishable key and connects. You don't write any token code for SDK playback.
+
+If you're building a custom viewing surface, fetch the token yourself:
+
+```bash title="Get a viewer token (publishable key)"
+curl https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/viewer-token \
+  -H "Authorization: Bearer pk_live_your_publishable_key"
+```
+
+```json title="Response"
+{
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "wsUrl": "wss://rt.shortkit.dev",
+    "expiresAt": "2026-06-10T14:45:00Z"
+  }
+}
+```
+
+Viewer tokens expire after about 15 minutes; fetch a fresh one per viewing session. Requesting a viewer token for an `hls` stream returns `400` — `hls` playback uses the `playbackId` directly, no token required.
+
+## Turning a stream into clips
+
+For `hls` streams, you can carve clips out of the broadcast while it's still `active` (real-time clipping) or after it has `ended`. Offsets are in seconds from the beginning of the stream:
+
+```bash title="Create clips"
+curl -X POST https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/clips \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clips": [
+      { "startSec": 0,   "endSec": 30,  "title": "Opening" },
+      { "startSec": 600, "endSec": 660, "title": "Q&A highlight" }
+    ],
+    "callbackUrl": "https://example.com/webhooks/shortkit/clip-ready"
+  }'
+```
+
+Each request accepts 1–20 clips. Each clip becomes its own content item with a fresh `contentId` and `playbackId`; it's `processing` for a few seconds to a few minutes, then becomes `ready`. Clips are created unpublished — publish them with `PATCH /v1/content/{contentId}` when you want them in the feed. If you provide a `callbackUrl`, ShortKit `POST`s to it as each clip becomes ready, so you can publish immediately without polling.
+
+Clip creation is not available for `webrtc` streams (returns `409`).
+
+### Letting end users create clips
+
+To expose a "clip this moment" affordance in your app, **don't ship your secret key in the client**. Instead, add an endpoint to your own backend (behind your existing user auth) that accepts a clip request from the client and forwards it to the clips endpoint with your secret key. That gives you a place to enforce per-user rate limits, attribution, and abuse controls. The client already has what it needs to construct the request: the live `ContentItem` exposes `liveStreamId`, and your UI supplies the time offsets.
+
+## Ending a stream
+
+End any stream, regardless of protocol:
+
+```bash title="End a live stream"
+curl -X POST https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234/end \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+`hls` streams also end automatically when the broadcaster stays disconnected past the `reconnectWindow` (default 60 seconds). Use the explicit call to close a stream immediately instead of waiting out the window.
+
+What "ended" means depends on the protocol:
+
+- **`hls`** — the live item leaves the feed; the recording is processed and can be published as on-demand video (see [Lifecycle](#lifecycle)). The stream can still reactivate if the broadcaster reconnects with the same stream key.
+- **`webrtc`** — the session is torn down permanently. No recording is produced, and the stream cannot be restarted; create a new stream for the next broadcast.
+
+To remove a stream and its content item entirely, use `DELETE /v1/live-streams/{id}`.
+
+## Next steps
+
+<Cards>
+  <Card title="Live in the feed" href="/docs/guides/customize/live" description="Client viewing surface: live fields, badges, viewer counts, and overlays on iOS and Web." />
+  <Card title="Create live stream API" href="/docs/api/live-streams/create-live-stream" description="Full request and response reference." />
+  <Card title="Webhooks" href="/docs/guides/content/webhooks" description="React to stream and content lifecycle events from your backend." />
+</Cards>
