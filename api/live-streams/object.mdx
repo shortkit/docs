@@ -20,6 +20,8 @@ While a stream is `active`, it appears in the feed as a content item with `conte
   "reconnectWindow": 60,
   "rtmpUrl": "rtmps://global-live.example/app/<stream-key>",
   "streamKey": "abc123def456...",
+  "whipUrl": null,
+  "whipToken": null,
   "startedAt": "2026-04-17T14:00:00Z",
   "endedAt": null,
   "createdAt": "2026-04-17T13:55:00Z"
@@ -66,6 +68,18 @@ While a stream is `active`, it appears in the feed as a content item with `conte
 
 <ResponseField name="streamKey" type="string | null">
   Broadcaster authentication key, already embedded in `rtmpUrl`. Only returned in the [Create Live Stream](/api/live-streams/create) response. Provided separately for encoders that require the key as a distinct field. See the warning on `rtmpUrl` — same handling rules apply.
+</ResponseField>
+
+<ResponseField name="whipUrl" type="string | null">
+  WebRTC streams only. WHIP ingest endpoint for browser-based or WHIP-capable encoders (such as OBS 30+). Only returned in the [Create Live Stream](/api/live-streams/create) response. `null` for HLS streams.
+
+  Use with `whipToken` as a Bearer credential. See [Broadcasting over WHIP](/guides/live-streams#broadcasting-over-whip).
+</ResponseField>
+
+<ResponseField name="whipToken" type="string | null">
+  WebRTC streams only. Bearer token presented by the encoder when connecting to `whipUrl`. Only returned in the [Create Live Stream](/api/live-streams/create) response. `null` for HLS streams.
+
+  **Sensitive — treat like an API key.** Same handling rules as `rtmpUrl` and `streamKey`.
 </ResponseField>
 
 <ResponseField name="startedAt" type="string | null">

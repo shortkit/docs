@@ -8,7 +8,7 @@ Creates a live stream in the `idle` state and returns the broadcast credentials 
 
 The response contains a single-use `streamKey` and an `rtmpUrl` that the broadcaster pastes into their encoder. Once the broadcaster connects, the stream automatically transitions to `active` and becomes visible in your feed.
 
-ShortKit supports two ingest and delivery protocols. Use `protocol: "hls"` (the default) for standard latency broadcasts, or `protocol: "webrtc"` for sub-second delivery to viewers — see [Choosing a protocol](/guides/live-streams#choosing-a-protocol).
+ShortKit supports two ingest and delivery protocols. Use `protocol: "hls"` (the default) for standard latency broadcasts, or `protocol: "webrtc"` for sub-second delivery to viewers — see [Choosing a protocol](/guides/live-streams#choosing-a-protocol). WebRTC streams additionally return `whipUrl` and `whipToken` for browser-based or WHIP-capable encoders — see [Broadcasting over WHIP](/guides/live-streams#broadcasting-over-whip).
 
 ## Body parameters
 
@@ -98,6 +98,8 @@ const { data: stream } = await resp.json();
     "reconnectWindow": 60,
     "rtmpUrl": "rtmps://global-live.example/app/abc123def456-7890-abcd-ef12-34567890abcd",
     "streamKey": "abc123def456-7890-abcd-ef12-34567890abcd",
+    "whipUrl": null,
+    "whipToken": null,
     "startedAt": null,
     "endedAt": null,
     "createdAt": "2026-04-17T13:55:00Z"
@@ -120,6 +122,8 @@ const { data: stream } = await resp.json();
     "reconnectWindow": null,
     "rtmpUrl": "rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl",
     "streamKey": "AbCdEfGhIjKl",
+    "whipUrl": "https://ingest.shortkit.dev:8443/whip",
+    "whipToken": "whip_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789",
     "startedAt": null,
     "endedAt": null,
     "createdAt": "2026-04-17T13:55:00Z"
