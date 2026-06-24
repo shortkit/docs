@@ -42,6 +42,7 @@
     "---Users & data---",
     "analytics/overview",
     "analytics/custom-data",
+    "analytics/event-forwarding",
     "monetization/ads",
     "---SDK reference---",
     "reference/feed-config",

@@ -20,8 +20,7 @@ Every event carries a viewer identity — an anonymous device ID by default, or 
 | `videoStartupTimeMs` | integer, optional | Time from impression to player ready (ms). Absent if the player never started. |
 | `exitBeforeStart` | boolean | `true` if the user swiped away before playback began. |
 | `completed` | boolean | `true` if the video played to its natural end at least once. |
-| `looped` | boolean | `true` if the video completed and restarted. |
-| `loopCount` | integer | Total number of completions. 0 if the video never reached the end. |
+| `loopCount` | integer | Total number of completions (replays included). 0 if the video never reached the end. |
 
 ## Quality of experience
 
@@ -90,6 +89,7 @@ Analytics endpoints use your secret key. See [Authentication](/docs/api/authenti
 
 <Cards>
   <Card title="Custom data" href="/docs/guides/analytics/custom-data" description="Attach custom dimensions at init and send content signals to the recommendation engine." />
+  <Card title="Event forwarding" href="/docs/guides/analytics/event-forwarding" description="Stream a copy of feed-interaction events to your own backend in parallel to ShortKit analytics." />
   <Card title="Identity" href="/docs/guides/concepts/identity" description="How anonymous device IDs and your user IDs flow into the viewer_id dimension." />
   <Card title="Analytics API" href="/docs/api/analytics/get-a-metric" description="Query metrics, breakdowns, timeseries, and raw views over REST." />
 </Cards>
