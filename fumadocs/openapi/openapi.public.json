@@ -2350,26 +2350,65 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "example": {
-                  "data": {
-                    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
-                    "externalId": "cms-vid-48213",
-                    "contentType": "video",
-                    "uploadUrl": "https://uploads.shortkit.dev/direct/upl_4f8c2a91d3b7?token=eyJhbGciOiJSUzI1NiJ9...",
-                    "status": "waiting_for_upload",
-                    "title": "Morning Headlines",
-                    "description": "Top stories for June 11",
-                    "tags": [
-                      "news",
-                      "morning"
-                    ],
-                    "customMetadata": {
-                      "category": "news"
-                    },
-                    "createdAt": "2026-06-11T14:02:31.481927+00:00"
+                "examples": {
+                  "Video upload": {
+                    "summary": "Video — PUT the file to uploadUrl",
+                    "value": {
+                      "data": {
+                        "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                        "externalId": "cms-vid-48213",
+                        "contentType": "video",
+                        "uploadUrl": "https://uploads.shortkit.dev/direct/upl_4f8c2a91d3b7?token=eyJhbGciOiJSUzI1NiJ9...",
+                        "status": "waiting_for_upload",
+                        "title": "Morning Headlines",
+                        "description": "Top stories for June 11",
+                        "tags": [
+                          "news",
+                          "morning"
+                        ],
+                        "customMetadata": {
+                          "category": "news"
+                        },
+                        "createdAt": "2026-06-11T14:02:31.481927+00:00"
+                      },
+                      "meta": {
+                        "request_id": "req_b3f8a1c2d4e5"
+                      }
+                    }
                   },
-                  "meta": {
-                    "request_id": "req_b3f8a1c2d4e5"
+                  "Carousel upload": {
+                    "summary": "Carousel — PUT each image to its slot uploadUrl",
+                    "value": {
+                      "data": {
+                        "id": "8a2b4c6e-1f3d-4a59-bc70-e2d8f1a4b9c3",
+                        "externalId": null,
+                        "contentType": "carousel",
+                        "uploadStatus": "waiting_for_upload",
+                        "title": "Best plays of the week",
+                        "description": "Weekly highlights carousel",
+                        "tags": [
+                          "sports",
+                          "highlights"
+                        ],
+                        "customMetadata": {},
+                        "imageSlots": [
+                          {
+                            "position": 0,
+                            "uploadUrl": "https://uploads.shortkit.dev/direct/img_7c1d44a9b2?token=eyJhbGciOiJSUzI1NiJ9...",
+                            "maxSizeBytes": 10485760
+                          },
+                          {
+                            "position": 1,
+                            "uploadUrl": "https://uploads.shortkit.dev/direct/img_9e3f55b1c4?token=eyJhbGciOiJSUzI1NiJ9...",
+                            "maxSizeBytes": 10485760
+                          }
+                        ],
+                        "createdAt": "2026-06-11T14:05:12.382041+00:00"
+                      },
+                      "meta": {
+                        "request_id": "req_c4e9b2d6f1a3"
+                      }
+                    }
                   }
                 }
               }

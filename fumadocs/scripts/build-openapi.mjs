@@ -36,9 +36,15 @@ for (const [route, methods] of Object.entries(spec.paths)) {
     // schema has empty 2xx bodies — docs-owned examples fill them in.
     for (const [status, example] of Object.entries(responseExamples ?? {})) {
       merged.responses ??= {};
+      // `$examples` (a named map) emits OpenAPI `examples` for endpoints whose
+      // response shape varies (e.g. video vs carousel upload); otherwise a
+      // single `example`.
+      const media = example && example.$examples
+        ? { examples: example.$examples }
+        : { example };
       merged.responses[status] = {
         description: merged.responses[status]?.description ?? 'Successful response',
-        content: { 'application/json': { example } },
+        content: { 'application/json': media },
       };
     }
     paths[route] ??= {};
