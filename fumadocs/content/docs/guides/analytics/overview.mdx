@@ -77,6 +77,64 @@ Collected once per view and attached automatically.
 
 To attach your own segmentation values — custom dimensions and recommendation signals — see [Custom data](/docs/guides/analytics/custom-data).
 
+## Event types
+
+The `event_type` query parameter accepts any of the type names below. Each event carries an `event_data` object whose shape depends on the type; the key fields are listed for reference. Pass a single type name to return only events of that type.
+
+### Engagement
+
+| `event_type` | Description | Key `event_data` fields |
+|---|---|---|
+| `impression` | Content entered the viewport | — |
+| `playStart` | Video playback began | — |
+| `watchProgress` | Periodic heartbeat during playback | `watchTimeMs`, `playingTimeMs` |
+| `completion` | Video played to the end | `watchTimeMs` |
+| `like` | Viewer liked the content | — |
+| `share` | Viewer shared the content | `shareMethod` |
+| `save` | Viewer saved or bookmarked the content | — |
+| `swipe` | Viewer swiped to the next item | `direction` |
+| `interaction` | Generic UI interaction | `action` |
+| `live.viewer.heartbeat` | Live-stream viewer presence ping, sent every 30 seconds while a live item is the active playing item | `playbackId`, `viewerSessionId` |
+
+### Playback quality
+
+| `event_type` | Description | Key `event_data` fields |
+|---|---|---|
+| `firstFrame` | First video frame rendered | `startupTimeMs` |
+| `rebuffer` | Playback stalled for buffering | `durationMs` |
+| `qualityChange` | Adaptive bitrate switch | `fromBitrate`, `toBitrate` |
+| `error` | Playback error | `errorCode`, `errorMessage` |
+
+### Feed navigation
+
+| `event_type` | Description | Key `event_data` fields |
+|---|---|---|
+| `feedEntry` | Viewer entered the feed | — |
+| `feedExit` | Viewer left the feed | `itemsViewed`, `durationMs` |
+
+### View lifecycle
+
+| `event_type` | Description | Key `event_data` fields |
+|---|---|---|
+| `viewEnd` | Viewer finished viewing a content item | Full playback summary: watch time, completion status, loop count, rebuffer stats, seek behavior, and device info |
+
+`viewEnd` carries the richest payload — a complete summary of the viewing session. It is the event that powers the view and metric endpoints.
+
+### Ad lifecycle
+
+| `event_type` | Description | Key `event_data` fields |
+|---|---|---|
+| `adRequest` | Ad was requested from the ad server | `adUnitId` |
+| `adImpression` | Ad creative rendered | `adUnitId`, `adFormat` |
+| `adStart` | Ad playback began | `adUnitId` |
+| `adProgress` | Ad playback progress checkpoint | `adUnitId`, `percentComplete` |
+| `adComplete` | Ad played to completion | `adUnitId` |
+| `adSkip` | Viewer skipped the ad | `adUnitId`, `skipTimeSeconds` |
+
+<Callout type="info" title="Custom event types">
+  Event types are not restricted to this list. The SDK can send custom event types, and they are stored and returned like any other event. To see which types actually appear in a timeframe, call [List event types](/docs/api/analytics/list-event-types). For the subset of events you can stream to your own backend, see [Event forwarding](/docs/guides/analytics/event-forwarding).
+</Callout>
+
 ## Querying analytics data
 
 Everything the SDK collects is queryable through the Analytics API, which supports aggregation, dimension breakdowns, timeseries, filtering, and raw data export:

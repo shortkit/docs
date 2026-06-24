@@ -1674,7 +1674,7 @@
     "/v1/events/explore": {
       "get": {
         "summary": "List events",
-        "description": "Return a paginated list of raw analytics events, newest first, including the event type, viewer, session identifiers, and the full event payload. Filter by `event_type`, `content_id`, or `viewer_id`, plus the standard `timeframe[]` parameter. `limit` accepts up to 200 events per page.",
+        "description": "Return a paginated list of raw analytics events, newest first, including the event type, viewer, session identifiers, and the full event payload. Filter by `event_type`, `content_id`, or `viewer_id`. Set the time range with `timeframe[]`: relative as `value:unit` (for example `7:days` or `24:hours`) or absolute as two Unix timestamps (`timeframe[]=<start>&timeframe[]=<end>`); the default is `7:days`. `limit` accepts up to 200 events per page. See [Event types](/docs/guides/analytics/overview#event-types) for the full list of values the `event_type` filter accepts.",
         "operationId": "explore_events_v1_events_explore_get",
         "parameters": [
           {
@@ -2991,7 +2991,7 @@
           "Live Streams"
         ],
         "summary": "Get live stream status",
-        "description": "Poll the current state of one or more live streams by playback ID — pass up to 50 IDs in the comma-separated `playback_ids` query parameter. Returns `status`, `startedAt`, `endedAt`, and `currentViewers` per playback ID. Authenticated with your publishable key, so it's safe to call directly from client apps.",
+        "description": "Poll the current state of one or more live streams by playback ID — pass up to 50 IDs in the comma-separated `playback_ids` query parameter. Returns `status`, `startedAt`, `endedAt`, and `currentViewers` per playback ID. Authenticated with your publishable key, so it's safe to call directly from client apps. Playback IDs that don't match a live stream owned by your organization are silently omitted from the response — there is no per-ID error. An empty `data` map means none of the requested IDs were valid.",
         "operationId": "get_live_stream_status_v1_live_streams_status_get",
         "parameters": [
           {
@@ -4017,7 +4017,7 @@
     "/v1/metrics/{metric}": {
       "get": {
         "summary": "Get a metric",
-        "description": "Return a single aggregate value for a metric over a timeframe, such as `views`, `unique_viewers`, `watch_time`, or `avg_session_duration`. Control the time range with `timeframe[]` (relative like `7:days` or two Unix timestamps), narrow results with `filters[]` (`key:value` dimension pairs), and override the aggregation with `measurement` (`sum`, `avg`, `median`, or `count`). For time-bucketed data, use the timeseries endpoint instead.",
+        "description": "Return a single aggregate value for a metric over a timeframe. The `metric` path parameter accepts two families of slugs. Count metrics ignore `measurement`: `views` (total view sessions), `unique_viewers` (distinct viewer IDs), and `completions` (views that played to the end). Aggregate metrics support a `measurement` of `sum` or `avg` and have a per-metric default: `watch_time` (wall-clock watch duration in ms, default `sum`), `playing_time` (playback time excluding buffering in ms, default `sum`), and `video_startup_time` (time from impression to first frame in ms, default `avg`). Control the time range with the `timeframe[]` query parameter: relative as `value:unit` (for example `7:days` or `24:hours`) or absolute as two Unix timestamps (`timeframe[]=<start>&timeframe[]=<end>`); the default is `7:days`. Narrow results with `filters[]` (`key:value` dimension pairs) and override the aggregation with `measurement` (`sum`, `avg`, `median`, or `count`) — note that `measurement` only affects aggregate metrics and is ignored by count metrics. For time-bucketed data, use the timeseries endpoint instead.",
         "operationId": "get_metric_v1_metrics__metric__get",
         "parameters": [
           {
@@ -4216,7 +4216,7 @@
     "/v1/metrics/{metric}/timeseries": {
       "get": {
         "summary": "Get metric timeseries",
-        "description": "Return time-bucketed values for a metric, suitable for charting. Granularity is automatic — hourly for ranges of 24 hours or less, daily otherwise — with empty buckets zero-filled and bucket boundaries aligned to your organization's timezone. Accepts the same `timeframe[]`, `filters[]`, and `measurement` parameters as the scalar metric endpoint.",
+        "description": "Return time-bucketed values for a metric, suitable for charting. Granularity is automatic — hourly for ranges of 24 hours or less, daily otherwise — with empty buckets zero-filled and bucket boundaries aligned to your organization's timezone. Accepts the same `metric` slugs, `filters[]`, and `measurement` parameters as the scalar metric endpoint, where `measurement` (`sum` or `avg`) only affects aggregate metrics and is ignored by count metrics. Set the time range with `timeframe[]`: relative as `value:unit` (for example `7:days` or `24:hours`) or absolute as two Unix timestamps (`timeframe[]=<start>&timeframe[]=<end>`); the default is `7:days`.",
         "operationId": "get_metric_timeseries_v1_metrics__metric__timeseries_get",
         "parameters": [
           {
@@ -4577,7 +4577,7 @@
         "tags": [
           "Surveys"
         ],
-        "description": "Create an in-feed survey with a `question`, answer `options` (each with `text` and `position`), and `placementRules` controlling when it appears. `placementRules` must include at least one `min_videos_before` rule with a non-negative integer `n`; supported rule types are `min_videos_before`, `once_per_user`, `once_per_session`, and `max_per_session`. Surveys start in `draft` status unless you pass `status: \"active\"`.",
+        "description": "Create an in-feed survey with a `question`, answer `options` (each with `text` and `position`), and `placementRules` controlling when it appears. Surveys start in `draft` status unless you pass `status: \"active\"`. Only `active` surveys are injected into the feed: `draft` is the initial composing state, `paused` removes the survey from the feed while preserving its response data, and `archived` is a permanently retired state reachable only by deleting the survey. `placementRules` must include at least one `min_videos_before` rule with a non-negative integer `n`. Supported rule types and their behavior: `min_videos_before` (`ruleValue` `{ \"n\": 3 }`, required) requires the user to scroll past at least `n` content items before the survey can appear; `once_per_user` (`ruleValue` `{}`) means a user who has already responded never sees the survey again; `once_per_session` (`ruleValue` `{}`) shows the survey at most once per session regardless of response; `max_per_session` (`ruleValue` `{ \"n\": 1 }`) shows the survey up to `n` times per session. The feed evaluates per-user and per-session rules using the `X-User-Id` and `X-Session-Id` headers the SDK sends — if these headers are missing, `once_per_user`, `once_per_session`, and `max_per_session` are skipped. When multiple active surveys are eligible for the same feed slot, the survey with the highest `priority` wins.",
         "security": [
           {
             "secretKey": []
@@ -5033,7 +5033,7 @@
         "tags": [
           "Surveys"
         ],
-        "description": "Set the display order of multiple surveys in one call. Pass `surveyIds` ordered from highest to lowest priority; each survey's `priority` is reassigned to match the list position. Returns 404 if any ID does not belong to your organization, in which case no changes are committed.",
+        "description": "Set the display order of multiple surveys in one call. Pass `surveyIds` ordered from highest to lowest priority; each survey's `priority` is reassigned to match the list position. Priority is the tie-breaker for placement: when several active surveys are eligible for the same feed slot, the one with the highest `priority` wins. Returns 404 if any ID does not belong to your organization, in which case no changes are committed.",
         "security": [
           {
             "secretKey": []

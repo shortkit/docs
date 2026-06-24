@@ -183,7 +183,7 @@ Use `PATCH /v1/content/{contentId}` to update metadata after creation. All field
 | `publishAt` | string | ISO 8601; must be in the future; rejected on currently published content |
 | `expiresAt` | string | ISO 8601; must be in the future and after `publishAt` |
 | `customMetadata` | object | **Shallow merge** — see below |
-| `origin` | string | `"ios_upload"` or `"other"`; see [Upload videos](/docs/guides/content/upload-videos) |
+| `origin` | string | `"ios_upload"` or `"other"`. Setting `"ios_upload"` on already-processed content retriggers thumbnail extraction — see below. |
 
 ### Merge semantics
 
@@ -209,6 +209,10 @@ Every other field is replaced outright. In particular, `tags` is a full replacem
 <Callout type="info" title="Scheduling and publishing interact">
 Setting `publishStatus` to `"published"` clears any pending `publishAt`. To schedule a future publish, the content must currently be unpublished.
 </Callout>
+
+### Retroactive thumbnail re-extraction
+
+Setting `origin` to `"ios_upload"` on a video that has already finished processing automatically retriggers thumbnail extraction. This regenerates color-accurate thumbnails for content that was uploaded before the origin was set — there's no need to re-upload the video. The re-extraction only fires when `origin` changes to `"ios_upload"` from another value; sending the same value again is a no-op. See [Upload videos](/docs/guides/content/upload-videos) for why iOS-recorded content needs this flag.
 
 ## Publication URLs
 

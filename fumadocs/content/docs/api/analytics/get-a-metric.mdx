@@ -1,12 +1,22 @@
 ---
 title: Get a metric
 description: >-
-  Return a single aggregate value for a metric over a timeframe, such as
-  `views`, `unique_viewers`, `watch_time`, or `avg_session_duration`. Control
-  the time range with `timeframe[]` (relative like `7:days` or two Unix
-  timestamps), narrow results with `filters[]` (`key:value` dimension pairs),
-  and override the aggregation with `measurement` (`sum`, `avg`, `median`, or
-  `count`). For time-bucketed data, use the timeseries endpoint instead.
+  Return a single aggregate value for a metric over a timeframe. The `metric`
+  path parameter accepts two families of slugs. Count metrics ignore
+  `measurement`: `views` (total view sessions), `unique_viewers` (distinct
+  viewer IDs), and `completions` (views that played to the end). Aggregate
+  metrics support a `measurement` of `sum` or `avg` and have a per-metric
+  default: `watch_time` (wall-clock watch duration in ms, default `sum`),
+  `playing_time` (playback time excluding buffering in ms, default `sum`), and
+  `video_startup_time` (time from impression to first frame in ms, default
+  `avg`). Control the time range with the `timeframe[]` query parameter:
+  relative as `value:unit` (for example `7:days` or `24:hours`) or absolute as
+  two Unix timestamps (`timeframe[]=<start>&timeframe[]=<end>`); the default is
+  `7:days`. Narrow results with `filters[]` (`key:value` dimension pairs) and
+  override the aggregation with `measurement` (`sum`, `avg`, `median`, or
+  `count`) — note that `measurement` only affects aggregate metrics and is
+  ignored by count metrics. For time-bucketed data, use the timeseries endpoint
+  instead.
 full: true
 _openapi:
   preload:
@@ -18,12 +28,22 @@ _openapi:
     headings: []
     contents:
       - content: >-
-          Return a single aggregate value for a metric over a timeframe, such as
-          `views`, `unique_viewers`, `watch_time`, or `avg_session_duration`.
-          Control the time range with `timeframe[]` (relative like `7:days` or
-          two Unix timestamps), narrow results with `filters[]` (`key:value`
-          dimension pairs), and override the aggregation with `measurement`
-          (`sum`, `avg`, `median`, or `count`). For time-bucketed data, use the
+          Return a single aggregate value for a metric over a timeframe. The
+          `metric` path parameter accepts two families of slugs. Count metrics
+          ignore `measurement`: `views` (total view sessions), `unique_viewers`
+          (distinct viewer IDs), and `completions` (views that played to the
+          end). Aggregate metrics support a `measurement` of `sum` or `avg` and
+          have a per-metric default: `watch_time` (wall-clock watch duration in
+          ms, default `sum`), `playing_time` (playback time excluding buffering
+          in ms, default `sum`), and `video_startup_time` (time from impression
+          to first frame in ms, default `avg`). Control the time range with the
+          `timeframe[]` query parameter: relative as `value:unit` (for example
+          `7:days` or `24:hours`) or absolute as two Unix timestamps
+          (`timeframe[]=<start>&timeframe[]=<end>`); the default is `7:days`.
+          Narrow results with `filters[]` (`key:value` dimension pairs) and
+          override the aggregation with `measurement` (`sum`, `avg`, `median`,
+          or `count`) — note that `measurement` only affects aggregate metrics
+          and is ignored by count metrics. For time-bucketed data, use the
           timeseries endpoint instead.
 ---
 

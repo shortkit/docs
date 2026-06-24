@@ -102,6 +102,18 @@ Anyone with `rtmpUrl` or `streamKey` can broadcast as you. Forward them only to 
 
 See the [Create live stream reference](/docs/api/live-streams/create-live-stream) for the full request and response shape.
 
+### Latency mode
+
+`latencyMode` applies to `hls` streams only and controls the trade-off between end-to-end delay and playback stability. For sub-second delivery, use `protocol: "webrtc"` instead (see [Choosing a protocol](#choosing-a-protocol)).
+
+| Mode | Approximate latency | Best for |
+|------|---------------------|----------|
+| `low` (default) | A few seconds | Interactive broadcasts where viewers chat or react in near real-time |
+| `reduced` | Several seconds | Most live content — good balance of latency and resilience to network jitter |
+| `standard` | 10+ seconds | Maximum stability for one-way broadcasts where latency doesn't matter |
+
+Higher latency modes give the player more time to buffer, which results in smoother playback over poor connections.
+
 ## Broadcasting
 
 Point your encoder at the `rtmpUrl` from the create response. This works the same for `hls` and `webrtc` streams — `rtmpUrl` already embeds the stream key, so tools that take a single URL can use it directly:
