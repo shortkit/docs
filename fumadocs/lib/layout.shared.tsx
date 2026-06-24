@@ -13,13 +13,13 @@ export function baseOptions(): BaseLayoutProps {
           <img
             src="/logo/light.svg"
             alt="shortkit"
-            className="block h-5 w-auto dark:hidden"
+            className="block h-6 w-auto dark:hidden"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo/dark.svg"
             alt="shortkit"
-            className="hidden h-5 w-auto dark:block"
+            className="hidden h-6 w-auto dark:block"
           />
         </>
       ),

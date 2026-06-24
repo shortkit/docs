@@ -197,7 +197,7 @@ When the status reaches `ready`, the response includes the `playbackId` and `dur
 
 ### Prefer push over polling
 
-Instead of polling, pass a `callbackUrl` in the upload request and ShortKit will POST to your endpoint at each stage of processing — when the file is received (`processing`), when transcoding completes (`ready`), and on failure (`error`). See the [webhooks guide](/docs/api/webhooks) for payload shapes and retry behavior.
+Instead of polling, pass a `callbackUrl` in the upload request and ShortKit will POST to your endpoint at each stage of processing — when the file is received (`processing`), when transcoding completes (`ready`), and on failure (`error`). See the [webhooks guide](/docs/api/guides/webhooks) for payload shapes and retry behavior.
 
 ## Import from a URL
 
@@ -271,6 +271,6 @@ Only import content you have the rights to use. ShortKit does not verify content
 <Cards>
   <Card title="Carousels" href="/docs/api/guides/carousels" description="Create image and video carousels, upload images, and reorder slides."/>
   <Card title="Captions and metadata" href="/docs/api/guides/captions-and-metadata" description="Add caption tracks and manage titles, tags, and custom metadata after upload."/>
-  <Card title="Webhooks" href="/docs/api/webhooks" description="Receive push notifications as content moves through the processing pipeline."/>
+  <Card title="Webhooks" href="/docs/api/guides/webhooks" description="Receive push notifications as content moves through the processing pipeline."/>
   <Card title="Upload API reference" href="/docs/api/content/upload-content" description="Full request and response fields for POST /v1/content/upload."/>
 </Cards>

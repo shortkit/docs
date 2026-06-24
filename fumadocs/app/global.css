@@ -19,6 +19,21 @@
   --color-fd-primary: #ff7a26;
 }
 
+/* ── Sidebar tweaks ─────────────────────────────────────────── */
+
+/* REST method badge on the LEFT of each API endpoint item, as an aligned column. */
+#nd-sidebar a > span.font-mono {
+  order: -1;
+  margin-inline-start: 0; /* cancel the badge's ms-auto (which pushes it right) */
+  min-width: 3.25rem;
+  text-align: start;
+}
+
+/* Drop the faint vertical guide line on expanded submenus. */
+#nd-sidebar .border-s {
+  border-inline-start-width: 0;
+}
+
 html {
   scrollbar-gutter: stable;
 }

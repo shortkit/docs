@@ -41,7 +41,8 @@ const internalRedirects = [
   { source: '/docs/guides/content/carousels', destination: '/docs/api/guides/carousels' },
   { source: '/docs/guides/content/captions-and-metadata', destination: '/docs/api/guides/captions-and-metadata' },
   { source: '/docs/guides/content/live-streams', destination: '/docs/api/guides/live-streams' },
-  { source: '/docs/guides/content/webhooks', destination: '/docs/api/webhooks' },
+  { source: '/docs/guides/content/webhooks', destination: '/docs/api/guides/webhooks' },
+  { source: '/docs/api/webhooks', destination: '/docs/api/guides/webhooks' },
   { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/setup/installation' },
 ];
 

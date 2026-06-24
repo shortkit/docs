@@ -440,7 +440,7 @@ Notes:
 A playback ID is assigned when processing completes, so it isn't in the initial upload or import response. Retrieve it from:
 
 - The [get content endpoint](/docs/api/content/get-content) — poll after an [upload](/docs/api/content/upload-content) until processing finishes, or fetch any existing content record.
-- The `content.imported` [webhook](/docs/api/webhooks) for imported content.
+- The `content.imported` [webhook](/docs/api/guides/webhooks) for imported content.
 - The [create live stream endpoint](/docs/api/live-streams/create-live-stream) for live streams (iOS seeding).
 
 Store playback IDs alongside your own content records so your ranking service can return them directly to the client.

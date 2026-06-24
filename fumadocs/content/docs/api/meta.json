@@ -7,21 +7,11 @@
     "index",
     "authentication",
     "errors",
-    "---Guides---",
-    "guides/upload-videos",
-    "guides/carousels",
-    "guides/captions-and-metadata",
-    "guides/live-streams",
-    "webhooks",
-    "---Content---",
+    "guides",
     "content",
-    "---Live Streams---",
     "live-streams",
-    "---Surveys---",
     "surveys",
-    "---Analytics---",
     "analytics",
-    "---Ad Configuration---",
     "ad-configuration"
   ]
 }
