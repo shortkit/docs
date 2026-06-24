@@ -145,6 +145,7 @@
                 "expanded": true,
                 "pages": [
                   "api/analytics/event-object",
+                  "api/analytics/event-forwarding",
                   "api/analytics/list-events",
                   "api/analytics/metrics",
                   "api/analytics/get-metric",

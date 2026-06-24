@@ -1,0 +1,227 @@
+---
+title: "Event Forwarding"
+description: "Stream a copy of feed-interaction events to your own backend, in parallel to ShortKit analytics."
+sidebarTitle: "Event Forwarding"
+---
+
+Event forwarding lets the ShortKit SDK send a duplicate stream of feed-interaction events directly from the device to your own HTTPS endpoint, at the same time it reports them to ShortKit. Use it to feed a recommender system, your data warehouse, or your own analytics, without re-deriving anything from the ShortKit dashboard.
+
+It is off by default and turns on the moment you provide a destination URL.
+
+## How it works
+
+1. As users interact with the feed, the SDK collects a small, fixed set of high-value events (see [What gets forwarded](#what-gets-forwarded)).
+2. Events are batched (up to 100 per request) and flushed about every 30 seconds while the app is foregrounded, then `POST`ed as JSON to your URL with the headers you configure.
+3. Delivery is at-least-once: a failed `POST` is retried with backoff, so your endpoint may occasionally receive the same event twice. Every event carries a unique `eventId` so you can deduplicate.
+
+## Enable forwarding
+
+Provide an `https` URL and, optionally, auth headers at SDK initialization.
+
+<CodeGroup>
+
+```tsx React Native
+import { ShortKitProvider } from '@shortkitsdk/react-native';
+
+<ShortKitProvider
+  apiKey="pk_live_51H8xMv2eZ"
+  eventForwarding={{
+    url: 'https://collector.yourdomain.com/v1/shortkit-events',
+    headers: { Authorization: 'Bearer fwd_9c2b7a1e4d' },
+  }}
+>
+  {/* your app */}
+</ShortKitProvider>
+```
+
+```dart Flutter
+ShortKitProvider.apiKey(
+  apiKey: 'pk_live_51H8xMv2eZ',
+  eventForwarding: ShortKitEventForwarding(
+    url: 'https://collector.yourdomain.com/v1/shortkit-events',
+    headers: {'Authorization': 'Bearer fwd_9c2b7a1e4d'},
+  ),
+  child: const MyApp(),
+);
+```
+
+```swift iOS
+let shortKit = ShortKit(
+  apiKey: "pk_live_51H8xMv2eZ",
+  eventForwarding: EventForwardingConfig(
+    url: "https://collector.yourdomain.com/v1/shortkit-events",
+    headers: ["Authorization": "Bearer fwd_9c2b7a1e4d"]
+  )
+)
+```
+
+```kotlin Android
+val shortKit = ShortKit(
+  context = context,
+  apiKey = "pk_live_51H8xMv2eZ",
+  eventForwarding = EventForwardingConfig(
+    url = "https://collector.yourdomain.com/v1/shortkit-events",
+    headers = mapOf("Authorization" to "Bearer fwd_9c2b7a1e4d")
+  )
+)
+```
+
+</CodeGroup>
+
+<Warning>
+  The SDK `POST`s to the URL exactly as given. It does not append a path, so provide your full endpoint (for example `https://collector.yourdomain.com/v1/shortkit-events`), not just the host. The URL must be `https`. An `http` URL is rejected and forwarding stays off.
+</Warning>
+
+## Configuration
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `url` | Yes | Your full HTTPS collector endpoint. Its presence is what enables forwarding. |
+| `headers` | No | Key/value headers sent verbatim on every request, typically your auth header. |
+
+The forwarded event set is fixed by the SDK (see below) and is not configurable.
+
+## What gets forwarded
+
+Three event types are forwarded. High-volume progress pings are intentionally excluded to keep your ingest light.
+
+| Event | Fires | Use it for |
+| --- | --- | --- |
+| `viewEnd` | Once when a video view ends (swipe away or feed close) | The authoritative per-view summary (watch time, completion, loops, quality) |
+| `swipe` | Once per swipe between items | Navigation signal (direction, dwell on the item left) |
+| `playbackFallback` | When the player falls back from the primary stream to a backup URL | Quality-of-experience or error signal |
+
+### Batch shape
+
+Each request body:
+
+```json
+{
+  "sdk": { "platform": "ios", "version": "0.2.59" },
+  "events": [ /* event envelopes */ ]
+}
+```
+
+### Event envelope
+
+Every event shares this envelope. `data` is type-specific.
+
+```json
+{
+  "eventId": "98c1d029-38fc-436a-9ac0-f1fb9a8a3236",
+  "type": "viewEnd",
+  "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "playbackId": "pb_7c1d44a9b2",
+  "userId": "user_abc123",
+  "sessionId": "sess_xyz789",
+  "viewSessionId": "vs_a1b2c3d4",
+  "timestamp": "2026-03-01T12:00:11.482Z",
+  "data": { }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `eventId` | Unique per event. Deduplicate on this. |
+| `type` | `viewEnd`, `swipe`, or `playbackFallback`. |
+| `contentId` / `playbackId` | The content and playback this event refers to. |
+| `userId` | Your app-supplied user identity. |
+| `sessionId` | One feed session (feed open to close). |
+| `viewSessionId` | One single video view. |
+| `timestamp` | ISO 8601 event time. |
+
+## Build your collector
+
+Your endpoint is a simple JSON receiver.
+
+| Aspect | Requirement |
+| --- | --- |
+| Method | `POST` to your configured URL |
+| Content type | `application/json` |
+| Auth | Validate the header you configured. Your endpoint is public, and header names may arrive lowercased, so match them case-insensitively. |
+| Success | Return any `2xx` to acknowledge |
+| Failure | Non-`2xx` or timeout triggers a retry, so deduplicate on `eventId` |
+| Ordering | Not guaranteed. Order by `timestamp`. |
+| Batch size | Up to 100 events per request |
+
+A minimal handler:
+
+```python collector.py
+@app.post("/v1/shortkit-events")
+def ingest(request):
+    if request.headers.get("authorization") != f"Bearer {EXPECTED_TOKEN}":
+        return 401
+    body = request.json()
+    for event in body["events"]:
+        if not already_seen(event["eventId"]):   # delivery is at-least-once
+            store(event)                           # keep the full JSON; parse fields you need
+    return 202
+```
+
+<Tip>
+  Store the whole event JSON (for example in a JSONB column) and parse only the fields you use. You then pick up any fields ShortKit adds later with no schema change.
+</Tip>
+
+## Field reference
+
+The event envelope and the Core fields below are part of our committed contract. We won't remove them or change their meaning without notice, so you can build your pipeline on them. Fields under Additional metadata are provided as-is and may change or grow over time.
+
+### viewEnd
+
+**Core metrics**
+
+| Field | Meaning |
+| --- | --- |
+| `watchTimeMs` | Wall-clock time on the view (includes paused and buffering) |
+| `playingTimeMs` | Accumulated time the video was actually advancing |
+| `exitBeforeStart` | `true` if the user left before playback started |
+| `completed` | `true` if the video reached its natural end at least once |
+| `loopCount` | Number of times the video reached its end (replays included) |
+
+**Additional metadata** (quality-of-experience and device)
+
+| Field | Meaning |
+| --- | --- |
+| `videoStartupTimeMs` | Play-request to ready-to-play (omitted if unknown) |
+| `rebufferCount` / `rebufferDurationMs` | Stall count and total stall duration |
+| `seekCount` / `seekDurationMs` | Number of seeks and total seek time |
+| `avgBitrateBps` | Playing-time-weighted average bitrate (omitted if unknown) |
+| `renditionChangeCount` / `renditionUpshiftCount` / `renditionDownshiftCount` | HLS quality switches |
+| `captionsEnabled` | Whether captions were on |
+| `deviceInfo` | `{ deviceCategory, deviceManufacturer, deviceModel, deviceName, osName, osVersion, connectionType, userAgent }` |
+| `clientAppName` / `clientAppVersion` | Your app's name and version, if provided |
+| `customDimensions` | Your `custom_1` through `custom_5` values, if set |
+
+### swipe
+
+All `swipe` fields are part of the committed contract.
+
+| Field | Meaning |
+| --- | --- |
+| `toContentId` | The content swiped to (the content swiped from is the envelope `contentId`) |
+| `watchTimeOnFrom` | Time spent on the content being left, in milliseconds |
+| `direction` | `"forward"` or `"backward"` |
+
+### playbackFallback
+
+All `playbackFallback` fields are part of the committed contract.
+
+| Field | Meaning |
+| --- | --- |
+| `reason` | For example `"no_primary_url"` or `"active_player_error"` |
+| `primaryUrl` | The stream that failed |
+| `fallbackUrl` | The backup it switched to |
+
+## Aggregating into sessions
+
+You don't need to invent a sessionization window. The IDs are already on every event:
+
+- `viewSessionId`: one single video view.
+- `sessionId`: one feed session (feed on screen, open to close), grouping the views in a browsing session. An app background then resume starts a new `sessionId`, so stitch those yourself if you want a longer-lived session concept.
+
+## Best practices
+
+- **Deduplicate on `eventId`.** Delivery is at-least-once, so retries can repeat a batch.
+- **Match auth headers case-insensitively.** Proxies and HTTP/2 may lowercase header names.
+- **Treat the token as a coarse gate.** It is embedded in your mobile app and therefore extractable, so also rate-limit, validate payload shape, and rotate the token periodically.
+- **Respond quickly with a `2xx`.** Slow responses count as failures and trigger retries.
