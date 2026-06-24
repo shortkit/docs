@@ -1,18 +1,26 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { appName, gitConfig } from './shared';
+import { gitConfig } from './shared';
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
+      // Animated wordmark (typewriter reveal + blinking cursor live inside the SVG).
+      // Two variants swapped by theme; `unoptimized`-style raw <img> so the SVG's
+      // internal CSS animation runs.
       title: (
         <>
-          <span
-            aria-hidden
-            className="inline-flex size-5 items-center justify-center rounded-md bg-fd-primary font-extrabold text-[13px] text-white"
-          >
-            S
-          </span>
-          <span className="font-semibold">{appName}</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo/light.svg"
+            alt="shortkit"
+            className="block h-5 w-auto dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo/dark.svg"
+            alt="shortkit"
+            className="hidden h-5 w-auto dark:block"
+          />
         </>
       ),
     },
