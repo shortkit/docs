@@ -9,7 +9,7 @@ It is off by default and turns on the moment you provide a destination URL.
 
 ## How it works
 
-1. As users interact with the feed, the SDK collects a small, fixed set of high-value events (see [What gets forwarded](#what-gets-forwarded)).
+1. As users interact with the feed, the SDK collects a small, fixed set of events (see [What gets forwarded](#what-gets-forwarded)).
 2. Events are batched (up to 100 per request) and flushed about every 30 seconds while the app is foregrounded, then `POST`ed as JSON to your URL with the headers you configure.
 3. Delivery is at-least-once: a failed `POST` is retried with backoff, so your endpoint may occasionally receive the same event twice. Every event carries a unique `eventId` so you can deduplicate.
 
@@ -139,7 +139,7 @@ Every event shares this envelope. `data` is type-specific.
 
 ## Build your collector
 
-Your endpoint is a simple JSON receiver.
+Your endpoint is a JSON receiver.
 
 | Aspect | Requirement |
 | --- | --- |

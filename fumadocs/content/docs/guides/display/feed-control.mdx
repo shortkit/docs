@@ -3,7 +3,7 @@ title: "Feed control"
 description: "Drive the feed programmatically: scroll to an item, refresh, apply filters at runtime, lock scrolling, seed deep links, manage lifecycle across multiple surfaces, and preload for an instant first frame."
 ---
 
-The feed manages itself — pagination, playback, and lifecycle all work without intervention once it's [embedded](/docs/guides/display/feed). This page covers the imperative API for when your app needs to take the wheel: scrolling to a specific item, refreshing on demand, swapping filters, deep-linking into the feed, coordinating multiple feed surfaces, and preloading so the first frame is ready before your splash screen fades.
+The feed manages itself — pagination, playback, and lifecycle all work without intervention once it's [embedded](/docs/guides/display/feed). This page covers the imperative API for when your app needs to drive it directly: scrolling to a specific item, refreshing on demand, swapping filters, deep-linking into the feed, coordinating multiple feed surfaces, and preloading so the first frame is ready before your splash screen fades.
 
 For replacing the feed's content entirely with your own items, see [Custom feeds](/docs/guides/display/custom-feeds). For declarative configuration (layout, overlays, autoplay, filters at init), see the [FeedConfig reference](/docs/guides/reference/feed-config).
 
@@ -287,7 +287,7 @@ Not yet supported on Web.
 Three building blocks let a push notification or shared link open the feed directly on a specific video, with no flash of the wrong content:
 
 1. **`startAtItemId`** — start the feed on a given item instead of the first one. Set at embed time.
-2. **Seed thumbnail** — an image painted on the first cell before the video's first frame arrives, so a tapped thumbnail appears to expand seamlessly into the feed.
+2. **Seed thumbnail** — an image painted on the first cell before the video's first frame arrives, so a tapped thumbnail appears to expand into the feed without a flash of the wrong content.
 3. **`prependSeedItem`** (iOS) — insert a known item at the top of an already-running algorithmic feed and scroll to it, so the deep-linked video plays immediately and the user continues into recommendations.
 
 <Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>

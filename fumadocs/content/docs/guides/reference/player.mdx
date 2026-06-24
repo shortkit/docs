@@ -67,7 +67,7 @@ Each row is a state value the player exposes. Names are platform-neutral; the ta
 | `currentItem` | `ContentItem?` | Metadata for the active content item. `nil` when no content is loaded. | All |
 | `isMuted` | `Bool` | Current mute state. | All |
 | `playbackRate` | `Float` | Current playback speed (for example `1.0`, `1.5`, `2.0`). | All |
-| `captionsEnabled` | `Bool` | Whether captions are currently enabled. | iOS, Android, Flutter, RN |
+| `captionsEnabled` | `Bool` | Whether captions are currently enabled. | iOS, Android, Flutter, React Native |
 | `activeCaptionTrack` | `CaptionTrack?` | The currently selected caption track, or `nil` if none. | All |
 | `activeCue` | `VTTCue?` | The active caption cue at the current playback time, or `nil` between cues. The Dart type is `CaptionCue`. | All |
 | `feedScrollPhase` | `FeedScrollPhase` | Scroll state of the feed: dragging or settled. See [FeedScrollPhase](#feedscrollphase). | All |
@@ -186,7 +186,7 @@ Commands are fire-and-forget methods that control playback. The SDK routes each 
 | `setMaxBitrate(_:)` | Set the maximum bitrate in bits per second. Pass `0` to uncap. | All |
 | `setCaptionsEnabled(_:)` | Enable or disable caption rendering. | All |
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (for example `"en"`, `"es"`). | All |
-| `setFeedScrollEnabled(_:)` | Lock or unlock feed swiping — useful while a custom scrubber gesture is active. | iOS, Android³, RN |
+| `setFeedScrollEnabled(_:)` | Lock or unlock feed swiping — useful while a custom scrubber gesture is active. | iOS, Android³, React Native |
 | `seekThumbnail(at:)` | Synchronously returns a storyboard thumbnail for the given time, or `nil` if the storyboard is not yet loaded. | iOS, Android, Web |
 | `prefetchStoryboard(playbackId)` / `getStoryboardData(playbackId)` | Prefetch and read raw storyboard tile data for building seek previews. | Android, Flutter, RN |
 

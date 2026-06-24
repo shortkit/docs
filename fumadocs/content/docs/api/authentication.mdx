@@ -9,8 +9,8 @@ All API requests require authentication. ShortKit uses two types of API keys —
 
 | Key type | Prefix | Header | Purpose | Security |
 |----------|--------|--------|---------|----------|
-| **Publishable** | `pk_{env}_` | `X-API-Key` | Feed delivery, event ingestion, identity resolution, captions, live viewer tokens | Safe for client-side code. Stored plaintext on server. |
-| **Secret** | `sk_{env}_` | `Authorization: Bearer` | Full management access — content CRUD, imports, live stream management, analytics, configuration | Server-side only. bcrypt-hashed on server, shown once at creation. |
+| **Publishable** | `pk_{env}_` | `X-API-Key` | Feed delivery, event ingestion, identity resolution, captions, live viewer tokens | Safe for client-side code. |
+| **Secret** | `sk_{env}_` | `Authorization: Bearer` | Full management access — content CRUD, imports, live stream management, analytics, configuration | Server-side only. Shown once at creation. |
 
 Both key types encode the environment (`live` or `test`) directly in the prefix, so a single key always maps to exactly one environment.
 
@@ -36,7 +36,7 @@ sk_test_d4e5f6_AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEf...
 
 ## Publishable keys
 
-Publishable keys are designed to be embedded in client applications. They authorize the read-and-ingest surface a client needs at runtime: fetching the feed, reporting playback events, resolving user identity, loading captions, and obtaining live viewer tokens.
+Embed publishable keys in client applications. They authorize the read-and-ingest operations a client needs at runtime: fetching the feed, reporting playback events, resolving user identity, loading captions, and obtaining live viewer tokens.
 
 Publishable keys are used by the ShortKit SDKs. You pass your publishable key once when initializing the SDK, and it attaches the key to every request automatically via the `X-API-Key` header. You never use a secret key in an SDK, and you rarely need to call publishable-key endpoints directly — the SDK handles all communication with the ShortKit API.
 
@@ -51,7 +51,7 @@ curl https://api.shortkit.dev/v1/content \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
-Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly once** at creation time and cannot be retrieved afterward. If you lose it, rotate to get a new one.
+Secret keys are hashed before storage. The plaintext is shown **exactly once** at creation time and cannot be retrieved afterward. If you lose it, rotate to get a new one.
 
 ## Endpoints by key type
 

@@ -13,9 +13,9 @@ Video carousels render on iOS, Android, Flutter, and React Native. The Web SDK d
 
 ## Why this changed
 
-Before v0.3.0, every host app constructed `streamingUrl` and `thumbnailUrl` strings for each carousel slide. This forced each integrator to reinvent URL construction, and divergence between host-built URLs and the SDK's canonical streaming domains caused a carousel thumbnail caching bug in at least one integration. The SDK already knew how to build these URLs — it just wasn't exposing that capability for carousels.
+Before v0.3.0, your app constructed `streamingUrl` and `thumbnailUrl` strings for each carousel slide. This required you to reimplement URL construction, and host-built URLs could diverge from the SDK's streaming domains. The `video` feed input already built these URLs for you; carousels did not.
 
-In v0.3.0, you pass a playback ID per slide and the SDK constructs the streaming and thumbnail URLs internally, exactly as it does for `video` feed inputs.
+In v0.3.0, you pass a playback ID per slide and the SDK constructs the streaming and thumbnail URLs, exactly as it does for `video` feed inputs.
 
 ## What changed
 
@@ -64,7 +64,7 @@ Each slide carries only `playbackId` and an optional `fallbackUrl`. Carousel-lev
 
 ## Per-slide metadata
 
-The new slide input does not carry titles, durations, or other per-slide fields. If your overlay needs per-slide metadata (question text, author names, etc.) that isn't in ShortKit's backend, maintain your own `playbackId → slideContext` map on your side and look it up inside your overlay component using the `activeVideo.playbackId` field, which is still provided in full on every page change via `VideoCarouselOverlayProps.activeVideo`. See [carousel control](/docs/guides/customize/carousel-control) for the overlay surface.
+The new slide input does not carry titles, durations, or other per-slide fields. If your overlay needs per-slide metadata (question text, author names) that ShortKit does not store, maintain your own `playbackId` to context map. Look it up in your overlay component using `activeVideo.playbackId`. The SDK still provides the full `activeVideo` on every page change via `VideoCarouselOverlayProps.activeVideo`. See [carousel control](/docs/guides/customize/carousel-control) for the overlay surface.
 
 ## Upgrade steps
 

@@ -74,7 +74,7 @@ In custom feed mode, each `FeedInput` video can carry an optional `fallbackUrl` 
 The SDK activates a fallback automatically in three scenarios:
 
 1. **Player error** — the stream fails during playback; the SDK switches to the fallback MP4 and resumes from the same position.
-2. **Proactive next-slot detection** — the SDK pre-checks the next item in the feed; if its stream fails before the user swipes, the fallback is swapped in so the transition is seamless.
+2. **Proactive next-slot detection** — the SDK pre-checks the next item in the feed; if its stream fails before the user swipes, the fallback is swapped in before the transition.
 3. **Missing primary URL** — if the item's streaming URL is empty or invalid, the fallback is used immediately.
 
 Each activation is tracked as a `playbackFallback` engagement event with a `reason` of `player_failed`, `proactive_next_slot`, or `no_primary_url`, so you can monitor how often fallbacks fire.

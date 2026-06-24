@@ -114,7 +114,7 @@ This endpoint is for watermark-enabled organizations: it redirects to the waterm
 
 ## Downloading from the SDK
 
-The SDKs handle the whole flow for you: they read the `downloadUrl` already present on the feed item, transparently re-fetch it from the API if the rendition was still preparing at feed-fetch time, download the file, and report progress. One download runs at a time.
+The SDKs handle the whole flow for you. They read the `downloadUrl` already present on the feed item, re-fetch it from the API if the rendition was still preparing at feed-fetch time, download the file, and report progress. One download runs at a time.
 
 <Tabs groupId="platform" persist items={['iOS','Android','Flutter','React Native','Web']}>
 <Tab value="iOS">
