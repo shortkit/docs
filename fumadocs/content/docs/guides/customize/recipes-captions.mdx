@@ -5,7 +5,7 @@ description: "Build a custom captions overlay: render the active cue, add a CC t
 
 This recipe builds a captions overlay for the video feed: a caption label that follows the active cue, a CC button that toggles captions on and off, and (on mobile) drag-to-reposition so viewers can move the label out of the way.
 
-It assumes you already have a custom video overlay registered. If not, start with [Video overlays](/docs/guides/customize/overlays) — it covers the overlay lifecycle and how to register a custom overlay on each platform. Captions also need to exist on the content: see [Captions & metadata](/docs/guides/content/captions-and-metadata) for uploading caption tracks.
+It assumes you already have a custom video overlay registered. If not, start with [Video overlays](/docs/guides/customize/overlays) — it covers the overlay lifecycle and how to register a custom overlay on each platform. Captions also need to exist on the content: see [Captions & metadata](/docs/api/guides/captions-and-metadata) for uploading caption tracks.
 
 ## The pieces you need
 
@@ -473,6 +473,6 @@ func captionTracksResolved(_ tracks: [CaptionTrack]) {
 <Cards>
   <Card title="Video overlays" href="/docs/guides/customize/overlays" description="Overlay registration, lifecycle, and the full protocol surface per platform." />
   <Card title="Recipe: custom scrubber" href="/docs/guides/customize/recipes-scrubber" description="Worked scrubber and seek-thumbnail overlay tutorial." />
-  <Card title="Captions & metadata" href="/docs/guides/content/captions-and-metadata" description="Upload caption tracks and tag languages on your content." />
+  <Card title="Captions & metadata" href="/docs/api/guides/captions-and-metadata" description="Upload caption tracks and tag languages on your content." />
   <Card title="Player reference" href="/docs/guides/reference/player" description="Every player stream, getter, and command, including the caption APIs." />
 </Cards>

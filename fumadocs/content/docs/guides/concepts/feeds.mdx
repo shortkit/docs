@@ -61,7 +61,7 @@ Live streams ride the same lifecycle with two automatic transitions:
 - When the broadcaster goes live, the stream is published automatically — it appears in the feed with no separate publish step.
 - When the broadcast ends, the item is unpublished automatically, so viewers never land on a dead live stream.
 
-After the recording finishes processing, the same content item holds the recorded video instead of the live stream. Republish it (`publishStatus: "published"`) to put the recording into the feed as on-demand content. See [Live streams](/docs/guides/content/live-streams).
+After the recording finishes processing, the same content item holds the recorded video instead of the live stream. Republish it (`publishStatus: "published"`) to put the recording into the feed as on-demand content. See [Live streams](/docs/api/guides/live-streams).
 
 <Callout type="info" title="Scheduling">
 Use `publishAt` to hold published content until an embargo lifts, and `expiresAt` to pull time-sensitive content automatically. Both are timestamps on the content item — no cron jobs needed on your side.

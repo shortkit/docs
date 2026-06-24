@@ -5,10 +5,10 @@ description: "Observe and control the active video carousel: programmatic naviga
 
 A video carousel is a horizontally-swipeable collection of short videos within a single feed cell. The SDK owns the pager, the player handoff between pages, and the transition animations natively. This page covers the APIs you use to **observe** the active carousel, **navigate** it programmatically, and **react** to taps, long presses, and video completions.
 
-To render chrome (titles, page indicators, action buttons) on top of the native pager, see [Item overlays](/docs/guides/customize/item-overlays). For the `VideoCarouselItem` data shape and how carousels are created, see [Carousels](/docs/guides/content/carousels).
+To render chrome (titles, page indicators, action buttons) on top of the native pager, see [Item overlays](/docs/guides/customize/item-overlays). For the `VideoCarouselItem` data shape and how carousels are created, see [Carousels](/docs/api/guides/carousels).
 
 <Callout type="info" title="Platform availability">
-Carousel control ships on iOS, Android, and React Native. The Flutter SDK renders video carousels but does not yet expose the control APIs on this page, and the Web SDK does not yet support video carousels. See [Platform support](/docs/guides/setup/platform-support).
+Carousel control ships on iOS, Android, and React Native. The Flutter SDK renders video carousels but does not yet expose the control APIs on this page, and the Web SDK does not yet support video carousels. See [Platform support](/docs/guides/setup/installation).
 </Callout>
 
 ## Default behavior
@@ -651,7 +651,7 @@ The `wasLast && !willAutoAdvance` check is the idiomatic "user reached the end o
 
 <Cards>
   <Card title="Item overlays" href="/docs/guides/customize/item-overlays" description="Render chrome on top of the native carousel pager." />
-  <Card title="Carousels" href="/docs/guides/content/carousels" description="Create video carousels and the VideoCarouselItem data shape." />
+  <Card title="Carousels" href="/docs/api/guides/carousels" description="Create video carousels and the VideoCarouselItem data shape." />
   <Card title="Feed control" href="/docs/guides/display/feed-control" description="Feed-scoped navigation and runtime control." />
   <Card title="Player reference" href="/docs/guides/reference/player" description="Single-video playback control — the non-carousel analog." />
 </Cards>

@@ -1,9 +1,23 @@
 ---
-title: "Platform support"
-description: "Feature availability across the iOS, Android, Flutter, React Native, and Web SDKs, current SDK versions, and the conventions the docs use to mark platform and version availability."
+title: "Installation"
+description: "Install and initialize the ShortKit SDK: the common setup model, current versions, per-platform guides, and feature availability across iOS, Android, Flutter, React Native, and Web."
 ---
 
-ShortKit ships five client SDKs. Platform parity is the product goal: every SDK converges on the same feature surface, and the docs describe each feature once with platform tabs for syntax. This page is the single place where availability status lives outside those tabs — use it to check what's shipped on your platform before you start integrating.
+ShortKit ships five client SDKs — iOS, Android, Flutter, React Native, and Web. They share one setup model: install the package, create a ShortKit instance with your publishable key, then mount a feed. The package, language, and exact API differ per platform, so follow your platform's guide for the concrete steps.
+
+## Set up the SDK
+
+1. **Get your publishable key.** Create one in the portal — it looks like `pk_live_your_publishable_key`. Publishable keys are safe to ship in client apps; see [Authentication](/docs/api/authentication).
+2. **Install the package** for your platform (table below).
+3. **Initialize ShortKit** with your key and mount a feed. Each platform's guide has a copy-paste first feed.
+
+<Cards>
+  <Card title="iOS" href="/docs/guides/setup/ios" description="Swift Package Manager, SwiftUI and UIKit." />
+  <Card title="Android" href="/docs/guides/setup/android" description="Gradle / Maven Central, Kotlin." />
+  <Card title="Flutter" href="/docs/guides/setup/flutter" description="pub.dev package." />
+  <Card title="React Native" href="/docs/guides/setup/react-native" description="npm, including Expo." />
+  <Card title="Web" href="/docs/guides/setup/web" description="npm or CDN." />
+</Cards>
 
 ## Current SDK versions
 
@@ -30,7 +44,7 @@ The Web SDK is versioned independently of the native SDKs. See the per-platform 
 | [Item overlays](/docs/guides/customize/item-overlays) | ✓ | ✓ | ✓ | ✓ | — |
 | [Carousel control](/docs/guides/customize/carousel-control) | ✓ | ✓ | — | ✓ | — |
 | [Live viewing](/docs/guides/customize/live) | ✓ | — | — | — | ✓ |
-| [Live broadcast](/docs/guides/content/live-streams) | API | API | API | API | API |
+| [Live broadcast](/docs/api/guides/live-streams) | API | API | API | API | API |
 | [Downloads](/docs/guides/content/downloads) | ✓ | — | — | ✓ | — |
 | [Ads](/docs/guides/monetization/ads) | ✓ | ✓ | — | — | — |
 | [Surveys](/docs/guides/customize/item-overlays) | ✓ | ✓ | — | — | — |

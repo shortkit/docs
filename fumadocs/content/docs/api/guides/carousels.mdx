@@ -166,7 +166,7 @@ curl -X DELETE "https://api.shortkit.dev/v1/content/${carouselId}/images/${image
 
 ## Video carousels
 
-A video carousel doesn't own its slides — it references videos already in your library. Each referenced video must be `contentType: "video"` with `uploadStatus: "ready"`, so [upload your videos](/docs/guides/content/upload-videos) first.
+A video carousel doesn't own its slides — it references videos already in your library. Each referenced video must be `contentType: "video"` with `uploadStatus: "ready"`, so [upload your videos](/docs/api/guides/upload-videos) first.
 
 Video carousels can't be created through the import endpoints. Import or upload the videos first, then assemble them into a carousel by reference.
 
@@ -263,4 +263,4 @@ To control carousel playback and gestures in the client SDKs, see [Carousel cont
 
 ## Manage after creation
 
-Carousels share the standard content lifecycle with videos: update metadata with `PATCH /v1/content/{contentId}` (including `publishStatus` to publish or unpublish), and delete with `DELETE /v1/content/{contentId}`. See [Captions and metadata](/docs/guides/content/captions-and-metadata) for the workflow and the [Content API reference](/docs/api/content/get-content) for field details.
+Carousels share the standard content lifecycle with videos: update metadata with `PATCH /v1/content/{contentId}` (including `publishStatus` to publish or unpublish), and delete with `DELETE /v1/content/{contentId}`. See [Captions and metadata](/docs/api/guides/captions-and-metadata) for the workflow and the [Content API reference](/docs/api/content/get-content) for field details.

@@ -30,7 +30,7 @@ Key transitions:
 
 Brief encoder drops *within* the `reconnectWindow` don't end the stream at all: the item stays in the feed and viewers see a slate image (customizable via `reconnectSlateUrl`) until the encoder reconnects or the window expires.
 
-Clients can poll status changes with `GET /v1/live-streams/status?playback_ids=...` using your publishable key, and your backend can subscribe to lifecycle [webhooks](/docs/guides/content/webhooks).
+Clients can poll status changes with `GET /v1/live-streams/status?playback_ids=...` using your publishable key, and your backend can subscribe to lifecycle [webhooks](/docs/api/webhooks).
 
 ## Choosing a protocol
 
@@ -249,5 +249,5 @@ To remove a stream and its content item entirely, use `DELETE /v1/live-streams/{
 <Cards>
   <Card title="Live in the feed" href="/docs/guides/customize/live" description="Client viewing surface: live fields, badges, viewer counts, and overlays on iOS and Web." />
   <Card title="Create live stream API" href="/docs/api/live-streams/create-live-stream" description="Full request and response reference." />
-  <Card title="Webhooks" href="/docs/guides/content/webhooks" description="React to stream and content lifecycle events from your backend." />
+  <Card title="Webhooks" href="/docs/api/webhooks" description="React to stream and content lifecycle events from your backend." />
 </Cards>

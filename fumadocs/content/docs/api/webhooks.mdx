@@ -3,7 +3,7 @@ title: "Webhooks"
 description: "Canonical callback event payloads, delivery, and retry semantics for upload, import, clip, and live recording flows."
 ---
 
-ShortKit pushes processing events to your backend as HTTPS `POST` requests with JSON bodies. This page is the canonical reference for every event payload and the delivery contract. For a task-oriented walkthrough, see the [Webhooks guide](/docs/guides/content/webhooks).
+ShortKit pushes processing events to your backend as HTTPS `POST` requests with JSON bodies. This page is the canonical reference for every event payload and the delivery contract. For a task-oriented walkthrough of getting videos in and tracking them to `ready`, see [Upload videos](/docs/api/guides/upload-videos).
 
 ## Registration
 
@@ -66,6 +66,10 @@ Up to two per video — first with `status: "processing"`, then with `status: "r
 
 The `ready` payload is identical with `status: "ready"`. At `"processing"` the video is already streamable if `playbackId` is non-null, but viewers of longer videos may buffer near the end until transcoding finishes.
 
+<Callout type="info" title="playbackId can be null on processing">
+`playbackId` may be `null` in the `processing` callback if processing is still in its earliest stage. The `ready` callback always includes a non-null `playbackId`, so wait for `ready` if you need a guaranteed playback ID.
+</Callout>
+
 ## `content.import_failed`
 
 Sent instead of the `ready` callback if processing fails. No `playbackId` is included.
@@ -125,6 +129,10 @@ One callback per carousel, sent once all images are validated. `status` is `"rea
 }
 ```
 
+<Callout type="info" title="Carousels created via import are already ready">
+URL imports only send callbacks for **video** items. Carousels submitted through the [import endpoint](/docs/api/content/import-content) are processed synchronously and are already `ready` in the initial import response — no callback is sent for them.
+</Callout>
+
 ## `content.playback_id_updated`
 
 Sent to your organization's Live VOD Webhook URL when an ended live stream's recording becomes available and ShortKit swaps the playback ID from the live broadcast to the on-demand recording.
@@ -152,6 +160,8 @@ Sent to your organization's Live VOD Webhook URL when an ended live stream's rec
 <Callout type="warn" title="Different field naming">
 This event uses snake_case field names and a numeric timestamp, unlike the camelCase `content.imported` family. Match on the `event` field, not on payload shape.
 </Callout>
+
+This event is configured per organization, not per request: set the webhook URL in the ShortKit dashboard under your organization settings. See [Live streams](/docs/api/guides/live-streams) for the full live-to-recording lifecycle.
 
 ## Missed events
 

@@ -9,11 +9,11 @@ const withMDX = createMDX();
 const legacyRedirects = [
   // Get started
   { source: '/quickstart', destination: '/docs/guides/quickstart' },
-  { source: '/sdk/installation', destination: '/docs/guides/setup/platform-support' },
+  { source: '/sdk/installation', destination: '/docs/guides/setup/installation' },
   // Guides
   { source: '/guides/content-types', destination: '/docs/guides/concepts/content-model' },
-  { source: '/guides/upload-pipeline', destination: '/docs/guides/content/upload-videos' },
-  { source: '/guides/live-streams', destination: '/docs/guides/content/live-streams' },
+  { source: '/guides/upload-pipeline', destination: '/docs/api/guides/upload-videos' },
+  { source: '/guides/live-streams', destination: '/docs/api/guides/live-streams' },
   { source: '/guides/language-detection', destination: '/docs/guides/content/language' },
   // SDK pages
   { source: '/sdk/feed', destination: '/docs/guides/display/feed' },
@@ -32,11 +32,24 @@ const legacyRedirects = [
   { source: '/api/:group/:page', destination: '/docs/api/:group' },
 ];
 
+/**
+ * Internal moves within the Fumadocs IA (keep deep links stable as the structure
+ * evolves). API-interaction guides moved from the Docs tab to the API Reference tab.
+ */
+const internalRedirects = [
+  { source: '/docs/guides/content/upload-videos', destination: '/docs/api/guides/upload-videos' },
+  { source: '/docs/guides/content/carousels', destination: '/docs/api/guides/carousels' },
+  { source: '/docs/guides/content/captions-and-metadata', destination: '/docs/api/guides/captions-and-metadata' },
+  { source: '/docs/guides/content/live-streams', destination: '/docs/api/guides/live-streams' },
+  { source: '/docs/guides/content/webhooks', destination: '/docs/api/webhooks' },
+  { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/setup/installation' },
+];
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
   async redirects() {
-    return legacyRedirects.map((r) => ({ ...r, permanent: true }));
+    return [...legacyRedirects, ...internalRedirects].map((r) => ({ ...r, permanent: true }));
   },
 };
 

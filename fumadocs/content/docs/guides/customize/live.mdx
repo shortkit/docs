@@ -5,10 +5,10 @@ description: "Render live streams in your feed: live fields, live overlays, the 
 
 Live streams appear in the feed alongside on-demand content with no extra setup. This page covers the client-side viewing surface: the live fields on each content item, the overlays the SDK renders on live cells, and how to customize them.
 
-Creating streams, broadcasting, ending streams, and clipping recordings are server-side operations — see [Live streams](/docs/guides/content/live-streams).
+Creating streams, broadcasting, ending streams, and clipping recordings are server-side operations — see [Live streams](/docs/api/guides/live-streams).
 
 <Callout type="info" title="Platform support">
-Live viewing ships on iOS and Web. Android, Flutter, and React Native do not support live playback yet. See [platform support](/docs/guides/setup/platform-support).
+Live viewing ships on iOS and Web. Android, Flutter, and React Native do not support live playback yet. See [platform support](/docs/guides/setup/installation).
 </Callout>
 
 ## Live fields on the content item
@@ -19,7 +19,7 @@ Every content item exposes live-specific fields you can read in a custom overlay
 |---|---|---|
 | `isLive` | boolean | `true` while the broadcast is in progress, `false` after it ends |
 | `liveStreamStatus` | enum | `idle`, `active`, `ended`, or `dvr` — nil/absent on non-live items |
-| `liveStreamId` | string | The underlying live stream's UUID. Send this to your backend to address the stream itself, for example to [create clips](/docs/guides/content/live-streams) |
+| `liveStreamId` | string | The underlying live stream's UUID. Send this to your backend to address the stream itself, for example to [create clips](/docs/api/guides/live-streams) |
 | `currentViewers` | int | Concurrent viewer count (`0` for non-live items) |
 | `startedAt` | ISO 8601 string | When the broadcaster connected — useful for an elapsed-time display |
 | `endedAt` | ISO 8601 string | When the broadcast ended. May be filled in by a later status poll, so re-render when it changes |
@@ -187,22 +187,22 @@ voteButton.addAction { [weak player] in
 }
 ```
 
-Live manifests include program date time by default, so this returns a valid `Date` for any live ShortKit content once the first frame renders. It returns `nil` for on-demand items, before the item is ready to play, or when the manifest lacks timing metadata. Drop the event when it returns `nil` rather than falling back to wall clock — wall-clock timestamps can't be mapped back to the recorded asset for [clipping](/docs/guides/content/live-streams).
+Live manifests include program date time by default, so this returns a valid `Date` for any live ShortKit content once the first frame renders. It returns `nil` for on-demand items, before the item is ready to play, or when the manifest lacks timing metadata. Drop the event when it returns `nil` rather than falling back to wall clock — wall-clock timestamps can't be mapped back to the recorded asset for [clipping](/docs/api/guides/live-streams).
 
 </Tab>
 <Tab value="Android">
 
-Not yet supported on Android. See [platform support](/docs/guides/setup/platform-support).
+Not yet supported on Android. See [platform support](/docs/guides/setup/installation).
 
 </Tab>
 <Tab value="Flutter">
 
-Not yet supported on Flutter. See [platform support](/docs/guides/setup/platform-support).
+Not yet supported on Flutter. See [platform support](/docs/guides/setup/installation).
 
 </Tab>
 <Tab value="React Native">
 
-Not yet supported on React Native. See [platform support](/docs/guides/setup/platform-support).
+Not yet supported on React Native. See [platform support](/docs/guides/setup/installation).
 
 </Tab>
 <Tab value="Web">
@@ -287,7 +287,7 @@ if (pdt) {
 }
 ```
 
-Use this to capture timestamps that map back to the recorded asset for [clipping](/docs/guides/content/live-streams). Drop the event when it returns `null` rather than falling back to `Date.now()`.
+Use this to capture timestamps that map back to the recorded asset for [clipping](/docs/api/guides/live-streams). Drop the event when it returns `null` rather than falling back to `Date.now()`.
 
 <Callout type="info" title="Broadcasting is not a browser feature">
 The Web SDK plays live streams; it does not broadcast them. Broadcasting goes through your encoder and the server-side credentials from [create live stream](/docs/api/live-streams/create-live-stream).
@@ -299,7 +299,7 @@ The Web SDK plays live streams; it does not broadcast them. Broadcasting goes th
 ## Related pages
 
 <Cards>
-  <Card title="Live streams" href="/docs/guides/content/live-streams" description="Create, broadcast, end, and clip live streams from your backend." />
+  <Card title="Live streams" href="/docs/api/guides/live-streams" description="Create, broadcast, end, and clip live streams from your backend." />
   <Card title="Player reference" href="/docs/guides/reference/player" description="Full publisher, event, and command surface of the player." />
   <Card title="FeedConfig reference" href="/docs/guides/reference/feed-config" description="Every feed configuration option, including the live overlay modes." />
 </Cards>

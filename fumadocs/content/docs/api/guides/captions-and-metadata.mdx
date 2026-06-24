@@ -3,7 +3,7 @@ title: "Captions & metadata"
 description: "Upload caption tracks, update content metadata with PATCH merge semantics, and attach publication URLs."
 ---
 
-After content is created, you can manage it entirely through the REST API: add caption tracks in any language, update titles, tags, and custom metadata, and attach external links. These operations apply to existing content of any type — see [Upload videos](/docs/guides/content/upload-videos) and [Carousels](/docs/guides/content/carousels) for the creation workflows.
+After content is created, you can manage it entirely through the REST API: add caption tracks in any language, update titles, tags, and custom metadata, and attach external links. These operations apply to existing content of any type — see [Upload videos](/docs/api/guides/upload-videos) and [Carousels](/docs/api/guides/carousels) for the creation workflows.
 
 ## Captions
 
@@ -212,7 +212,7 @@ Setting `publishStatus` to `"published"` clears any pending `publishAt`. To sche
 
 ### Retroactive thumbnail re-extraction
 
-Setting `origin` to `"ios_upload"` on a video that has already finished processing automatically retriggers thumbnail extraction. This regenerates color-accurate thumbnails for content that was uploaded before the origin was set — there's no need to re-upload the video. The re-extraction only fires when `origin` changes to `"ios_upload"` from another value; sending the same value again is a no-op. See [Upload videos](/docs/guides/content/upload-videos) for why iOS-recorded content needs this flag.
+Setting `origin` to `"ios_upload"` on a video that has already finished processing automatically retriggers thumbnail extraction. This regenerates color-accurate thumbnails for content that was uploaded before the origin was set — there's no need to re-upload the video. The re-extraction only fires when `origin` changes to `"ios_upload"` from another value; sending the same value again is a no-op. See [Upload videos](/docs/api/guides/upload-videos) for why iOS-recorded content needs this flag.
 
 ## Publication URLs
 
@@ -320,6 +320,6 @@ curl -X DELETE "https://api.shortkit.dev/v1/content/${contentId}/publication-url
 
 <Cards>
   <Card title="Language detection" href="/docs/guides/content/language" description="Filter feeds by detected spoken language via customMetadata.language." />
-  <Card title="Webhooks" href="/docs/guides/content/webhooks" description="Get notified as content moves through the processing pipeline." />
+  <Card title="Webhooks" href="/docs/api/webhooks" description="Get notified as content moves through the processing pipeline." />
   <Card title="Upload content API" href="/docs/api/content/upload-content" description="Full reference for the content creation endpoint." />
 </Cards>

@@ -380,7 +380,7 @@ feedRef.current?.setFeedItems([carousel]);
 </Tab>
 <Tab value="Web">
 
-Not yet supported on Web. See [Platform support](/docs/guides/setup/platform-support).
+Not yet supported on Web. See [Platform support](/docs/guides/setup/installation).
 
 </Tab>
 </Tabs>
@@ -394,7 +394,7 @@ The SDK hydrates each playback ID into a full content item before rendering, so 
 ## Seed a live stream by playback ID
 
 <Callout type="info">
-Live stream seeding is available on iOS only. See [Platform support](/docs/guides/setup/platform-support).
+Live stream seeding is available on iOS only. See [Platform support](/docs/guides/setup/installation).
 </Callout>
 
 `FeedInput.liveStream(playbackId:)` places a live stream in a custom feed. Pass the playback ID returned by the [create live stream endpoint](/docs/api/live-streams/create-live-stream).
@@ -406,7 +406,7 @@ feedVC.setFeedItems([
 ])
 ```
 
-A seeded live item is treated as actively broadcasting: it renders with the live overlay, its `isLive` flag is set, and its thumbnail tracks the latest frame of the broadcast rather than a fixed poster. Live items never count toward ad-slot cadence. For creating and broadcasting streams, see [Live streams](/docs/guides/content/live-streams).
+A seeded live item is treated as actively broadcasting: it renders with the live overlay, its `isLive` flag is set, and its thumbnail tracks the latest frame of the broadcast rather than a fixed poster. Live items never count toward ad-slot cadence. For creating and broadcasting streams, see [Live streams](/docs/api/guides/live-streams).
 
 <Callout type="warn">
 Don't pass live playback IDs as `.video(playbackId:)` — the item would render as a regular video without the live overlay or live status handling.
