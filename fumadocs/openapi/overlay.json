@@ -1069,7 +1069,7 @@
         "Live Streams"
       ],
       "summary": "Get live stream status",
-      "description": "Poll the current state of one or more live streams by playback ID — pass up to 50 IDs in the comma-separated `playback_ids` query parameter. Returns `status`, `startedAt`, `endedAt`, and `currentViewers` per playback ID. Authenticated with your publishable key, so it's safe to call directly from client apps. Playback IDs that don't match a live stream owned by your organization are silently omitted from the response — there is no per-ID error. An empty `data` map means none of the requested IDs were valid.",
+      "description": "Poll the current state of one or more live streams by playback ID — pass up to 50 IDs in the comma-separated `playback_ids` query parameter. Returns `status`, `startedAt`, `endedAt`, and `currentViewers` per playback ID. Authenticated with your publishable key, so it's safe to call directly from client apps. Playback IDs that don't match a live stream owned by your organization are silently omitted from the response — there is no per-ID error. An empty `data` map means none of the requested IDs were valid. You don't need this for an initial render — every feed item already includes its `liveStreamStatus`. Use it to keep a set of already-visible streams current as their state changes, without refetching the whole feed.",
       "security": [
         {
           "publishableKey": []

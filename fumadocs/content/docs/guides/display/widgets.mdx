@@ -336,6 +336,8 @@ Auto-rotation applies to carousel layout when `autoplay` is `true` (the default)
 - **iOS, Flutter, React Native** — advancement is preview-driven: the active card plays its preview clip (`previewDuration`, default 5 seconds) to the end, then the carousel advances to the next visible card, wrapping back to the first after the last. `rotationInterval` is accepted in config but currently has no effect.
 - **Web** — when the active card finishes playing, the widget waits `rotationInterval` milliseconds (default `10000`), then advances.
 
+Rotation pauses while the user is actively swiping the carousel and resumes once the gesture ends.
+
 ## Handling taps
 
 `WidgetConfig.clickAction` sets the default tap behavior for every card:

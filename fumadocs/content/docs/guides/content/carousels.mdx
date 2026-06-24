@@ -168,6 +168,8 @@ curl -X DELETE "https://api.shortkit.dev/v1/content/${carouselId}/images/${image
 
 A video carousel doesn't own its slides — it references videos already in your library. Each referenced video must be `contentType: "video"` with `uploadStatus: "ready"`, so [upload your videos](/docs/guides/content/upload-videos) first.
 
+Video carousels can't be created through the import endpoints. Import or upload the videos first, then assemble them into a carousel by reference.
+
 ### Add videos
 
 `POST /v1/content/{contentId}/videos` accepts a batch of entries, each with the video's `contentId` and a 0-based `position`. A carousel holds up to 10 videos; videos already in the carousel are skipped silently.

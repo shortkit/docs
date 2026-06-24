@@ -240,6 +240,10 @@ Set `externalId` on each item for idempotency. If you re-import an item with an 
 
 ShortKit can also import content directly from a social platform URL. These endpoints extract metadata from the source automatically — you don't supply the title, description, or author yourself.
 
+<Callout type="info">
+Platform imports depend on the source platform's availability and can break when those platforms change. Use them for an initial migration, not as a continuous ingestion pipeline — for ongoing workflows, prefer direct upload or importing from your own hosted URLs.
+</Callout>
+
 | Endpoint | Accepts |
 |----------|---------|
 | [`POST /v1/content/import/tiktok`](/docs/api/content/import-from-tiktok) | Video URLs or profile URLs (a profile auto-expands to recent videos) |

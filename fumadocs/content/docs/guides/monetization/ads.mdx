@@ -18,7 +18,7 @@ The ad configuration is a single per-organization object managed with a secret k
 
 | Field | Default | Meaning |
 |---|---|---|
-| `enabled` | `false` | Master switch. When `false`, no ad slots are injected. |
+| `enabled` | `false` | Master switch. When `false`, no ad slots are injected. You can still update the other fields while ads are disabled; the changes take effect when you re-enable. |
 | `firstAdOffset` | `3` | Position of the first ad, counted in content items. `3` means the first ad appears after the third item. |
 | `frequency` | `5` | Content items between consecutive ads after the first. |
 | `maxPerPage` | `3` | Cap on ad slots per feed page. |

@@ -100,6 +100,8 @@ A `webrtc` stream's response additionally includes `whipUrl` and `whipToken` for
 Anyone with `rtmpUrl` or `streamKey` can broadcast as you. Forward them only to the broadcaster. Don't log them, expose them in your client app, or commit them to source control.
 </Callout>
 
+`rtmpUrl` and `streamKey` are returned only on this create response — they can't be retrieved later. If you lose them, delete the stream and create a new one.
+
 See the [Create live stream reference](/docs/api/live-streams/create-live-stream) for the full request and response shape.
 
 ### Latency mode
