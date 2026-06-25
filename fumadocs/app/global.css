@@ -21,6 +21,23 @@
 
 /* ── Sidebar tweaks ─────────────────────────────────────────── */
 
+/* Minimal / airy aesthetic: faint, lighter group labels and an accent-bar
+   active item (no filled pill). Scoped to the page-tree viewport so the
+   tab-switcher description isn't affected. */
+#nd-sidebar [data-radix-scroll-area-viewport] p {
+  opacity: 0.6;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+#nd-sidebar a[data-active='true'] {
+  background: transparent;
+  border-radius: 0 0.45rem 0.45rem 0;
+}
+#nd-sidebar a[data-active='true']::before {
+  width: 2px !important;
+}
+
 /* REST method badge on the LEFT of each API endpoint item: an aligned, filled
    pill. Layout here; the per-method background tint is set below, keyed on the
    text-color class fumadocs-openapi assigns each HTTP method. */
