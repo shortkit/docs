@@ -38,6 +38,8 @@ h1 .dot{width:24px;height:24px;border-radius:6px;background:var(--primary);color
 .ico{width:16px;height:16px;flex-shrink:0;color:var(--faint);display:inline-flex;align-items:center;justify-content:center;font-size:13px}
 /* ===== V1 current ===== */
 .v-current .gh{}
+/* ===== V1b current + indent ===== */
+.v-currentIndent .kids{padding-left:15px}
 /* ===== V2 accordion ===== */
 .v-accordion .gh{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);text-transform:none;font-size:12.5px;font-weight:600;letter-spacing:0;padding:8px 10px;border-radius:8px}
 .v-accordion .gh:hover{background:var(--hover)}
@@ -141,14 +143,64 @@ function render(nav,variant){
 
 const AES=[
  ['Current','baseline','Today’s look: uppercase group labels, flat page lists, orange filled active pill. Everything always visible — long scroll on big sections.','current',NAV],
+ ['Current + indent','recommended','Exactly today’s look — uppercase headers, filled active pill — but page items sit slightly indented under their group header, so the grouping reads more clearly. Smallest possible change.','currentIndent',NAV],
  ['Collapsible accordions','tidy','Every group is a collapsible row; the title itself is the toggle. Only the active section is open, so the list stays short. Click any header to expand.','accordion',NAV],
  ['Indented + guide rail','hierarchy','Children sit under a thin vertical rail; the active item lights its rail segment. Makes the parent→child relationship obvious at a glance.','rail',NAV],
  ['Icon-led groups','visual','Each group gets an icon and sentence-case label. More scannable and friendly; costs a little horizontal space and needs a consistent icon set.','icon',NAV],
  ['Minimal / airy','modern','No uppercase, no filled pills — hairline dividers between groups, muted text, a left accent bar for the active page. Vercel/Stripe-like restraint.','minimal',NAV],
 ];
+// ---- org: by component / surface ----
+const ORG_COMPONENT=[
+ {group:'Get started',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart'],['guides/setup/installation','Install the SDK']]},
+ {group:'Feed',pages:[['guides/concepts/feeds','How feeds work'],['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds']]},
+ {group:'Player & widgets',pages:[['guides/display/player','Player'],['guides/display/widgets','Widgets'],['guides/reference/player','ShortKitPlayer ref']]},
+ {group:'Overlays & carousels',pages:[['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/recipes-scrubber','Recipe: scrubber'],['guides/customize/recipes-captions','Recipe: captions']]},
+ {group:'Live & ads',pages:[['guides/customize/live','Live in the feed'],['guides/monetization/ads','Ads']]},
+ {group:'Content & data',pages:[['guides/concepts/content-model','Content model'],['guides/concepts/identity','Identity'],['guides/content/language','Language detection'],['guides/content/downloads','Downloads'],['guides/analytics/overview','Analytics overview'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding']]},
+ {group:'Setup & reference',pages:[['guides/setup/ios','iOS'],['guides/setup/android','Android'],['guides/setup/flutter','Flutter'],['guides/setup/react-native','React Native'],['guides/setup/web','Web'],['guides/reference/feed-config','FeedConfig & FeedFilter']]},
+];
+// ---- org: by doc type (Diataxis) ----
+const ORG_DIATAXIS=[
+ {group:'Get started',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart']]},
+ {group:'Concepts',pages:[['guides/concepts/content-model','Content model'],['guides/concepts/feeds','Feeds'],['guides/concepts/identity','Identity']]},
+ {group:'How-to guides',collapsible:true,pages:[['guides/setup/installation','Install'],['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets'],['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/content/downloads','Downloads'],['guides/content/language','Language detection'],['guides/analytics/overview','Analytics'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/monetization/ads','Ads']]},
+ {group:'Recipes',pages:[['guides/customize/recipes-scrubber','Custom scrubber'],['guides/customize/recipes-captions','Captions overlay']]},
+ {group:'Reference',pages:[['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
+// ---- org: verb-based ----
+const ORG_VERB=[
+ {group:'Install',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart'],['guides/setup/installation','Installation']]},
+ {group:'Understand',pages:[['guides/concepts/content-model','Content model'],['guides/concepts/feeds','Feeds'],['guides/concepts/identity','Identity'],['guides/content/language','Language detection']]},
+ {group:'Display',pages:[['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets']]},
+ {group:'Customize',pages:[['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/customize/recipes-scrubber','Recipe: scrubber'],['guides/customize/recipes-captions','Recipe: captions']]},
+ {group:'Measure',pages:[['guides/analytics/overview','Analytics overview'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/content/downloads','Downloads']]},
+ {group:'Monetize',pages:[['guides/monetization/ads','Ads']]},
+ {group:'Reference',pages:[['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
+// ---- org: essentials -> advanced ----
+const ORG_PROGRESSIVE=[
+ {group:'Get started',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart'],['guides/setup/installation','Installation']]},
+ {group:'Essentials',pages:[['guides/concepts/content-model','Content model'],['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/concepts/identity','Identity']]},
+ {group:'Going further',collapsible:true,pages:[['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets'],['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/customize/recipes-scrubber','Recipe: scrubber'],['guides/customize/recipes-captions','Recipe: captions'],['guides/concepts/feeds','Feed ranking'],['guides/content/language','Language detection'],['guides/content/downloads','Downloads']]},
+ {group:'Data & monetization',pages:[['guides/analytics/overview','Analytics overview'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/monetization/ads','Ads']]},
+ {group:'Reference',pages:[['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
+// ---- org: Stripe-style buckets ----
+const ORG_STRIPE=[
+ {group:'Get started',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart'],['guides/setup/installation','Installation']]},
+ {group:'Build',pages:[['guides/concepts/content-model','Content model'],['guides/concepts/feeds','Feeds'],['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets']]},
+ {group:'Customize & extend',pages:[['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/customize/recipes-scrubber','Recipe: scrubber'],['guides/customize/recipes-captions','Recipe: captions']]},
+ {group:'Add-ons',pages:[['guides/analytics/overview','Analytics'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/monetization/ads','Ads'],['guides/content/downloads','Downloads'],['guides/content/language','Language detection'],['guides/concepts/identity','Identity']]},
+ {group:'SDKs & reference',collapsible:true,pages:[['guides/setup/ios','iOS'],['guides/setup/android','Android'],['guides/setup/flutter','Flutter'],['guides/setup/react-native','React Native'],['guides/setup/web','Web'],['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
 const ORGS=[
- ['Consolidated (6 groups)','structure','8 groups → 6. Platforms nest under a collapsible <b>Installation</b>; Display + Customize merge into <b>Build your feed</b> (collapsible). Less top-level noise, bigger sections.','rail',ORG_CONSOLIDATED],
- ['Numbered journey','structure','Task-ordered: Start here → 1 Show content → 2 Customize → 3 Track & monetize, with reference material pooled at the bottom. Guides a first-time integrator through the flow.','minimal',ORG_JOURNEY],
+ ['Consolidated (6 groups)','fewer','8 groups → 6. Platforms nest under a collapsible <b>Installation</b>; Display + Customize merge into <b>Build your feed</b>. Less top-level noise, bigger sections.','rail',ORG_CONSOLIDATED],
+ ['Numbered journey','sequence','Task-ordered with numbered steps: Start here → 1 Show content → 2 Customize → 3 Track & monetize. Reference pooled at the bottom. Best for first-time integrators.','rail',ORG_JOURNEY],
+ ['By component / surface','what','Grouped by the thing you’re building: Feed, Player & widgets, Overlays & carousels, Live & ads. Great if people arrive knowing which surface they want; tiny components get merged to avoid one-item groups.','rail',ORG_COMPONENT],
+ ['By doc type (Diátaxis)','kind','Splits by the <i>kind</i> of doc — Concepts, How-to guides, Recipes, Reference. Clean mental model; the How-to bucket gets large (collapsible). Mirrors the API tab’s reference/guide split.','rail',ORG_DIATAXIS],
+ ['Verb-based','action','Each group is an action: Install · Understand · Display · Customize · Measure · Monetize. Scannable and outcome-oriented; a couple of groups end up small (Monetize).','rail',ORG_VERB],
+ ['Essentials → advanced','depth','A short <b>Essentials</b> set most integrators need, then a collapsible <b>Going further</b>. Reduces overwhelm for newcomers; the “essentials” cut is a judgment call you’d own.','rail',ORG_PROGRESSIVE],
+ ['Stripe-style buckets','product','Broad product buckets: Get started · Build · Customize & extend · Add-ons · SDKs & reference. Familiar to anyone who’s used Stripe/Vercel docs; SDK install pages tuck under a collapsible reference group.','rail',ORG_STRIPE],
 ];
 
 function card(def){
