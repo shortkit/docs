@@ -265,7 +265,25 @@ ShortKit can import content directly from social platforms. These endpoints auto
 | Endpoint | Platform | Accepts |
 |----------|----------|---------|
 | `POST /v1/content/import/tiktok` | TikTok | Video URLs or profile URLs (auto-expands up to 50 recent videos) |
-| `POST /v1/content/import/instagram` | Instagram | Reel and video URLs |
+| `POST /v1/content/import/instagram` | Instagram | Reel and video URLs, or profile URLs (auto-expands up to 20 recent reels per profile by default) |
+
+### Instagram profile import
+
+When you pass a profile URL to `POST /v1/content/import/instagram`, ShortKit enumerates the most recent reels on that profile and queues each one as a separate content item.
+
+<ParamField body="maxReelsPerProfile" type="integer" default="20">
+  Maximum number of reels to pull per profile URL. Defaults to `20`. Accepts values from `1` to `10000`. Increase this to backfill a large profile in a single request, but note that imports remain subject to your organization's daily import quota.
+</ParamField>
+
+```bash cURL
+curl -X POST https://api.shortkit.dev/v1/content/import/instagram \
+  -H "Authorization: Bearer *** \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://www.instagram.com/your_brand"],
+    "maxReelsPerProfile": 50
+  }'
+```
 
 ### Auto-populated metadata
 
