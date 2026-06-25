@@ -351,7 +351,7 @@ Not applicable on Web — playback starts at `init()` / `initWithItems()` and en
 | --- | --- |
 | `feed` (`.feed` / `PlayerClickAction.feed` / `'feed'`) | Opens the full-screen feed starting at the tapped item. This is the default. |
 | `mute` | Toggles audio mute. |
-| `article` | **Web only.** Opens the item's `customMetadata.publicationUrl` in a new tab. No-op when the item has no article URL. |
+| `article` | **Web only.** Opens the URL the item carries in `customMetadata.publicationUrl` (the key the built-in article action reads). No-op when absent. |
 | `none` | No action. Useful when you handle taps yourself via `onTap`. |
 
 ## Customize the expanded feed

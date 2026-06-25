@@ -1,6 +1,6 @@
 ---
 title: "Captions & Metadata"
-description: "Upload caption tracks, update content metadata with PATCH merge semantics, and attach an article link via customMetadata."
+description: "Upload caption tracks and update content metadata with PATCH merge semantics."
 ---
 
 After content is created, you can manage it entirely through the REST API: add caption tracks in any language, update titles, tags, and custom metadata, and attach external links. These operations apply to existing content of any type — see [Upload videos](/docs/api/guides/upload-videos) and [Carousels](/docs/api/guides/carousels) for the creation workflows.
@@ -213,22 +213,6 @@ Setting `publishStatus` to `"published"` clears any pending `publishAt`. To sche
 ### Retroactive thumbnail re-extraction
 
 Setting `origin` to `"ios_upload"` on a video that has already finished processing automatically retriggers thumbnail extraction. This regenerates color-accurate thumbnails for content that was uploaded before the origin was set — there's no need to re-upload the video. The re-extraction only fires when `origin` changes to `"ios_upload"` from another value; sending the same value again is a no-op. See [Upload videos](/docs/api/guides/upload-videos) for why iOS-recorded content needs this flag.
-
-### Attaching an article link
-
-To link a content item to its source or a related article, set a `publicationUrl`
-key in `customMetadata` via `PATCH /v1/content/{contentId}`:
-
-```bash
-curl -X PATCH "https://api.shortkit.dev/v1/content/${contentId}" \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{ "customMetadata": { "publicationUrl": "https://example.com/article/spring-launch" } }'
-```
-
-The value flows through the feed payload on `customMetadata.publicationUrl`, where
-your app (or the Web SDK) can render it as a tappable link. It follows the same
-[merge semantics](#merge-semantics) as any other custom metadata key.
 
 ## Next steps
 
