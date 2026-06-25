@@ -61,6 +61,11 @@ const internalRedirects = [
   // Authentication + Errors folded into the API overview.
   { source: '/docs/api/authentication', destination: '/docs/api#authentication' },
   { source: '/docs/api/errors', destination: '/docs/api#errors' },
+  // Publication-url CRUD endpoints removed from the API; point old reference pages at the captions/metadata guide.
+  { source: '/docs/api/content/add-publication-url', destination: '/docs/api/guides/captions-and-metadata' },
+  { source: '/docs/api/content/reorder-publication-urls', destination: '/docs/api/guides/captions-and-metadata' },
+  { source: '/docs/api/content/update-publication-url', destination: '/docs/api/guides/captions-and-metadata' },
+  { source: '/docs/api/content/delete-publication-url', destination: '/docs/api/guides/captions-and-metadata' },
 ];
 
 /** @type {import('next').NextConfig} */
