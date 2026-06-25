@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShortKit Docs — Sidebar Design Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#FF6600;--primarySoft:#fff4ec;--bg:#fff;--panel:#fafafa;--text:#1a1a1e;--muted:#6b7280;--faint:#9ca3af;--border:#e8e8eb;--railLine:#e5e7eb;--hover:#f3f4f6;}
+[data-theme="dark"]{--primary:#ff7a26;--primarySoft:#2a1a10;--bg:#0d0d10;--panel:#141418;--text:#ececef;--muted:#9ca3af;--faint:#6b7280;--border:#26262c;--railLine:#2c2c33;--hover:#1c1c22;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',monospace}
+header{padding:26px 40px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:20}
+h1{font-size:21px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+h1 .dot{width:24px;height:24px;border-radius:6px;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.sub{color:var(--muted);font-size:13px;margin-top:7px;max-width:880px;line-height:1.55}
+.tg{margin-left:auto;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);border-radius:8px;padding:6px 12px;font-size:12.5px;font-family:inherit}
+.h-row{display:flex;align-items:center;gap:16px}
+.sec-h{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:30px 40px 4px}
+.sec-sub{font-size:12.5px;color:var(--faint);margin:0 40px 4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;padding:14px 40px 40px}
+.card{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.cap{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
+.cap h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.cap .pill{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:5px;background:var(--primarySoft);color:var(--primary)}
+.cap p{font-size:12px;color:var(--muted);line-height:1.5;margin-top:5px}
+.frame{background:var(--panel);height:560px;overflow-y:auto;padding:14px 10px 30px;scrollbar-width:thin}
+.frame::-webkit-scrollbar{width:6px}.frame::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* ---- base nav item ---- */
+.it{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;line-height:1.35;text-decoration:none}
+.it:hover{background:var(--hover)}
+.it.active{background:var(--primarySoft);color:var(--primary);font-weight:600}
+.it .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);padding:14px 10px 5px}
+.chev{width:14px;height:14px;flex-shrink:0;transition:transform .15s;color:var(--faint)}
+.collapsed .chev{transform:rotate(-90deg)}
+.collapsed .kids{display:none}
+.ico{width:16px;height:16px;flex-shrink:0;color:var(--faint);display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+/* ===== V1 current ===== */
+.v-current .gh{}
+/* ===== V2 accordion ===== */
+.v-accordion .gh{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);text-transform:none;font-size:12.5px;font-weight:600;letter-spacing:0;padding:8px 10px;border-radius:8px}
+.v-accordion .gh:hover{background:var(--hover)}
+.v-accordion .kids{padding-left:6px}
+/* ===== V3 rail ===== */
+.v-rail .grp{margin-bottom:4px}
+.v-rail .kids{border-left:1.5px solid var(--railLine);margin-left:14px;padding-left:4px}
+.v-rail .it{border-radius:0 8px 8px 0}
+.v-rail .it.active{box-shadow:inset 2px 0 0 var(--primary);background:var(--primarySoft)}
+/* ===== V4 icon ===== */
+.v-icon .gh{display:flex;align-items:center;gap:8px;text-transform:none;font-size:12.5px;font-weight:600;letter-spacing:0;color:var(--text);padding:12px 10px 5px}
+.v-icon .gh .ico{font-size:15px;color:var(--primary)}
+.v-icon .kids{padding-left:24px}
+/* ===== V5 minimal ===== */
+.v-minimal{padding-top:6px}
+.v-minimal .gh{text-transform:none;font-size:11.5px;font-weight:600;letter-spacing:0;color:var(--faint);padding:18px 10px 6px;border-top:1px solid var(--border);margin-top:6px}
+.v-minimal .grp:first-child .gh{border-top:none;margin-top:0;padding-top:4px}
+.v-minimal .it{padding:5px 10px;color:var(--muted)}
+.v-minimal .it:hover{background:transparent;color:var(--text)}
+.v-minimal .it.active{background:transparent;color:var(--text);font-weight:600;box-shadow:inset 2px 0 0 var(--primary);border-radius:0}
+/* ===== badges (api preview) ===== */
+.mbadge{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;padding:1px 5px;border-radius:5px;min-width:42px;text-align:center}
+</style></head>
+<body>
+<header>
+<div class="h-row">
+<h1><span class="dot">S</span> Sidebar design options</h1>
+<button class="tg" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light'">◐ theme</button>
+</div>
+<div class="sub">Seven takes on the docs sidebar, all rendered with the real ShortKit nav (active page = <b>Embedding a feed</b>). The first five keep today's grouping and vary the <b>look</b>; the last two restructure the <b>organization</b>. Click group headers to expand/collapse where applicable. Pick the style + structure you like (you can mix — e.g. an aesthetic from one, an org from another).</div>
+</header>
+
+<div class="sec-h">Aesthetic styles · same content & grouping</div>
+<div class="sec-sub">Today's 8 groups, restyled. Same pages, same order.</div>
+<div class="grid" id="aesthetic"></div>
+
+<div class="sec-h">Organization options · restructured grouping</div>
+<div class="sec-sub">Fewer/relabelled groups and nesting. Shown in the cleanest aesthetic so you judge the structure, not the skin.</div>
+<div class="grid" id="org"></div>
+
+<script>
+const ACTIVE='guides/display/feed';
+const CHEV='<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>';
+// ---- real nav ----
+const NAV=[
+ {group:'Get started',icon:'🚀',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart']]},
+ {group:'SDK setup',icon:'📦',pages:[['guides/setup/installation','Installation'],['guides/setup/ios','iOS'],['guides/setup/android','Android'],['guides/setup/flutter','Flutter'],['guides/setup/react-native','React Native'],['guides/setup/web','Web']]},
+ {group:'Core concepts',icon:'◆',pages:[['guides/concepts/content-model','Content model'],['guides/concepts/feeds','Feeds'],['guides/concepts/identity','Identity']]},
+ {group:'Content',icon:'🎞',pages:[['guides/content/downloads','Downloads'],['guides/content/language','Language detection']]},
+ {group:'Display',icon:'▦',pages:[['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets']]},
+ {group:'Customize',icon:'✦',pages:[['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/customize/recipes-scrubber','Recipe: custom scrubber'],['guides/customize/recipes-captions','Recipe: captions overlay']]},
+ {group:'Users & data',icon:'📊',pages:[['guides/analytics/overview','Analytics overview'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/monetization/ads','Ads']]},
+ {group:'SDK reference',icon:'⌘',pages:[['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
+// ---- org: consolidated (Setup nested, Display+Customize merged) ----
+const ORG_CONSOLIDATED=[
+ {group:'Get started',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart']]},
+ {group:'Set up the SDK',nest:{parent:['guides/setup/installation','Installation'],kids:[['guides/setup/ios','iOS'],['guides/setup/android','Android'],['guides/setup/flutter','Flutter'],['guides/setup/react-native','React Native'],['guides/setup/web','Web']]}},
+ {group:'Concepts',pages:[['guides/concepts/content-model','Content model'],['guides/concepts/feeds','Feeds'],['guides/concepts/identity','Identity'],['guides/content/language','Language detection']]},
+ {group:'Build your feed',collapsible:true,pages:[['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets'],['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/customize/recipes-scrubber','Recipe: scrubber'],['guides/customize/recipes-captions','Recipe: captions']]},
+ {group:'Operate',pages:[['guides/analytics/overview','Analytics overview'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/monetization/ads','Ads'],['guides/content/downloads','Downloads']]},
+ {group:'Reference',pages:[['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
+// ---- org: numbered journey ----
+const ORG_JOURNEY=[
+ {group:'Start here',pages:[['guides/index','Overview'],['guides/quickstart','Quickstart'],['guides/setup/installation','Install the SDK']]},
+ {group:'1 · Show content',pages:[['guides/concepts/content-model','Content model'],['guides/display/feed','Embedding a feed'],['guides/display/feed-control','Feed control'],['guides/display/custom-feeds','Custom feeds'],['guides/display/player','Player'],['guides/display/widgets','Widgets']]},
+ {group:'2 · Customize it',pages:[['guides/customize/overlays','Video overlays'],['guides/customize/item-overlays','Item overlays & ads'],['guides/customize/carousel-control','Carousel control'],['guides/customize/live','Live in the feed'],['guides/customize/recipes-scrubber','Recipe: scrubber'],['guides/customize/recipes-captions','Recipe: captions']]},
+ {group:'3 · Track & monetize',pages:[['guides/analytics/overview','Analytics overview'],['guides/analytics/custom-data','Custom data'],['guides/analytics/event-forwarding','Event forwarding'],['guides/monetization/ads','Ads']]},
+ {group:'Reference',pages:[['guides/concepts/feeds','Feeds'],['guides/concepts/identity','Identity'],['guides/content/language','Language detection'],['guides/content/downloads','Downloads'],['guides/reference/feed-config','FeedConfig & FeedFilter'],['guides/reference/player','ShortKitPlayer']]},
+];
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function item(slug,title){const a=slug===ACTIVE?' active':'';return `<a class="it${a}"><span class="lbl">${esc(title)}</span></a>`;}
+function groupOpen(g){return g.pages.some(p=>p[0]===ACTIVE)||(g.nest&&g.nest.kids.some(k=>k[0]===ACTIVE));}
+
+function render(nav,variant){
+ let h='';
+ nav.forEach(g=>{
+  const open=variant==='accordion'||g.collapsible?groupOpen(g):true;
+  const coll=(variant==='accordion'||g.collapsible)&&!open?' collapsed':'';
+  if(variant==='accordion'){
+   h+=`<div class="grp${coll}"><div class="gh" onclick="this.parentNode.classList.toggle('collapsed')">${CHEV}<span style="flex:1">${esc(g.group)}</span></div><div class="kids">`;
+  }else if(variant==='icon'){
+   h+=`<div class="grp"><div class="gh"><span class="ico">${g.icon||'•'}</span>${esc(g.group)}</div><div class="kids">`;
+  }else{
+   const clickable=g.collapsible?` onclick="this.parentNode.classList.toggle('collapsed')" style="cursor:pointer"`:'';
+   h+=`<div class="grp${coll}"><div class="gh"${clickable}>${g.collapsible?CHEV+' ':''}${esc(g.group)}</div><div class="kids">`;
+  }
+  if(g.nest){
+   const po=g.nest.kids.some(k=>k[0]===ACTIVE)||g.nest.parent[0]===ACTIVE;
+   h+=`<div class="grp${po?'':' collapsed'}"><a class="it${g.nest.parent[0]===ACTIVE?' active':''}" onclick="this.parentNode.classList.toggle('collapsed')">${CHEV}<span class="lbl">${esc(g.nest.parent[1])}</span></a><div class="kids" style="padding-left:18px">`;
+   g.nest.kids.forEach(k=>h+=item(k[0],k[1]));
+   h+='</div></div>';
+  }
+  (g.pages||[]).forEach(p=>h+=item(p[0],p[1]));
+  h+='</div></div>';
+ });
+ return h;
+}
+
+const AES=[
+ ['Current','baseline','Today’s look: uppercase group labels, flat page lists, orange filled active pill. Everything always visible — long scroll on big sections.','current',NAV],
+ ['Collapsible accordions','tidy','Every group is a collapsible row; the title itself is the toggle. Only the active section is open, so the list stays short. Click any header to expand.','accordion',NAV],
+ ['Indented + guide rail','hierarchy','Children sit under a thin vertical rail; the active item lights its rail segment. Makes the parent→child relationship obvious at a glance.','rail',NAV],
+ ['Icon-led groups','visual','Each group gets an icon and sentence-case label. More scannable and friendly; costs a little horizontal space and needs a consistent icon set.','icon',NAV],
+ ['Minimal / airy','modern','No uppercase, no filled pills — hairline dividers between groups, muted text, a left accent bar for the active page. Vercel/Stripe-like restraint.','minimal',NAV],
+];
+const ORGS=[
+ ['Consolidated (6 groups)','structure','8 groups → 6. Platforms nest under a collapsible <b>Installation</b>; Display + Customize merge into <b>Build your feed</b> (collapsible). Less top-level noise, bigger sections.','rail',ORG_CONSOLIDATED],
+ ['Numbered journey','structure','Task-ordered: Start here → 1 Show content → 2 Customize → 3 Track & monetize, with reference material pooled at the bottom. Guides a first-time integrator through the flow.','minimal',ORG_JOURNEY],
+];
+
+function card(def){
+ const [name,tag,desc,variant,nav]=def;
+ return `<div class="card"><div class="cap"><h3>${name} <span class="pill">${tag}</span></h3><p>${desc}</p></div><div class="frame v-${variant}">${render(nav,variant)}</div></div>`;
+}
+document.getElementById('aesthetic').innerHTML=AES.map(card).join('');
+document.getElementById('org').innerHTML=ORGS.map(card).join('');
+</script>
+</body></html>
