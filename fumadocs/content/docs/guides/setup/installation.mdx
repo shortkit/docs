@@ -23,10 +23,10 @@ ShortKit ships five client SDKs — iOS, Android, Flutter, React Native, and Web
 
 | Platform | Version | Package |
 |---|---|---|
-| iOS | 0.2.55 | Swift Package Manager (`ShortKit`) |
-| Android | 0.2.55 | Maven Central (`dev.shortkit:shortkit`) |
-| Flutter | 0.2.22 | pub.dev (`shortkit_flutter`) |
-| React Native | 0.2.55 | npm (`@shortkitsdk/react-native`) |
+| iOS | 0.2.58 | Swift Package Manager (`ShortKit`) |
+| Android | 0.2.57 | Maven Central (`dev.shortkit:shortkit`) |
+| Flutter | 0.2.59 | pub.dev (`shortkit_flutter`) |
+| React Native | 0.2.57 | npm (`@shortkitsdk/react-native`) |
 | Web | 0.5.0 | npm / CDN (`@shortkitsdk/web`) |
 
 The Web SDK is versioned independently of the native SDKs. See the per-platform setup pages for install instructions: [iOS](/docs/guides/setup/ios), [Android](/docs/guides/setup/android), [Flutter](/docs/guides/setup/flutter), [React Native](/docs/guides/setup/react-native), [Web](/docs/guides/setup/web).
@@ -51,7 +51,7 @@ The Web SDK is versioned independently of the native SDKs. See the per-platform 
 
 Notes on specific rows:
 
-- **Player and widgets on Android** — the standalone `ShortKitPlayer` and widget components have not shipped on Android. The feed embed (`ShortKitFeedFragment`) is the only display surface today.
+- **Player and widgets on Android** — Android has no standalone player display surface or widget components today. The feed embed (`ShortKitFeedFragment`) is the only display surface.
 - **Item overlays** — custom overlays for image carousels and video carousels. The Web SDK does not yet render carousel items in the feed, so it has no item-overlay surface.
 - **Carousel control** — the programmatic carousel API (active index, next/previous, completion events). Flutter renders carousels and supports carousel overlays but does not expose the carousel controller.
 - **Live viewing** — the in-feed live surface (live badge, viewer count, live-room behavior) ships on iOS and Web only.
@@ -78,7 +78,3 @@ Where a feature is exclusive to a subset of platforms (for example, live viewing
 
 - **Since X** — the API was added in SDK version X. Integrations pinned below X won't have it.
 - **Unreleased** — the API is merged but not yet published to the package registry. Don't build against it until the version that includes it ships.
-
-<Callout type="info" title="Flutter 0.3.0 is pending">
-A batch of Flutter features is merged but not yet published to pub.dev (latest published: 0.2.22). This includes pull-to-refresh, `scrollToItem`, the `active` prop, and array-valued `FeedFilter` metadata with OR semantics — the last of which already ships on iOS, Android, React Native, Web, and the REST API. These appear in the docs marked **Unreleased** until 0.3.0 ships.
-</Callout>

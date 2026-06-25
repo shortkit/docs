@@ -38,7 +38,7 @@ Callbacks are fire-and-forget. A failed delivery never affects processing: the v
 
 ## `content.imported` (video)
 
-Up to two per video — first with `status: "processing"`, then with `status: "ready"` — whether the video arrived by direct upload, URL import, or as a clip from a live stream. The `source` field tells you which.
+Up to two per video — first with `status: "processing"`, then with `status: "ready"` — whether the video arrived by direct upload, URL import, TikTok or Instagram import, or as a clip from a live stream. The `source` field tells you which.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -48,7 +48,7 @@ Up to two per video — first with `status: "processing"`, then with `status: "r
 | `status` | string | `"processing"` or `"ready"` |
 | `playbackId` | string \| null | Resolves streaming and thumbnail URLs; may be `null` on `"processing"`, always present on `"ready"` |
 | `title` | string | The content item's title |
-| `source` | string | `"upload"` (direct upload), `"url"` (URL import), or `"clip"` (live stream clip) |
+| `source` | string | `"upload"` (direct upload), `"url"` (URL import), `"clip"` (live stream clip), `"tiktok"` (TikTok import), or `"instagram"` (Instagram import) |
 | `timestamp` | string | ISO 8601 timestamp |
 
 ```json title="content.imported — processing"
@@ -82,7 +82,7 @@ Sent instead of the `ready` callback if processing fails. No `playbackId` is inc
 | `status` | string | Always `"error"` |
 | `error` | string | Human-readable failure description |
 | `title` | string | The content item's title |
-| `source` | string | `"upload"`, `"url"`, or `"clip"` |
+| `source` | string | `"upload"`, `"url"`, `"clip"`, `"tiktok"`, or `"instagram"` |
 | `timestamp` | string | ISO 8601 timestamp |
 
 ```json title="content.import_failed"

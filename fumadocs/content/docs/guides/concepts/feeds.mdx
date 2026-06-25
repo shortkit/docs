@@ -113,7 +113,7 @@ The combination rules:
 - **Within `metadata`: OR per key, AND across keys.** Each metadata key maps to a *list* of acceptable values. `metadata: {"language": ["es", "pt"], "region": ["latam"]}` returns content whose `language` is Spanish *or* Portuguese, *and* whose `region` is `latam`.
 
 <Callout type="info" title="Metadata values are lists">
-`FeedFilter.metadata` is `Map<String, [String]>` — each key takes a list of values with OR semantics, not a single string. On Flutter, the multi-value shape ships in an upcoming release; the currently published package accepts one value per key.
+`FeedFilter.metadata` is `Map<String, [String]>` — each key takes a list of values with OR semantics, not a single string. This multi-value shape is available on every platform, including Flutter (`Map<String, List<String>>`).
 </Callout>
 
 Filters only apply to ranked feeds. In custom mode you already control the item list, so the filter is ignored. Filters can also be changed at runtime without rebuilding the feed — see [Feed control](/docs/guides/display/feed-control).

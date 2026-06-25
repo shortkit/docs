@@ -1,9 +1,12 @@
 {
   "comment": "Single source of truth for SDK versions shown in docs. On release: update here, run scripts/check-versions.mjs to find every page that needs the bump.",
-  "ios": "0.2.55",
-  "android": "0.2.55",
-  "react-native": "0.2.55",
-  "flutter": "0.2.22",
+  "ios": "0.2.58",
+  "android": "0.2.57",
+  "react-native": "0.2.57",
+  "flutter": "0.2.59",
   "web": "0.5.0",
-  "allowedOther": ["0.3.0", "0.2.36"]
+  "allowedOther": [
+    "0.2.36",
+    "0.2.55"
+  ]
 }

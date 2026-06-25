@@ -369,7 +369,7 @@ interface AdOverlay {
 
 | Field | Type (iOS / Android) | Description |
 |-------|------|-------------|
-| `videoUrl` | `String` | The ad video URL the SDK plays in its player pool. |
+| `videoUrl` | `String` / `String?` | The ad video URL the SDK plays in its player pool. Nullable on Android. |
 | `headline` | `String?` | Headline text. |
 | `body` | `String?` | Description text. |
 | `callToAction` | `String?` | CTA label (for example "Learn More", "Shop Now"). |
@@ -379,7 +379,7 @@ interface AdOverlay {
 | `ctaClickHandler` | closure | Call when the user taps the CTA. |
 | `adChoicesClickHandler` | closure | Call when the user taps the AdChoices icon. |
 | `recordImpression` | closure | Call when the ad becomes visible. |
-| `aspectRatio` | — / `Float?` | Creative aspect ratio. Android only. |
+| `aspectRatio` | `CGFloat?` / `Float?` | Creative aspect ratio. |
 
 <Callout type="warn" title="Ad policy compliance">
 When building a custom ad overlay, you are responsible for rendering the required policy elements: an "Ad" badge and a tappable AdChoices icon (minimum 15x15pt). Verify your implementation meets your ad provider's display requirements.

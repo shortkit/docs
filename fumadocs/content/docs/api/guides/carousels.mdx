@@ -11,7 +11,7 @@ Carousels are swipeable multi-slide feed items. ShortKit supports two kinds:
 Unlike videos, carousels skip the processing pipeline entirely. They come back with `uploadStatus: "ready"` the moment you create them — no polling, no callbacks. For how carousels fit into the broader content model, see [Content model](/docs/guides/concepts/content-model).
 
 <Callout type="warn" title="Carousels can publish before they have slides">
-Because a carousel is `ready` at creation, auto-publish (on by default) makes it feed-eligible immediately — before you've added any slides. Empty video carousels are excluded from the feed automatically, but empty image carousels are not. Add images right after creating, or create with a future `publishAt` and publish once the slides are in place.
+Because a carousel is `ready` at creation, auto-publish (on by default) makes it feed-eligible immediately — before you've added any slides. Empty carousels are excluded from the feed automatically: an image carousel with no images and a video carousel with no playable videos are both omitted until they have at least one slide. Add slides right after creating, or create with a future `publishAt` and publish once the slides are in place.
 </Callout>
 
 ## Create a carousel
@@ -85,7 +85,7 @@ The response is the full [content object](/docs/api/content/get-content) with `u
 
 ### Upload images
 
-`POST /v1/content/{contentId}/images` adds one image per request using multipart form data. Each carousel holds up to 10 images. `file` is required (JPEG, PNG, or WebP); `position` (0-based, default `0`) and `altText` are optional. See the [Upload carousel images API reference](/docs/api/content/add-carousel-image).
+`POST /v1/content/{contentId}/images` adds one image per request using multipart form data. Each carousel holds up to 10 images. `file` is required — use a standard web image format such as JPEG, PNG, or WebP; `position` (0-based, default `0`) and `altText` are optional. See the [Upload carousel images API reference](/docs/api/content/add-carousel-image).
 
 <Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
   <Tab value="cURL">

@@ -79,12 +79,7 @@ The constructor throws if `apiKey` is missing. All other options are optional:
 |---|---|---|
 | `apiKey` | `string` | **Required.** Your publishable key (`pk_live_...` or `pk_test_...`) |
 | `userId` | `string` | Identify the logged-in user. See [Identity](/docs/guides/concepts/identity) |
-| `clientAppName` | `string` | App name reported with analytics events |
-| `clientAppVersion` | `string` | App version reported with analytics events |
-| `customDimensions` | `object` | Key-value pairs attached to analytics events |
-| `loadingView` | `function` | Custom loading element factory shown while a surface fetches content |
 | `onContentTapped` | `function` | Called when a viewer taps a content item |
-| `onRefreshRequested` | `function` | Called when a viewer pulls to refresh |
 | `onDidFetchContentItems` | `function` | Called after each batch of items is fetched |
 | `liveOverlay` | `'default' \| 'none' \| function` | Live badge and viewer-count overlay for live stream items |
 | `liveStatusPollIntervalMs` | `number` | Live status poll interval, default `30000` |

@@ -93,8 +93,6 @@ feedFragment.scrollToItem("content_abc123", animated = true)
 feedController.scrollToItem('content_abc123', animated: true);
 ```
 
-Requires `shortkit_flutter` 0.3.0 or later.
-
 </Tab>
 <Tab value="React Native">
 
@@ -136,8 +134,6 @@ feedFragment.refresh()
 ```dart
 feedController.refresh();
 ```
-
-Requires `shortkit_flutter` 0.3.0 or later.
 
 </Tab>
 <Tab value="React Native">
@@ -368,7 +364,7 @@ Not yet supported on Web.
 
 ### Push native screens over the feed
 
-In React Native (iOS only), feed overlays can push a registered native screen onto the feed's navigation stack — wrapping your component instead of presenting it modally, with interactive swipe-back:
+In React Native (iOS only), feed overlays can push a registered native screen onto the feed's navigation stack — wrapping your component instead of presenting it modally, with a native slide-back animation:
 
 ```tsx
 import { pushFeedScreen, popFeedScreen } from '@shortkitsdk/react-native';
@@ -438,8 +434,6 @@ ShortKitFeed(
   active: isCurrentTab,
 )
 ```
-
-Requires `shortkit_flutter` 0.3.0 or later.
 
 </Tab>
 <Tab value="React Native">

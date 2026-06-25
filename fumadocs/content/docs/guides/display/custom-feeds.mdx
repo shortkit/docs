@@ -232,10 +232,6 @@ sealed class FeedInput {
 }
 ```
 
-<Callout type="info">
-On the current pub.dev release (0.2.22), `FeedInput.video` accepts `playbackId` only, and video carousels use the older fully-hydrated `VideoCarouselItem` shape. The `origin` and `fallbackUrl` parameters and the compact `VideoCarouselInput` shape ship in the next Flutter release — see the [carousel migration guide](/docs/changelog/migrations/v0-3-0-carousel-playback-ids).
-</Callout>
-
 </Tab>
 <Tab value="React Native">
 
@@ -350,7 +346,7 @@ final carousel = VideoCarouselInput(
 _feedController.setFeedItems([FeedInput.videoCarousel(item: carousel)]);
 ```
 
-The compact `VideoCarouselInput` shape ships in the next Flutter release; the current pub.dev release (0.2.22) takes a fully-hydrated `VideoCarouselItem` — see the [migration guide](/docs/changelog/migrations/v0-3-0-carousel-playback-ids).
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`. Per-slide inputs accept `origin`, same as `FeedInput.video`.
 
 </Tab>
 <Tab value="React Native">

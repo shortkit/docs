@@ -197,6 +197,7 @@ const FeedConfig({
   FeedSource? feedSource,           // FeedSource.algorithmic or FeedSource.custom
   bool? autoplay,                   // default: true
   FeedFilter? filter,
+  bool? pullToRefreshEnabled,       // default: true
 })
 ```
 
@@ -269,7 +270,7 @@ Web does not support `scrollAxis` — the web feed is always vertical. Carousel,
 | `autoplay` | `true` | Whether video plays automatically when the feed loads or the user swipes to a new item. |
 | `feedSource` | algorithmic | Algorithmic fetches content from ShortKit's recommendation engine. Custom uses client-provided items — see [Custom feeds](/docs/guides/display/custom-feeds). |
 | `filter` | none | Server-side content filter applied to every feed request. See [FeedFilter](#feedfilter) below. |
-| `pullToRefreshEnabled` | `true` | Whether the user can pull down to refresh the feed. iOS, Android, and React Native. **Unreleased** on Flutter — merged but not yet published. |
+| `pullToRefreshEnabled` | `true` | Whether the user can pull down to refresh the feed. iOS, Android, React Native, and Flutter. |
 
 ### Overlay modes
 
@@ -417,13 +418,9 @@ const FeedFilter({
   String? section,
   String? author,
   String? contentType,
-  Map<String, String>? metadata,  // one value per key on the published release
+  Map<String, List<String>>? metadata,  // OR within a key, AND across keys
 })
 ```
-
-<Callout type="info" title="Unreleased: multi-value metadata">
-The published Flutter release accepts a single string value per metadata key. Multi-value OR filtering (`Map<String, List<String>>`) is merged but not yet published — it ships in the next Flutter release. All other filter semantics are identical.
-</Callout>
 </Tab>
 <Tab value="React Native">
 ```typescript
@@ -522,9 +519,12 @@ final config = FeedConfig(
   filter: FeedFilter(tags: ['politics'], author: 'Jane Doe'),
 );
 
-// Metadata: one value per key on the published release
+// Metadata: (country is Japan OR Korea) AND (vibe is cultural)
 final config = FeedConfig(
-  filter: FeedFilter(metadata: {'country': 'Japan', 'vibe': 'cultural'}),
+  filter: FeedFilter(metadata: {
+    'country': ['Japan', 'Korea'],
+    'vibe': ['cultural'],
+  }),
 );
 ```
 </Tab>

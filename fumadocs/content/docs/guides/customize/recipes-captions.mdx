@@ -443,10 +443,17 @@ The active cue is `null` whenever no cue covers the current playback time — hi
 
 ## Selecting a caption track
 
-When content has multiple caption tracks, select one by BCP 47 language code — `player.selectCaptionTrack(language:)` on iOS and Android, `commands.selectCaptionTrack(language)` on Flutter, `ShortKitCommands.selectCaptionTrack(language)` on React Native, and `player.selectCaptionTrack(language)` on Web:
+When content has multiple caption tracks, the native and cross-platform SDKs select one by BCP 47 language code — `player.selectCaptionTrack(language:)` on iOS and Android, `commands.selectCaptionTrack(language)` on Flutter, and `ShortKitCommands.selectCaptionTrack(language)` on React Native:
 
 ```text
 selectCaptionTrack("en")
+```
+
+On Web the signature differs: `player.selectCaptionTrack(track)` takes a track object from `captionTracks` (a passthrough that sets `activeCaptionTrack`), not a BCP 47 language string. Pick the matching track from the list and pass it through:
+
+```js
+const track = item.captionTracks.find((t) => t.language === "en");
+player.selectCaptionTrack(track);
 ```
 
 The available tracks are exposed on the content item as `captionTracks` (each track has a language and label). See the [Player reference](/docs/guides/reference/player) for the full caption state surface, including `activeCaptionTrack`.

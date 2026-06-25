@@ -1,25 +1,25 @@
 ---
-title: "v0.3.0: Carousel playback IDs"
-description: "Migrate videoCarousel feed inputs from host-built URLs to playback IDs for SDK 0.3.0."
+title: "Carousel playback IDs"
+description: "Migrate videoCarousel feed inputs from host-built URLs to playback IDs."
 ---
 
-<Callout type="warn" title="Staged for 0.3.0 — not yet released">
-This guide applies to SDK 0.3.0, which has not shipped yet. The current SDK versions are 0.2.55 (iOS, Android, React Native) and 0.2.22 (Flutter). Nothing on this page applies until you upgrade to 0.3.0.
+<Callout type="info" title="In effect since 0.2.x">
+This change is already live in all current SDK releases: iOS 0.2.58, Android 0.2.57, React Native 0.2.57, and Flutter 0.2.59. If you're upgrading from an older SDK, follow the before/after steps below to update your carousel feed inputs.
 </Callout>
 
-In v0.3.0, the `videoCarousel` feed input stops accepting fully-built URLs and takes only playback IDs — matching how the single-video feed input already works. This is a breaking change for custom feeds that include video carousels.
+The `videoCarousel` feed input no longer accepts fully-built URLs and takes only playback IDs — matching how the single-video feed input already works. This is a breaking change for custom feeds that include video carousels.
 
 Video carousels render on iOS, Android, Flutter, and React Native. The Web SDK does not render carousels yet.
 
 ## Why this changed
 
-Before v0.3.0, your app constructed `streamingUrl` and `thumbnailUrl` strings for each carousel slide. This required you to reimplement URL construction, and host-built URLs could diverge from the SDK's streaming domains. The `video` feed input already built these URLs for you; carousels did not.
+Previously, your app constructed `streamingUrl` and `thumbnailUrl` strings for each carousel slide. This required you to reimplement URL construction, and host-built URLs could diverge from the SDK's streaming domains. The `video` feed input already built these URLs for you; carousels did not.
 
-In v0.3.0, you pass a playback ID per slide and the SDK constructs the streaming and thumbnail URLs, exactly as it does for `video` feed inputs.
+Now you pass a playback ID per slide and the SDK constructs the streaming and thumbnail URLs, exactly as it does for `video` feed inputs.
 
 ## What changed
 
-### Before (v0.2.x)
+### Before (older SDKs)
 
 ```ts title="feedInput.ts"
 const feedInput: FeedInput = {
@@ -31,7 +31,6 @@ const feedInput: FeedInput = {
         id: 'thread-42-v1',
         playbackId: 'abc123',
         title: 'Question',
-        duration: 15,
         streamingUrl: 'https://stream.example-cdn.com/abc123.m3u8',
         thumbnailUrl: 'https://images.example-cdn.com/abc123/thumbnail.jpg?time=0',
         captionTracks: [],
@@ -43,7 +42,7 @@ const feedInput: FeedInput = {
 };
 ```
 
-### After (v0.3.0)
+### After (current SDKs)
 
 ```ts title="feedInput.ts"
 const feedInput: FeedInput = {
@@ -68,7 +67,7 @@ The new slide input does not carry titles, durations, or other per-slide fields.
 
 ## Upgrade steps
 
-1. Update your package to 0.3.0.
+1. Update your package to the current SDK version.
 2. In your feed mapper, delete URL construction for carousel slides.
 3. Return only `{ playbackId, fallbackUrl? }` objects for each video.
 4. If your custom carousel overlay iterated `carouselItem.videos[].streamingUrl`, refactor to use `activeVideo` for the current slide and maintain a host-side map for the rest.
@@ -133,7 +132,7 @@ final input = FeedInput.videoCarousel(
 <Tab value="React Native">
 
 ```bash
-npm install @shortkitsdk/react-native@^0.3.0
+npm install @shortkitsdk/react-native@^0.2.57
 ```
 
 Return the compact shape from your feed mapper, as shown in the before/after above. Your overlay still receives the fully-hydrated `carouselItem` via `VideoCarouselOverlayProps` — only the input shape changes.

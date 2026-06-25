@@ -106,7 +106,7 @@ shortKit.player.playerState
     .store(in: &cancellables)
 ```
 
-Every publisher has a matching synchronous accessor for point-in-time reads without a subscription — for example `currentItemValue`, `playbackRateValue`, `captionsEnabledValue`. Accessors return the most recent value and trigger no side effects.
+Several publishers have a matching synchronous accessor for point-in-time reads without a subscription — `currentItemValue`, `playbackRateValue`, `isLiveRoomExpandedValue`, and `liveStreamStatusValue`. Not every publisher has one. Accessors return the most recent value and trigger no side effects.
 </Tab>
 <Tab value="Android">
 Collect flows from a coroutine scope tied to your lifecycle.
