@@ -5,6 +5,17 @@ description: "Release notes for the ShortKit SDKs and API, newest first."
 
 New features and notable changes across the ShortKit SDKs and API, newest first. Releases that require code changes on your side get a dedicated migration guide — see [Carousel playback IDs (v0.3.0)](/docs/changelog/migrations/v0-3-0-carousel-playback-ids) for an example.
 
+## June 25, 2026 — Web SDK 0.6.0, mobile SDKs 0.2.60
+
+**API**
+
+- Removed the dedicated publication-URL endpoints. To attach an article link to a content item, set a `publicationUrl` key in `customMetadata` via `PATCH /v1/content/{id}` — see [Attaching an article link](/docs/api/guides/captions-and-metadata#attaching-an-article-link).
+- Feed items no longer emit a top-level `publisherUrl` field. The link now travels on `customMetadata.publicationUrl`, which the feed already emits.
+
+**SDK**
+
+- The `articleUrl` property is removed from feed items, carousel items, and custom-feed inputs across the Web (`0.6.0`), iOS, Android, React Native, and Flutter (`0.2.60`) SDKs. Read and write the article link via `customMetadata.publicationUrl` instead — for example `item.customMetadata?.publicationUrl`.
+
 ## June 10, 2026 — Flutter SDK
 
 **SDK**

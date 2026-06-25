@@ -1,6 +1,6 @@
 ---
 title: "Captions & Metadata"
-description: "Upload caption tracks, update content metadata with PATCH merge semantics, and attach publication URLs."
+description: "Upload caption tracks, update content metadata with PATCH merge semantics, and attach an article link via customMetadata."
 ---
 
 After content is created, you can manage it entirely through the REST API: add caption tracks in any language, update titles, tags, and custom metadata, and attach external links. These operations apply to existing content of any type — see [Upload videos](/docs/api/guides/upload-videos) and [Carousels](/docs/api/guides/carousels) for the creation workflows.
@@ -214,107 +214,21 @@ Setting `publishStatus` to `"published"` clears any pending `publishAt`. To sche
 
 Setting `origin` to `"ios_upload"` on a video that has already finished processing automatically retriggers thumbnail extraction. This regenerates color-accurate thumbnails for content that was uploaded before the origin was set — there's no need to re-upload the video. The re-extraction only fires when `origin` changes to `"ios_upload"` from another value; sending the same value again is a no-op. See [Upload videos](/docs/api/guides/upload-videos) for why iOS-recorded content needs this flag.
 
-## Publication URLs
+### Attaching an article link
 
-Attach external links to content — the source article, a product page, an episode landing page. Each URL has an optional label and a position. The URL at position 0 is surfaced as `publisherUrl` on feed items, where the SDK can render it as a tappable link.
-
-### Add a publication URL
-
-<Tabs groupId="lang" persist items={['cURL','Python','Node.js']}>
-  <Tab value="cURL">
-    ```bash
-    curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls" \
-      -H "Authorization: Bearer sk_live_your_secret_key" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "url": "https://example.com/article/spring-launch",
-        "label": "Read the full article",
-        "position": 0
-      }'
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    resp = requests.post(
-        f"https://api.shortkit.dev/v1/content/{content_id}/publication-urls",
-        headers={
-            "Authorization": "Bearer sk_live_your_secret_key",
-            "Content-Type": "application/json",
-        },
-        json={
-            "url": "https://example.com/article/spring-launch",
-            "label": "Read the full article",
-            "position": 0,
-        },
-    )
-
-    url_id = resp.json()["data"]["id"]
-    ```
-  </Tab>
-  <Tab value="Node.js">
-    ```javascript
-    const resp = await fetch(
-      `https://api.shortkit.dev/v1/content/${contentId}/publication-urls`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer sk_live_your_secret_key",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          url: "https://example.com/article/spring-launch",
-          label: "Read the full article",
-          position: 0,
-        }),
-      }
-    );
-
-    const { data } = await resp.json();
-    const urlId = data.id;
-    ```
-  </Tab>
-</Tabs>
-
-| Field | Type | Required | Default | Notes |
-|-------|------|----------|---------|-------|
-| `url` | string | Yes | -- | The external link |
-| `label` | string | No | `null` | Display text for the link |
-| `position` | integer | No | `0` | 0-based ordering; position 0 becomes `publisherUrl` in the feed |
-
-### Update a publication URL
-
-Change the `url` or `label` of an existing entry. Only the fields you send are changed.
+To link a content item to its source or a related article, set a `publicationUrl`
+key in `customMetadata` via `PATCH /v1/content/{contentId}`:
 
 ```bash
-curl -X PUT "https://api.shortkit.dev/v1/content/${contentId}/publication-urls/${urlId}" \
+curl -X PATCH "https://api.shortkit.dev/v1/content/${contentId}" \
   -H "Authorization: Bearer sk_live_your_secret_key" \
   -H "Content-Type: application/json" \
-  -d '{ "label": "Read the story" }'
+  -d '{ "customMetadata": { "publicationUrl": "https://example.com/article/spring-launch" } }'
 ```
 
-### Reorder publication URLs
-
-Pass all URL IDs in the desired order. Each entry's position is set to its index in the array — the first ID becomes the feed's `publisherUrl`.
-
-```bash
-curl -X PUT "https://api.shortkit.dev/v1/content/${contentId}/publication-urls/order" \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "urlIds": ["url-uuid-2", "url-uuid-1", "url-uuid-3"]
-  }'
-```
-
-The response returns the full list in its new order.
-
-### Delete a publication URL
-
-```bash
-curl -X DELETE "https://api.shortkit.dev/v1/content/${contentId}/publication-urls/${urlId}" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
-```
+The value flows through the feed payload on `customMetadata.publicationUrl`, where
+your app (or the Web SDK) can render it as a tappable link. It follows the same
+[merge semantics](#merge-semantics) as any other custom metadata key.
 
 ## Next steps
 
