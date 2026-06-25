@@ -1,7 +1,7 @@
 ---
 title: "Overlays"
 description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, SurveyOverlay, and AdOverlay protocols."
-keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
+keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands", "feedKey", "feedId", "multiple feeds"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
@@ -263,6 +263,40 @@ struct MyOverlayView: View {
 ```
 
 Under the hood, `.swiftUI` wraps your view in a `UIHostingController` and registers it as a `FeedOverlay`. You do not need to conform to the `FeedOverlay` protocol yourself.
+
+### Multiple concurrent feeds (React Native)
+
+If your app mounts more than one `<ShortKitFeed>` at the same time — for example a swipeable tab navigator where each tab is its own feed — pass a stable `feedKey` to each surface so its per-cell overlay binds to the correct feed:
+
+```tsx
+<ShortKitProvider
+  apiKey="pk_live_your_publishable_key"
+  config={{ overlay: { type: "custom", component: MyOverlay } }}
+>
+  <ShortKitFeed feedKey="for-you" style={{ flex: 1 }} />
+  <ShortKitFeed feedKey="following" style={{ flex: 1 }} />
+</ShortKitProvider>
+```
+
+The value you pass is used verbatim as the overlay's `feedId`. If you omit `feedKey`, the SDK assigns a random per-instance identifier (the previous behavior) and `feedId` is `undefined` on overlay props.
+
+`feedId` is then available on overlay props for video, carousel, and video-carousel surfaces:
+
+```tsx
+interface OverlayProps {
+  surfaceId: string;
+  feedId?: string;
+  item: ContentItem;
+  isActive: boolean;
+  // ...player state props
+}
+```
+
+`CarouselOverlayProps` and `VideoCarouselOverlayProps` carry the same optional `feedId` field. Use it to route per-surface state in your overlay tree — for example, to read from the right slice of a shared store when several feeds render side-by-side.
+
+<Note>
+  `feedKey` affects display-only overlay binding. Player commands (`play`, `pause`, `setMuted`, `seek`) from `useShortKitPlayer()` remain global and target the active feed.
+</Note>
 
 ## ShortKitPlayer
 
@@ -1196,6 +1230,8 @@ In React Native, video carousel overlays are React components that receive props
 
 ```tsx
 interface VideoCarouselOverlayProps {
+  surfaceId: string;
+  feedId?: string;
   carouselItem: VideoCarouselItem;
   activeVideo: ContentItem;
   activeVideoIndex: number;
@@ -1205,6 +1241,8 @@ interface VideoCarouselOverlayProps {
   isMuted: boolean;
 }
 ```
+
+`feedId` is present when the host passed a `feedKey` to the owning `<ShortKitFeed>`. See [Multiple concurrent feeds](#multiple-concurrent-feeds-react-native).
 
 Register your component in the feed config:
 
