@@ -1,0 +1,1221 @@
+[
+ {
+  "mintlifyPage": "api/ad-config/get.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/ad-configuration/get-ad-configuration",
+    "covers": "GET /v1/ad-config endpoint: description, secret-key auth, request examples, and full response schema (enabled, frequency, firstAdOffset, maxPerPage, adTagUrl, adUnitId, skipPolicy, skipDelaySeconds, defaultTargeting, native* fields) generated from openapi.public.json"
+   }
+  ],
+  "unported": [],
+  "notes": "Get Ad Config fully ported to OpenAPI-generated page; all response fields present in spec example (plus extra sponsored* fields), desc and auth match."
+ },
+ {
+  "mintlifyPage": "api/ad-config/object.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/monetization/ads.mdx",
+    "covers": "Bulk of the object semantics: placement fields (enabled/firstAdOffset/frequency/maxPerPage) with defaults in a table, skip behavior (skipPolicy/skipDelaySeconds/defaultTargeting) with defaults, ad-source fields (adTagUrl/adUnitId), native ad fields (nativeEnabled/nativeFormatId/nativeAdUnitId/native*Key mapping to videoUrl/headline/ctaText/sponsorName/sponsorLogo), the placement algorithm diagram, the ad_slot feed-shape JSON example, and the 'update other fields while disabled' caveat. Also adds the new sponsored* fields."
+   },
+   {
+    "path": "api/ad-configuration/get-ad-configuration",
+    "covers": "Generated GET /v1/ad-config endpoint (intro says default values returned if none saved). Replaces the object page's 'read config' role; secret-key auth shown in OpenAPI security."
+   },
+   {
+    "path": "api/ad-configuration/update-ad-configuration",
+    "covers": "Generated PUT /v1/ad-config endpoint whose AdConfigWrite request-body schema enumerates all 18 object fields (enabled, frequency, firstAdOffset, maxPerPage, adTagUrl, adUnitId, skipPolicy, skipDelaySeconds, defaultTargeting, nativeEnabled, nativeFormatId, nativeAdUnitId, native*Key) plus sponsored*; documents sparse-update behavior."
+   }
+  ],
+  "unported": [
+   {
+    "item": "Native-ad field DEFAULT values (nativeVideoUrlKey=video_url, nativeHeadlineKey=headline, nativeCtaKey=cta_text, nativeSponsorKey=sponsor_name, nativeSponsorLogoKey=sponsor_logo) are not shown as defaults anywhere; the OpenAPI AdConfigWrite schema carries no defaults/descriptions and the ads guide only names the keys in prose without their default values.",
+    "severity": "low"
+   },
+   {
+    "item": "The native-variant ad_slot JSON example (adFormat:\"native\" with nativeAssetKeys mapping object) is reproduced literally in Mintlify but only described in prose in the ads guide; only the non-native ad_slot JSON is shown verbatim.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Object fields fully covered by ads guide (defaults+semantics) plus generated GET/PUT endpoint schemas; only native-key defaults and native ad_slot JSON example are softened, both low."
+ },
+ {
+  "mintlifyPage": "api/ad-config/update.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/ad-configuration/update-ad-configuration",
+    "covers": "Entire page: PUT /v1/ad-config endpoint, sparse-update behavior (description), all 17 request body params (enabled, frequency, firstAdOffset, maxPerPage, adTagUrl, adUnitId, skipPolicy, skipDelaySeconds, defaultTargeting, nativeEnabled, nativeFormatId, nativeAdUnitId, nativeVideoUrlKey, nativeHeadlineKey, nativeCtaKey, nativeSponsorKey, nativeSponsorLogoKey via AdConfigWrite schema), request examples, and 200 response shape with all data fields + meta.request_id \u2014 all OpenAPI-generated"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported to OpenAPI-generated api/ad-configuration/update-ad-configuration; sparse-update note, all params, and response fields all present (schema even adds sponsored* fields)."
+ },
+ {
+  "mintlifyPage": "api/analytics/event-forwarding",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/analytics/event-forwarding",
+    "covers": "Entire page: how it works, enable forwarding (all 4 SDK snippets), Configuration table, What gets forwarded (event types, batch shape, event envelope), Build your collector, Field reference (viewEnd/swipe/playbackFallback), Aggregating into sessions, Best practices"
+   }
+  ],
+  "unported": [],
+  "notes": "Near-verbatim 1:1 port to guides/analytics/event-forwarding per intended Docs-tab move. All sections, tables, fields, examples present; only cosmetic component/version diffs."
+ },
+ {
+  "mintlifyPage": "api/analytics/event-object.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/analytics/overview",
+    "covers": "Full event-type catalog (Engagement, Playback quality, Feed navigation, View lifecycle, Ad lifecycle tables with Type/Description/key event_data fields) at #event-types, plus the custom-event-types Callout, plus the SDK-auto-collection intro behavior."
+   },
+   {
+    "path": "api/analytics/list-events",
+    "covers": "The event object shape \u2014 generated GET /v1/events/explore response example contains every attribute (id, event_type, content_id, user_id, session_id, view_session_id, timestamp, received_at, event_data), and the event_type/content_id/viewer_id filter params."
+   }
+  ],
+  "unported": [],
+  "notes": "Event-type catalog fully reproduced in overview#event-types; object fields appear in generated list-events example. POST /v1/events reference intentionally removed (SDK-only)."
+ },
+ {
+  "mintlifyPage": "api/analytics/get-metric.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/analytics/get-a-metric",
+    "covers": "The entire GET /v1/metrics/{metric} endpoint: path param `metric`, query params `measurement` (sum/avg) and `timeframe[]` (relative/absolute, default 7:days), response envelope (data.value, total_views, timeframe, meta.request_id via OpenAPI example), and request/response code samples. The rich page description enumerates all metric families (views, unique_viewers, completions, watch_time, playing_time, video_startup_time) with their default measurements and units, covering the extra cURL examples (completions over 30 days, avg video_startup_time over 24 hours)."
+   },
+   {
+    "path": "guides/analytics/overview",
+    "covers": "The metric catalog the Mintlify page linked to as 'Metrics Overview' \u2014 engagement/QoE/context metric definitions (watchTimeMs, playingTimeMs, videoStartupTimeMs, etc.) that the metric slugs aggregate."
+   }
+  ],
+  "unported": [],
+  "notes": "Endpoint fully covered by OpenAPI-generated get-a-metric page; param tables auto-generated, metric list/timeframe/filters semantics in page description; metric catalog also in analytics overview."
+ },
+ {
+  "mintlifyPage": "api/analytics/get-timeseries.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/analytics/get-metric-timeseries",
+    "covers": "Entire endpoint: GET /v1/metrics/{metric}/timeseries. OpenAPI-generated page. Path param `metric`, query `measurement` (sum/avg, aggregate-only, ignored by count metrics), query `timeframe[]` (relative value:unit / absolute two Unix timestamps, default 7:days), auto granularity (hourly <=24h, daily otherwise), response schema (data array of date/value, timeframe, meta.request_id), and auto-generated request code samples. The 'Examples' variations (hourly completions over 24h, daily watch_time sum over 7d) are param combinations whose behavior is documented in the page description."
+   },
+   {
+    "path": "guides/analytics/overview",
+    "covers": "Metric slug catalog referenced by the Mintlify link to Metrics Overview (the full list of queryable metric names like views, completions, watch_time)."
+   }
+  ],
+  "unported": [],
+  "notes": "Direct 1:1 match to OpenAPI-generated get-metric-timeseries page; all params, behavior, and response example present. Param tables auto-generated; hand examples are param variations covered by description."
+ },
+ {
+  "mintlifyPage": "api/analytics/list-events.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/analytics/list-events",
+    "covers": "The endpoint itself (GET /v1/events/explore): query params event_type, content_id, viewer_id, limit (default 50, min 1, max 200), page (default 1); the timeframe[] param (relative value:unit and absolute Unix-timestamp forms, default 7:days) documented in the operation description; the paginated response example with data array (id, event_type, content_id, user_id, session_id, view_session_id, event_data, timestamp, received_at, plus playback_id), pagination object (total, page, limit, total_pages), timeframe, meta.request_id; page-based pagination behavior (newest-first ordering); and time-range filtering."
+   },
+   {
+    "path": "guides/analytics/overview",
+    "covers": "The #event-types catalog backing the event_type filter (playStart, completion, like, etc. with associated event_data fields); linked from the list-events page description. Also notes custom event types are accepted/stored/returned."
+   }
+  ],
+  "unported": [],
+  "notes": "All params, response fields, pagination, and time-range filtering are in the generated list-events page; event-type catalog lives in analytics/overview#event-types. UUID->prefixed-ID examples are intentional."
+ },
+ {
+  "mintlifyPage": "api/analytics/metrics.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/analytics/get-a-metric",
+    "covers": "Core endpoint: count metrics (views, unique_viewers, completions), aggregate metrics (watch_time/sum, playing_time/sum, video_startup_time/avg) with measurement param, and full timeframe spec (relative value:unit, absolute Unix range, default 7:days). Description prose carries all the Mintlify metric semantics; param tables are OpenAPI-generated."
+   },
+   {
+    "path": "api/analytics/get-metric-timeseries",
+    "covers": "The 'both endpoints accept timeframe[]' framing \u2014 confirms the same metric slugs, measurement, and timeframe parameter format/default apply to the time-bucketed metric endpoint."
+   },
+   {
+    "path": "guides/analytics/overview",
+    "covers": "Conceptual intro: metrics aggregate per-view-session data, viewEnd carries the full viewing-session summary and powers the view and metric endpoints, and analytics endpoints require the secret key."
+   }
+  ],
+  "unported": [],
+  "notes": "All metrics-overview content (timeframes, count + aggregate metrics, measurement, secret-key, video-views/viewEnd framing) is fully represented in get-a-metric, timeseries, and overview."
+ },
+ {
+  "mintlifyPage": "api/authentication.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/authentication",
+    "covers": "Nearly the entire page: API key types table (publishable vs secret, prefix/header/purpose/security), key formats, publishable & secret key sections, endpoints-by-key-type tables, environment isolation, secret key rotation, key expiration, authentication errors pointer, and all five best-practices accordions."
+   },
+   {
+    "path": "api/errors",
+    "covers": "401 invalid_api_key and 403 forbidden status codes referenced by the auth-errors section (HTTP status codes table)."
+   },
+   {
+    "path": "guides/setup/ios",
+    "covers": "SDK initialization with the publishable key via ShortKit(apiKey:) \u2014 the swift init snippet (apiKey/config/userId) from the Publishable keys section; analogous setup pages (android, web, etc.) cover the other platforms."
+   },
+   {
+    "path": "api/content/upload-content",
+    "covers": "POST /v1/content/upload \u2014 listed in Mintlify's publishable-key endpoints table; in Fumadocs it is a dual-key (publishable or secret) endpoint, surfaced from the auth page's 'accept either key type' note."
+   }
+  ],
+  "unported": [],
+  "notes": "Faithful near-1:1 port. Vendor/impl detail (bcrypt) generalized to 'hashed', SDK-only endpoints (feed/events/identity/captions) intentionally removed from key tables, and rotate-secret-key endpoint replaced with portal flow \u2014 all intentional migration changes. No genuine gaps."
+ },
+ {
+  "mintlifyPage": "api/content/count.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/count-content",
+    "covers": "Full endpoint: GET /v1/content/count, uploadStatus query param (enum pending/processing/ready/error), and {data:{count},meta:{request_id}} 200 response example. OpenAPI-generated from openapi.public.json; param table and request examples auto-generated. Spec is a superset (also exposes status and publishStatus params)."
+   }
+  ],
+  "unported": [],
+  "notes": "Maps 1:1 to generated api/content/count-content; uploadStatus param + count response shape present in OpenAPI spec. Hand-written curl/python/node examples dropped by design (auto-generated)."
+ },
+ {
+  "mintlifyPage": "api/content/delete.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/delete-content",
+    "covers": "Full endpoint: DELETE /v1/content/{content_id}, path param content_id (string, required), behavior (archived/removed from feed immediately, excluded from list results, not reversible through API), and the {data:{id,deleted:true}, meta:{request_id}} response example \u2014 all OpenAPI-generated."
+   }
+  ],
+  "unported": [
+   {
+    "item": "Sentence 'The underlying media assets are cleaned up asynchronously' \u2014 the async media-asset cleanup behavior is not stated in the generated delete-content page or any concept page.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Delete Content endpoint fully ported to generated api/content/delete-content; only the minor 'media assets cleaned up asynchronously' note is absent."
+ },
+ {
+  "mintlifyPage": "api/content/get.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/get-content",
+    "covers": "The entire endpoint: GET /v1/content/{content_id} operation, path param (id -> content_id), request examples (curl/python/node auto-generated), and the 200 response with all body fields (contentType, uploadStatus, publishStatus, duration, streamingUrl, thumbnailUrl, section, author, tags, customMetadata, captionTracks, images, publishAt, expiresAt, aspectRatio, createdAt, updatedAt). Generated from openapi.public.json."
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "Semantic descriptions of the ContentItem response fields (title, description, duration, streamingUrl, thumbnailUrl, captionTracks, customMetadata, author, etc.) referenced by the response object."
+   },
+   {
+    "path": "api/errors",
+    "covers": "The documented 404 behavior (content not found / not owned by org) as standard error handling."
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. get-content.mdx is OpenAPI-generated for GET /v1/content/{content_id}; param, examples, and all response fields present. width/height appear as videoWidth/videoHeight (schema rename, not a gap)."
+ },
+ {
+  "mintlifyPage": "api/content/import.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/import-content",
+    "covers": "POST /v1/content/import endpoint \u2014 OpenAPI-generated page; request params (callbackUrl, items[] with contentType/title/description/tags/customMetadata/section/author/publishAt/expiresAt/generateSubtitles/sourceUrl/externalId, images[] with sourceUrl/altText/position), 201 response with data/summary/queue/meta, max 100 items, idempotency via externalId, 429 quota note"
+   },
+   {
+    "path": "api/content/import-from-tiktok",
+    "covers": "POST /v1/content/import/tiktok \u2014 platform import endpoint; urls (video or profile), profile auto-expansion (maxVideosPerProfile), dedup of previously imported, callbackUrl, async jobId response"
+   },
+   {
+    "path": "api/content/import-from-instagram",
+    "covers": "POST /v1/content/import/instagram \u2014 platform import endpoint; urls (Reel or profile), maxReelsPerProfile expansion, dedup, callbackUrl, async jobId response"
+   },
+   {
+    "path": "api/content/get-import-status",
+    "covers": "GET /v1/content/import/status \u2014 import queue status, daily quota usage, queued/processing/completed/failed counts, estimated drain time (referenced by import.mdx as the import status endpoint)"
+   },
+   {
+    "path": "api/guides/upload-videos",
+    "covers": "Conceptual import narrative: URL import use case (migration/CMS/cloud storage), up to 100 items, same metadata fields as upload, per-item status + summary, individual item failure isolation, externalId idempotency, Platform imports table (tiktok/instagram), auto-populated metadata table (title/description/author/customMetadata for TikTok & Instagram), update-after-import note, content-rights warning, platform-availability caveat"
+   },
+   {
+    "path": "api/guides/webhooks",
+    "covers": "Callback lifecycle: callbackUrl registration, content.imported (processing then ready) payloads incl. playbackId/source/timestamp, content.import_failed payload, 3-attempt retry with 1s then 5s delays, fire-and-forget semantics, 2xx ack, missed-event recovery via GET /v1/content/{id}, callbacks only for video imports (carousels synchronous/already ready)"
+   },
+   {
+    "path": "api/guides/carousels",
+    "covers": "Video carousels cannot be created via the import endpoint \u2014 must upload videos first then assemble by reference"
+   }
+  ],
+  "unported": [
+   {
+    "item": "autoScrollInterval listed as an importable/uploadable metadata field \u2014 absent from the new public OpenAPI spec (not in ImportItem or UploadRequest schemas) and not in any Fumadocs page; appears to be a dropped/phantom field rather than an intentional rename",
+    "severity": "low"
+   }
+  ],
+  "notes": "Fully ported across import-content + tiktok/instagram/status generated pages plus upload-videos, webhooks, and carousels guides. Only gap: phantom autoScrollInterval field, dropped from spec."
+ },
+ {
+  "mintlifyPage": "api/content/list.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/list-content",
+    "covers": "The full GET /v1/content endpoint: query params (limit default 20 max 100, cursor, uploadStatus, tags any-match) plus publishStatus/status, and request/response examples \u2014 all OpenAPI-generated. Description text covers the Pagination and Filtering sections."
+   },
+   {
+    "path": "api/index",
+    "covers": "Cursor-based Pagination narrative: nextCursor in meta, passing cursor for next page (example uses /v1/content), absent nextCursor = last page, opaque-token caveat."
+   }
+  ],
+  "unported": [],
+  "notes": "All params, examples, pagination and filtering content represented in generated list-content page + api/index pagination section. 'Filtering coming soon' note dropped intentionally (publishStatus now a real param)."
+ },
+ {
+  "mintlifyPage": "api/content/object",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "The ContentItem field reference (id, title, description, duration, streamingUrl, thumbnailUrl, captionTracks + sub-fields, customMetadata, author, section, images, autoScrollInterval); live-stream feed fields isLive/liveStreamId/liveStreamStatus/currentViewers; video-carousel container fields and the up-to-10 videos rule; contentType union"
+   },
+   {
+    "path": "api/content/get-content",
+    "covers": "OpenAPI-generated response example carrying the wire content object: id, contentType, title, description, uploadStatus, publishStatus, duration, streamingUrl, thumbnailUrl, section, author, tags, customMetadata, captionTracks (full sub-fields), images, publishAt, expiresAt, videoWidth/Height, aspectRatio, maxFrameRate, videoQuality, resolutionTier, playbackId, liveStreamId, createdAt, updatedAt"
+   },
+   {
+    "path": "api/content/create-content",
+    "covers": "Creating content with contentType video/carousel/video_carousel; carousels created ready; videos start waiting_for_upload; publishAt/expiresAt scheduling params"
+   },
+   {
+    "path": "api/guides/upload-videos",
+    "covers": "Creating content via upload/import; upload (uploadStatus) lifecycle table (waiting_for_upload/processing/ready/errored \u2014 renamed from pending/error); carousels skip processing; language auto-detection note"
+   },
+   {
+    "path": "api/guides/carousels",
+    "covers": "Image vs video carousel creation; carousels ready immediately; empty video carousel excluded from feed; autoScrollInterval context; video-carousel management endpoints (add/reorder/remove videos, max 10); deletion/archiving"
+   },
+   {
+    "path": "guides/concepts/feeds",
+    "covers": "Publish lifecycle (published/unpublished), auto-publish, scheduling (publishAt/expiresAt), the four feed-eligibility conditions, live-stream auto publish/unpublish, deletion archives and removes from feed"
+   },
+   {
+    "path": "guides/content/language",
+    "covers": "customMetadata.language BCP 47 detail, asynchronous after ready, 'und' value semantics"
+   },
+   {
+    "path": "api/content/add-carousel-videos",
+    "covers": "POST /v1/content/{id}/videos \u2014 add video references to carousel"
+   },
+   {
+    "path": "api/content/reorder-carousel-videos",
+    "covers": "PUT /v1/content/{id}/videos/order \u2014 reorder carousel videos"
+   },
+   {
+    "path": "api/content/remove-carousel-video",
+    "covers": "DELETE /v1/content/{id}/videos/{entry_id} \u2014 remove video from carousel"
+   },
+   {
+    "path": "api/content/delete-content",
+    "covers": "DELETE /v1/content/{id} archives content (generated endpoint page)"
+   }
+  ],
+  "unported": [
+   {
+    "item": "Enum value lists/descriptions for resolutionTier (audio-only/SD/HD/FHD/UHD) and videoQuality (basic/plus) appear only as the example values 'HD'/'plus' in the generated get-content example; the full enumerated set and per-tier meaning are not documented in prose or a typed schema.",
+    "severity": "low"
+   },
+   {
+    "item": "Field length caveats (title max 200, description max 2000, section/author max 200 chars) from the object's attribute table are not surfaced in the new prose pages.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Object page is OpenAPI-generated by design; all fields/lifecycles/behaviors live in content-model + feeds + upload/carousel guides + generated endpoint examples. Only minor enum/char-limit prose details unported."
+ },
+ {
+  "mintlifyPage": "api/content/search.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/search-content",
+    "covers": "Entire page: GET /v1/content/search endpoint, description (title/description/tags/section/author search), query params q (required string, min 1/max 500) and limit (integer default 20, min 1/max 50), request examples, and 200 response with data array fields + meta.request_id \u2014 all auto-generated from openapi.public.json which matches the Mintlify params and response example exactly"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported to generated OpenAPI page api/content/search-content; q/limit params and response fields verified against openapi.public.json."
+ },
+ {
+  "skill": "",
+  "args": "",
+  "mintlifyPage": "api/content/update.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/update-content",
+    "covers": "The PATCH /v1/content/{content_id} endpoint reference (OpenAPI-generated). Frontmatter description carries merge-by-key/null-removes-key semantics, publishStatus=published requires processing finished + clears publishAt, and the 400 validation rules (past publishAt/expiresAt, expiresAt must be after publishAt). 200 response example shows the full content object (id, contentType, title, description, uploadStatus, publishStatus, duration, tags, customMetadata, section, author, publishAt, expiresAt, streamingUrl, thumbnailUrl, dimensions, timestamps). Note: spec has no requestBody, so the request body param table is NOT auto-generated on this page \u2014 it lives in the captions-and-metadata guide instead."
+   },
+   {
+    "path": "api/guides/captions-and-metadata",
+    "covers": "Hand-written PATCH content workflow: path param usage, request body param table (title, description, tags, section, author, publishStatus, publishAt, expiresAt, customMetadata, origin) with replace-vs-merge notes; cURL/Python/Node.js request examples; full Merge semantics section (add/overwrite/null-removes/omit-untouched) with before/after example; Scheduling-and-publishing-interact callout (publishStatus=published clears publishAt); Retroactive thumbnail re-extraction section for origin=ios_upload on already-processed content (color-accurate thumbnails, fires only on value change, same-value no-op)."
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "Field semantics: customMetadata as a string->JSONValue map (matches the object/null merge model), autoScrollInterval (carousel auto-scroll, seconds), and the content object fields surfaced in the response (title, description, duration, tags, author, section, captionTracks, images, streamingUrl, thumbnailUrl, etc.)."
+   },
+   {
+    "path": "api/guides/upload-videos",
+    "covers": "Cross-referenced origin=ios_upload rationale (why iOS-recorded content needs the flag for color-accurate thumbnails); mirrors the Mintlify page's 'See Upload -> origin' link."
+   }
+  ],
+  "unported": [
+   {
+    "item": "autoScrollInterval listed as a PATCH-updatable request body field (carousel auto-scroll interval in seconds). It appears in content-model only as a read-side feed field, and is absent from the OpenAPI spec and from the captions-and-metadata/carousels PATCH param tables \u2014 so the ability to update a carousel's auto-scroll interval via PATCH is not documented as a settable field.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Endpoint ref is OpenAPI-generated (no requestBody in spec); param table + merge/origin behavior fully ported to captions-and-metadata guide. Only gap: autoScrollInterval as a settable PATCH field."
+ },
+ {
+  "mintlifyPage": "api/content/upload.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/content/upload-content",
+    "covers": "The POST /v1/content/upload endpoint itself: request body params (contentType, title, description, tags, section, author, customMetadata, origin, publishAt, expiresAt, images w/ position+altText via UploadImageSlot, callbackUrl) auto-generated from schema, plus video and carousel response examples with signed uploadUrl/imageSlots. Publishable+secret key note in description."
+   },
+   {
+    "path": "api/guides/upload-videos",
+    "covers": "Uploading a video narrative (create session -> PUT file -> poll), pending/processing/ready status lifecycle, origin/ios_upload thumbnail note, callbackUrl push-vs-poll, bulk-upload-in-parallel (no batch endpoint; import for bulk), automatic captions/language detection mention."
+   },
+   {
+    "path": "api/guides/carousels",
+    "covers": "Uploading a carousel (image slots), creating a video_carousel and adding existing ready videos by reference (up to 10, reorder), empty video carousels excluded from feed. Replaces the Mintlify inline-slot/video_carousel-via-upload flow with the new IA (POST /v1/content + image/video endpoints)."
+   },
+   {
+    "path": "api/guides/webhooks",
+    "covers": "Callback events section in full: content.imported (processing/ready) video, content.import_failed (error), content.imported carousel (ready/errored, images array), playbackId-may-be-null note, externalId reflects provided value, retry behavior (3 attempts, 1s then 5s, abandon), fire-and-forget, missed-event recovery via GET /v1/content/{id}."
+   },
+   {
+    "path": "guides/content/language",
+    "covers": "The Note about automatic caption generation and BCP 47 language detection stored as customMetadata.language."
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "autoScrollInterval carousel field semantics (seconds between automatic page transitions), which is absent from the upload request schema."
+   }
+  ],
+  "unported": [],
+  "notes": "All substantive content ported. Carousel/video_carousel via /v1/content/upload + inline images[]/autoScrollInterval restructured to new IA (carousels guide + content-model); webhooks fully covered."
+ },
+ {
+  "mintlifyPage": "/Users/michaelseleman/orca/workspaces/shortkit-docs-repo/local-fable-docs/api/errors.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/errors",
+    "covers": "Entire page ported near-verbatim: error response envelope JSON example, code/message error object fields (ResponseField converted to a table), HTTP status code table (400/401/403/404/409/429/500), error-handling Python example, rate limiting (120 req/min sliding window) with 429 example, Tip->Callout for higher limits, and retry strategy (exponential backoff + 500 handling)."
+   }
+  ],
+  "unported": [],
+  "notes": "Dedicated Fumadocs api/errors.mdx is a near-verbatim port; all sections, tables, code examples and caveats present (only ResponseField->table and Tip->Callout formatting changes)."
+ },
+ {
+  "mintlifyPage": "/Users/michaelseleman/orca/workspaces/shortkit-docs-repo/local-fable-docs/api/live-streams/clip.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/create-clips",
+    "covers": "The POST /v1/live-streams/{stream_id}/clips endpoint: path param (stream_id), body params (clips array maxItems 20 with startSec/endSec required + optional title, callbackUrl), 201 response example with contentId/playbackId/startSec/endSec/title and meta.request_id, generated request/response schema (replaces hand-written param tables and curl/python/node examples)."
+   },
+   {
+    "path": "api/guides/live-streams",
+    "covers": "Clipping narrative: real-time clipping while active or after ended, hls-only (409 for webrtc), processing->ready availability, clips created unpublished + PATCH to publish, callbackUrl POST on ready, secret-key requirement and the 'clip this moment' server-forward pattern with rate limits/attribution/abuse controls (Letting end users create clips section), and the 409 reason (recording not available yet / unsupported state)."
+   },
+   {
+    "path": "api/errors",
+    "covers": "Generic status-code semantics referenced by the endpoint: 400 invalid_request (malformed/invalid param values, e.g. endSec not > startSec, >20 clips), 404 not_found (stream missing or not in your org), 409 conflict."
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported: create-clips generated page (schema/example) + live-streams guide (behavior, warning, end-user pattern, 409) + errors page (400/404/409). 422 in spec subsumes hand-written 400."
+ },
+ {
+  "mintlifyPage": "api/live-streams/create.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/create-live-stream",
+    "covers": "OpenAPI-generated endpoint page for POST /v1/live-streams: request body params (title, protocol, latencyMode default low, reconnectWindow default 60 range 0-1800 + extra reconnectSlateUrl/customMetadata), 201 response example with all data fields (id, playbackId, status idle, streamingProtocol, title, latencyMode, reconnectWindow, rtmpUrl, streamKey, timestamps), and request code samples"
+   },
+   {
+    "path": "api/guides/live-streams",
+    "covers": "All prose/behaviors: idle->active auto-transition and feed visibility; choosing-a-protocol section (hls default few-seconds vs webrtc sub-second, encoder still uses rtmpUrl); latencyMode/reconnectWindow apply to hls only and ignored for webrtc; #latency-mode section (low/reduced/standard semantics, target of the Mintlify object#latency-mode link); single-use streamKey + rtmpUrl returned only on create / not retrievable / delete+recreate if lost; credential-secrets warning callout"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported: params+response via generated create-live-stream page, all behaviors/caveats/warning in api/guides/live-streams. 'protocol' renamed to 'streamingProtocol' (intentional schema change)."
+ },
+ {
+  "mintlifyPage": "api/live-streams/delete.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/delete-live-stream",
+    "covers": "DELETE /v1/live-streams/{stream_id} endpoint: description (delete + remove from feed, ends active broadcast first, clips preserved), path param stream_id (string, required), secret-key auth, 200 response example with id + deleted:true + meta.request_id \u2014 all generated from openapi.public.json"
+   },
+   {
+    "path": "api/errors",
+    "covers": "Global 404 not_found behavior: 'requested resource doesn't exist, or doesn't belong to your organization' \u2014 covers the Mintlify page's 404 note"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. Endpoint is OpenAPI-generated (path renamed {id}->{stream_id}); all params, description, behaviors, response example present. 404 note covered by api/errors."
+ },
+ {
+  "mintlifyPage": "api/live-streams/end.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/end-live-stream",
+    "covers": "The full endpoint: POST /v1/live-streams/{stream_id}/end. OpenAPI-generated page covering the path parameter (stream_id, required UUID), the description (end regardless of broadcaster connection, async status->ended transition, poll status/webhook to confirm, recording becomes available for clipping), and the 200 response schema/example with all fields (id, playbackId, status, title, latencyMode, reconnectWindow, startedAt, endedAt, createdAt)."
+   },
+   {
+    "path": "api/guides/live-streams",
+    "covers": "Prose narrative of ending a stream: the 'Ending a stream' section (use case, immediate close vs reconnectWindow auto-end), what 'ended' means per protocol, recording/clipping availability, and the restart/permanence caveat (refined: hls can reactivate, webrtc is permanent)."
+   },
+   {
+    "path": "api/errors",
+    "covers": "Generic 404 not-found behavior for streams that don't exist or don't belong to your organization."
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. OpenAPI-generated endpoint page covers param + response; live-streams guide covers end behavior/permanence. Mintlify 'permanent' Note intentionally refined (hls can reactivate)."
+ },
+ {
+  "mintlifyPage": "api/live-streams/get.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/get-live-stream",
+    "covers": "Entire page: GET /v1/live-streams/{stream_id} (mapped from {id}). OpenAPI-generated page covers the path param (stream_id, UUID), secret-key auth, status/startedAt/endedAt/createdAt/playbackId/title/latencyMode/reconnectWindow response fields (in the generated 200 example), the 404-if-not-found-or-not-your-org behavior (in the page description), and auto-generated cURL/Python/Node request examples."
+   }
+  ],
+  "unported": [
+   {
+    "item": "Mintlify caveat 'rtmpUrl and streamKey are NOT returned by this endpoint; only on the Create Live Stream response.' The new generated GET page's 200 example INCLUDES both rtmpUrl and streamKey, and its description says it returns 'ingest credentials' \u2014 the API behavior was intentionally changed to return these on GET, so the old caveat is now factually inverted rather than a missing piece of info.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Maps 1:1 to generated api/live-streams/get-live-stream; all fields/params/behaviors present. Old 'no rtmpUrl/streamKey on GET' caveat is now inverted by an intentional API change."
+ },
+ {
+  "mintlifyPage": "api/live-streams/list.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/list-live-streams",
+    "covers": "Entire page: GET /v1/live-streams endpoint, description (reverse-chronological list, secret-key auth), query params limit (1-100, default 20) and status (idle/active/ended), response fields (id, playbackId, status, title, latencyMode, reconnectWindow, startedAt, endedAt, createdAt), and request/response examples \u2014 all OpenAPI-generated"
+   }
+  ],
+  "unported": [
+   {
+    "item": "Mintlify caveat that the list response does NOT include rtmpUrl or streamKey (credentials only on Create). The new generated schema reverses this \u2014 list entries now include streamKey/rtmpUrl/whipUrl/whipToken and the description says 'Each entry includes ingest credentials.' Appears to be an intentional API/schema change, so the old caveat has no home and is contradicted by design.",
+    "severity": "low"
+   }
+  ],
+  "notes": "All endpoint info (params, fields, examples) covered by OpenAPI-generated api/live-streams/list-live-streams. Old 'no credentials in list' caveat intentionally reversed by new schema."
+ },
+ {
+  "mintlifyPage": "api/live-streams/object.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/create-live-stream",
+    "covers": "Object fields via the generated POST 201 response example: id, playbackId, status, title, streamingProtocol (=protocol), latencyMode, reconnectWindow, rtmpUrl, streamKey, startedAt, endedAt, createdAt, currentViewers. Request schema captures protocol/latencyMode enums and reconnectWindow 0-1800 default 60."
+   },
+   {
+    "path": "api/live-streams/get-live-stream",
+    "covers": "Full object shape via generated GET 200 example including status=active and currentViewers populated; confirms startedAt/endedAt semantics."
+   },
+   {
+    "path": "api/guides/live-streams",
+    "covers": "Lifecycle (idle/active/ended table + transition rules), Latency mode table (low/reduced/standard), rtmpUrl/streamKey secret-handling warning, reconnectWindow auto-end behavior, recording-to-VOD, reconnect slate, clipping from recordings, ending behavior per protocol."
+   },
+   {
+    "path": "guides/customize/live",
+    "covers": "'Live streams in the feed' section: isLive=true flag, currentViewers concurrent viewer count, liveStreamStatus, ended-state behavior (isLive flips to false, currentViewers returns 0)."
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "Live streams surface as ContentItem with contentType/isLive; live_stream feed-item semantics, liveStreamId, liveStreamStatus including dvr (recording-as-on-demand-video)."
+   },
+   {
+    "path": "api/live-streams/delete-live-stream",
+    "covers": "Deletion section: ends the broadcast if active, removes/archives the content item, clips preserved as standalone content items."
+   }
+  ],
+  "unported": [
+   {
+    "item": "Title 'Max 200 characters' constraint: present in the Mintlify object field doc but the generated CreateLiveStreamRequest schema has no maxLength on title (title is otherwise documented in examples and guide).",
+    "severity": "low"
+   }
+  ],
+  "notes": "Object page fully ported: fields live in generated create/get examples; lifecycle/latency/feed-fields/deletion all in guides + content-model. Only a trivial title maxLength constraint is absent."
+ },
+ {
+  "mintlifyPage": "api/live-streams/status.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/live-streams/get-live-stream-status",
+    "covers": "The generated endpoint page for GET /v1/live-streams/status: purpose, publishable-key auth (safe from client), playback_ids query param (up to 50, comma-separated), request/response examples auto-generated from OpenAPI, response shape (status/startedAt/endedAt + added currentViewers), silent omission of unowned IDs / empty data behavior, and when-to-use-vs-feed guidance (feed items already include liveStreamStatus)."
+   },
+   {
+    "path": "api/guides/live-streams",
+    "covers": "Status lifecycle semantics: the status enum idle/active/ended and their meanings (lifecycle table), the client polling pattern via GET /v1/live-streams/status?playback_ids=... with publishable key (line 33), and feed items carrying liveStreamStatus for initial render."
+   },
+   {
+    "path": "api/authentication",
+    "covers": "401 error for missing/invalid publishable key; publishable-key auth model that makes this endpoint safe to call directly from client apps."
+   },
+   {
+    "path": "api/errors",
+    "covers": "Error response semantics: 400 invalid_request (malformed request / bad parameter values, e.g. too many playback IDs) and 401 invalid_api_key."
+   },
+   {
+    "path": "api/live-streams/get-live-stream",
+    "covers": "The 'inspect full stream configuration with your secret key' alternative the Mintlify page links to (Get Live Stream), in lieu of the removed standalone Live Stream Object page."
+   }
+  ],
+  "unported": [],
+  "notes": "All info ported. Endpoint is OpenAPI-generated (status/startedAt/endedAt in response example; 400/401 via generic errors+auth pages). Mintlify's 400/401 table surfaces as 422 in spec + generic error pages; /v1/feed link intentionally dropped. currentViewers added."
+ },
+ {
+  "mintlifyPage": "api/overview.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/index",
+    "covers": "Near-verbatim port: REST intro, Base URL, Authentication link, Response envelope (data/meta/errors), Pagination (cursor-based, nextCursor, opaque-token warning), Request IDs, Environments (live/test isolation)"
+   },
+   {
+    "path": "api/authentication",
+    "covers": "Authentication detail referenced by overview: key types/usage and environment-isolation section (#environment-isolation) with live/test isolation behavior"
+   },
+   {
+    "path": "api/errors",
+    "covers": "Error handling referenced by overview's response-envelope errors field: status codes and error response format"
+   }
+  ],
+  "unported": [],
+  "notes": "api/overview.mdx is a 1:1 port to Fumadocs api/index (every section identical); auth and error references resolve to api/authentication and api/errors. Complete."
+ },
+ {
+  "mintlifyPage": "api/surveys/create.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/create-survey",
+    "covers": "Full endpoint: POST /v1/surveys. Request body params (title, question, status, priority, autoAdvanceDelay, options[text,position], placementRules[ruleType,ruleValue]) auto-generated from OpenAPI schema with maxLength/defaults/required. 201 response example with all fields (id, status, options[id,text,position,responseCount,createdAt], placementRules[id,ruleType,ruleValue,createdAt], totalResponses, createdAt, updatedAt, meta.request_id). Rich description covers status enum behaviors (draft/active/paused/archived), all rule types (min_videos_before, once_per_user, once_per_session, max_per_session), the required min_videos_before non-negative-integer-n validation rule, and priority tie-breaking."
+   },
+   {
+    "path": "api/errors",
+    "covers": "Generic 400 invalid_request behavior covering missing required fields and invalid parameter values \u2014 conceptually the validation-error conditions from the Mintlify error table."
+   }
+  ],
+  "unported": [
+   {
+    "item": "Exact validation error message strings and the condition->message->status(400) mapping table (e.g. 'placement_rules must include a min_videos_before rule', 'min_videos_before rule_value.n must be a non-negative integer', 'Invalid rule_type: {value}', 'Invalid status: {value}'). The validation rules themselves are described and 400 is covered generically, but the literal copy-paste messages and the specific 400 code are not reproduced (OpenAPI shows generic 422).",
+    "severity": "low"
+   }
+  ],
+  "notes": "Generated OpenAPI page covers all params, response fields, and examples; rich description ports status/rule-type behaviors and min_videos_before validation. Only literal error-message strings missing (low)."
+ },
+ {
+  "mintlifyPage": "api/surveys/delete.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/delete-survey",
+    "covers": "Entire page: DELETE /v1/surveys/{id} endpoint \u2014 path param (survey_id, required), archive behavior (status=archived, removed from feed, response data preserved, still retrievable), and 200 response example ({id, deleted:true, meta.request_id}). OpenAPI-generated from openapi.public.json operation delete /v1/surveys/{survey_id}."
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. OpenAPI-generated delete-survey page carries the path param, archive semantics, and response example; request code samples auto-generated."
+ },
+ {
+  "mintlifyPage": "api/surveys/get.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/get-survey",
+    "covers": "Entire endpoint: GET /v1/surveys/{id} (survey_id path param), description, bearer auth, and full 200 response example with all fields (id, title, question, status, priority, autoAdvanceDelay, options[id/text/position/responseCount/createdAt], placementRules[id/ruleType/ruleValue/createdAt], totalResponses, createdAt, updatedAt, meta.request_id). Request examples auto-generated; param table auto-generated from schema."
+   },
+   {
+    "path": "api/errors",
+    "covers": "The 404 'does not exist or does not belong to your organization' caveat, documented globally (line 39: 404 not_found = resource doesn't exist or doesn't belong to your organization)."
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. OpenAPI-generated get-survey page carries identical 200 example and all object fields; 404 org-scoping caveat lives in api/errors."
+ },
+ {
+  "mintlifyPage": "api/surveys/list",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/list-surveys",
+    "covers": "Entire page: GET /v1/surveys endpoint, status query param (draft/active/paused/archived), priority-descending ordering note, per-option responseCount and totalResponses, full survey object response schema/example (id, title, question, status, priority, autoAdvanceDelay, options, placementRules, totalResponses, timestamps, meta.request_id) \u2014 OpenAPI-generated"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. OpenAPI-generated list-surveys page carries the status param, ordering note, and complete survey object schema/example matching the Mintlify page."
+ },
+ {
+  "mintlifyPage": "api/surveys/object.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/get-survey",
+    "covers": "Full survey object structure and all fields \u2014 id, title, question, status, priority, autoAdvanceDelay, options (id/text/position/responseCount/createdAt), placementRules (id/ruleType/ruleValue/createdAt), totalResponses, createdAt, updatedAt \u2014 appear in the OpenAPI-generated 200 response example."
+   },
+   {
+    "path": "api/surveys/create-survey",
+    "covers": "Status lifecycle semantics (draft is composing state, only active injected, paused removes from feed preserving data, archived reachable only via delete); full placement-rules catalog (min_videos_before required, once_per_user, once_per_session, max_per_session with ruleValue shapes/behaviors); X-User-Id/X-Session-Id header evaluation and skip behavior; highest-priority-wins tie-break. Also field maxLengths (option text 200, question 500) via request schema."
+   },
+   {
+    "path": "api/surveys/update-survey",
+    "covers": "Status-transition mechanism (update the status field between non-archived states); options/placementRules replacement semantics."
+   },
+   {
+    "path": "api/surveys/delete-survey",
+    "covers": "Archived status reached only by DELETE; sets status to archived, removes from feed, preserves response data."
+   },
+   {
+    "path": "api/surveys/list-surveys",
+    "covers": "Surveys ordered by priority (highest first); status filter (draft/active/paused/archived); includes options, placement rules, response counts."
+   },
+   {
+    "path": "api/surveys/reorder-survey-priorities",
+    "covers": "Priority as the tie-breaker for placement when multiple active surveys are eligible for the same slot."
+   }
+  ],
+  "unported": [],
+  "notes": "All object fields, status lifecycle, and placement-rule semantics from the Mintlify object page are ported into the generated survey endpoint pages (response example + descriptions/schemas). Standalone object page absence is by design."
+ },
+ {
+  "mintlifyPage": "api/surveys/submit-response.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/submit-survey-response",
+    "covers": "The endpoint itself: path param survey_id, request body (optionId/userId required, sessionId/deviceInfo optional), 201 response example with all fields (id, surveyId, optionId, userId, respondedAt, meta.request_id) \u2014 auto-generated from OpenAPI. Description frontmatter restates the publishable-key/SDK behavior plus the 409 duplicate and 400 non-active error rules."
+   },
+   {
+    "path": "api/authentication",
+    "covers": "Publishable-key (X-API-Key, pk_live_) auth model, 'called by the SDK automatically' behavior, and an explicit table row listing POST /v1/surveys/{id}/responses as a directly-callable publishable-key endpoint."
+   },
+   {
+    "path": "api/errors",
+    "covers": "Error conditions: 400 invalid_request (survey not active / option not in survey), 404 not_found (survey not found / wrong org), 409 conflict (explicitly noted as a duplicate survey response). Plus 403 forbidden for wrong key type."
+   }
+  ],
+  "unported": [
+   {
+    "item": "The granular error-row distinction 'Option not in survey' (400) is not restated as its own labeled condition; it is only covered generically by the 400 invalid_request row in api/errors.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Fully ported. Endpoint params/response are OpenAPI-generated in submit-survey-response; auth and error semantics covered in authentication.mdx and errors.mdx."
+ },
+ {
+  "mintlifyPage": "api/surveys/update.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/surveys/update-survey",
+    "covers": "Entire endpoint: PUT /v1/surveys/{survey_id}; path param survey_id; all 7 optional body fields (title max200, question max500, status, priority, autoAdvanceDelay, options[text/position], placementRules[ruleType/ruleValue]); replace-not-merge semantics (in description); request + response examples auto-generated from schema; 200 response object fields (id,title,question,status,priority,autoAdvanceDelay,options[id/text/position/responseCount/createdAt],placementRules[id/ruleType/ruleValue/createdAt],totalResponses,createdAt,updatedAt,meta.request_id)"
+   }
+  ],
+  "unported": [
+   {
+    "item": "The explicit status enum value list (draft, active, paused, archived) is not surfaced on the generated update page \u2014 the OpenAPI status field is plain string with no enum or description; the Mintlify param spelled out the four values.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Fully ported to OpenAPI-generated api/surveys/update-survey; all params/fields/examples/replace-warning present. Only the status enum value list isn't surfaced (low)."
+ },
+ {
+  "mintlifyPage": "coming-soon.mdx",
+  "coverage": "missing",
+  "fumadocsTargets": [],
+  "unported": [
+   {
+    "item": "Roadmap page entirely: forward-looking 'coming soon' features not yet shipped \u2014 Advanced Recommendations (collaborative filtering, two-tower models, engagement-weighted ranking) and Overlay Templates (pre-built drop-in overlay designs), plus the 'Talk to us' Calendly CTA. No roadmap/coming-soon page exists in the Fumadocs IA.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Roadmap/coming-soon page of unreleased features; no home in Fumadocs IA. Recommendation-engine/overlay-template mentions in Fumadocs describe shipped features, not these future items."
+ },
+ {
+  "mintlifyPage": "guides/content-types.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "Primary home: feed-item-types-at-a-glance table, FeedItem union (wire types, isLive default, convenience booleans, typed unwrap accessors, stable id), Video/ContentItem fields, caption tracks (CaptionTrack + CaptionSource), custom metadata (JSONValue + reading example), fallback URLs (3 activation scenarios + playbackFallback reason event), ImageCarouselItem fields, VideoCarouselItem fields (incl. initialPageIndex, up-to-10-videos), image-vs-video-carousel comparison, SurveyItem fields, ad slot, handling-each-type switch example, data-available-per-type matrix"
+   },
+   {
+    "path": "guides/display/custom-feeds",
+    "covers": "FeedInput.video custom feed input (Swift/Kotlin/RN/Flutter/Web shapes), ContentOrigin / origin=ios_upload semantics + Android-upcoming note, fallbackUrl param, VideoCarouselVideoInput per-slide shape with per-slide origin, where playback IDs come from (upload status / content.imported webhook), custom-feed-only fallback caveat"
+   },
+   {
+    "path": "guides/concepts/feeds",
+    "covers": "customMetadata used as a feed filter dimension (FeedFilter metadata OR/AND semantics), fallback URLs in custom feed mode, ranked-vs-custom contract"
+   },
+   {
+    "path": "guides/customize/overlays",
+    "covers": "Survey overlay response callback (onSurveyResponse / SurveyOverlay protocol) referenced from content-model for receiving survey responses"
+   }
+  ],
+  "unported": [],
+  "notes": "All content-types info ported: content-model (canonical) + custom-feeds (FeedInput/origin) + feeds (metadata filter) + overlays (survey callback). Per-SDK Swift/Kotlin/RN/Web code blocks condensed to single-language reference per IA; no genuine gaps."
+ },
+ {
+  "mintlifyPage": "guides/language-detection.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/content/language",
+    "covers": "Near-exact port: auto language detection intro, 'How it works' steps, async detection note, customMetadata.language field + JSON example, 'und' behavior, full BCP 47 language-code table, and 'Filtering the feed by language' with all five platform tabs (iOS/Android/Flutter/RN/Web) plus the combined tags+language filter example."
+   },
+   {
+    "path": "guides/reference/feed-config",
+    "covers": "The full FeedFilter reference (metadata field, OR-within-key / AND-across-keys semantics) that the source page links to at the end; target page links here instead of the old /sdk/configuration#feedfilter."
+   }
+  ],
+  "unported": [],
+  "notes": "Complete 1:1 port in guides/content/language; FeedFilter cross-ref now resolves to guides/reference/feed-config. Intentional change: metadata values are arrays (multi-value) vs single string."
+ },
+ {
+  "mintlifyPage": "guides/live-streams.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "api/guides/live-streams",
+    "covers": "Full server-side lifecycle: how a stream flows through ShortKit, choosing a protocol (hls/webrtc table), creating a stream (curl + response + credentials secret Warning + 'credentials returned only once, delete and recreate'), broadcasting (ffmpeg + OBS Server/Stream Key split + example), turning a stream into clips (curl, offsets, callbackUrl, processing->ready, end-user clipping pattern with backend proxy), ending a stream (explicit end + reconnectWindow auto-end + cannot restart)"
+   },
+   {
+    "path": "guides/customize/live",
+    "covers": "Displaying live streams in the feed: ContentItem live fields (isLive, liveStreamStatus, liveStreamId, currentViewers, startedAt + endedAt), Swift/Kotlin/RN-equivalent overlay examples, viewer-presence heartbeat (every 30s, no tracking code needed), polling live status to react to transitions, and surfacing a specific live stream in a custom feed (now via .liveStream input instead of .video)"
+   },
+   {
+    "path": "api/live-streams/create-live-stream",
+    "covers": "Generated endpoint reference for POST /v1/live-streams: protocol, latencyMode, reconnectWindow, title and response object (playbackId, status, rtmpUrl, streamKey, etc.)"
+   },
+   {
+    "path": "api/live-streams/create-clips",
+    "covers": "Generated endpoint reference for POST /v1/live-streams/{id}/clips: clips array (startSec/endSec/title), callbackUrl, 1-20 ranges, processing state"
+   },
+   {
+    "path": "api/live-streams/end-live-stream",
+    "covers": "Generated endpoint reference for POST /v1/live-streams/{id}/end"
+   },
+   {
+    "path": "api/live-streams/get-live-stream-status",
+    "covers": "Generated reference for GET /v1/live-streams/status (poll status/currentViewers with publishable key) referenced as 'Get Live Stream Status'"
+   },
+   {
+    "path": "guides/analytics/overview",
+    "covers": "The live.viewer.heartbeat event (fired every 30s while a live item is the active playing item) \u2014 Mintlify linked to api/analytics/event-object#engagement"
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "Live-stream object/ContentItem field semantics (isLive, liveStreamStatus incl. dvr, liveStreamId, currentViewers, startedAt, endedAt) \u2014 replaces the api/live-streams/object#lifecycle link target"
+   }
+  ],
+  "unported": [],
+  "notes": "All sections ported. Lifecycle/object links now resolve to content-model + generated endpoints; custom-feed surfacing improved from .video to .liveStream input (intentional). Vendor terms proxied."
+ },
+ {
+  "mintlifyPage": "guides/upload-pipeline.mdx",
+  "coverage": "partial",
+  "fumadocsTargets": [
+   {
+    "path": "api/guides/upload-videos",
+    "covers": "Video upload workflow: create upload session (POST /v1/content/upload with title/description/tags/customMetadata), PUT file to signed URL, status lifecycle (waiting_for_upload/processing/ready/errored), poll GET /v1/content/{id} for uploadStatus, playbackId+duration in ready response, feed eligibility, auto caption + language detection (customMetadata.language BCP-47), iOS origin:ios_upload flag, callbackUrl push alternative"
+   },
+   {
+    "path": "api/guides/carousels",
+    "covers": "Carousel creation workflow: POST /v1/content contentType carousel, ready immediately/no polling, upload images (POST .../images, multipart, up to 10, file/position/altText), reorder images (PUT .../images/order with imageIds), thumbnail = position 0 image, delete image"
+   },
+   {
+    "path": "api/guides/captions-and-metadata",
+    "covers": "Post-creation management: add captions (POST .../captions, file/language/label, immediately ready), update metadata (PATCH /v1/content/{id}, customMetadata shallow-merge semantics), publication URLs (POST/PUT/order/DELETE, position 0 -> publisherUrl), retroactive origin:ios_upload re-extraction, archive via DELETE"
+   },
+   {
+    "path": "api/guides/webhooks",
+    "covers": "Webhook callback events: content.imported (processing/ready, playbackId), content.import_failed (error), payload shapes, retry/delivery behavior, recovery via polling"
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "Carousel data-model fields autoScrollInterval and caption (as SDK-facing FeedItem fields), captionTracks, customMetadata semantics"
+   },
+   {
+    "path": "guides/display/custom-feeds",
+    "covers": "Custom feed input origin field (iosUpload / 'ios_upload') for color-accurate thumbnails on iOS/RN/Flutter \u2014 the cross-reference target of the Mintlify 'Custom feed input' link"
+   },
+   {
+    "path": "api/content/upload-content",
+    "covers": "Generated reference for POST /v1/content/upload request/response fields (title, description, tags, customMetadata, section, author, origin)"
+   },
+   {
+    "path": "api/content/create-content",
+    "covers": "Generated reference for POST /v1/content carousel creation request/response fields"
+   },
+   {
+    "path": "api/content/update-content",
+    "covers": "Generated reference for PATCH /v1/content/{id} fields"
+   },
+   {
+    "path": "api/content/add-carousel-image",
+    "covers": "Generated reference for POST .../images"
+   },
+   {
+    "path": "api/content/reorder-carousel-images",
+    "covers": "Generated reference for PUT .../images/order"
+   },
+   {
+    "path": "api/content/upload-caption-track",
+    "covers": "Generated reference for POST .../captions"
+   },
+   {
+    "path": "api/content/add-publication-url",
+    "covers": "Generated reference for POST .../publication-urls"
+   },
+   {
+    "path": "api/content/delete-content",
+    "covers": "Generated reference for DELETE /v1/content/{id} (archive)"
+   }
+  ],
+  "unported": [
+   {
+    "item": "Carousel `pinPosition` field (pin to a specific feed position) from the carousel create param table \u2014 appears nowhere in Fumadocs guides, the carousels guide prose, or the OpenAPI spec. Likely an intentionally-dropped phantom field, but it has no home and was not verifiably re-homed elsewhere.",
+    "severity": "low"
+   },
+   {
+    "item": "Explicit `status` (POST create response) vs `uploadStatus` (GET poll response) field-name quirk Note. The Fumadocs upload-videos JSON examples use `status` in the create response and `uploadStatus` in the poll, but the explanatory callout that both hold the same upload_status values and the naming difference is a known quirk is not restated.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Cleanly split into api/guides upload-videos/carousels/captions-and-metadata/webhooks + generated endpoints; only minor gaps: phantom pinPosition field and the status/uploadStatus naming-quirk note."
+ },
+ {
+  "mintlifyPage": "quickstart.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/quickstart",
+    "covers": "Core quickstart: prerequisites/API keys, install SDK tabs, render-a-feed code (iOS/Android/Flutter/RN/Web), 'add your own content', and 'next steps' cards"
+   },
+   {
+    "path": "guides/setup/ios",
+    "covers": "iOS SPM install snippet (github.com/shortkit/shortkit-ios, ShortKitSDK product) and SwiftUI/UIKit feed init detail"
+   },
+   {
+    "path": "guides/setup/android",
+    "covers": "Android Gradle install (dev.shortkit:shortkit) and FeedActivity/FeedConfig fragment code"
+   },
+   {
+    "path": "guides/setup/flutter",
+    "covers": "Flutter pubspec install (shortkit_flutter), Podfile iOS 16.0 note, ShortKitProvider feed code"
+   },
+   {
+    "path": "guides/setup/react-native",
+    "covers": "RN npm install + pod install, Expo install + app.json config plugin + prebuild, ShortKitProvider/ShortKitFeed code"
+   },
+   {
+    "path": "guides/setup/web",
+    "covers": "Web SDK script tag / CDN install and createFeed init code"
+   },
+   {
+    "path": "guides/setup/installation",
+    "covers": "Platform support reference linked as the installation guide"
+   },
+   {
+    "path": "api/guides/upload-videos",
+    "covers": "Adding your own content: portal upload, URL import (bulk from object storage/CDN/social), direct upload via upload-content endpoint"
+   },
+   {
+    "path": "api/content/upload-content",
+    "covers": "Direct/signed upload endpoint referenced for adding own content"
+   },
+   {
+    "path": "guides/customize/overlays",
+    "covers": "Next steps: build an overlay (formerly /sdk/overlays)"
+   },
+   {
+    "path": "guides/reference/feed-config",
+    "covers": "Next steps: configure the feed (formerly /sdk/configuration)"
+   },
+   {
+    "path": "guides/concepts/identity",
+    "covers": "Next steps: identify users / setUserId (formerly /sdk/identity)"
+   },
+   {
+    "path": "guides/analytics/overview",
+    "covers": "Next steps: track engagement (formerly /sdk/analytics)"
+   }
+  ],
+  "unported": [],
+  "notes": "Quickstart fully ported; install/feed/upload/next-steps all mapped. Old /api/content/import link folded into URL-import section of upload-videos guide (intentional IA merge)."
+ },
+ {
+  "mintlifyPage": "sdk/analytics.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/analytics/overview",
+    "covers": "Auto-collection intro + batching/disk-persistence behavior; view-session start/end semantics; all metric tables (Engagement, Quality of experience, Fallback playback, Feed session, Ads, Context including deviceInfo subfields and customDimensions); playbackFallback event semantics; querying-analytics-data pointers to metrics/views/events"
+   },
+   {
+    "path": "guides/analytics/custom-data",
+    "covers": "Custom dimensions: 5-string limit, attach to viewEnd, queryable; per-platform init code (Swift/Kotlin/Flutter/RN/Web); custom_1..custom_5 key rule + silent drop + plain-string values; immutability after init; clientAppName/clientAppVersion segmentation. Content signals: contentSignal manual event, positive/negative per-platform code, emitted against active contentId"
+   },
+   {
+    "path": "guides/concepts/identity",
+    "covers": "User identity: persistent anonymous UUID, included in every event as viewer_id dimension; setUserId() identified mode + identity resolution; clearUserId() revert to anonymous with fresh ID; per-platform code"
+   },
+   {
+    "path": "api/analytics/get-a-metric",
+    "covers": "The 'metrics API' link target (Mintlify /api/analytics/metrics) for aggregation/breakdown/timeseries/filter/export"
+   },
+   {
+    "path": "api/analytics/list-events",
+    "covers": "Raw event data query target referenced in 'Querying analytics data'; viewEnd event fields surfaced in generated response schema"
+   }
+  ],
+  "unported": [],
+  "notes": "Full analytics page fully ported across overview (metric tables), custom-data (dimensions+signals), and identity (setUserId/clearUserId); metrics/events API links resolve to generated endpoint pages."
+ },
+ {
+  "mintlifyPage": "sdk/carousel.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/customize/carousel-control",
+    "covers": "The entire page: default behavior table, programmatic navigation (next/previous/setActiveIndex), return-value semantics, observing active state (publishers/accessors/useShortKitCarousel hook), cell gesture events (tap + long press), lifecycle states, hold-to-pause recipe, completion events (CarouselCompletionEvent + RN event shape), event field reference, and end-of-carousel CTA recipe. Android tabs added; long-press enriched with x/y coords."
+   },
+   {
+    "path": "guides/customize/item-overlays",
+    "covers": "Cross-referenced 'Video carousel overlays' section \u2014 rendering chrome (titles, page indicators, action buttons) on top of the native pager (the old /sdk/overlays#video-carousel-overlays link target)."
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "The VideoCarouselItem data shape and initialPageIndex field referenced throughout (old /guides/content-types#video-carousel link target)."
+   },
+   {
+    "path": "guides/display/custom-feeds",
+    "covers": "Additional VideoCarouselItem references in the feed/custom-feed context."
+   }
+  ],
+  "unported": [],
+  "notes": "Full 1:1 port in carousel-control.mdx; cross-refs land on item-overlays + content-model. Fumadocs adds Android + long-press x/y (enrichment, not gaps)."
+ },
+ {
+  "mintlifyPage": "sdk/configuration.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/reference/feed-config",
+    "covers": "Canonical port: SDK init params table (apiKey/userId/adProvider/clientAppName/clientAppVersion/customDimensions), FeedConfig fields per-platform (feedHeight/scrollAxis/videoOverlay/carouselOverlay/videoCarouselOverlay/surveyOverlay/adOverlay/muteOnStart/autoplay/feedSource/filter), percentage-height + horizontal-feed examples, full FeedFilter shape/semantics (tags OR, AND across fields, metadata) with examples, feedItems-not-an-init-param callout"
+   },
+   {
+    "path": "guides/content/language",
+    "covers": "Language detection: customMetadata.language as BCP 47 code, async detection after ready, language-code list, 'und' for no speech, filtering feed by language with combined-filter examples"
+   },
+   {
+    "path": "guides/display/feed",
+    "covers": "On-init behavior: SDK pre-fetches first feed page, pre-warms CDN connection, begins preroll for first video, renders without loading spinner; plus full per-platform initialization examples (the 'Complete example' content)"
+   },
+   {
+    "path": "guides/display/custom-feeds",
+    "covers": "feedItems / FeedInput shape and feedSource:.custom referenced from the config page (setFeedItems/appendFeedItems), the custom-feed-input target the source linked to"
+   },
+   {
+    "path": "guides/quickstart",
+    "covers": "Full per-platform initialization code examples mirroring the source 'Complete example' section"
+   },
+   {
+    "path": "guides/customize/overlays",
+    "covers": "Overlay mode semantics (.none/.custom) for videoOverlay/carouselOverlay/videoCarouselOverlay/surveyOverlay/adOverlay that the source's config tables linked out to"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported and superseded by guides/reference/feed-config (which adds live/advanced/debug fields). All params, FeedFilter semantics, language filtering, init behavior, and complete examples are represented."
+ },
+ {
+  "mintlifyPage": "sdk/feed.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/display/feed",
+    "covers": "The bulk of the page: ShortKitFeedViewController (UIKit) + ShortKitFeedView (SwiftUI) feed components and cross-platform equivalents (Android Fragment, Flutter, RN, Web), embedding in a navigation stack, embedding as a child view controller, lifecycle handling per platform, the 'store ShortKit outside view body' SwiftUI warning, partial-height feeds via feedHeight, filtered feeds, item-type list, and the live-streams isLive note (Callout). Mirrors nearly the entire Mintlify page including the same code samples."
+   },
+   {
+    "path": "guides/reference/feed-config",
+    "covers": "FeedConfig field semantics referenced by the source page: scrollAxis (vertical default / horizontal), feedHeight (.percentage), and filter / FeedFilter (server-side, applied on every request). Hosts the full FeedConfig + FeedFilter parameter tables the Mintlify page only summarized."
+   },
+   {
+    "path": "guides/display/feed-control",
+    "covers": "Programmatic feed control alluded to by the Mintlify feed page (the imperative side of feed management). Holds scrollToItem, refresh, applyFilter, lock scrolling, deep-link seeding, lifecycle/multi-surface activation, and preloadFeed/onFeedReady."
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "The 'For full model definitions, field descriptions, and usage examples' content-types reference that the Mintlify page links out to for item type definitions."
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. Fumadocs guides/display/feed mirrors the page 1:1 (same samples, lifecycle, partial-height, filter); config/control details split into feed-config and feed-control per the new IA."
+ },
+ {
+  "mintlifyPage": "sdk/identity.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/concepts/identity",
+    "covers": "Entire page: anonymous-by-default UUID, setUserId (and init-time userId), clearUserId, identity resolution flow (POST /v1/identity/resolve request body, profile merge, linked device IDs, anonymous-profile deletion), and X-User-Id header on events. All five-platform code tabs present and expanded."
+   }
+  ],
+  "unported": [],
+  "notes": "Fumadocs concepts/identity is a complete superset of the Mintlify identity page; every section, example, and caveat is represented and expanded."
+ },
+ {
+  "mintlifyPage": "sdk/installation.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/setup/installation",
+    "covers": "Overview of the shared setup model, current SDK versions table, feature-availability matrix, platform cards. Replaces the cross-platform framing of the Mintlify page."
+   },
+   {
+    "path": "guides/setup/ios",
+    "covers": "iOS requirements (iOS 16/Xcode 15/Swift 5.9), XCFramework/no-deps package structure, SPM install (Xcode UI + Package.swift), import ShortKitSDK, SwiftUI + UIKit verify examples, API-key tip, iOS troubleshooting (No such module, deployment target, XCFramework checksum, empty feed, 401)."
+   },
+   {
+    "path": "guides/setup/android",
+    "covers": "Android requirements (API 24/Kotlin 1.9/Android Studio Hedgehog), Maven artifact + Media3/OkHttp/Fragment/ViewPager2 deps, Gradle install, Kotlin verify example, API-key tip, Android troubleshooting (dependency resolution, duplicate class, empty feed, 401)."
+   },
+   {
+    "path": "guides/setup/flutter",
+    "covers": "Flutter requirements (Flutter 3.38/Dart 3.10/iOS16/API24), shortkit_flutter plugin + bundled native SDKs, package exports (ShortKitProvider, ShortKitFeed, ShortKitController), pubspec install, iOS Podfile + Android minSdk setup, Dart verify example, API-key tip, Flutter troubleshooting (iOS/Android build, empty feed, 401, pod install)."
+   },
+   {
+    "path": "guides/setup/react-native",
+    "covers": "RN + Expo requirements, @shortkitsdk/react-native package + exports (ShortKitProvider, ShortKitFeed, useShortKitPlayer, useShortKit), npm/yarn install + pod install, Expo config plugin + prebuild + EAS note, TSX verify example, API-key tip, RN troubleshooting (native module not linked, deployment target, minSdk, empty feed, 401)."
+   },
+   {
+    "path": "guides/setup/web",
+    "covers": "Web browser/Node requirements, npm + CDN install (full/slim, hls.js), createFeed verify examples (npm + CDN), constructor options, API-key tip, Web troubleshooting (ShortKit not defined, videos never play, empty container, empty feed, 401)."
+   }
+  ],
+  "unported": [],
+  "notes": "Mintlify sdk/installation split cleanly into setup/{installation,ios,android,flutter,react-native,web}; all platforms, code, tips, and troubleshooting present; versions intentionally bumped."
+ },
+ {
+  "mintlifyPage": "sdk/overlays.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/customize/overlays",
+    "covers": "VideoOverlayMode (.custom/.swiftUI/.none) on all platforms incl RN 'overlay' naming note; FeedOverlay protocol (attach/configure/activatePlayback) iOS+Android+Flutter OverlayState fields+RN props+Web callback; per-cell lifecycle narrative; factory/registration incl Flutter ShortKitOverlayEngine.initialize + shortKitOverlayMain; SwiftUI overlays + CellContent; engagement signals (sendContentSignal) section"
+   },
+   {
+    "path": "guides/customize/item-overlays",
+    "covers": "Carousel/VideoCarousel/Survey/Ad overlay modes table (custom/none behaviors); CarouselOverlay, VideoCarouselOverlay (incl RN VideoCarouselOverlayProps + Flutter state), SurveyOverlay, AdOverlay protocols and lifecycle method tables; NativeAdContent field table; ad policy compliance Warning"
+   },
+   {
+    "path": "guides/customize/recipes-scrubber",
+    "covers": "Example: scrubber with seek thumbnails (Swift/Kotlin/Flutter/RN/Web code); isActive && !isScrubbing guard pattern; seekThumbnail/seekAndPlay usage"
+   },
+   {
+    "path": "guides/customize/recipes-captions",
+    "covers": "Example: closed captions (Swift/Kotlin/Flutter/RN/Web code); activeCue VTTCue startTime/endTime/text semantics; captions toggle; selectCaptionTrack; captionTracksResolved lazy-track callback"
+   },
+   {
+    "path": "guides/reference/player",
+    "covers": "ShortKitPlayer reactive streams table (time/playerState/currentItem/isMuted/playbackRate/captionsEnabled/activeCaptionTrack/activeCue/didLoop LoopEvent contentId+loopCount/feedTransition/feedScrollPhase); Commands table (play/pause/seek/seekAndPlay/setMuted/skipToNext/skipToPrevious/setPlaybackRate/setCaptionsEnabled/selectCaptionTrack/sendContentSignal/setMaxBitrate/seekThumbnail); synchronous accessors currentItemValue/playbackRateValue; ContentSignal positive/negative; PlayerState enum; VTTCue/FeedScrollPhase/FeedTransitionEvent payloads"
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "ContentItem field table (id/title/description/duration/streamingUrl/thumbnailUrl/captionTracks/customMetadata/author/articleUrl/commentCount)"
+   },
+   {
+    "path": "guides/analytics/custom-data",
+    "covers": "engagement signals (sendContentSignal) and customMetadata for domain-specific overlay UI, referenced from overlays Report engagement section"
+   }
+  ],
+  "unported": [
+   {
+    "item": "Streams feedReady (Void, fires once when feed loaded/first player assigned) \u2014 player reference explicitly states there is NO feedReady publisher; it is now the onFeedReady feed callback. This is an intentional API correction, but the Mintlify-documented feedReady player stream has no direct successor on the player handle.",
+    "severity": "low"
+   }
+  ],
+  "notes": "Fully ported across overlays + item-overlays + both recipes + player reference + content-model; ContentItem fields and all 5 overlay protocols + NativeAdContent verified present. Only nit: old feedReady player stream intentionally moved to onFeedReady callback."
+ },
+ {
+  "mintlifyPage": "sdk/player-and-widget.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/display/player",
+    "covers": "Single player: fetchContent intro, PlayerConfig table (cornerRadius/clickAction/autoplay/loop/muteOnStart/videoOverlay), embedding examples (UIKit/SwiftUI/Android-context/RN/Web), activate/deactivate lifecycle + RN active prop, click actions (feed/mute/none)"
+   },
+   {
+    "path": "guides/display/widgets",
+    "covers": "Widget: WidgetConfig table (cardCount/cardSpacing/cornerRadius/autoplay/muteOnStart/loop/rotationInterval/clickAction/cardOverlay/layout/playbackMode/previewDuration/filter), Layout/grid params, Playback modes incl gridAlternating/startSide, WidgetInput, embedding widget/grid, embedded non-scrollable grid + parentScrollViewDidScroll/onContentHeightChange/appendItems, widget properties/callbacks, auto-rotation, click actions"
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "ContentItem model referenced for fetchContent results (replaces old Content Types link)"
+   },
+   {
+    "path": "guides/reference/feed-config",
+    "covers": "FeedFilter fields (tags/section/author/contentType/metadata) referenced by fetchContent filter"
+   }
+  ],
+  "unported": [],
+  "notes": "Both player and widgets Fumadocs pages fully cover the Mintlify content; Flutter 'coming soon' replaced by real support and rotationInterval semantics updated (intentional changes)."
+ },
+ {
+  "mintlifyPage": "sdk/player.mdx",
+  "coverage": "complete",
+  "fumadocsTargets": [
+   {
+    "path": "guides/reference/player",
+    "covers": "Primary home: intro/unidirectional data flow, getting the player handle per platform, observable state (Publisher reference table: time, playerState, currentItem, didLoop, feedTransition, formatChange, isMuted, playbackRate, captionsEnabled, activeCaptionTrack, activeCue, prefetchedAheadCount, remainingContentCount, feedScrollPhase), synchronous accessors (currentItemValue/playbackRateValue), commands table + per-platform examples (play/pause/seek/seekAndPlay/setMuted/skip/setPlaybackRate/sendContentSignal/setMaxBitrate/setCaptionsEnabled/selectCaptionTrack/seekThumbnail), PlayerState enum + state machine table + typical transitions, and all event payload types (PlayerTime, LoopEvent, FeedTransitionEvent, FormatChangeEvent, FeedScrollPhase, ContentSignal)"
+   },
+   {
+    "path": "guides/customize/overlays",
+    "covers": "The 'Example: custom overlay with state observation' section \u2014 building a custom overlay (play/pause button + progress bar) driven by player publishers (time/playerState/currentItem) across iOS/Android/Flutter/RN/Web, including attach(player)/subscribe pattern and read-state-then-issue-command toggle"
+   },
+   {
+    "path": "guides/concepts/content-model",
+    "covers": "The fallback-URL behavior referenced by the error(String) state row (SDK switches to fallback MP4 + emits playbackFallback analytics event instead of entering error); replaces the old /guides/content-types#fallback-urls link"
+   },
+   {
+    "path": "guides/concepts/feeds",
+    "covers": "Additional fallback-URL behavior coverage (custom-feed mode fallback activation scenarios) backing the error-state fallback note"
+   }
+  ],
+  "unported": [],
+  "notes": "Fully ported. Reference/player is the canonical home (adds feedReady-is-feed-callback correction); example -> customize/overlays; error-state fallback link -> concepts/content-model & feeds."
+ }
+]
