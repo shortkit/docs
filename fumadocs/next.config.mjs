@@ -50,6 +50,8 @@ const internalRedirects = [
   { source: '/docs/guides/setup', destination: '/docs/guides/quickstart' },
   { source: '/docs/guides/setup/installation', destination: '/docs/guides/quickstart' },
   { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/quickstart' },
+  // Ads concept page removed — ad settings live in the ad-config API.
+  { source: '/docs/guides/monetization/ads', destination: '/docs/api/ad-configuration/get-ad-configuration' },
 ];
 
 /** @type {import('next').NextConfig} */
