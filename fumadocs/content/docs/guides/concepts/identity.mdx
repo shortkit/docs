@@ -3,7 +3,7 @@ title: "Identity"
 description: "How ShortKit tracks anonymous and identified users across sessions and devices, and how identity resolution merges their history."
 ---
 
-ShortKit assigns every device an anonymous ID on first launch. When your user signs in, you promote them to an identified user and ShortKit merges their anonymous history into the identified profile. Every analytics metric, view record, and event is attributed through this identity model — the `viewer_id` dimension you filter on in [analytics](/docs/api/guides/analytics-overview) is the ID described on this page.
+ShortKit assigns every device an anonymous ID on first launch. When your user signs in, you promote them to an identified user and ShortKit merges their anonymous history into the identified profile. Every analytics metric, view record, and event is attributed through this identity model — the `viewer_id` dimension you filter on in [analytics](/docs/api/analytics/analytics-overview) is the ID described on this page.
 
 ## Anonymous by default
 
@@ -218,6 +218,6 @@ To attach additional user attributes to events (plan tier, cohort, A/B variant),
 ## Related
 
 <Cards>
-  <Card title="Analytics overview" href="/docs/api/guides/analytics-overview" description="Query metrics and views by user ID and other dimensions." />
+  <Card title="Analytics overview" href="/docs/api/analytics/analytics-overview" description="Query metrics and views by user ID and other dimensions." />
   <Card title="Custom data" href="/docs/guides/analytics/custom-data" description="Attach custom dimensions to every event alongside the user ID." />
 </Cards>

@@ -43,7 +43,12 @@ await generateFiles({
 // title shows the proper tag casing (e.g. "Live Streams", "Ad Configuration").
 // These folders are the sidebar's collapsible sections — no separator needed.
 for (const tag of overlay.tags ?? []) {
-  const dir = path.join('./content/docs/api', slugify(tag.name));
-  writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ title: tag.name }, null, 2) + '\n');
+  const slug = slugify(tag.name);
+  const dir = path.join('./content/docs/api', slug);
+  const meta = { title: tag.name };
+  // The Analytics section leads with the two hand-written guides (kept across
+  // regenerations), then the generated endpoint pages via the "..." rest marker.
+  if (slug === 'analytics') meta.pages = ['analytics-overview', 'event-forwarding', '...'];
+  writeFileSync(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
 }
 console.log(`wrote ${(overlay.tags ?? []).length} group meta.json titles`);

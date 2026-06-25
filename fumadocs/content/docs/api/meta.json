@@ -5,13 +5,10 @@
   "icon": "SquareTerminal",
   "pages": [
     "index",
-    "authentication",
-    "errors",
     "guides",
     "content",
     "live-streams",
     "surveys",
-    "analytics",
-    "ad-configuration"
+    "analytics"
   ]
 }

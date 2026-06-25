@@ -38,10 +38,6 @@
     {
       "name": "Analytics",
       "description": "Metrics, views, and event data for your content."
-    },
-    {
-      "name": "Ad Configuration",
-      "description": "Configure ad serving in your feeds."
     }
   ],
   "operations": {
@@ -2222,7 +2218,7 @@
         "Analytics"
       ],
       "summary": "List events",
-      "description": "Return a paginated list of raw analytics events, newest first, including the event type, viewer, session identifiers, and the full event payload. Filter by `event_type`, `content_id`, or `viewer_id`. Set the time range with `timeframe[]`: relative as `value:unit` (for example `7:days` or `24:hours`) or absolute as two Unix timestamps (`timeframe[]=<start>&timeframe[]=<end>`); the default is `7:days`. `limit` accepts up to 200 events per page. See [Event types](/docs/guides/analytics/overview#event-types) for the full list of values the `event_type` filter accepts.",
+      "description": "Return a paginated list of raw analytics events, newest first, including the event type, viewer, session identifiers, and the full event payload. Filter by `event_type`, `content_id`, or `viewer_id`. Set the time range with `timeframe[]`: relative as `value:unit` (for example `7:days` or `24:hours`) or absolute as two Unix timestamps (`timeframe[]=<start>&timeframe[]=<end>`); the default is `7:days`. `limit` accepts up to 200 events per page. See [Event types](/docs/api/analytics/analytics-overview#event-types) for the full list of values the `event_type` filter accepts.",
       "security": [
         {
           "secretKey": []
@@ -2591,94 +2587,6 @@
           ],
           "meta": {
             "request_id": "req_2d6b9f4e7a1c"
-          }
-        }
-      }
-    },
-    "GET /v1/ad-config": {
-      "tags": [
-        "Ad Configuration"
-      ],
-      "summary": "Get ad configuration",
-      "description": "Returns the current ad configuration for your organization — placement settings (`frequency`, `firstAdOffset`, `maxPerPage`), skip behavior, targeting, native ad format mappings, and sponsored content fields. If no configuration has been saved yet, default values are returned.",
-      "security": [
-        {
-          "secretKey": []
-        }
-      ],
-      "responseExamples": {
-        "200": {
-          "data": {
-            "enabled": true,
-            "frequency": 4,
-            "firstAdOffset": 2,
-            "maxPerPage": 3,
-            "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/shortkit/feed&env=vp&output=vast",
-            "adUnitId": "/21775744923/shortkit/feed",
-            "skipPolicy": "skippable_after",
-            "skipDelaySeconds": 5,
-            "defaultTargeting": {
-              "content_type": "news",
-              "audience": "general"
-            },
-            "nativeEnabled": false,
-            "nativeFormatId": null,
-            "nativeAdUnitId": null,
-            "nativeVideoUrlKey": "video_url",
-            "nativeHeadlineKey": "headline",
-            "nativeCtaKey": "cta_text",
-            "nativeSponsorKey": "sponsor_name",
-            "nativeSponsorLogoKey": "sponsor_logo",
-            "sponsoredStreamingUrl": null,
-            "sponsoredHeadline": null,
-            "sponsoredCta": null
-          },
-          "meta": {
-            "request_id": "req_t5gb29xj7c"
-          }
-        }
-      }
-    },
-    "PUT /v1/ad-config": {
-      "tags": [
-        "Ad Configuration"
-      ],
-      "summary": "Update ad configuration",
-      "description": "Updates ad configuration settings for your organization. This is a sparse update — only the fields you include in the request body are changed, and omitted fields keep their current values. A configuration is created automatically on first update, and the response returns the full resulting configuration.",
-      "security": [
-        {
-          "secretKey": []
-        }
-      ],
-      "responseExamples": {
-        "200": {
-          "data": {
-            "enabled": true,
-            "frequency": 4,
-            "firstAdOffset": 2,
-            "maxPerPage": 3,
-            "adTagUrl": "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/shortkit/feed&env=vp&output=vast",
-            "adUnitId": "/21775744923/shortkit/feed",
-            "skipPolicy": "skippable_after",
-            "skipDelaySeconds": 3,
-            "defaultTargeting": {
-              "content_type": "news",
-              "audience": "general"
-            },
-            "nativeEnabled": true,
-            "nativeFormatId": "12007331",
-            "nativeAdUnitId": "/21775744923/shortkit/native-feed",
-            "nativeVideoUrlKey": "media_url",
-            "nativeHeadlineKey": "title",
-            "nativeCtaKey": "call_to_action",
-            "nativeSponsorKey": "sponsor_name",
-            "nativeSponsorLogoKey": "sponsor_logo",
-            "sponsoredStreamingUrl": "https://stream.media.shortkit.dev/Ab3xK9mQz7Tw01YV5Hc2NfRq8sLdJ4We.m3u8",
-            "sponsoredHeadline": "Summer Sale — up to 40% off",
-            "sponsoredCta": "Shop now"
-          },
-          "meta": {
-            "request_id": "req_m8qd53yk1r"
           }
         }
       }

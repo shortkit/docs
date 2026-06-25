@@ -50,11 +50,17 @@ const internalRedirects = [
   { source: '/docs/guides/setup', destination: '/docs/guides/quickstart' },
   { source: '/docs/guides/setup/installation', destination: '/docs/guides/quickstart' },
   { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/quickstart' },
-  // Ads concept page removed — ad settings live in the ad-config API.
-  { source: '/docs/guides/monetization/ads', destination: '/docs/api/ad-configuration/get-ad-configuration' },
-  // Analytics overview + event forwarding moved to the API Reference tab.
-  { source: '/docs/guides/analytics/overview', destination: '/docs/api/guides/analytics-overview' },
-  { source: '/docs/guides/analytics/event-forwarding', destination: '/docs/api/guides/event-forwarding' },
+  // Ads removed entirely (concept page + ad-config API section).
+  { source: '/docs/guides/monetization/ads', destination: '/docs/guides/customize/item-overlays' },
+  { source: '/docs/api/ad-configuration/:page*', destination: '/docs/api' },
+  // Analytics overview + event forwarding now live under the Analytics API section.
+  { source: '/docs/guides/analytics/overview', destination: '/docs/api/analytics/analytics-overview' },
+  { source: '/docs/guides/analytics/event-forwarding', destination: '/docs/api/analytics/event-forwarding' },
+  { source: '/docs/api/guides/analytics-overview', destination: '/docs/api/analytics/analytics-overview' },
+  { source: '/docs/api/guides/event-forwarding', destination: '/docs/api/analytics/event-forwarding' },
+  // Authentication + Errors folded into the API overview.
+  { source: '/docs/api/authentication', destination: '/docs/api#authentication' },
+  { source: '/docs/api/errors', destination: '/docs/api#errors' },
 ];
 
 /** @type {import('next').NextConfig} */

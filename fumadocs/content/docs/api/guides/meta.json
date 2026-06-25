@@ -5,8 +5,6 @@
     "carousels",
     "captions-and-metadata",
     "live-streams",
-    "webhooks",
-    "analytics-overview",
-    "event-forwarding"
+    "webhooks"
   ]
 }

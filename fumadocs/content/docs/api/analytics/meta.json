@@ -1,3 +1,8 @@
 {
-  "title": "Analytics"
+  "title": "Analytics",
+  "pages": [
+    "analytics-overview",
+    "event-forwarding",
+    "..."
+  ]
 }

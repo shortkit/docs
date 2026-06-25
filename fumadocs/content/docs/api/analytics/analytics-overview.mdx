@@ -54,7 +54,7 @@ Emitted as a `playbackFallback` event once per fallback activation. Only fires w
 
 ## Ads
 
-Collected automatically when an [ad provider](/docs/api/ad-configuration/get-ad-configuration) is configured.
+Collected automatically when an ad provider is configured.
 
 | Metric | Type | Description |
 |--------|------|-------------|
@@ -132,7 +132,7 @@ The `event_type` query parameter accepts any of the type names below. Each event
 | `adSkip` | Viewer skipped the ad | `adUnitId`, `skipTimeSeconds` |
 
 <Callout type="info" title="Custom event types">
-  Event types are not restricted to this list. The SDK can send custom event types, and they are stored and returned like any other event. To see which types actually appear in a timeframe, call [List event types](/docs/api/analytics/list-event-types). For the subset of events you can stream to your own backend, see [Event forwarding](/docs/api/guides/event-forwarding).
+  Event types are not restricted to this list. The SDK can send custom event types, and they are stored and returned like any other event. To see which types actually appear in a timeframe, call [List event types](/docs/api/analytics/list-event-types). For the subset of events you can stream to your own backend, see [Event forwarding](/docs/api/analytics/event-forwarding).
 </Callout>
 
 ## Querying analytics data
@@ -143,11 +143,11 @@ Everything the SDK collects is queryable through the Analytics API, which suppor
 - **[Views](/docs/api/analytics/list-views)** — list raw per-view records or [export them in bulk](/docs/api/analytics/export-views).
 - **[Events](/docs/api/analytics/list-events)** — retrieve raw event data for individual views and sessions.
 
-Analytics endpoints use your secret key. See [Authentication](/docs/api/authentication).
+Analytics endpoints use your secret key. See [Authentication](/docs/api#authentication).
 
 <Cards>
   <Card title="Custom data" href="/docs/guides/analytics/custom-data" description="Attach custom dimensions at init and send content signals to the recommendation engine." />
-  <Card title="Event forwarding" href="/docs/api/guides/event-forwarding" description="Stream a copy of feed-interaction events to your own backend in parallel to ShortKit analytics." />
+  <Card title="Event forwarding" href="/docs/api/analytics/event-forwarding" description="Stream a copy of feed-interaction events to your own backend in parallel to ShortKit analytics." />
   <Card title="Identity" href="/docs/guides/concepts/identity" description="How anonymous device IDs and your user IDs flow into the viewer_id dimension." />
   <Card title="Analytics API" href="/docs/api/analytics/get-a-metric" description="Query metrics, breakdowns, timeseries, and raw views over REST." />
 </Cards>
