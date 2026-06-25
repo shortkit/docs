@@ -9,7 +9,7 @@ const withMDX = createMDX();
 const legacyRedirects = [
   // Get started
   { source: '/quickstart', destination: '/docs/guides/quickstart' },
-  { source: '/sdk/installation', destination: '/docs/guides/setup/installation' },
+  { source: '/sdk/installation', destination: '/docs/guides/setup' },
   // Guides
   { source: '/guides/content-types', destination: '/docs/guides/concepts/content-model' },
   { source: '/guides/upload-pipeline', destination: '/docs/api/guides/upload-videos' },
@@ -43,7 +43,11 @@ const internalRedirects = [
   { source: '/docs/guides/content/live-streams', destination: '/docs/api/guides/live-streams' },
   { source: '/docs/guides/content/webhooks', destination: '/docs/api/guides/webhooks' },
   { source: '/docs/api/webhooks', destination: '/docs/api/guides/webhooks' },
-  { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/setup/installation' },
+  { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/setup' },
+  // Overview page retired — Docs tab lands on Quickstart.
+  { source: '/docs/guides', destination: '/docs/guides/quickstart' },
+  // Installation general page is now the Set up folder index.
+  { source: '/docs/guides/setup/installation', destination: '/docs/guides/setup' },
 ];
 
 /** @type {import('next').NextConfig} */

@@ -1,0 +1,12 @@
+{
+  "title": "Installation",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "ios",
+    "android",
+    "flutter",
+    "react-native",
+    "web"
+  ]
+}
