@@ -52,6 +52,9 @@ const internalRedirects = [
   { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/quickstart' },
   // Ads concept page removed — ad settings live in the ad-config API.
   { source: '/docs/guides/monetization/ads', destination: '/docs/api/ad-configuration/get-ad-configuration' },
+  // Analytics overview + event forwarding moved to the API Reference tab.
+  { source: '/docs/guides/analytics/overview', destination: '/docs/api/guides/analytics-overview' },
+  { source: '/docs/guides/analytics/event-forwarding', destination: '/docs/api/guides/event-forwarding' },
 ];
 
 /** @type {import('next').NextConfig} */

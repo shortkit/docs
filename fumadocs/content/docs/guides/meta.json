@@ -29,8 +29,6 @@
     "content/language",
     "content/downloads",
     "customize/live",
-    "analytics/overview",
-    "analytics/custom-data",
-    "analytics/event-forwarding"
+    "analytics/custom-data"
   ]
 }
