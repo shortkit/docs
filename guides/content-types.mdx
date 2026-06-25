@@ -41,7 +41,6 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 
         // News metadata
         public let author: String?
-        public let articleUrl: String?
         public let commentCount: Int?
         public var fallbackUrl: String?
     }
@@ -60,7 +59,6 @@ Videos are the primary content type. Each video is an HLS stream with optional c
         val captionTracks: List<CaptionTrack>,
         val customMetadata: Map<String, JsonValue>?,
         val author: String?,
-        val articleUrl: String?,
         val commentCount: Int?,
         val fallbackUrl: String?
     )
@@ -79,7 +77,6 @@ Videos are the primary content type. Each video is an HLS stream with optional c
       captionTracks: CaptionTrack[];
       customMetadata?: Record<string, JsonValue>;
       author?: string;
-      articleUrl?: string;
       commentCount?: number;
       fallbackUrl?: string;
     }
@@ -99,7 +96,6 @@ Videos are the primary content type. Each video is an HLS stream with optional c
       captionTracks: [{ language: 'en', label: 'English', source: 'generated', url: '...' }],
       customMetadata: { category: 'Sports' },
       author: 'Jane Doe',
-      articleUrl: 'https://...',
       commentCount: 5,
       fallbackUrl: 'https://cdn.example.com/video.mp4',
     }
@@ -117,9 +113,8 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 | `streamingUrl` | `String` | HLS manifest URL (`.m3u8`). The SDK handles adaptive bitrate selection, buffering, and format switching automatically. |
 | `thumbnailUrl` | `String` | Poster image URL, displayed while the video loads |
 | `captionTracks` | `[CaptionTrack]` | Available caption/subtitle tracks (see below) |
-| `customMetadata` | `[String: JSONValue]?` | Arbitrary key-value pairs attached at upload time. Use this for section labels, tags, or any app-specific data. |
+| `customMetadata` | `[String: JSONValue]?` | Arbitrary key-value pairs attached at upload time. Use this for section labels, tags, or any app-specific data. Reserved keys: `publicationUrl` (link to a related article — when present, the news overlay template shows a "Read more" button) and `language` (detected speech language, see [Language detection](/guides/language-detection)). |
 | `author` | `String?` | Byline text |
-| `articleUrl` | `String?` | Link to a full article. When present, the news overlay template shows a "Read more" button. |
 | `commentCount` | `Int?` | Comment count displayed by the news overlay template |
 | `fallbackUrl` | `String?` | Optional static MP4 URL for fallback playback. When the primary HLS stream fails, the SDK automatically switches to this URL. See [Fallback URLs](#fallback-urls) below. |
 
@@ -357,7 +352,7 @@ Image carousels display a horizontally paged set of images with optional auto-sc
         public let description: String?
         public let author: String?
         public let section: String?
-        public let articleUrl: String?
+        public let customMetadata: [String: JSONValue]?
     }
 
     public struct CarouselImage: Codable, Equatable, Sendable {
@@ -377,7 +372,7 @@ Image carousels display a horizontally paged set of images with optional auto-sc
         val description: String?,
         val author: String?,
         val section: String?,
-        val articleUrl: String?
+        val customMetadata: Map<String, JsonValue>?
     )
 
     data class CarouselImage(
@@ -397,7 +392,7 @@ Image carousels display a horizontally paged set of images with optional auto-sc
       description?: string;
       author?: string;
       section?: string;
-      articleUrl?: string;
+      customMetadata?: Record<string, JsonValue>;
     }
 
     interface CarouselImage {
@@ -420,7 +415,7 @@ Image carousels display a horizontally paged set of images with optional auto-sc
       description: 'Body text',
       author: 'Jane Doe',
       section: 'SPORTS',
-      articleUrl: 'https://...',
+      customMetadata: { publicationUrl: 'https://...' },
     }
     ```
   </Tab>
@@ -436,7 +431,7 @@ Image carousels display a horizontally paged set of images with optional auto-sc
 | `description` | `String?` | Body text |
 | `author` | `String?` | Byline text |
 | `section` | `String?` | Category label (e.g. "SPORTS", "POLITICS") |
-| `articleUrl` | `String?` | Link to a related article |
+| `customMetadata` | `[String: JSONValue]?` | App-specific key-value pairs. Set `publicationUrl` to render a "Read more" link in the news overlay template. |
 
 ---
 
@@ -457,7 +452,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
         public let description: String?
         public let author: String?
         public let section: String?
-        public let articleUrl: String?
+        public let customMetadata: [String: JSONValue]?
     }
     ```
   </Tab>
@@ -470,7 +465,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
         val description: String?,
         val author: String?,
         val section: String?,
-        val articleUrl: String?
+        val customMetadata: Map<String, JsonValue>?
     )
     ```
   </Tab>
@@ -484,7 +479,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
       description?: string;
       author?: string;
       section?: string;
-      articleUrl?: string;
+      customMetadata?: Record<string, JsonValue>;
     }
     ```
   </Tab>
@@ -501,7 +496,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
       description: 'Body text',
       author: 'Jane Doe',
       section: 'SPORTS',
-      articleUrl: 'https://...',
+      customMetadata: { publicationUrl: 'https://...' },
     }
     ```
   </Tab>
@@ -516,9 +511,9 @@ Video carousels display a horizontally paged set of videos within a single feed 
 | `description` | `String?` | Body text |
 | `author` | `String?` | Byline text |
 | `section` | `String?` | Category label (e.g. "SPORTS", "POLITICS") |
-| `articleUrl` | `String?` | Link to a related article |
+| `customMetadata` | `[String: JSONValue]?` | App-specific key-value pairs. Set `publicationUrl` to render a "Read more" link in the news overlay template. |
 
-Each video in the `videos` array is a standard `ContentItem` — the same type used by standalone video feed items. This means your overlay can display per-video metadata (title, duration, captions) alongside carousel-level metadata (section, author, articleUrl).
+Each video in the `videos` array is a standard `ContentItem` — the same type used by standalone video feed items. This means your overlay can display per-video metadata (title, duration, captions) alongside carousel-level metadata (section, author, customMetadata).
 
 ### How video carousels differ from image carousels
 
@@ -743,7 +738,7 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
     case .videoCarousel(let videoCarousel):
         // videoCarousel.videos — array of ContentItem (each with playback metadata, captions, etc.)
         // videoCarousel.title, videoCarousel.author, videoCarousel.section — carousel-level metadata
-        // videoCarousel.articleUrl — link to related article
+        // videoCarousel.customMetadata — app-specific fields (e.g. publicationUrl for a related article link)
         // Note: the SDK handles horizontal paging and video playback natively.
         // Your overlay provides chrome (titles, buttons, page indicators) on top.
         configureVideoCarouselUI(videoCarousel)
@@ -852,12 +847,11 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
 | `description` | Optional | Optional | Optional | -- | -- |
 | `author` | Optional | Optional | Optional | -- | -- |
 | `section` | Via `customMetadata` | Yes | Yes | -- | -- |
-| `articleUrl` | Optional | Optional | Optional | -- | -- |
 | `streamingUrl` | Yes (HLS) | -- | -- | -- | -- |
 | `thumbnailUrl` | Yes | -- | -- | -- | -- |
 | `duration` | Yes | -- | -- | -- | -- |
 | `captionTracks` | Yes | -- | -- | -- | -- |
-| `customMetadata` | Optional | -- | -- | -- | -- |
+| `customMetadata` | Optional | Optional | Optional | -- | -- |
 | `videos` | -- | -- | Yes | -- | -- |
 | `images` | -- | Yes | -- | -- | -- |
 | `autoScrollInterval` | -- | Optional | -- | -- | -- |
