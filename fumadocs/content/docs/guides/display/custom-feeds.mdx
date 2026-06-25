@@ -260,7 +260,7 @@ The Web SDK accepts plain objects. Custom feeds support videos only — carousel
   title: 'Game highlights',
   author: 'Jane Doe',
   section: 'SPORTS',
-  articleUrl: 'https://example.com/article',
+  customMetadata: { publicationUrl: 'https://example.com/article' },
 }
 ```
 
@@ -302,7 +302,7 @@ let carousel = VideoCarouselInput(
 feedVC.setFeedItems([.videoCarousel(carousel)])
 ```
 
-`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`. Per-slide inputs accept `origin`, same as `FeedInput.video`.
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `customMetadata`. The article link is carried as `customMetadata.publicationUrl`. Per-slide inputs accept `origin`, same as `FeedInput.video`.
 
 </Tab>
 <Tab value="Android">
@@ -324,7 +324,7 @@ val carousel = VideoCarouselInput(
 feedFragment.setFeedItems(listOf(FeedInput.VideoCarousel(carousel)))
 ```
 
-`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`.
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `customMetadata`. The article link is carried as `customMetadata.publicationUrl`.
 
 </Tab>
 <Tab value="Flutter">
@@ -346,7 +346,7 @@ final carousel = VideoCarouselInput(
 _feedController.setFeedItems([FeedInput.videoCarousel(item: carousel)]);
 ```
 
-`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`. Per-slide inputs accept `origin`, same as `FeedInput.video`.
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `customMetadata`. The article link is carried as `customMetadata.publicationUrl`. Per-slide inputs accept `origin`, same as `FeedInput.video`.
 
 </Tab>
 <Tab value="React Native">
@@ -371,7 +371,7 @@ const carousel: FeedInput = {
 feedRef.current?.setFeedItems([carousel]);
 ```
 
-`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `articleUrl`. Per-slide inputs accept `origin`.
+`VideoCarouselInput` also accepts `initialPageIndex`, `description`, `author`, `section`, and `customMetadata`. The article link is carried as `customMetadata.publicationUrl`. Per-slide inputs accept `origin`.
 
 </Tab>
 <Tab value="Web">

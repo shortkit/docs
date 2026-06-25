@@ -40,9 +40,8 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 | `streamingUrl` | string | HLS manifest URL (`.m3u8`). The SDK handles adaptive bitrate selection, buffering, and format switching automatically. |
 | `thumbnailUrl` | string | Poster image URL, displayed while the video loads |
 | `captionTracks` | array of `CaptionTrack` | Available caption and subtitle tracks. See [Caption tracks](#caption-tracks). |
-| `customMetadata` | map of string to `JSONValue`, optional | Arbitrary key-value pairs attached at upload time. See [Custom metadata](#custom-metadata). |
+| `customMetadata` | map of string to `JSONValue`, optional | Arbitrary key-value pairs attached at upload time. The article link is carried here as `customMetadata.publicationUrl` (a string) — when present, the news overlay template shows a "Read more" button. See [Custom metadata](#custom-metadata). |
 | `author` | string, optional | Byline text |
-| `articleUrl` | string, optional | Link to a full article. When present, the news overlay template shows a "Read more" button. |
 | `commentCount` | integer, optional | Comment count displayed by the news overlay template |
 | `fallbackUrl` | string, optional | Static MP4 URL used when the primary HLS stream fails. See [Fallback URLs](#fallback-urls). |
 | `downloadUrl` | string, optional | MP4 download URL, when a download is available. The convenience accessor `isDownloadable` is true when this is set. See [Downloads](/docs/guides/content/downloads). |
@@ -79,7 +78,14 @@ To add or manage caption tracks on your content, see [Captions and metadata](/do
 
 ### Custom metadata
 
-`customMetadata` is a dictionary of string keys to `JSONValue` — a recursive value type that holds strings, numbers, booleans, nested objects, and null. You set values when uploading content through the API or portal, and the SDK delivers them as-is. Use it for section labels, tags, or any app-specific data your overlay needs.
+`customMetadata` is a dictionary of string keys to `JSONValue` — a recursive value type that holds strings, numbers, booleans, nested objects, and null. You set values when uploading content through the API or portal, and the SDK delivers them as-is. Use it for section labels, tags, the article link (`publicationUrl`), or any app-specific data your overlay needs.
+
+```swift title="ArticleLink.swift"
+// The article link lives under customMetadata.publicationUrl
+if case .string(let articleLink) = item.customMetadata?["publicationUrl"] {
+    showReadMoreButton(url: articleLink)
+}
+```
 
 ```swift title="CustomMetadata.swift"
 // Reading custom metadata from a ContentItem
@@ -122,7 +128,7 @@ Image carousels display a horizontally paged set of images with optional auto-sc
 | `description` | string, optional | Body text |
 | `author` | string, optional | Byline text |
 | `section` | string, optional | Category label, for example "SPORTS" |
-| `articleUrl` | string, optional | Link to a related article |
+| `customMetadata` | map of string to `JSONValue`, optional | Arbitrary key-value pairs. The article link is carried here as `customMetadata.publicationUrl` (a string). |
 
 ## Video carousel
 
@@ -139,7 +145,7 @@ Video carousels display a horizontally paged set of videos within a single feed 
 | `description` | string, optional | Body text |
 | `author` | string, optional | Byline text |
 | `section` | string, optional | Category label |
-| `articleUrl` | string, optional | Link to a related article |
+| `customMetadata` | map of string to `JSONValue`, optional | Arbitrary key-value pairs. The article link is carried here as `customMetadata.publicationUrl` (a string). |
 
 Because each entry in `videos` is a standard `ContentItem`, your overlay can mix per-video metadata (title, duration, captions) with carousel-level metadata (section, author, article link).
 
@@ -213,12 +219,11 @@ case .adSlot:
 | `description` | Optional | Optional | Optional | — | — |
 | `author` | Optional | Optional | Optional | — | — |
 | `section` | Via `customMetadata` | Optional | Optional | — | — |
-| `articleUrl` | Optional | Optional | Optional | — | — |
 | `streamingUrl` | Yes (HLS) | — | — | — | — |
 | `thumbnailUrl` | Yes | — | — | — | — |
 | `duration` | Yes | — | — | — | — |
 | `captionTracks` | Yes | — | — | — | — |
-| `customMetadata` | Optional | — | — | — | — |
+| `customMetadata` (incl. `publicationUrl` article link) | Optional | Optional | Optional | — | — |
 | `commentCount` | Optional | — | — | — | — |
 | `fallbackUrl` | Optional | — | — | — | — |
 | `downloadUrl` | Optional | — | — | — | — |
