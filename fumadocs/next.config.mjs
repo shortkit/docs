@@ -9,7 +9,7 @@ const withMDX = createMDX();
 const legacyRedirects = [
   // Get started
   { source: '/quickstart', destination: '/docs/guides/quickstart' },
-  { source: '/sdk/installation', destination: '/docs/guides/setup' },
+  { source: '/sdk/installation', destination: '/docs/guides/quickstart' },
   // Guides
   { source: '/guides/content-types', destination: '/docs/guides/concepts/content-model' },
   { source: '/guides/upload-pipeline', destination: '/docs/api/guides/upload-videos' },
@@ -43,11 +43,13 @@ const internalRedirects = [
   { source: '/docs/guides/content/live-streams', destination: '/docs/api/guides/live-streams' },
   { source: '/docs/guides/content/webhooks', destination: '/docs/api/guides/webhooks' },
   { source: '/docs/api/webhooks', destination: '/docs/api/guides/webhooks' },
-  { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/setup' },
   // Overview page retired — Docs tab lands on Quickstart.
   { source: '/docs/guides', destination: '/docs/guides/quickstart' },
-  // Installation general page is now the Set up folder index.
-  { source: '/docs/guides/setup/installation', destination: '/docs/guides/setup' },
+  // The platform-agnostic install/platform-support page was removed; Installation
+  // is now a collapsible folder of per-platform pages. Point its old URLs at Quickstart.
+  { source: '/docs/guides/setup', destination: '/docs/guides/quickstart' },
+  { source: '/docs/guides/setup/installation', destination: '/docs/guides/quickstart' },
+  { source: '/docs/guides/setup/platform-support', destination: '/docs/guides/quickstart' },
 ];
 
 /** @type {import('next').NextConfig} */

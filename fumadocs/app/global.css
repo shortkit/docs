@@ -70,9 +70,11 @@
   background: rgb(239 68 68 / 0.15);
 } /* DELETE */
 
-/* Drop the faint vertical guide line on expanded submenus. */
-#nd-sidebar .border-s {
-  border-inline-start-width: 0;
+/* Drop the faint vertical guide line on expanded submenus (Docs + API tabs).
+   Keep the orange active-item bar (the data-active ::before). */
+#nd-sidebar .border-s,
+#nd-sidebar [class*='border-s'] {
+  border-inline-start: 0 none !important;
 }
 
 html {
