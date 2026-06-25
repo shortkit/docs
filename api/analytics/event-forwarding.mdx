@@ -120,7 +120,7 @@ Every event shares this envelope. `data` is type-specific.
 }
 ```
 
-| Field | Meaning |
+| Field | Definition |
 | --- | --- |
 | `eventId` | Unique per event. Deduplicate on this. |
 | `type` | `viewEnd`, `swipe`, or `playbackFallback`. |
@@ -170,25 +170,26 @@ The event envelope and the Core fields below are part of our committed contract.
 
 **Core metrics**
 
-| Field | Meaning |
+| Field | Definition |
 | --- | --- |
-| `watchTimeMs` | Wall-clock time on the view (includes paused and buffering) |
-| `playingTimeMs` | Accumulated time the video was actually advancing |
+| `viewStart` | ISO 8601 timestamp marking when the view began |
+| `watchTimeMs` | Wall-clock time on the view, including paused and buffering time |
+| `playingTimeMs` | Cumulative time the video was actively playing |
 | `exitBeforeStart` | `true` if the user left before playback started |
-| `completed` | `true` if the video reached its natural end at least once |
-| `loopCount` | Number of times the video reached its end (replays included) |
+| `completed` | `true` if the video reached its end at least once |
+| `loopCount` | Number of times the video reached its end, including replays |
 
-**Additional metadata** (quality-of-experience and device)
+**Additional metadata** — quality-of-experience and device fields
 
-| Field | Meaning |
+| Field | Definition |
 | --- | --- |
-| `videoStartupTimeMs` | Play-request to ready-to-play (omitted if unknown) |
-| `rebufferCount` / `rebufferDurationMs` | Stall count and total stall duration |
+| `videoStartupTimeMs` | Time from play request to ready-to-play; omitted if unknown |
+| `rebufferCount` / `rebufferDurationMs` | Number of stalls and total stall time |
 | `seekCount` / `seekDurationMs` | Number of seeks and total seek time |
-| `avgBitrateBps` | Playing-time-weighted average bitrate (omitted if unknown) |
-| `renditionChangeCount` / `renditionUpshiftCount` / `renditionDownshiftCount` | HLS quality switches |
-| `captionsEnabled` | Whether captions were on |
-| `deviceInfo` | `{ deviceCategory, deviceManufacturer, deviceModel, deviceName, osName, osVersion, connectionType, userAgent }` |
+| `avgBitrateBps` | Average bitrate, weighted by playing time; omitted if unknown |
+| `renditionChangeCount` / `renditionUpshiftCount` / `renditionDownshiftCount` | HLS quality switches: total, upshifts, and downshifts |
+| `captionsEnabled` | Whether captions were on during the view |
+| `deviceInfo` | Object of device and connection details: `deviceCategory`, `deviceManufacturer`, `deviceModel`, `deviceName`, `osName`, `osVersion`, `connectionType`, `userAgent` |
 | `clientAppName` / `clientAppVersion` | Your app's name and version, if provided |
 | `customDimensions` | Your `custom_1` through `custom_5` values, if set |
 
@@ -196,7 +197,7 @@ The event envelope and the Core fields below are part of our committed contract.
 
 All `swipe` fields are part of the committed contract.
 
-| Field | Meaning |
+| Field | Definition |
 | --- | --- |
 | `toContentId` | The content swiped to (the content swiped from is the envelope `contentId`) |
 | `watchTimeOnFrom` | Time spent on the content being left, in milliseconds |
@@ -206,7 +207,7 @@ All `swipe` fields are part of the committed contract.
 
 All `playbackFallback` fields are part of the committed contract.
 
-| Field | Meaning |
+| Field | Definition |
 | --- | --- |
 | `reason` | For example `"no_primary_url"` or `"active_player_error"` |
 | `primaryUrl` | The stream that failed |
