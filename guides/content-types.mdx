@@ -38,6 +38,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
         public let thumbnailUrl: String
         public let captionTracks: [CaptionTrack]
         public let customMetadata: [String: JSONValue]?
+        public let protected: Bool
 
         // News metadata
         public let author: String?
@@ -59,6 +60,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
         val thumbnailUrl: String,
         val captionTracks: List<CaptionTrack>,
         val customMetadata: Map<String, JsonValue>?,
+        val protected: Boolean,
         val author: String?,
         val articleUrl: String?,
         val commentCount: Int?,
@@ -78,6 +80,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
       thumbnailUrl: string;
       captionTracks: CaptionTrack[];
       customMetadata?: Record<string, JsonValue>;
+      protected: boolean;
       author?: string;
       articleUrl?: string;
       commentCount?: number;
@@ -98,6 +101,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
       thumbnailUrl: 'https://...',
       captionTracks: [{ language: 'en', label: 'English', source: 'generated', url: '...' }],
       customMetadata: { category: 'Sports' },
+      protected: false,
       author: 'Jane Doe',
       articleUrl: 'https://...',
       commentCount: 5,
@@ -118,6 +122,7 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 | `thumbnailUrl` | `String` | Poster image URL, displayed while the video loads |
 | `captionTracks` | `[CaptionTrack]` | Available caption/subtitle tracks (see below) |
 | `customMetadata` | `[String: JSONValue]?` | Arbitrary key-value pairs attached at upload time. Use this for section labels, tags, or any app-specific data. |
+| `protected` | `Bool` | When `true`, the streaming URL and thumbnail are gated behind short-lived signed tokens. The SDK fetches, caches, and refreshes these tokens automatically — you do not need to handle URL signing in app code. See [Protected content](#protected-content) below. |
 | `author` | `String?` | Byline text |
 | `articleUrl` | `String?` | Link to a full article. When present, the news overlay template shows a "Read more" button. |
 | `commentCount` | `Int?` | Comment count displayed by the news overlay template |
@@ -335,6 +340,25 @@ Fallback activation is tracked as a `playbackFallback` engagement event with a `
 
 <Note>
 Fallback URLs are only used in custom feed mode with `FeedInput.video`. Pass the fallback URL when constructing your feed items.
+</Note>
+
+---
+
+### Protected content
+
+Content items can be marked as **protected** to gate playback behind short-lived, signed URLs. When `protected` is `true`, the `streamingUrl` and `thumbnailUrl` exposed to your app are minted on demand and expire after a short window (typically around 15 minutes).
+
+The SDK handles the entire lifecycle for you:
+
+- **Token fetch.** When a protected item is about to play, the SDK exchanges the content's `id` for signed video and thumbnail URLs.
+- **Caching.** Tokens are cached in memory for the lifetime of the SDK instance. Adjacent items in the feed are warmed in the background so playback starts immediately on swipe.
+- **Refresh.** Tokens are refreshed automatically before they expire. Playback position is preserved across the swap — viewers see no interruption.
+- **Cleanup.** The cache is cleared when you tear down the SDK instance.
+
+You only need to read `item.protected` if you want to render an indicator in your UI (e.g. a lock badge). No additional configuration is required for protected playback to work.
+
+<Note>
+React Native and Flutter delegate to the underlying native SDK — protected content works identically on both platforms with no extra setup.
 </Note>
 
 ---
