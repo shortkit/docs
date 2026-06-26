@@ -1,0 +1,114 @@
+---
+title: "Mint a playback token"
+api: "POST /v1/content/{id}/playback-token"
+description: "Mint a short-lived signed playback URL for a protected content item."
+keywords: ["protected content", "signed url", "playback token"]
+---
+
+Mints a fresh signed streaming URL (and matching thumbnail URL) for a content item whose `protected` flag is `true`. The returned URLs already include the signed token as a query parameter — clients play them directly, then call this endpoint again to refresh before the token expires.
+
+<Note>
+  Public (non-protected) content does not need this endpoint — the `streamingUrl` and `thumbnailUrl` returned on the content object are playable as-is. The ShortKit mobile SDKs call this endpoint automatically for protected items; you only need to call it directly from custom players or server-side workflows.
+</Note>
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The content item's UUID.
+</ParamField>
+
+## Request body
+
+The request body is optional. Send an empty JSON object (`{}`) to satisfy the parser.
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/playback-token" \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/playback-token",
+    headers={
+        "X-API-Key": "pk_live_your_publishable_key",
+        "Content-Type": "application/json",
+    },
+    json={},
+)
+token = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/playback-token",
+  {
+    method: "POST",
+    headers: {
+      "X-API-Key": "pk_live_your_publishable_key",
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  }
+);
+const { data: token } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "playbackId": "DS00Spx1CV",
+    "video": {
+      "url": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8?token=eyJhbGciOiJSUzI1NiIsImtpZCI6...",
+      "expiresAt": 1719000900
+    },
+    "thumbnail": {
+      "url": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?token=eyJhbGciOiJSUzI1NiIsImtpZCI6...",
+      "expiresAt": 1719003600
+    }
+  },
+  "meta": {
+    "request_id": "req_pbtok01"
+  }
+}
+```
+</ResponseExample>
+
+## Response fields
+
+<ResponseField name="playbackId" type="string | null">
+  Opaque playback identifier for the streaming asset.
+</ResponseField>
+
+<ResponseField name="video" type="object">
+  Signed video URL.
+
+  - `url` — Streaming URL with the signed token already attached as a query parameter. Play this URL directly.
+  - `expiresAt` — Token expiry as a UNIX timestamp (seconds). Refresh the URL before this time to keep playback working.
+</ResponseField>
+
+<ResponseField name="thumbnail" type="object | null">
+  Signed thumbnail URL with the same shape as `video`. `null` when the content item has no thumbnail.
+</ResponseField>
+
+## Refresh strategy
+
+Tokens are short-lived (typically minutes, not hours). To keep playback uninterrupted:
+
+1. Mint a token immediately before playback starts.
+2. Schedule a refresh slightly before `expiresAt`.
+3. On refresh, swap the player's source URL without resetting the playback position.
+
+The ShortKit mobile SDKs implement this transparently for items with `protected: true` — caching the token, refreshing pre-expiry, and applying the new URL in-place.
+
+<Warning>
+  Always authenticate this endpoint with your **publishable key** (`pk_live_...`) on the client. Never embed a secret key (`sk_live_...`) in mobile or web clients.
+</Warning>
+
+Returns a `404` if the content item does not exist or does not belong to your organization. Returns a `403` if the item is not marked as protected.

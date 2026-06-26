@@ -30,6 +30,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   "duration": 32.5,
   "streamingUrl": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8",
   "thumbnailUrl": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?time=0",
+  "protected": false,
   "section": "Weather",
   "author": "Jane Doe",
   "tags": ["weather", "severe", "breaking"],
@@ -110,6 +111,10 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 
 <ResponseField name="thumbnailUrl" type="string | null">
   Thumbnail image URL. For videos, auto-generated from the first frame. For carousels, the first image.
+</ResponseField>
+
+<ResponseField name="protected" type="boolean">
+  When `true`, this content item is **protected**: `streamingUrl` and `thumbnailUrl` are not directly playable, and the client must mint a short-lived signed URL via [`POST /v1/content/{id}/playback-token`](/api/content/playback-token) before playback. The ShortKit mobile SDKs handle this transparently — they detect `protected: true`, mint a token, apply the signed URL, and refresh it before expiry. Defaults to `false`.
 </ResponseField>
 
 <ResponseField name="section" type="string | null">
