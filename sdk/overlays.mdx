@@ -1203,6 +1203,7 @@ interface VideoCarouselOverlayProps {
   time: PlayerTime;
   playerState: PlayerState;
   isMuted: boolean;
+  feedId?: string; // the feed this cell belongs to — see Per-feed overlay binding
 }
 ```
 
@@ -1225,6 +1226,31 @@ Register your component in the feed config:
 Your component re-renders when the active video changes (horizontal swipe), when the cell becomes active/inactive (vertical swipe), and when player state updates. Use `activeVideoIndex` to render page indicators and `carouselItem` for carousel-level metadata.
 
 To observe or control the active carousel from your overlay or host app — navigate between videos programmatically, read the active index, or react to video completions — see [Video carousel](/sdk/carousel).
+
+### Per-feed overlay binding (React Native)
+
+When you mount more than one `<ShortKitFeed>` at the same time — for example one feed per tab in a swipeable tab layout — each feed's overlay cells need to know which feed they belong to, so they render that feed's own data instead of whichever feed is currently focused.
+
+Give each mounted feed a stable, unique `feedKey`:
+
+```tsx
+<ShortKitFeed feedKey="for-you" config={{ /* ... */ }} style={{ flex: 1 }} />
+<ShortKitFeed feedKey="following" config={{ /* ... */ }} style={{ flex: 1 }} />
+```
+
+Every overlay component that feed renders then receives a matching `feedId` prop, equal to that feed's `feedKey`:
+
+```tsx
+function MyVideoCarouselOverlay({ feedId, carouselItem }: VideoCarouselOverlayProps) {
+  // feedId === "for-you" or "following" — resolve this feed's own state with it
+}
+```
+
+`feedId` is present on the props of every overlay component — video, image-carousel, and video-carousel overlays. When you don't supply a `feedKey`, the SDK generates a random feed id and overlays receive that, which is all the single-feed case needs. Pass an explicit `feedKey` only when multiple feeds are mounted at once and overlays must be attributed to a specific feed.
+
+<Note>
+  At its first or last page, the video carousel **releases** a horizontal pan instead of consuming it, so the gesture can flow to whatever scroll container wraps the feed. This is what makes edge-swipe tab navigation *possible* — but it is not automatic on its own. You have to host the feed inside a swipe-enabled pager (e.g. a tab navigator with swipe gestures enabled), and whether an edge swipe actually advances a tab is determined by that pager's own gesture handling, which you configure on the host side. The SDK's only role is to stop the carousel from absorbing the pan at its edges.
+</Note>
 
 ### Custom survey overlays
 
