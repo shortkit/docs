@@ -258,29 +258,20 @@ Set `externalId` on each item to prevent duplicate imports. If you submit an ite
 
 Use whatever stable identifier you already have for each content record in your own system — a database primary key, a CMS slug, an internal content ID. As long as you use the same `externalId` for the same piece of content, ShortKit will recognize it as a duplicate and skip re-importing it. `externalId` is scoped to your organization, so different organizations can use the same values independently.
 
-## Social platform imports
+## TikTok import
 
-ShortKit imports content directly from TikTok and Instagram. These endpoints extract metadata from the source automatically — you don't provide `title`, `description`, or `author`.
+ShortKit imports content directly from TikTok via `POST /v1/content/import/tiktok`. It extracts metadata from the source automatically — you don't provide `title`, `description`, or `author`.
 
-| Endpoint | Platform |
-|----------|----------|
-| `POST /v1/content/import/tiktok` | TikTok |
-| `POST /v1/content/import/instagram` | Instagram |
-
-Each URL you submit is either a **single post** (a TikTok video or an Instagram reel) or a **creator profile** (for example `https://www.tiktok.com/@username`). A profile URL is expanded automatically into that creator's most recent posts.
+Each URL you submit is either a **single video** or a **creator profile** (for example `https://www.tiktok.com/@username`). A profile URL is expanded automatically into that creator's most recent videos.
 
 ### Request body
 
 <ParamField body="urls" type="string[]" required>
-  TikTok or Instagram URLs to import. Min 1, max 20 per request. Each entry is either a single post URL or a creator profile URL. Submit at most one profile URL per request — pair it with single post URLs if you need to, and send additional profiles as separate requests.
+  TikTok URLs to import. Min 1, max 20 per request. Each entry is either a single video URL or a creator profile URL. Submit at most one profile URL per request — pair it with single video URLs if you need to, and send additional profiles as separate requests.
 </ParamField>
 
 <ParamField body="maxVideosPerProfile" type="integer" default="20">
-  TikTok only. Maximum number of recent videos to import from each profile URL. Defaults to `20`, up to `10000`. Ignored for single video URLs.
-</ParamField>
-
-<ParamField body="maxReelsPerProfile" type="integer" default="20">
-  Instagram only. Maximum number of recent reels to import from each profile URL. Defaults to `20`, up to `10000`. Ignored for single reel URLs.
+  Maximum number of recent videos to import from each profile URL. Defaults to `20`, up to `10000`. Ignored for single video URLs.
 </ParamField>
 
 <ParamField body="callbackUrl" type="string">
@@ -338,9 +329,7 @@ console.log(`Job ${data.jobId}: ${data.profilesQueued} profile(s) queued`);
 
 ### Response
 
-Social imports are **asynchronous**. The endpoint returns a job summary, not the content records. A profile URL is expanded in the background, so the number of posts it produces is not known when the request returns — the queued count reflects only single post URLs you submitted directly.
-
-The example below is from the TikTok endpoint. The Instagram endpoint returns the same shape but names its counts `reelsQueued` and `reelsSkipped` instead of `videosQueued` and `videosSkipped`.
+TikTok imports are **asynchronous**. The endpoint returns a job summary, not the content records. A profile URL is expanded in the background, so the number of videos it produces is not known when the request returns — `videosQueued` reflects only single video URLs you submitted directly.
 
 ```json 201
 {
@@ -364,8 +353,8 @@ The example below is from the TikTok endpoint. The Instagram endpoint returns th
 |-------|-------------|
 | `data.jobId` | Identifier for this import job. |
 | `data.profilesQueued` | Number of profile URLs accepted for expansion. |
-| `data.videosQueued` (TikTok) / `data.reelsQueued` (Instagram) | Number of single post URLs queued. Posts discovered by expanding a profile are not counted here. |
-| `data.videosSkipped` (TikTok) / `data.reelsSkipped` (Instagram) | Number of URLs skipped — either already imported into your organization, or duplicated within this request. |
+| `data.videosQueued` | Number of single video URLs queued. Videos discovered by expanding a profile are not counted here. |
+| `data.videosSkipped` | Number of URLs skipped — either already imported into your organization, or duplicated within this request. |
 | `queue.orgQueuedItems` | Items currently queued for your organization across all imports. |
 | `queue.estimatedMinutes` | Estimated time until the current queue finishes processing. |
 
@@ -373,7 +362,7 @@ The example below is from the TikTok endpoint. The Instagram endpoint returns th
 
 A profile import can produce many content items over time, and there is no per-job status endpoint. Track progress two ways:
 
-- **`callbackUrl`** — receive a per-item `content.imported` callback as each post finishes processing (see [Callback lifecycle](#callback-lifecycle)), then a single job-level callback when the whole import completes:
+- **`callbackUrl`** — receive a per-item `content.imported` callback as each video finishes processing (see [Callback lifecycle](#callback-lifecycle)), then a single job-level callback when the whole import completes:
 
   ```json
   {
@@ -385,25 +374,15 @@ A profile import can produce many content items over time, and there is no per-j
   }
   ```
 
-  Instagram imports send the same shape with the event `instagram_import.completed`.
-
 - **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`).
 
 ### Auto-populated metadata
 
 ShortKit extracts and fills in the following fields automatically. You can change them after import using the [Update Content](/api/content/update) endpoint.
 
-| Field | TikTok | Instagram |
-|-------|--------|-----------|
-| `title` | Video title (or first 200 chars of caption) | Post title (or first 200 chars of caption) |
-| `description` | Caption text (up to 2,000 chars) | Caption text (up to 2,000 chars) |
-| `author` | Creator username | Channel handle |
-| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments` | `instagram_id`, `instagram_url`, `instagram_likes`, `instagram_comments` |
-
-<Warning>
-  **Content rights.** Only import content you have the rights to use. ShortKit does not verify content ownership or licensing — you are responsible for ensuring you have authorization to redistribute any imported media.
-</Warning>
-
-<Note>
-  Platform imports rely on third-party platform availability and may be affected by changes those platforms make to their systems. We recommend using them for initial content migration rather than as a continuous ingestion pipeline. For ongoing content workflows, use [Upload](/api/content/upload) or the standard [Import](/api/content/import) endpoint with your own hosted URLs.
-</Note>
+| Field | Value |
+|-------|-------|
+| `title` | Video title (or first 200 chars of caption) |
+| `description` | Caption text (up to 2,000 chars) |
+| `author` | Creator username |
+| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments` |
