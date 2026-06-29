@@ -272,7 +272,7 @@ Each URL you submit is either a **single post** (a TikTok video or an Instagram 
 ### Request body
 
 <ParamField body="urls" type="string[]" required>
-  TikTok or Instagram URLs to import. Min 1, max 20 per request. Each entry is either a single post URL or a creator profile URL.
+  TikTok or Instagram URLs to import. Min 1, max 20 per request. Each entry is either a single post URL or a creator profile URL. Submit at most one profile URL per request — pair it with single post URLs if you need to, and send additional profiles as separate requests.
 </ParamField>
 
 <ParamField body="maxVideosPerProfile" type="integer" default="20">
@@ -338,7 +338,9 @@ console.log(`Job ${data.jobId}: ${data.profilesQueued} profile(s) queued`);
 
 ### Response
 
-Social imports are **asynchronous**. The endpoint returns a job summary, not the content records. A profile URL is expanded in the background, so the number of posts it produces is not known when the request returns — `videosQueued` counts only single post URLs you submitted directly.
+Social imports are **asynchronous**. The endpoint returns a job summary, not the content records. A profile URL is expanded in the background, so the number of posts it produces is not known when the request returns — the queued count reflects only single post URLs you submitted directly.
+
+The example below is from the TikTok endpoint. The Instagram endpoint returns the same shape but names its counts `reelsQueued` and `reelsSkipped` instead of `videosQueued` and `videosSkipped`.
 
 ```json 201
 {
@@ -362,8 +364,8 @@ Social imports are **asynchronous**. The endpoint returns a job summary, not the
 |-------|-------------|
 | `data.jobId` | Identifier for this import job. |
 | `data.profilesQueued` | Number of profile URLs accepted for expansion. |
-| `data.videosQueued` | Number of single post URLs queued. Posts discovered by expanding a profile are not counted here. |
-| `data.videosSkipped` | Number of URLs skipped because they were already imported into your organization. |
+| `data.videosQueued` (TikTok) / `data.reelsQueued` (Instagram) | Number of single post URLs queued. Posts discovered by expanding a profile are not counted here. |
+| `data.videosSkipped` (TikTok) / `data.reelsSkipped` (Instagram) | Number of URLs skipped — either already imported into your organization, or duplicated within this request. |
 | `queue.orgQueuedItems` | Items currently queued for your organization across all imports. |
 | `queue.estimatedMinutes` | Estimated time until the current queue finishes processing. |
 
@@ -394,7 +396,7 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | Field | TikTok | Instagram |
 |-------|--------|-----------|
 | `title` | Video title (or first 200 chars of caption) | Post title (or first 200 chars of caption) |
-| `description` | Full caption text | Full caption text |
+| `description` | Caption text (up to 2,000 chars) | Caption text (up to 2,000 chars) |
 | `author` | Creator username | Channel handle |
 | `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments` | `instagram_id`, `instagram_url`, `instagram_likes`, `instagram_comments` |
 
