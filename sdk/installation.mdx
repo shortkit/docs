@@ -443,7 +443,7 @@ Build and run this minimal example to confirm the import resolves and the SDK in
 If you have content uploaded to your ShortKit account, you should see a vertical video feed. If your account has no content yet, the feed will display an empty state -- follow the [Quickstart](/quickstart) to upload your first video.
 
 <Tip>
-  Get your publishable API key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. Use `pk_live_...` for production and `pk_test_...` for development.
+  Get your publishable API key from the [Admin Portal](https://portal.shortkit.dev) under **Settings** then **API Keys**. New keys are issued with the `pk_live_` prefix.
 </Tip>
 
 ## Troubleshooting
@@ -527,14 +527,13 @@ If you have content uploaded to your ShortKit account, you should see a vertical
 
     1. Confirm you have uploaded at least one video to your ShortKit account. You can check in the [Admin Portal](https://portal.shortkit.dev) under **Content**.
     2. Verify the video status is **Ready** (processing can take 1-2 minutes after upload)
-    3. Check that you are using the correct API key for the environment where your content lives (`pk_live_...` for production content, `pk_test_...` for test content)
+    3. Confirm your publishable key is valid and active in the Admin Portal
   </Accordion>
   <Accordion title="All platforms: 401 Unauthorized error">
     A 401 error means the API key is invalid or not recognized:
 
-    1. Double-check the full key string, including the `pk_live_` or `pk_test_` prefix
+    1. Double-check the full key string, including the prefix (`pk_live_` for new keys; legacy `pk_test_` keys still work)
     2. Make sure you are using the **publishable key**, not the secret key, in client-side code
     3. Verify the key has not been revoked in the Admin Portal
-    4. Confirm the key matches the environment you are targeting
   </Accordion>
 </AccordionGroup>

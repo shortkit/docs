@@ -60,6 +60,6 @@ When `meta.nextCursor` is absent, you've reached the last page.
 
 Every response includes a `request_id` in `meta`. Include this when contacting support about a specific request.
 
-## Environments
+## API keys
 
-API keys encode their environment (`live` or `test`) in the prefix. These environments are completely isolated — a `live` key cannot access `test` data, and vice versa. See [Authentication](/api/authentication#environment-isolation) for details.
+All new API keys are issued with the `pk_live_` and `sk_live_` prefixes. Older `pk_test_` and `sk_test_` keys remain valid and authenticate identically — the prefix no longer affects access or data scoping. See [Authentication](/api/authentication) for details.
