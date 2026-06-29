@@ -84,6 +84,12 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   Concurrent viewer count for live streams, refreshed on every feed read. `0` for non-live items and for live streams that are not currently being watched.
 </ResponseField>
 
+<ResponseField name="livePlaybackId" type="string | null">
+  Identifier the SDK uses to report viewer presence (the [`live.viewer.heartbeat`](/api/analytics/event-object#engagement) event) for a live stream. The SDK reads this field instead of `playbackId` so it works for every live protocol — `hls` streams mirror `playbackId`, while `webrtc` streams expose their room id here (the `webrtc` `playbackId` is `null` until a recording is produced). `null` for non-live items.
+
+  You generally don't need to read this field — the SDK handles heartbeats automatically. It's exposed for custom clients that implement their own viewer-presence reporting.
+</ResponseField>
+
 <ResponseField name="title" type="string">
   Display title shown in the feed. Max 200 characters.
 </ResponseField>
