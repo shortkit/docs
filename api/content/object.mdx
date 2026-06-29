@@ -10,7 +10,7 @@ A content item is the core resource in ShortKit. It represents a **video**, an *
 Content is not created directly — instead, you create content by uploading or importing media:
 
 - **[Upload](/api/content/upload)** — You have a video file. Upload it directly from a client or server. Best for user-generated content or files on disk.
-- **[Import](/api/content/import)** — You have a URL (cloud storage, TikTok, Instagram, etc.). ShortKit fetches and processes the media for you. Best for migrating existing content or server-side workflows.
+- **[Import](/api/content/import)** — You have a URL (cloud storage, TikTok, etc.). ShortKit fetches and processes the media for you. Best for migrating existing content or server-side workflows.
 - **[Live Stream](/api/live-streams/create)** — You're broadcasting in real time. ShortKit creates a content item for the stream that appears in the feed while the broadcast is live, and the recording remains afterward.
 
 Each method accepts metadata (title, description, tags, etc.) alongside the media, and returns a content object. Once created, use the content endpoints to [list](/api/content/list), update, or delete content.
