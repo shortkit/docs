@@ -384,5 +384,22 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 |-------|-------|
 | `title` | Video title (or first 200 chars of caption) |
 | `description` | Caption text (up to 2,000 chars) |
-| `author` | Creator username |
-| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments` |
+| `author` | Creator handle (e.g. `@postmalone`) |
+| `customMetadata` | See table below |
+
+The following keys are written into `customMetadata` for each imported TikTok video:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `tiktok_id` | string | Source video ID. |
+| `tiktok_url` | string | Canonical source URL. |
+| `tiktok_likes` | string | Like count at import time. |
+| `tiktok_views` | string | View count at import time. |
+| `tiktok_comments` | string | Comment count at import time. |
+| `tiktok_author_name` | string | Creator display name (e.g. `Post Malone`). The `author` field holds the `@handle`. |
+| `tiktok_upload_date` | string | Original post date in `YYYYMMDD` format. |
+| `tiktok_timestamp` | integer | Original post time as a Unix epoch in seconds. |
+
+<Note>
+  Count fields (`tiktok_likes`, `tiktok_views`, `tiktok_comments`) are strings. `tiktok_timestamp` is an integer.
+</Note>
