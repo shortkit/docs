@@ -11,6 +11,18 @@ Live streams render as videos with an `isLive` flag set on the content item — 
 
 When `FeedConfig.filter` is set, the feed only shows content matching the filter criteria. Filtering is handled server-side — the SDK applies the filter automatically on every request (initial load, pagination, pull-to-refresh).
 
+### Feed ordering
+
+By default, the feed returns your published content in reverse-chronological order.
+
+Your organization can also be configured to serve a **session-randomised** feed. When this mode is on:
+
+- Each session starts with a fresh random ordering of your entire published corpus.
+- Pagination walks that ordering and will not return the same item twice within a session.
+- A pull-to-refresh (a page-1 request with no cursor) starts a new session and reshuffles the order.
+
+Ordering is configured per organization in the dashboard. The SDK requires no code changes — the same `ShortKitFeed` component handles both modes transparently.
+
 ## ShortKitFeedViewController (UIKit)
 
 ```swift
