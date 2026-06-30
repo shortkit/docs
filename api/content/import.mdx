@@ -264,6 +264,10 @@ ShortKit imports content directly from TikTok via `POST /v1/content/import/tikto
 
 Each URL you submit is either a **single video** or a **creator profile** (for example `https://www.tiktok.com/@username`). A profile URL is expanded automatically into that creator's most recent videos.
 
+<Note>
+  TikTok **photo-mode posts** (image slideshows, URLs of the form `tiktok.com/@user/photo/<id>`) are skipped by default — they have no video stream to ingest. Photo URLs submitted directly are counted under `videosSkipped` in the response. Photo posts discovered while expanding a profile are recorded with `upload_status: "skipped"` (and `skip_reason: "tiktok_photo_post"` in `customMetadata`); they never appear in the feed and are excluded from your daily import quota.
+</Note>
+
 ### Request body
 
 <ParamField body="urls" type="string[]" required>
@@ -354,7 +358,7 @@ TikTok imports are **asynchronous**. The endpoint returns a job summary, not the
 | `data.jobId` | Identifier for this import job. |
 | `data.profilesQueued` | Number of profile URLs accepted for expansion. |
 | `data.videosQueued` | Number of single video URLs queued. Videos discovered by expanding a profile are not counted here. |
-| `data.videosSkipped` | Number of URLs skipped — either already imported into your organization, or duplicated within this request. |
+| `data.videosSkipped` | Number of URLs skipped — already imported into your organization, duplicated within this request, or a TikTok photo-mode post. Skipped items don't count against your daily import quota. |
 | `queue.orgQueuedItems` | Items currently queued for your organization across all imports. |
 | `queue.estimatedMinutes` | Estimated time until the current queue finishes processing. |
 
