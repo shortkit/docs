@@ -1164,6 +1164,7 @@ Video carousel overlays conform to `VideoCarouselOverlay`. Unlike image carousel
         func attach(player: ShortKitPlayer)
         func activatePlayback()
         func deactivatePlayback()
+        func updatePlaybackProgress(index: Int, fraction: Double)
     }
     ```
   </Tab>
@@ -1191,6 +1192,7 @@ Video carousel overlays conform to `VideoCarouselOverlay`. Unlike image carousel
 | `attach(player:)` | Once, after creation. | Store the player reference and subscribe to its reactive streams (`time`, `playerState`, `isMuted`, etc.) to display playback state in your overlay. |
 | `activatePlayback()` | The cell becomes the active (on-screen) cell. | Begin processing player time updates to drive scrubbers, captions, etc. |
 | `deactivatePlayback()` | The cell scrolls off-screen. | Stop processing time updates and pause any overlay animations. |
+| `updatePlaybackProgress(index:fraction:)` *(iOS only)* | Roughly 10 times per second while a carousel video plays. | Drive per-segment progress UI (stories-style bars). `index` is the active video's position in `carouselItem.videos`; `fraction` is clamped to `0...1` and tracks the active video's playback. The default implementation is a no-op, so existing overlays compile unchanged. |
 
 In React Native, video carousel overlays are React components that receive props directly:
 
@@ -1199,6 +1201,13 @@ interface VideoCarouselOverlayProps {
   carouselItem: VideoCarouselItem;
   activeVideo: ContentItem;
   activeVideoIndex: number;
+  /**
+   * iOS only. Playback progress of the active video, clamped to 0...1.
+   * Updates ~4 times per second; resets to 0 when `activeVideoIndex` changes.
+   * Use this to drive stories-style per-segment progress bars. On platforms
+   * where the signal isn't wired up yet, it stays at 0.
+   */
+  playbackProgress: number;
   isActive: boolean;
   time: PlayerTime;
   playerState: PlayerState;
@@ -1223,7 +1232,19 @@ Register your component in the feed config:
 </ShortKitProvider>
 ```
 
-Your component re-renders when the active video changes (horizontal swipe), when the cell becomes active/inactive (vertical swipe), and when player state updates. Use `activeVideoIndex` to render page indicators and `carouselItem` for carousel-level metadata.
+Your component re-renders when the active video changes (horizontal swipe), when the cell becomes active/inactive (vertical swipe), and when player state updates. Use `activeVideoIndex` to render page indicators, `playbackProgress` to drive a stories-style per-segment fill, and `carouselItem` for carousel-level metadata.
+
+```tsx
+function StoriesProgress({ carouselItem, activeVideoIndex, playbackProgress }: VideoCarouselOverlayProps) {
+  const totalPages = carouselItem.videos?.length ?? 0;
+  const fillFor = (index: number) => {
+    if (index < activeVideoIndex) return 1;
+    if (index === activeVideoIndex) return Math.max(0, Math.min(playbackProgress, 1));
+    return 0;
+  };
+  // Render one track per page, filling each `flex: fillFor(index)` of the track.
+}
+```
 
 To observe or control the active carousel from your overlay or host app — navigate between videos programmatically, read the active index, or react to video completions — see [Video carousel](/sdk/carousel).
 
