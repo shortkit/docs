@@ -205,9 +205,12 @@ Sent when the video has been accepted for transcoding. This is where you receive
   "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
   "title": "Quarterly Recap",
   "source": "url",
+  "customMetadata": { "campaign": "q1-recap" },
   "timestamp": "2026-03-10T14:30:00.000Z"
 }
 ```
+
+The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
 
 At this point the video is streamable (progressive delivery) but transcoding is not yet complete. If you plan to serve this content immediately, be aware that viewers of longer videos may experience buffering until encoding finishes.
 
@@ -227,6 +230,7 @@ Sent if transcoding fails. The payload includes an `error` field describing the 
   "error": "Video processing failed",
   "title": "Product Launch",
   "source": "url",
+  "customMetadata": { "campaign": "spring-launch" },
   "timestamp": "2026-03-10T14:35:00.000Z"
 }
 ```
@@ -385,4 +389,4 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `title` | Video title (or first 200 chars of caption) |
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
-| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments` |
+| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds) |
