@@ -323,9 +323,14 @@ Sent when your file has been received and processing has begun. If a `playbackId
   "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
   "title": "Product Launch Teaser",
   "source": "upload",
+  "customMetadata": {},
   "timestamp": "2026-03-10T14:30:00.000Z"
 }
 ```
+
+<Note>
+  `customMetadata` mirrors whatever you provided in the upload request's `customMetadata` field (or `{}` if you didn't set one). It's `null` only when the content record can't be resolved at callback time.
+</Note>
 
 **2. `content.imported` with `status: "ready"`**
 
@@ -344,6 +349,7 @@ Sent if processing fails. The payload includes an `error` field with a human-rea
   "error": "A human-readable description of the failure.",
   "title": "Product Launch Teaser",
   "source": "upload",
+  "customMetadata": {},
   "timestamp": "2026-03-10T14:35:00.000Z"
 }
 ```
@@ -365,6 +371,7 @@ A single callback fires once all images have been validated. The `status` is `"r
     { "position": 1, "url": "https://..." },
     { "position": 2, "url": "https://..." }
   ],
+  "customMetadata": {},
   "timestamp": "2026-03-10T14:30:00.000Z"
 }
 ```

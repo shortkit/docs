@@ -205,6 +205,7 @@ Sent when the video has been accepted for transcoding. This is where you receive
   "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
   "title": "Quarterly Recap",
   "source": "url",
+  "customMetadata": {},
   "timestamp": "2026-03-10T14:30:00.000Z"
 }
 ```
@@ -214,6 +215,32 @@ At this point the video is streamable (progressive delivery) but transcoding is 
 **2. `content.imported` with `status: "ready"`**
 
 Sent when transcoding completes and the video is fully available at all quality levels. The payload shape is identical to the `processing` callback, with `status` set to `"ready"`.
+
+For TikTok and Instagram imports, the `customMetadata` object on the `ready` callback carries the auto-extracted platform metadata — the same fields available via `GET /v1/content/{id}` — so you don't need a second request to read them:
+
+```json
+{
+  "event": "content.imported",
+  "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+  "externalId": "tiktok_7655481490943315213",
+  "status": "ready",
+  "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
+  "title": "feeling whitney in the rain 💕",
+  "source": "tiktok",
+  "customMetadata": {
+    "tiktok_id": "7655481490943315213",
+    "tiktok_url": "https://www.tiktok.com/@postmalone/video/7655481490943315213",
+    "tiktok_likes": "141700",
+    "tiktok_views": "682500",
+    "tiktok_comments": "1002",
+    "tiktok_author_name": "Post Malone",
+    "tiktok_upload_date": "20260625",
+    "tiktok_timestamp": 1782430694,
+    "language": "en"
+  },
+  "timestamp": "2026-03-10T14:31:00.000Z"
+}
+```
 
 **3. `content.import_failed` with `status: "error"`**
 
@@ -227,6 +254,7 @@ Sent if transcoding fails. The payload includes an `error` field describing the 
   "error": "Video processing failed",
   "title": "Product Launch",
   "source": "url",
+  "customMetadata": {},
   "timestamp": "2026-03-10T14:35:00.000Z"
 }
 ```
