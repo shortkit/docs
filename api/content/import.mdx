@@ -210,7 +210,7 @@ Sent when the video has been accepted for transcoding. This is where you receive
 }
 ```
 
-The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
+The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_handle`, `tiktok_caption`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
 
 At this point the video is streamable (progressive delivery) but transcoding is not yet complete. If you plan to serve this content immediately, be aware that viewers of longer videos may experience buffering until encoding finishes.
 
@@ -386,7 +386,7 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 
 | Field | Value |
 |-------|-------|
-| `title` | Video title (or first 200 chars of caption) |
+| `title` | Caption text. Left empty when the post has no caption — no placeholder is set. |
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
-| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds) |
+| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_handle` (creator `@username`), `tiktok_caption` (full caption), `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds) |
