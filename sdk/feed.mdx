@@ -272,6 +272,64 @@ public struct ShortKitFeedView: UIViewControllerRepresentable {
   Store the `ShortKit` instance outside the view body. Creating it inside the `body` property causes re-initialization on every SwiftUI render pass.
 </Warning>
 
+## Image-carousel active-image events
+
+When a feed cell uses the built-in image-carousel overlay, the feed emits an event each time the user pages to a new image. Use it to keep host chrome, analytics, or overlay UI in sync with the visible image.
+
+The event only fires for the built-in carousel. Custom carousel overlays own their own paging and do not emit this event — subscribe to your overlay's own state instead.
+
+The event is de-duped: repeated settles on the same page index emit once. Landing on the first image at initial display and resetting to the first image on vertical swipe both emit an event carrying `index: 0`.
+
+<Tabs>
+  <Tab title="iOS">
+    Set the closure on your `ShortKitFeedViewController` instance. The closure receives `(carouselItemId, imageIndex)`.
+
+    ```swift
+    feedVC.onCarouselActiveImageChanged = { carouselItemId, imageIndex in
+        analytics.track("carousel_image_view", [
+            "carousel_id": carouselItemId,
+            "image_index": imageIndex,
+        ])
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Set the callback on your `ShortKitFeedFragment` instance. The callback receives `(carouselItemId, imageIndex)`.
+
+    ```kotlin
+    feedFragment.onCarouselActiveImageChanged = { carouselItemId, imageIndex ->
+        analytics.track("carousel_image_view", mapOf(
+            "carousel_id" to carouselItemId,
+            "image_index" to imageIndex,
+        ))
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Pass `onFeedCarouselActiveImageChanged` to `<ShortKitFeed>`.
+
+    ```tsx
+    <ShortKitFeed
+      onFeedCarouselActiveImageChanged={(event) => {
+        analytics.track('carousel_image_view', {
+          carousel_id: event.carouselId,
+          image_index: event.index,
+        });
+      }}
+      /* ... */
+    />
+    ```
+
+    ```ts
+    interface FeedCarouselActiveImageChangedEvent {
+      feedId: string;      // the feed surface that produced the event
+      carouselId: string;  // ImageCarouselItem.id
+      index: number;       // zero-based index of the newly active image
+    }
+    ```
+  </Tab>
+</Tabs>
+
 ### Partial-height feed in SwiftUI
 
 Use `FeedConfig.feedHeight` to make the feed occupy a portion of the screen:
