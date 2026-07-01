@@ -1148,6 +1148,31 @@ Custom carousel overlays conform to `CarouselOverlay`. Unlike video overlays, th
 
 The `ImageCarouselItem` provided in `configure(with:)` contains the carousel's images, metadata, and optional auto-scroll interval. Your overlay is responsible for displaying the images and handling all user interaction — paging, text expansion, action buttons — directly.
 
+In React Native, image carousel overlays are React components that receive props directly:
+
+```tsx
+interface CarouselOverlayProps {
+  item: ImageCarouselItem;
+  isActive: boolean;         // true only while this cell is the on-screen cell
+  activeImageIndex: number;  // index of the currently visible image within the carousel
+  feedId?: string;           // the feed this cell belongs to — see Per-feed overlay binding
+}
+```
+
+Your component re-renders when the active image changes (horizontal swipe), when the cell becomes active or inactive (vertical swipe), and on cell reuse. `isActive` flips to `false` the moment the cell scrolls off-screen, so it's safe to use as the gate for per-cell work — e.g. starting and stopping per-cover audio, "now playing" animations, or any effect that should only run while the cell is visible.
+
+```tsx
+function MyCarouselOverlay({ item, isActive, activeImageIndex }: CarouselOverlayProps) {
+  useEffect(() => {
+    if (!isActive) return;
+    const audio = playCoverAudio(item.images[activeImageIndex]);
+    return () => audio.stop();
+  }, [isActive, activeImageIndex, item]);
+
+  // ... render images, page indicators, etc.
+}
+```
+
 ### Video carousel overlays
 
 Video carousel overlays conform to `VideoCarouselOverlay`. Unlike image carousel overlays, the SDK handles horizontal video paging and playback natively — your overlay only provides the chrome layer (titles, buttons, page indicators) rendered on top.
