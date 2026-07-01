@@ -92,6 +92,14 @@ A live stream moves through three states:
 | `active` | A broadcaster is connected and pushing video. Viewers can watch the stream from your feed. |
 | `ended` | The stream has finished — either explicitly ended via [End Live Stream](/api/live-streams/end), or (HLS streams only) automatically because the broadcaster disconnected for longer than `reconnectWindow`. The recording becomes available for [clipping](/api/live-streams/clip). |
 
+When a stream transitions to `ended`, ShortKit runs a single end-of-stream finalization regardless of how the end was triggered (explicit `POST /end`, broadcaster disconnect past `reconnectWindow`, or upstream session close):
+
+- `status` is set to `ended` and `endedAt` is stamped (idempotent — a re-fire won't overwrite the original timestamp).
+- If the associated content item was `published`, its `publishStatus` is flipped to `unpublished` so the ended stream stops appearing in feeds.
+- If no playable recording is ever produced, the content item is soft-deleted (its `deletedAt` is stamped) roughly 15 minutes after the stream ended. This keeps the library free of empty shells for broadcasts that never yielded on-demand video. Streams that do produce a recording — or that are later reconnected before the grace window elapses — are never swept.
+
+A soft-deleted content item is recoverable; it is not hard-deleted.
+
 A stream can transition `idle` → `active` only once. Once it has gone `active` and then `ended`, it cannot be restarted — create a new live stream for the next broadcast.
 
 ---
