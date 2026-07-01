@@ -151,7 +151,7 @@ Live streams render in the feed with no extra setup. The SDK's `ContentItem` exp
   </Tab>
 </Tabs>
 
-The SDK automatically reports viewer presence on your behalf — every active viewer counts toward `currentViewers` for as long as they're watching. The mechanism is a [`live.viewer.heartbeat` event](/api/analytics/event-object#engagement) the SDK fires every 30 seconds while a live item is the active playing item. You don't need to call any tracking API or write your own heartbeat code; just render the field.
+The SDK automatically reports viewer presence on your behalf — every active viewer counts toward `currentViewers` for as long as they're watching. The mechanism is a [`live.viewer.heartbeat` event](/api/analytics/event-object#engagement) the SDK fires every 10 seconds while a live item is the active playing item. Viewers who stop watching drop out of `currentViewers` within about 30 seconds. You don't need to call any tracking API or write your own heartbeat code; just render the field.
 
 For a known set of streams (for example, those currently visible to a viewer in your UI), you can also poll [Get Live Stream Status](/api/live-streams/status) directly with your publishable key to react to status changes (`active` → `ended`) more promptly than the next feed refresh would surface them.
 
