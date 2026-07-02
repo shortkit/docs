@@ -1,0 +1,141 @@
+---
+title: "Protected Content"
+description: "Gate playback behind short-lived signed streaming URLs. Mark content protected, and the SDK plays it transparently — no extra integration."
+keywords: ["protected content", "signed URL", "signed streaming URL", "playback token", "protected", "expiring token"]
+---
+
+Protected content is content whose playback is gated behind a short-lived **signed streaming URL**. When an item is protected, its streaming URL is withheld from feed and content responses until a signed URL is issued. That signed URL carries an expiring token, so playback links can't be shared or hotlinked indefinitely.
+
+Use protected content when you want to limit who can play a video and for how long — for example, subscriber-only or paywalled content.
+
+<Note>
+  Protection gates access with an expiring URL (and an optional origin/app allowlist). It is not per-viewer DRM — it does not encrypt the stream or bind playback to a specific device.
+</Note>
+
+---
+
+## How it works
+
+1. You mark a content item **protected** at upload or import time (or rely on your organization's default).
+2. In the feed and content responses, the item's `streamingUrl` is withheld (returned `null` or empty) and a `protected` flag is set to `true`.
+3. To play the item, a **signed streaming URL** is issued from the [playback-token endpoint](/api/content/playback-token). The URL is short-lived and expires at a fixed time.
+4. Before the URL expires, a fresh one is requested so playback is never interrupted.
+
+In the ShortKit SDKs, steps 3 and 4 happen automatically. You only issue signed URLs yourself if you play protected content outside the SDK.
+
+---
+
+## Marking content protected
+
+Set the `protected` boolean on the [Upload](/api/content/upload) or [Import](/api/content/import) request. The field is optional — when you omit it, the item inherits your organization's default.
+
+<Tabs>
+  <Tab title="Upload">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/upload \
+      -H "X-API-Key: pk_live_your_publishable_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "contentType": "video",
+        "title": "Members-only interview",
+        "section": "Premium",
+        "protected": true
+      }'
+    ```
+  </Tab>
+  <Tab title="Import">
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/import \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "items": [
+          {
+            "contentType": "video",
+            "title": "Members-only interview",
+            "sourceUrl": "https://storage.example.com/videos/interview.mp4",
+            "protected": true
+          }
+        ]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Organization default
+
+Your organization has a **default playback protected** setting that decides whether new content is protected when the `protected` field is omitted. Set the per-item field to override the default in either direction — `true` to protect an item in an unprotected-by-default org, or `false` to leave an item public in a protected-by-default org.
+
+<Note>
+  The default is an organization setting. Adjust it in the Admin Portal.
+</Note>
+
+---
+
+## How the feed represents protected content
+
+Protected items appear in the feed like any other content, with two differences:
+
+- **`protected`** is `true`.
+- **`streamingUrl`** is `null` or empty — the streaming URL is withheld until a signed URL is issued.
+
+Everything else — title, thumbnail, metadata — is present, so protected items render in the feed and browse exactly like public ones.
+
+---
+
+## Playing protected content in the SDK
+
+Protected content plays transparently in the ShortKit SDKs. There is **no extra integration on any platform**. The SDK detects protected items, issues a signed streaming URL, applies it to the player, and refreshes it before it expires so long-running playback is never interrupted. Protected items are pre-buffered just like public ones, so swiping into a protected item is instant.
+
+<Tabs>
+  <Tab title="iOS">
+    No additional code. Embed the [feed](/sdk/feed) as usual — protected items play automatically.
+  </Tab>
+  <Tab title="Android">
+    No additional code. Embed the [feed](/sdk/feed) as usual — protected items play automatically.
+  </Tab>
+  <Tab title="Flutter">
+    No additional code. Embed the [feed](/sdk/feed) as usual — protected items play automatically.
+  </Tab>
+  <Tab title="React Native">
+    No additional code. Embed the [feed](/sdk/feed) as usual — protected items play automatically.
+  </Tab>
+</Tabs>
+
+<Note>
+  Signed-URL issuance and refresh are handled entirely inside the SDK. You don't call the playback-token endpoint, store tokens, or schedule refreshes yourself.
+</Note>
+
+---
+
+## Playing protected content outside the SDK
+
+If you play protected content in a player that isn't the ShortKit SDK — for example, a custom web player — issue the signed streaming URL yourself with the [playback-token endpoint](/api/content/playback-token).
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/playback-token \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The response returns a signed `video.url` and `thumbnail.url`, each with an `expiresAt` timestamp (Unix epoch seconds):
+
+```json
+{
+  "playbackId": "DS00Spx1CV",
+  "video": { "url": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8?token=<signed>", "expiresAt": 1893456000 },
+  "thumbnail": { "url": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?token=<signed>", "expiresAt": 1893456000 }
+}
+```
+
+Signed URLs are short-lived. Request a fresh URL before `expiresAt` to keep playback uninterrupted. See the [playback-token endpoint reference](/api/content/playback-token) for request parameters, the client allowlist, and error codes.
+
+---
+
+## Next steps
+
+- [Create a playback token](/api/content/playback-token) — issue a signed streaming URL for playback outside the SDK.
+- [The content object](/api/content/object) — the `protected` and `streamingUrl` fields in full.
+- [Content types](/guides/content-types) — every feed item type and its fields.
+- [Embedding a feed](/sdk/feed) — set up the SDK feed that plays protected items automatically.

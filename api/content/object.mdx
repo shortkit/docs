@@ -30,6 +30,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   "duration": 32.5,
   "streamingUrl": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8",
   "thumbnailUrl": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?time=0",
+  "protected": false,
   "section": "Weather",
   "author": "Jane Doe",
   "tags": ["weather", "severe", "breaking"],
@@ -105,7 +106,11 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 </ResponseField>
 
 <ResponseField name="streamingUrl" type="string | null">
-  HLS streaming URL for video playback. Available once `uploadStatus` is `ready`. `null` for carousels.
+  HLS streaming URL for video playback. Available once `uploadStatus` is `ready`. `null` for carousels. Also `null` for [protected content](/guides/protected-content) — the streaming URL is withheld until a signed URL is issued via the [playback-token endpoint](/api/content/playback-token).
+</ResponseField>
+
+<ResponseField name="protected" type="boolean">
+  When `true`, playback is gated behind a short-lived signed streaming URL and `streamingUrl` is withheld (`null`). Issue a signed URL via the [playback-token endpoint](/api/content/playback-token), or let the SDK handle it automatically. See [Protected Content](/guides/protected-content).
 </ResponseField>
 
 <ResponseField name="thumbnailUrl" type="string | null">

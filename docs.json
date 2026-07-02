@@ -54,7 +54,8 @@
             "pages": [
               "guides/content-types",
               "guides/upload-pipeline",
-              "guides/live-streams"
+              "guides/live-streams",
+              "guides/protected-content"
             ]
           },
           {
@@ -107,6 +108,7 @@
                   "api/content/import",
                   "api/content/list",
                   "api/content/get",
+                  "api/content/playback-token",
                   "api/content/count",
                   "api/content/search",
                   "api/content/update",
