@@ -21,7 +21,6 @@ Use this when you have media hosted elsewhere — migrating from another platfor
 
   - `protected` (boolean) — When `true`, playback is gated behind a short-lived signed streaming URL. When omitted, defaults to your organization's default. See [Protected Content](/guides/protected-content).
 
-
   **For videos:**
   - `sourceUrl` (string, required) — URL to the video file.
   - `externalId` (string) — Your own identifier for this content. Used for idempotency — if you re-import an item with the same `externalId`, ShortKit skips it instead of creating a duplicate.
