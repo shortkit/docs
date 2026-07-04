@@ -128,19 +128,6 @@
                 ]
               },
               {
-                "group": "Surveys",
-                "expanded": true,
-                "pages": [
-                  "api/surveys/object",
-                  "api/surveys/create",
-                  "api/surveys/list",
-                  "api/surveys/get",
-                  "api/surveys/update",
-                  "api/surveys/delete",
-                  "api/surveys/submit-response"
-                ]
-              },
-              {
                 "group": "Analytics & Events",
                 "expanded": true,
                 "pages": [

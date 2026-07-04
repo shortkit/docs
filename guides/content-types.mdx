@@ -1,10 +1,10 @@
 ---
 title: "Content Types"
-description: "The feed item types in ShortKit: video, live stream, image carousel, video carousel, survey, and ad slot."
-keywords: ["content types", "feed items", "video", "live stream", "image carousel", "video carousel", "survey", "ad slot", "FeedItem", "ContentItem", "VideoCarouselItem"]
+description: "The feed item types in ShortKit: video, live stream, image carousel, video carousel, and ad slot."
+keywords: ["content types", "feed items", "video", "live stream", "image carousel", "video carousel", "ad slot", "FeedItem", "ContentItem", "VideoCarouselItem"]
 ---
 
-ShortKit feeds are polymorphic. Each position in the feed can be a video, a live stream, an image carousel, a video carousel, a survey, or an ad slot. The SDK represents this with the `FeedItem` enum, and each case wraps a typed model with all the data you need to render it.
+ShortKit feeds are polymorphic. Each position in the feed can be a video, a live stream, an image carousel, a video carousel, or an ad slot. The SDK represents this with the `FeedItem` enum, and each case wraps a typed model with all the data you need to render it.
 
 ## Feed item types at a glance
 
@@ -14,7 +14,6 @@ ShortKit feeds are polymorphic. Each position in the feed can be a video, a live
 | Live stream | `ContentItem` with `isLive: true` | Real-time broadcast with a live viewer count. See [Live Streams](/guides/live-streams). |
 | Image carousel | `ImageCarouselItem` | Horizontally paged images with optional auto-scroll |
 | Video carousel | `VideoCarouselItem` | Horizontally paged videos with carousel-level metadata |
-| Survey | `SurveyItem` | Single-question poll with selectable options |
 | Ad slot | `AdSlot` | Server-positioned ad placement filled by your ad provider |
 
 ---
@@ -341,7 +340,7 @@ Fallback URLs are only used in custom feed mode with `FeedInput.video`. Pass the
 
 ## Image carousel
 
-Image carousels display a horizontally paged set of images with optional auto-scrolling. They share the same vertical feed slot as videos and surveys.
+Image carousels display a horizontally paged set of images with optional auto-scrolling. They share the same vertical feed slot as videos.
 
 ### ImageCarouselItem fields
 
@@ -531,88 +530,6 @@ Each video in the `videos` array is a standard `ContentItem` — the same type u
 
 ---
 
-## Survey
-
-Surveys display a single-question poll. After the user selects an option, the SDK reports their response and auto-advances to the next feed item.
-
-### SurveyItem fields
-
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    public struct SurveyItem: Codable, Equatable, Sendable {
-        public let id: String
-        public let question: String
-        public let options: [SurveyOption]
-        public let autoAdvanceDelay: Double?
-    }
-
-    public struct SurveyOption: Codable, Equatable, Sendable {
-        public let id: String
-        public let text: String
-    }
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    data class SurveyItem(
-        val id: String,
-        val question: String,
-        val options: List<SurveyOption>,
-        val autoAdvanceDelay: Double?
-    )
-
-    data class SurveyOption(
-        val id: String,
-        val text: String
-    )
-    ```
-  </Tab>
-  <Tab title="React Native">
-    ```typescript
-    interface SurveyItem {
-      id: string;
-      question: string;
-      options: SurveyOption[];
-      autoAdvanceDelay?: number;
-    }
-
-    interface SurveyOption {
-      id: string;
-      text: string;
-    }
-    ```
-  </Tab>
-  <Tab title="Web">
-    ```js
-    // SurveyItem shape (rendering deferred -- coming soon)
-    {
-      id: 'survey-1',
-      question: 'How likely are you to recommend us?',
-      options: [
-        { id: 'opt-1', text: 'Very likely' },
-        { id: 'opt-2', text: 'Somewhat likely' },
-        { id: 'opt-3', text: 'Not likely' },
-      ],
-      autoAdvanceDelay: 2, // seconds, or null
-    }
-    ```
-  </Tab>
-</Tabs>
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | `String` | Unique survey identifier |
-| `question` | `String` | The question to display |
-| `options` | `[SurveyOption]` | Selectable answers. Each has an `id` and display `text`. |
-| `autoAdvanceDelay` | `Double?` | Seconds to wait after the user selects an option before advancing to the next feed item. When `nil`, the SDK does not auto-advance. |
-
-### Receiving survey responses
-
-Survey responses are delivered through the `SurveyOverlay` protocol's `onSurveyResponse` callback. When using a custom survey overlay, the SDK sets this callback on your overlay instance. Call it when the user selects an option. See [Overlays — Survey overlay](/sdk/overlays#survey-overlay) for the full protocol reference.
-
----
-
 ## Ad slot
 
 Ad slots are server-positioned placeholders in the feed that get filled by your ad provider at runtime. The position and targeting configuration are set in the Admin Portal or via the API. The SDK loads and displays ads automatically when an `adProvider` is configured.
@@ -621,7 +538,7 @@ Ad slots are server-positioned placeholders in the feed that get filled by your 
 
 ## The FeedItem enum
 
-The SDK wraps all five content types in a single discriminated union. The API response includes a `"type"` field (`"content"`, `"image_carousel"`, `"video_carousel"`, `"survey"`, `"ad_slot"`) that the SDK uses for deserialization. Missing `"type"` defaults to `"content"` for backward compatibility.
+The SDK wraps all four content types in a single discriminated union. The API response includes a `"type"` field (`"content"`, `"image_carousel"`, `"video_carousel"`, `"ad_slot"`) that the SDK uses for deserialization. Missing `"type"` defaults to `"content"` for backward compatibility.
 
 <Tabs>
   <Tab title="Swift">
@@ -631,14 +548,12 @@ The SDK wraps all five content types in a single discriminated union. The API re
         case adSlot(AdSlot)
         case imageCarousel(ImageCarouselItem)
         case videoCarousel(VideoCarouselItem)
-        case survey(SurveyItem)
 
         // Convenience booleans
         public var isContent: Bool
         public var isAdSlot: Bool
         public var isImageCarousel: Bool
         public var isVideoCarousel: Bool
-        public var isSurvey: Bool
         public var isNonVideo: Bool
 
         // Typed unwrap accessors (return nil if the case doesn't match)
@@ -646,7 +561,6 @@ The SDK wraps all five content types in a single discriminated union. The API re
         public var adSlot: AdSlot?
         public var imageCarouselItem: ImageCarouselItem?
         public var videoCarouselItem: VideoCarouselItem?
-        public var surveyItem: SurveyItem?
 
         // Stable identifier for diffable data source
         public var id: String
@@ -660,14 +574,12 @@ The SDK wraps all five content types in a single discriminated union. The API re
         data class AdSlot(val slot: dev.shortkit.sdk.AdSlot) : FeedItem()
         data class ImageCarousel(val item: ImageCarouselItem) : FeedItem()
         data class VideoCarousel(val item: VideoCarouselItem) : FeedItem()
-        data class Survey(val item: SurveyItem) : FeedItem()
 
         val id: String
         val isContent: Boolean
         val isAdSlot: Boolean
         val isImageCarousel: Boolean
         val isVideoCarousel: Boolean
-        val isSurvey: Boolean
         val isNonVideo: Boolean
     }
     ```
@@ -678,14 +590,13 @@ The SDK wraps all five content types in a single discriminated union. The API re
       | { type: "content"; item: ContentItem }
       | { type: "ad_slot"; item: AdSlot }
       | { type: "image_carousel"; item: ImageCarouselItem }
-      | { type: "video_carousel"; item: VideoCarouselItem }
-      | { type: "survey"; item: SurveyItem };
+      | { type: "video_carousel"; item: VideoCarouselItem };
     ```
   </Tab>
   <Tab title="Web">
     ```js
     // FeedItem discrimination via item.type
-    // 'content' | 'ad_slot' | 'image_carousel' | 'video_carousel' | 'survey'
+    // 'content' | 'ad_slot' | 'image_carousel' | 'video_carousel'
     {
       type: 'content',
       item: { /* ContentItem */ },
@@ -698,7 +609,7 @@ The SDK wraps all five content types in a single discriminated union. The API re
 
 ## Handling each type in a custom UI
 
-When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOverlay: .none`, and `surveyOverlay: .none`, the SDK renders raw content without any overlay UI. You build your own by switching on `FeedItem` and using the data available on each model.
+When you set `videoOverlay: .none`, `carouselOverlay: .none`, and `videoCarouselOverlay: .none`, the SDK renders raw content without any overlay UI. You build your own by switching on `FeedItem` and using the data available on each model.
 
 <Tabs>
   <Tab title="Swift">
@@ -748,12 +659,6 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
         // Your overlay provides chrome (titles, buttons, page indicators) on top.
         configureVideoCarouselUI(videoCarousel)
 
-    case .survey(let survey):
-        // survey.question — the question string
-        // survey.options — array of SurveyOption (id + text)
-        // survey.autoAdvanceDelay — seconds after selection, or nil
-        configureSurveyUI(survey)
-
     case .adSlot(let slot):
         // Handled by the ad provider — no custom UI needed
         break
@@ -783,12 +688,6 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
             // SDK handles paging and playback; overlay provides chrome on top.
             configureVideoCarouselUI(videoCarousel)
         }
-        is FeedItem.Survey -> {
-            val survey = feedItem.item
-            // survey.question — the question string
-            // survey.options — list of SurveyOption (id + text)
-            configureSurveyUI(survey)
-        }
         is FeedItem.AdSlot -> {
             // Handled by the ad provider
         }
@@ -807,9 +706,6 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
 
         case "video_carousel":
           return <VideoCarouselView item={feedItem.item} />;
-
-        case "survey":
-          return <SurveyView item={feedItem.item} />;
 
         case "ad_slot":
           // Handled by the ad provider
@@ -831,9 +727,6 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
         case 'video_carousel':
           renderVideoCarousel(feedItem.item); // coming soon
           break;
-        case 'survey':
-          renderSurvey(feedItem.item);   // coming soon
-          break;
         case 'ad_slot':
           // Handled by the ad provider
           break;
@@ -845,24 +738,21 @@ When you set `videoOverlay: .none`, `carouselOverlay: .none`, `videoCarouselOver
 
 ### Data available per type
 
-| Field | Video | Image carousel | Video carousel | Survey | Ad slot |
-|---|---|---|---|---|---|
-| `id` | Yes | Yes | Yes | Yes | Yes |
-| `title` | Yes | Yes | Yes | -- | -- |
-| `description` | Optional | Optional | Optional | -- | -- |
-| `author` | Optional | Optional | Optional | -- | -- |
-| `section` | Via `customMetadata` | Yes | Yes | -- | -- |
-| `articleUrl` | Optional | Optional | Optional | -- | -- |
-| `streamingUrl` | Yes (HLS) | -- | -- | -- | -- |
-| `thumbnailUrl` | Yes | -- | -- | -- | -- |
-| `duration` | Yes | -- | -- | -- | -- |
-| `captionTracks` | Yes | -- | -- | -- | -- |
-| `customMetadata` | Optional | -- | -- | -- | -- |
-| `videos` | -- | -- | Yes | -- | -- |
-| `images` | -- | Yes | -- | -- | -- |
-| `autoScrollInterval` | -- | Optional | -- | -- | -- |
-| `question` | -- | -- | -- | Yes | -- |
-| `options` | -- | -- | -- | Yes | -- |
-| `autoAdvanceDelay` | -- | -- | -- | Optional | -- |
-| `commentCount` | Optional | -- | -- | -- | -- |
-| `fallbackUrl` | Optional | -- | -- | -- | -- |
+| Field | Video | Image carousel | Video carousel | Ad slot |
+|---|---|---|---|---|
+| `id` | Yes | Yes | Yes | Yes |
+| `title` | Yes | Yes | Yes | -- |
+| `description` | Optional | Optional | Optional | -- |
+| `author` | Optional | Optional | Optional | -- |
+| `section` | Via `customMetadata` | Yes | Yes | -- |
+| `articleUrl` | Optional | Optional | Optional | -- |
+| `streamingUrl` | Yes (HLS) | -- | -- | -- |
+| `thumbnailUrl` | Yes | -- | -- | -- |
+| `duration` | Yes | -- | -- | -- |
+| `captionTracks` | Yes | -- | -- | -- |
+| `customMetadata` | Optional | -- | -- | -- |
+| `videos` | -- | -- | Yes | -- |
+| `images` | -- | Yes | -- | -- |
+| `autoScrollInterval` | -- | Optional | -- | -- |
+| `commentCount` | Optional | -- | -- | -- |
+| `fallbackUrl` | Optional | -- | -- | -- |
