@@ -210,7 +210,7 @@ Sent when the video has been accepted for transcoding. This is where you receive
 }
 ```
 
-The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
+The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, `tiktok_timestamp`, `tiktok_sec_uid`, and `tiktok_uploader_id` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
 
 At this point the video is streamable (progressive delivery) but transcoding is not yet complete. If you plan to serve this content immediately, be aware that viewers of longer videos may experience buffering until encoding finishes.
 
@@ -386,7 +386,11 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 
 | Field | Value |
 |-------|-------|
-| `title` | Video title (or first 200 chars of caption) |
+| `title` | First 200 characters of the video caption. Empty string when the post has no caption. |
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
-| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds) |
+| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` (stable creator id), `tiktok_uploader_id` (numeric creator id) |
+
+<Note>
+  `tiktok_sec_uid` and `tiktok_uploader_id` are stable identifiers assigned by TikTok — they do not change when a creator renames. Use them for reliable deduplication, re-attribution, or grouping content by creator. `author` (the `@handle`) and `tiktok_author_name` (the display name) are both mutable and should not be used as keys. Both stable IDs default to `""` when TikTok does not return them.
+</Note>
