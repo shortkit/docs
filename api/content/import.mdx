@@ -270,8 +270,26 @@ Each URL you submit is either a **single video** or a **creator profile** (for e
 
 ### Request body
 
-<ParamField body="urls" type="string[]" required>
-  TikTok URLs to import. Min 1, max 20 per request. Each entry is either a single video URL or a creator profile URL. Submit at most one profile URL per request — pair it with single video URLs if you need to, and send additional profiles as separate requests.
+<ParamField body="urls" type="string[]">
+  TikTok URLs to import. Min 1, max 20 per request. Each entry is either a single video URL or a creator profile URL. Submit at most one profile URL per request — pair it with single video URLs if you need to, and send additional profiles as separate requests. Provide exactly one of `urls` or `items`.
+</ParamField>
+
+<ParamField body="items" type="object[]">
+  Alternative to `urls` that lets you attach your own metadata per URL. Min 1, max 20 per request; the same URL rules as `urls` apply. Provide exactly one of `urls` or `items`. Each item:
+
+  - `url` (string, required) — a single video URL or a creator profile URL.
+  - `customMetadata` (object) — string key/value pairs stamped onto the imported content at creation, stored alongside the auto-populated `tiktok_*` fields. A profile URL's `customMetadata` is applied to **every** video expanded from that profile. The auto-populated `tiktok_*` keys are reserved — the importer's values win on collision. If a URL is skipped as a duplicate, its metadata is skipped with it.
+
+  ```json
+  {
+    "items": [
+      { "url": "https://www.tiktok.com/@nasa/video/123", "customMetadata": { "sku": "A1" } },
+      { "url": "https://www.tiktok.com/@nasa", "customMetadata": { "campaign": "space-q3" } }
+    ]
+  }
+  ```
+
+  The Instagram endpoint accepts the same `items` shape.
 </ParamField>
 
 <ParamField body="maxVideosPerProfile" type="integer" default="20">
@@ -389,4 +407,4 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `title` | Video title (or first 200 chars of caption) |
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
-| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds) |
+| `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_handle`, `tiktok_caption`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` + `tiktok_uploader_id` (stable creator identifiers that survive handle changes), `tiktok_avatar_url` (creator avatar, re-hosted to a durable public URL) |
