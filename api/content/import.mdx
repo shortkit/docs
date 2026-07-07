@@ -290,6 +290,10 @@ Each URL you submit is either a **single video** or a **creator profile** (for e
   ```
 
   The Instagram endpoint accepts the same `items` shape.
+
+  <Note>
+    A small fraction of Instagram reels can't be resolved — typically region- or age-restricted content that the upstream resolver rejects on every attempt. ShortKit retries transient resolver failures a bounded number of times (currently 6 cumulative attempts per reel). Once that cap is reached, the reel is marked `errored` and `customMetadata.error_reason` is set with a short human-readable explanation (e.g. `"Instagram resolver failed after 6 attempts (vendor error) — reel may be region/age-restricted"`). Genuine transient network blips still recover within the cap; only persistently unresolvable reels terminate.
+  </Note>
 </ParamField>
 
 <ParamField body="maxVideosPerProfile" type="integer" default="20">
