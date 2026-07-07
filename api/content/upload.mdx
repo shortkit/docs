@@ -46,6 +46,9 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   Arbitrary key-value pairs passed through to the feed.
 </ParamField>
 
+<ParamField body="protected" type="boolean">
+  When `true`, playback is gated behind a short-lived signed streaming URL and the item's `streamingUrl` is withheld until one is issued. When omitted, defaults to your organization's default. See [Protected Content](/guides/protected-content).
+</ParamField>
 
 <ParamField body="origin" type="string" default="other">
   `"ios_upload"` or `"other"`. Set to `"ios_upload"` for videos recorded on iOS devices to enable color-accurate thumbnail extraction. iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.

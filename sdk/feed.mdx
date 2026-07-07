@@ -7,6 +7,8 @@ To embed a video feed, create a `ShortKit` instance and hand it to one of two fe
 
 Live streams render as videos with an `isLive` flag set on the content item — see the [Live Streams guide](/guides/live-streams) for details on creating, broadcasting, and clipping streams.
 
+[Protected content](/guides/protected-content) plays in the feed automatically — the SDK issues and refreshes the signed streaming URL for you, with no extra integration.
+
 ### Filtered feeds
 
 When `FeedConfig.filter` is set, the feed only shows content matching the filter criteria. Filtering is handled server-side — the SDK applies the filter automatically on every request (initial load, pagination, pull-to-refresh).

@@ -114,7 +114,8 @@ Videos are the primary content type. Each video is an HLS stream with optional c
 | `title` | `String` | Display title |
 | `description` | `String?` | Optional body text |
 | `duration` | `Double` | Video length in seconds |
-| `streamingUrl` | `String` | HLS manifest URL (`.m3u8`). The SDK handles adaptive bitrate selection, buffering, and format switching automatically. |
+| `streamingUrl` | `String` | HLS manifest URL (`.m3u8`). The SDK handles adaptive bitrate selection, buffering, and format switching automatically. Empty for [protected content](/guides/protected-content) until the SDK issues a signed URL. |
+| `protected` | `Bool` | When `true`, playback is gated behind a short-lived signed streaming URL. The SDK issues and refreshes signed URLs automatically. See [Protected Content](/guides/protected-content). |
 | `thumbnailUrl` | `String` | Poster image URL, displayed while the video loads |
 | `captionTracks` | `[CaptionTrack]` | Available caption/subtitle tracks (see below) |
 | `customMetadata` | `[String: JSONValue]?` | Arbitrary key-value pairs attached at upload time. Use this for section labels, tags, or any app-specific data. |
