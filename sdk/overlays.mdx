@@ -600,7 +600,7 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
     import { useRef, useState } from "react";
     import { View, Image, Text, StyleSheet } from "react-native";
     import { Gesture, GestureDetector } from "react-native-gesture-handler";
-    import { useShortKitPlayer } from "@shortkitsdk/react-native";
+    import { useShortKitPlayer, ShortKitCommands } from "@shortkitsdk/react-native";
 
     export function ScrubberOverlay() {
       const {
@@ -621,7 +621,11 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
         : 0;
 
       const panGesture = Gesture.Pan()
-        .onBegin(() => setIsScrubbing(true))
+        .onBegin(() => {
+          setIsScrubbing(true);
+          // Give this drag exclusive priority over the feed's vertical swipe.
+          ShortKitCommands.setFeedScrollEnabled(false);
+        })
         .onUpdate((e) => {
           trackRef.current?.measure((_x, _y, width) => {
             const frac = Math.max(0, Math.min(1, e.x / width));
@@ -632,6 +636,10 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
           const seekTime = (currentItem?.duration ?? 0) * seekFraction;
           seekAndPlay(seekTime);
           setIsScrubbing(false);
+        })
+        .onFinalize(() => {
+          // Restore feed swipe on release or cancellation.
+          ShortKitCommands.setFeedScrollEnabled(true);
         });
 
       const seekTime = (currentItem?.duration ?? 0) * seekFraction;
@@ -691,6 +699,23 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
 </Tabs>
 
 The key pattern: guard on `isActive` and `!isScrubbing` in your time stream handler so you only update the scrubber from playback when the overlay is active and the user isn't dragging. During a drag, update the UI from the gesture position instead and call `player.seekAndPlay(to:)` on release.
+
+## Feed scroll control (React Native)
+
+By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Call `ShortKitCommands.setFeedScrollEnabled` to give your gesture exclusive priority while it is in flight.
+
+```tsx
+import { ShortKitCommands } from "@shortkitsdk/react-native";
+
+ShortKitCommands.setFeedScrollEnabled(false); // block vertical feed swipe
+ShortKitCommands.setFeedScrollEnabled(true);  // restore vertical feed swipe
+```
+
+Call it as a matched pair driven by your gesture lifecycle: pass `false` when the gesture starts and `true` when it ends or is cancelled. The scrubber example above pairs `onBegin` with `onFinalize` — `onFinalize` runs on both completion and cancellation, so the feed is always restored even if the drag is interrupted.
+
+<Note>
+  This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle applies to the feed that is currently active; navigating to a new item resets to the default (swipe enabled). Re-assert `false` from the start of each gesture rather than setting it once. Available on React Native.
+</Note>
 
 ## Example: closed captions
 
