@@ -700,21 +700,51 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
 
 The key pattern: guard on `isActive` and `!isScrubbing` in your time stream handler so you only update the scrubber from playback when the overlay is active and the user isn't dragging. During a drag, update the UI from the gesture position instead and call `player.seekAndPlay(to:)` on release.
 
-## Feed scroll control (React Native)
+## Feed scroll control
 
-By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Call `ShortKitCommands.setFeedScrollEnabled` to give your gesture exclusive priority while it is in flight.
+By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Toggle feed scroll to give your gesture exclusive priority while it is in flight: disable it when the gesture starts, re-enable it when the gesture ends or is cancelled.
 
-```tsx
-import { ShortKitCommands } from "@shortkitsdk/react-native";
+<Tabs>
+  <Tab title="Swift">
+    Call it on the player:
 
-ShortKitCommands.setFeedScrollEnabled(false); // block vertical feed swipe
-ShortKitCommands.setFeedScrollEnabled(true);  // restore vertical feed swipe
-```
+    ```swift
+    shortKit.player.setFeedScrollEnabled(false) // block vertical feed swipe
+    shortKit.player.setFeedScrollEnabled(true)  // restore vertical feed swipe
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    Call it on your feed fragment:
 
-Call it as a matched pair driven by your gesture lifecycle: pass `false` when the gesture starts and `true` when it ends or is cancelled. The scrubber example above pairs `onBegin` with `onFinalize` — `onFinalize` runs on both completion and cancellation, so the feed is always restored even if the drag is interrupted.
+    ```kotlin
+    feedFragment.setFeedScrollEnabled(false) // block vertical feed swipe
+    feedFragment.setFeedScrollEnabled(true)  // restore vertical feed swipe
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    Not yet supported on Flutter.
+  </Tab>
+  <Tab title="React Native">
+    Call it through `ShortKitCommands`:
+
+    ```tsx
+    import { ShortKitCommands } from "@shortkitsdk/react-native";
+
+    ShortKitCommands.setFeedScrollEnabled(false); // block vertical feed swipe
+    ShortKitCommands.setFeedScrollEnabled(true);  // restore vertical feed swipe
+    ```
+
+    The scrubber example above wires this in: `onBegin` disables scroll and `onFinalize` restores it, so the feed is always re-enabled even if the drag is cancelled.
+  </Tab>
+  <Tab title="Web">
+    Not yet supported on Web.
+  </Tab>
+</Tabs>
+
+Call it as a matched pair driven by your gesture lifecycle: disable when the gesture starts, re-enable when it ends or is cancelled.
 
 <Note>
-  This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle stays where you set it: if you disable scroll and never re-enable it, vertical swipe stays blocked. Always pair a `false` call with a matching `true`, driven by your gesture's lifecycle rather than toggled once.
+  This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle stays where you set it: if you disable scroll and never re-enable it, vertical swipe stays blocked. Always pair a disable call with a matching re-enable.
 </Note>
 
 ## Example: closed captions
