@@ -714,7 +714,7 @@ ShortKitCommands.setFeedScrollEnabled(true);  // restore vertical feed swipe
 Call it as a matched pair driven by your gesture lifecycle: pass `false` when the gesture starts and `true` when it ends or is cancelled. The scrubber example above pairs `onBegin` with `onFinalize` — `onFinalize` runs on both completion and cancellation, so the feed is always restored even if the drag is interrupted.
 
 <Note>
-  This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle applies to the feed that is currently active; navigating to a new item resets to the default (swipe enabled). Re-assert `false` from the start of each gesture rather than setting it once. Available on React Native.
+  This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle stays where you set it: if you disable scroll and never re-enable it, vertical swipe stays blocked. Always pair a `false` call with a matching `true`, driven by your gesture's lifecycle rather than toggled once.
 </Note>
 
 ## Example: closed captions
