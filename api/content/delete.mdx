@@ -1,7 +1,7 @@
 ---
 title: "Delete Content"
 api: "DELETE /v1/content/{id}"
-description: "Archive a content item. Archived content is immediately removed from the feed."
+description: "Permanently delete a content item and revoke its playback URLs."
 ---
 
 ## Path parameters
@@ -10,14 +10,20 @@ description: "Archive a content item. Archived content is immediately removed fr
   The content item's UUID.
 </ParamField>
 
-Deleting a content item archives it — the content is immediately removed from the feed and excluded from list results by default. The underlying media assets are cleaned up asynchronously.
+Deleting a content item removes it from the feed and from list results, revokes its streaming and playback URLs, and cancels any in-flight processing. The delete is permanent — the item cannot be restored through the API.
 
-This operation is not reversible through the API.
+The item's thumbnail is preserved so analytics rows for the deleted content remain viewable in the portal. If the thumbnail cannot be preserved (for example, deletion during upload before the poster is generated), `thumbnailUrl` becomes `null` for that item — render a placeholder rather than a broken image.
+
+If the item belongs to a TikTok or Instagram import job, deleting it re-evaluates the job's completion state — a deleted final pending item won't leave the job open.
+
+<Note>
+  Deletion is also available to portal users on any organization role. Secret-key callers see the same behavior described here.
+</Note>
 
 <RequestExample>
 ```bash cURL
 curl -X DELETE "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+  -H "Authorization: Bearer ***
 ```
 
 ```python Python
@@ -25,7 +31,7 @@ import requests
 
 resp = requests.delete(
     "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851",
-    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    headers={"Authorization": "Bearer sk_liv..._key"},
 )
 ```
 
@@ -34,7 +40,7 @@ const resp = await fetch(
   "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851",
   {
     method: "DELETE",
-    headers: { Authorization: "Bearer sk_live_your_secret_key" },
+    headers: { Authorization: "Bearer sk_liv..._key" },
   }
 );
 ```
