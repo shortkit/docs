@@ -38,14 +38,6 @@ All fields are optional — include only the fields you want to change.
   Set to `"published"` or `"unpublished"` to control feed visibility. Only applies when `uploadStatus` is `ready`.
 </ParamField>
 
-<ParamField body="publishAt" type="string">
-  ISO 8601 timestamp. Content won't appear in the feed before this time.
-</ParamField>
-
-<ParamField body="expiresAt" type="string">
-  ISO 8601 timestamp. Content is removed from the feed after this time.
-</ParamField>
-
 <ParamField body="autoScrollInterval" type="number">
   Carousel auto-scroll interval in seconds. Only applies to carousels.
 </ParamField>
@@ -138,8 +130,6 @@ const { data: content } = await resp.json();
     },
     "captionTracks": [],
     "images": [],
-    "publishAt": null,
-    "expiresAt": null,
     "width": 1080,
     "height": 1920,
     "aspectRatio": "9:16",

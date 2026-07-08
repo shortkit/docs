@@ -222,7 +222,7 @@ When the status reaches `ready`, the response includes the `playbackId` and dura
 }
 ```
 
-The content now appears in the feed (`GET /v1/feed`), subject to scheduling and editorial controls.
+The content now appears in the feed (`GET /v1/feed`) once `publishStatus` is `published`.
 
 ### Use a webhook callback
 
@@ -363,8 +363,6 @@ Carousels skip the processing pipeline entirely. They are `ready` the moment you
 | `caption` | string | No | `null` | Text displayed below images (max 500 characters) |
 | `autoScrollInterval` | float | No | `null` | Seconds between auto-scroll; `null` for manual swiping only |
 | `pinPosition` | integer | No | `null` | Pin to a specific feed position |
-| `publishAt` | string | No | `null` | ISO-8601 datetime; hides from feed until this time |
-| `expiresAt` | string | No | `null` | ISO-8601 datetime; auto-archives after this time |
 
 The response comes back with `status: "ready"` immediately. No polling needed.
 
@@ -464,8 +462,6 @@ curl -X PATCH "https://api.shortkit.dev/v1/content/${contentId}" \
     "title": "Updated Title",
     "tags": ["breaking", "politics"],
     "section": "Politics",
-    "publishAt": "2026-03-05T09:00:00Z",
-    "expiresAt": "2026-04-05T09:00:00Z",
     "customMetadata": {
       "campaignId": "updated-123",
       "newField": "added",

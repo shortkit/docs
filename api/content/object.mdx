@@ -40,8 +40,6 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   },
   "captionTracks": [],
   "images": [],
-  "publishAt": null,
-  "expiresAt": null,
   "width": 1080,
   "height": 1920,
   "aspectRatio": "9:16",
@@ -160,14 +158,6 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   Empty array for videos.
 </ResponseField>
 
-<ResponseField name="publishAt" type="string | null">
-  ISO 8601 timestamp. Content won't appear in the feed before this time, even if `publishStatus` is `published`. `null` means no scheduling constraint.
-</ResponseField>
-
-<ResponseField name="expiresAt" type="string | null">
-  ISO 8601 timestamp. Content is automatically removed from the feed after this time. `null` means no expiration.
-</ResponseField>
-
 <ResponseField name="width" type="integer | null">
   Video width in pixels. Set automatically after processing. `null` for carousels.
 </ResponseField>
@@ -270,20 +260,6 @@ curl -X PATCH https://api.shortkit.dev/v1/content/{id} \
   -H "Content-Type: application/json" \
   -d '{"publishStatus": "published"}'
 ```
-
-### Scheduling and expiration
-
-Even when `publishStatus` is `published`, content only appears in the feed when the current time falls within its schedule window:
-
-- **`publishAt`** — If set, content is held back until this time. Useful for embargo or coordinated launches.
-- **`expiresAt`** — If set, content is automatically pulled from the feed after this time. Useful for time-sensitive promotions or breaking news.
-
-Content appears in the feed when **all** of these are true:
-
-1. `uploadStatus` is `ready`
-2. `publishStatus` is `published`
-3. `publishAt` is `null` or in the past
-4. `expiresAt` is `null` or in the future
 
 ---
 

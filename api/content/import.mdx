@@ -17,7 +17,7 @@ Use this when you have media hosted elsewhere — migrating from another platfor
 <ParamField body="items" type="object[]" required>
   Array of content items to import. Min 1, max 100 per request.
 
-  Each item accepts the same metadata fields as [Upload](/api/content/upload) (title, description, tags, section, author, customMetadata, publishAt, expiresAt, generateSubtitles, autoScrollInterval), plus:
+  Each item accepts the same metadata fields as [Upload](/api/content/upload) (title, description, tags, section, author, customMetadata, generateSubtitles, autoScrollInterval), plus:
 
   - `protected` (boolean) — When `true`, playback is gated behind a short-lived signed streaming URL. When omitted, defaults to your organization's default. See [Protected Content](/guides/protected-content).
 
