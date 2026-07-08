@@ -280,7 +280,7 @@ Each URL you submit is either a **single video** or a **creator profile** (for e
   Alternative to `urls` that lets you attach your own metadata per URL. Min 1, max 20 per request; the same URL rules as `urls` apply. Provide exactly one of `urls` or `items`. Each item:
 
   - `url` (string, required) — a single video URL or a creator profile URL.
-  - `customMetadata` (object) — string key/value pairs stamped onto the imported content at creation, stored alongside the auto-populated `tiktok_*` fields. A profile URL's `customMetadata` is applied to **every** video expanded from that profile. The auto-populated `tiktok_*` keys are reserved — the importer's values win on collision. If a URL is skipped as a duplicate, its metadata is skipped with it.
+  - `customMetadata` (object) — string key/value pairs stamped onto the imported content at creation, stored alongside the auto-populated `tiktok_*` fields. A profile URL's `customMetadata` is applied to **every** video expanded from that profile, including videos discovered later by background expansion. The auto-populated `tiktok_*` keys are reserved — the importer's values win on collision. If a URL is skipped as a duplicate, its metadata is skipped with it.
 
   ```json
   {
@@ -291,7 +291,7 @@ Each URL you submit is either a **single video** or a **creator profile** (for e
   }
   ```
 
-  The Instagram endpoint accepts the same `items` shape.
+  The Instagram endpoint (`POST /v1/content/import/instagram`) accepts the same `items` shape. Its reserved system key is `instagram_url` (in place of `tiktok_url`), and profile-item metadata is stamped onto every reel expanded from that profile.
 </ParamField>
 
 <ParamField body="maxVideosPerProfile" type="integer" default="20">
