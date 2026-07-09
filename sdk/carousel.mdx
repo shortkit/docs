@@ -155,6 +155,25 @@ Subscribe to reactive state to keep overlay UI, badges, or host-app chrome in sy
   </Tab>
 </Tabs>
 
+## Hosting inside a swipeable tab navigator
+
+If your app embeds the feed inside an ancestor horizontal pager — for example a swipeable tab navigator (`react-native-pager-view` on React Native, `UIPageViewController` on iOS, `ViewPager2` on Android) — a video-carousel cell **yields its horizontal pan to the ancestor pager at the boundary**. When the active inner page is the first or last card and the user drags outward (past the edge), the carousel declines its own horizontal recognizer so the host's pager claims the gesture and finger-tracks the tab transition natively.
+
+Mid-carousel pans, in-thread paging, and vertical feed scrolling are unaffected — the carousel only yields when both conditions are true:
+
+- The active inner page is at the first or last card.
+- The pan is **outward** (past the boundary in the direction of the missing neighbor).
+
+No host integration is required. As long as your tab navigator is an ancestor of `ShortKitFeedViewController` (iOS) or `ShortKitFeedFragment` (Android), the boundary swipe will bubble up to it.
+
+<Note>
+  Boundary yielding is gated on a **vertical** outer feed (`FeedConfig.scrollAxis = .vertical`, the default). With a horizontal outer feed, the outer feed pager shares its axis with the host tab pager, so the carousel keeps the gesture and clamps at the boundary instead of yielding — otherwise the outer feed could silently capture the swipe before it reaches the host. See [Configuration › `scrollAxis`](/sdk/configuration).
+</Note>
+
+<Note>
+  **iOS only:** a continuous mid-thread → past-the-end drag in one unbroken motion may snap to the next tab rather than finger-track it (UIKit cannot hand a gesture between recognizers mid-drag). The common "parked at the edge, then swipe out" path finger-tracks correctly.
+</Note>
+
 ## Cell gesture events
 
 Two events fire on direct user interaction with a video-carousel cell:
