@@ -364,7 +364,7 @@ Carousels skip the processing pipeline entirely. They are `ready` the moment you
 | `autoScrollInterval` | float | No | `null` | Seconds between auto-scroll; `null` for manual swiping only |
 | `pinPosition` | integer | No | `null` | Pin to a specific feed position |
 | `publishAt` | string | No | `null` | ISO-8601 datetime; hides from feed until this time |
-| `expiresAt` | string | No | `null` | ISO-8601 datetime; auto-archives after this time |
+| `expiresAt` | string | No | `null` | ISO-8601 datetime; auto-hides from the feed after this time |
 
 The response comes back with `status: "ready"` immediately. No polling needed.
 
@@ -528,9 +528,9 @@ curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls"
 
 Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`.
 
-### Archive content
+### Delete content
 
-Soft-delete content by sending a DELETE. The content is set to `archived` status and removed from all feeds, but the record is preserved.
+Permanently delete content by sending a DELETE. The content is removed from all feeds and list results, and the media assets are cleaned up asynchronously. Deletion is not reversible.
 
 ```bash
 curl -X DELETE "https://api.shortkit.dev/v1/content/${contentId}" \
