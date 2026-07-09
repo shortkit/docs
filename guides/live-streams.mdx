@@ -111,6 +111,53 @@ The broadcast workflow is the same regardless of whether you created an `hls` or
 
 ---
 
+## Broadcasting over WHIP
+
+WebRTC streams also accept WHIP ingest, which lets a browser or a WHIP-capable encoder (such as OBS 30+) publish without an RTMP toolchain. WHIP credentials are returned alongside `rtmpUrl` only when `protocol: "webrtc"`:
+
+```json
+{
+  "data": {
+    "protocol": "webrtc",
+    "rtmpUrl": "rtmps://ingest.shortkit.dev/x/AbCdEfGhIjKl",
+    "streamKey": "AbCdEfGhIjKl",
+    "whipUrl": "https://ingest.shortkit.dev:8443/whip",
+    "whipToken": "whip_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789",
+    ...
+  }
+}
+```
+
+`whipUrl` and `whipToken` are `null` for HLS streams.
+
+**In OBS** (30 or later): **Settings > Stream > Service: WHIP**, then paste `whipUrl` into Server and `whipToken` into Bearer Token.
+
+**From a browser**, `POST` the encoder's SDP offer to `whipUrl` with `Authorization: Bearer <whipToken>`:
+
+```javascript
+const pc = new RTCPeerConnection();
+// ...add tracks, create offer...
+const offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
+
+const resp = await fetch(whipUrl, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/sdp",
+    Authorization: `Bearer ${whipToken}`,
+  },
+  body: offer.sdp,
+});
+const answerSdp = await resp.text();
+await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+```
+
+<Warning>
+  `whipToken` is a credential — same handling rules as `streamKey`. Never expose it to viewers or commit it to source control.
+</Warning>
+
+---
+
 ## Displaying live streams in the feed
 
 Live streams render in the feed with no extra setup. The SDK's `ContentItem` exposes the following live-specific fields you can read in your custom overlay:
