@@ -212,7 +212,7 @@ Sent when the video has been accepted for transcoding. This is where you receive
 }
 ```
 
-The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
+The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — see [TikTok auto-populated metadata](#auto-populated-metadata) and [Instagram auto-populated metadata](#auto-populated-metadata-2). It is `{}` when the content has no custom metadata.
 
 At this point the video is streamable (progressive delivery) but transcoding is not yet complete. If you plan to serve this content immediately, be aware that viewers of longer videos may experience buffering until encoding finishes.
 
@@ -411,3 +411,22 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
 | `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_handle`, `tiktok_caption`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` + `tiktok_uploader_id` (stable creator identifiers that survive handle changes), `tiktok_avatar_url` (creator avatar, re-hosted to a durable public URL) |
+
+## Instagram import
+
+ShortKit imports Instagram reels via `POST /v1/content/import/instagram`. The request/response shape and callback lifecycle mirror the TikTok endpoint above — including the `urls` and `items` inputs, the async job response, and the per-item `content.imported` callbacks. Only the auto-populated `customMetadata` keys differ.
+
+### Auto-populated metadata
+
+ShortKit extracts and fills in the following fields automatically. You can change them after import using the [Update Content](/api/content/update) endpoint.
+
+| Field | Value |
+|-------|-------|
+| `title` | First 200 chars of the caption. `null` when the reel has no caption. |
+| `description` | Caption text |
+| `author` | Creator username |
+| `customMetadata` | `instagram_id`, `instagram_url`, `instagram_likes`, `instagram_comments`, `instagram_views`, `instagram_handle`, `instagram_caption`, `instagram_author_name` (creator display name), `instagram_upload_date` (`YYYYMMDD`), `instagram_timestamp` (unix seconds), `instagram_sec_uid` + `instagram_uploader_id` (stable creator identifiers — Instagram exposes one numeric creator id, so both keys carry the same value), `instagram_avatar_url` (creator avatar, re-hosted to a durable public URL) |
+
+<Note>
+  The Instagram and TikTok metadata shapes are intentionally aligned — every `tiktok_*` key has an `instagram_*` counterpart. Write your callback handler once and switch on the key prefix.
+</Note>
