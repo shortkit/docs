@@ -1,7 +1,7 @@
 ---
 title: "Delete Content"
 api: "DELETE /v1/content/{id}"
-description: "Archive a content item. Archived content is immediately removed from the feed."
+description: "Permanently delete a content item. The item is removed from the feed and list results."
 ---
 
 ## Path parameters
@@ -10,9 +10,9 @@ description: "Archive a content item. Archived content is immediately removed fr
   The content item's UUID.
 </ParamField>
 
-Deleting a content item archives it — the content is immediately removed from the feed and excluded from list results by default. The underlying media assets are cleaned up asynchronously.
+Deleting a content item permanently removes it — the content is immediately dropped from the feed and no longer appears in list, search, or count results. The underlying media assets are cleaned up asynchronously.
 
-This operation is not reversible through the API.
+This operation is not reversible.
 
 <RequestExample>
 ```bash cURL
