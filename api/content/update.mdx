@@ -67,7 +67,7 @@ curl -X PATCH "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d7017
     "title": "Updated: Weather Alert Downgraded",
     "tags": ["weather", "update"],
     "customMetadata": {
-      "articleUrl": "https://example.com/weather-update",
+      "publicationUrl": "https://example.com/weather-update",
       "priority": null
     }
   }'
@@ -86,7 +86,7 @@ resp = requests.patch(
         "title": "Updated: Weather Alert Downgraded",
         "tags": ["weather", "update"],
         "customMetadata": {
-            "articleUrl": "https://example.com/weather-update",
+            "publicationUrl": "https://example.com/weather-update",
             "priority": None,
         },
     },
@@ -107,7 +107,7 @@ const resp = await fetch(
       title: "Updated: Weather Alert Downgraded",
       tags: ["weather", "update"],
       customMetadata: {
-        articleUrl: "https://example.com/weather-update",
+        publicationUrl: "https://example.com/weather-update",
         priority: null,
       },
     }),
@@ -134,7 +134,7 @@ const { data: content } = await resp.json();
     "author": "Jane Doe",
     "tags": ["weather", "update"],
     "customMetadata": {
-      "articleUrl": "https://example.com/weather-update"
+      "publicationUrl": "https://example.com/weather-update"
     },
     "captionTracks": [],
     "images": [],
@@ -158,9 +158,9 @@ const { data: content } = await resp.json();
 `customMetadata` uses merge semantics — new keys are added, existing keys are updated, and keys set to `null` are removed. Other fields (like `tags`) are replaced entirely.
 
 ```json
-// Before: {"articleUrl": "...", "priority": "high", "campaign": "summer"}
+// Before: {"publicationUrl": "...", "priority": "high", "campaign": "summer"}
 
 // Request: {"customMetadata": {"priority": null, "campaign": "fall"}}
 
-// After:  {"articleUrl": "...", "campaign": "fall"}
+// After:  {"publicationUrl": "...", "campaign": "fall"}
 ```

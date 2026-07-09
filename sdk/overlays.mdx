@@ -322,9 +322,8 @@ The content metadata available to your overlay via `configure(with:)` and the `c
 | `streamingUrl` | `String` | HLS streaming URL. |
 | `thumbnailUrl` | `String` | Poster image URL. |
 | `captionTracks` | `[CaptionTrack]` | Available caption tracks. |
-| `customMetadata` | `[String: JSONValue]?` | App-specific metadata attached to the content. |
+| `customMetadata` | `[String: JSONValue]?` | App-specific metadata attached to the content. Reserved keys: `publicationUrl` (link to the full article — renders a "Read more" button in the news overlay template) and `language` (detected BCP 47 speech language). |
 | `author` | `String?` | Content author. |
-| `articleUrl` | `String?` | Link to the full article. |
 | `commentCount` | `Int?` | Number of comments. |
 
 ## Example: scrubber with seek thumbnails
