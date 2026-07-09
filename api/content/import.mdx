@@ -281,7 +281,7 @@ Each URL you submit is either a **single video** or a **creator profile** (for e
 
   - `url` (string, required) — a single video URL or a creator profile URL.
   - `customMetadata` (object) — string key/value pairs stamped onto the imported content at creation, stored alongside the auto-populated `tiktok_*` fields. A profile URL's `customMetadata` is applied to **every** video expanded from that profile. The auto-populated `tiktok_*` keys are reserved — the importer's values win on collision. If a URL is skipped as a duplicate, its metadata is skipped with it.
-  - `externalId` (string) — Your own identifier for this content, used for idempotency exactly like the [Import](/api/content/import) endpoint — re-importing with the same `externalId` returns the existing content instead of creating a duplicate. When omitted, ShortKit derives one from the platform (`tiktok_<id>` / `instagram_<id>`), which is what deduplicates repeat imports of the same video by default. Ignored on profile URLs (one id can't apply across an expansion).
+  - `externalId` (string, max 255 chars) — Your own identifier for this content, used for idempotency exactly like the [Import](/api/content/import) endpoint — re-importing with the same `externalId` returns the existing content instead of creating a duplicate. When omitted, ShortKit derives one from the platform (`tiktok_<id>` / `instagram_<id>`), which is what deduplicates repeat imports of the same video by default. Ignored on profile URLs (one id can't apply across an expansion).
 
   ```json
   {
