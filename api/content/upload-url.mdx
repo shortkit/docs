@@ -1,0 +1,114 @@
+---
+title: "Refresh upload URL"
+api: "POST /v1/content/{id}/upload-url"
+description: "Re-mint an expired signed upload URL for an existing content row, or cancel the upload session."
+keywords: ["upload", "resume", "expired", "re-mint", "cancel"]
+---
+
+Signed upload URLs expire 7 days after they are issued. If a client goes offline mid-upload, hits an expired URL on retry, or needs to abandon an upload, use this endpoint to refresh or release the upload session **without creating a new content row**.
+
+This endpoint accepts both **publishable keys** and **secret keys**. Publishable-key access requires your organization to have SDK uploads enabled.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The content item's UUID.
+</ParamField>
+
+## Request body
+
+<ParamField body="cancel" type="boolean" default="false">
+  When `true`, releases the current upload session instead of minting a new URL. Use this when a client's `cancel()` is invoked; the content row is marked `errored` and no further bytes will be accepted at the previous URL.
+</ParamField>
+
+## Behavior
+
+- If the previous upload session actually completed on the storage side but the final acknowledgement never reached your client, this endpoint **adopts the completed asset** and returns the existing content — no re-upload is required. Check `uploadStatus` on the response before uploading again.
+- If the previous session did not complete, a fresh signed URL is issued and `uploadUrlExpiresAt` is reset to 7 days from now.
+- The endpoint is admissible on content in `waiting_for_upload` and on `errored` rows that never received an asset (typical after an expiry timeout).
+
+## Rate limits
+
+Publishable-key requests are limited to **30 per minute** per key + IP.
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/upload-url" \
+  -H "X-API-Key: pk_live_your_publishable_key" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/upload-url",
+    headers={"X-API-Key": "pk_live_your_publishable_key"},
+    json={},
+)
+data = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/upload-url",
+  {
+    method: "POST",
+    headers: {
+      "X-API-Key": "pk_live_your_publishable_key",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  }
+);
+const { data } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 (new URL minted)
+{
+  "data": {
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "uploadStatus": "waiting_for_upload",
+    "uploadUrl": "https://uploads.shortkit.dev/direct/xyz789...?token=***",
+    "uploadUrlExpiresAt": "2026-07-15T12:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_remint001"
+  }
+}
+```
+
+```json 200 (previous session already completed)
+{
+  "data": {
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "uploadStatus": "processing",
+    "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
+    "uploadUrl": null,
+    "uploadUrlExpiresAt": null
+  },
+  "meta": {
+    "request_id": "req_remint002"
+  }
+}
+```
+
+```json 200 (cancel=true)
+{
+  "data": {
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "uploadStatus": "errored"
+  },
+  "meta": {
+    "request_id": "req_remint003"
+  }
+}
+```
+</ResponseExample>
+
+<Note>
+  Returns `404` if the content item does not exist. Returns `409` if the content already has a media asset (i.e. is not in an upload-eligible state); use the standard [Get Content](/api/content/get) endpoint to inspect the current state.
+</Note>
