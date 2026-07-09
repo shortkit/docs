@@ -71,7 +71,7 @@ These methods are **scoped to the current carousel** — they page between video
 | Result | Meaning |
 |---|---|
 | `true` | The carousel accepted the command. Visual transition and playback handoff are in flight. |
-| `false` | Either no video carousel is currently active (the current feed item is a video, survey, ad, or image carousel), or the target index is out of range (`previous()` at index `0`, `next()` at the last index, or `setActiveIndex(_:)` outside `0..<videos.count`). |
+| `false` | Either no video carousel is currently active (the current feed item is a video, ad, or image carousel), or the target index is out of range (`previous()` at index `0`, `next()` at the last index, or `setActiveIndex(_:)` outside `0..<videos.count`). |
 
 `setActiveIndex(_:)` with the current index returns `true` as a no-op.
 
@@ -446,5 +446,5 @@ The `wasLast && !willAutoAdvance` check is the idiomatic "user reached the end o
 
 - [Overlays › Video carousel overlays](/sdk/overlays#video-carousel-overlays) — render chrome on top of the native pager
 - [Content Types › Video carousel](/guides/content-types#video-carousel) — `VideoCarouselItem` data shape
-- [Feed](/sdk/feed) — the container that hosts carousels alongside videos, surveys, and ads
+- [Feed](/sdk/feed) — the container that hosts carousels alongside videos and ads
 - [Player](/sdk/player) — single-video playback control (the non-carousel analog)

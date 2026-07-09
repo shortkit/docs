@@ -40,7 +40,7 @@ Each error object contains:
 | **401** | `invalid_api_key` | Authentication failed — missing, malformed, or revoked API key. |
 | **403** | `forbidden` | The API key doesn't have permission for this endpoint. Typically a publishable key used on a secret-key endpoint. |
 | **404** | `not_found` | The requested resource doesn't exist, or doesn't belong to your organization. |
-| **409** | `conflict` | The request conflicts with existing state — for example, a duplicate survey response. |
+| **409** | `conflict` | The request conflicts with existing state — for example, a duplicate resource. |
 | **429** | `rate_limited` | Too many requests. Back off and retry. |
 | **500** | `internal_error` | Something went wrong on our end. If this persists, contact support with the `request_id`. |
 
