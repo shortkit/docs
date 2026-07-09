@@ -236,4 +236,6 @@ curl -X POST "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-9
 
 Once ended, a stream cannot be restarted. Create a new live stream for the next broadcast.
 
+When a stream ends — whether explicitly, via reconnect timeout, or by upstream session close — ShortKit unpublishes the underlying content item if it was published, so the ended stream stops showing up in feeds. If the broadcast never produced a playable recording, the content item is soft-deleted about 15 minutes later to keep your library free of empty shells. Streams that produced a recording remain in the feed as on-demand video. See [Lifecycle](/api/live-streams/object#lifecycle) for the full end-of-stream behavior.
+
 For the full object shape, field descriptions, and all available endpoints, see the [Live Stream API reference](/api/live-streams/object).
