@@ -72,7 +72,9 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 |----------|--------|-------------|
 | `/v1/content` | GET | List published content (feed) |
 | `/v1/content/{id}` | GET | Get a single content item |
-| `/v1/content/upload` | POST | Upload video files |
+| `/v1/content/upload` | POST | Upload video files (requires `sdk_uploads_enabled`) |
+| `/v1/content/{id}/upload-url` | POST | Re-mint or cancel an upload URL (requires `sdk_uploads_enabled`) |
+| `/v1/content/{id}/status` | GET | Poll upload lifecycle (requires `sdk_uploads_enabled`) |
 | `/v1/events` | POST | Ingest client-side events |
 | `/v1/surveys/{id}/responses` | POST | Submit a survey response |
 
