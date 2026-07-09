@@ -321,6 +321,7 @@ The content metadata available to your overlay via `configure(with:)` and the `c
 | `duration` | `Double` | Total duration in seconds. |
 | `streamingUrl` | `String` | HLS streaming URL. |
 | `thumbnailUrl` | `String` | Poster image URL. |
+| `protected` | `Bool` | `true` for protected items whose signed URLs are minted and refreshed by the SDK. Read-only — your overlay does not need to act on it. |
 | `captionTracks` | `[CaptionTrack]` | Available caption tracks. |
 | `customMetadata` | `[String: JSONValue]?` | App-specific metadata attached to the content. |
 | `author` | `String?` | Content author. |

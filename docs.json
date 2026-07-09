@@ -112,7 +112,8 @@
                   "api/content/count",
                   "api/content/search",
                   "api/content/update",
-                  "api/content/delete"
+                  "api/content/delete",
+                  "api/content/playback-token"
                 ]
               },
               {
