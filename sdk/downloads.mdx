@@ -1,0 +1,93 @@
+---
+title: "Downloads"
+description: "Download the static MP4 rendition of a content item to the device."
+keywords: ["download", "downloadVideo", "DownloadVariant", "branded", "raw", "watermark", "offline"]
+---
+
+Use `downloadVideo` to fetch the static MP4 rendition of a content item and write it to the device. The SDK resolves the download URL, streams the bytes, and returns a local file URL you can share, save, or hand to another view controller.
+
+<Note>
+Download is currently available on the iOS (Swift) SDK and the React Native SDK. Android and Flutter do not expose a download surface yet.
+</Note>
+
+## Request a download
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let fileURL = try await shortKit.downloadVideo(item)
+    ```
+
+    `item` is a `ContentItem` from the feed. The call throws if the rendition is still preparing or the network fails.
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+    const fileUrl = await ShortKitCommands.downloadVideo(itemId);
+    ```
+
+    Returns a `file://` URL as a string.
+  </Tab>
+</Tabs>
+
+## Choosing a rendition with `variant`
+
+If your organization has a server-side watermark pipeline configured, each content item has two renditions available:
+
+| Variant | What it returns |
+|---------|-----------------|
+| `branded` | The server-branded file, with your watermark and outro already baked in. |
+| `raw` | The plain, unbranded rendition. |
+
+Omit `variant` to use your organization's server-configured default. Pass a value to override it for a single request.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Use the org default (recommended for most apps).
+    let fileURL = try await shortKit.downloadVideo(item)
+
+    // Explicitly request the server-branded file.
+    let brandedURL = try await shortKit.downloadVideo(item, variant: .branded)
+
+    // Explicitly request the raw rendition.
+    let rawURL = try await shortKit.downloadVideo(item, variant: .raw)
+    ```
+
+    `DownloadVariant` is a public enum with cases `.branded` and `.raw`.
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Use the org default.
+    await ShortKitCommands.downloadVideo(itemId);
+
+    // Explicitly request the server-branded file.
+    await ShortKitCommands.downloadVideo(itemId, { variant: 'branded' });
+
+    // Explicitly request the raw rendition.
+    await ShortKitCommands.downloadVideo(itemId, { variant: 'raw' });
+    ```
+
+    `variant` accepts `'branded'` or `'raw'`. Omit it (or pass `undefined`) to use the org default.
+  </Tab>
+</Tabs>
+
+### When to pass a variant
+
+The common case is migrating an app away from client-side compositing. If your organization's default is `raw` — so older app versions can continue to brand videos locally — a new app release passes `variant: .branded` (Swift) or `{ variant: 'branded' }` (React Native) to request the server-branded file and delete its local compositing code.
+
+An explicit variant bypasses the download URL cached on the feed item (that URL was resolved under the org default) and always fetches a fresh URL for the requested rendition. Omitting the parameter preserves the previous behavior byte-for-byte.
+
+## Lower-level URL lookup (Swift)
+
+If you need the download URL without initiating a download — for example, to hand it to your own downloader — call `DownloadAPI.fetchDownloadUrl` directly:
+
+```swift
+let url = try await shortKit.downloadAPI.fetchDownloadUrl(
+    contentId: item.id,
+    variant: .branded   // optional
+)
+```
+
+Returns `nil` if the static rendition is still preparing.
