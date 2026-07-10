@@ -30,6 +30,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   "duration": 32.5,
   "streamingUrl": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8",
   "thumbnailUrl": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?time=0",
+  "downloadUrl": "https://download.media.shortkit.dev/DS00Spx1CV/high.mp4",
   "protected": false,
   "section": "Weather",
   "author": "Jane Doe",
@@ -115,6 +116,14 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 
 <ResponseField name="thumbnailUrl" type="string | null">
   Thumbnail image URL. For videos, auto-generated from the first frame. For carousels, the first image.
+</ResponseField>
+
+<ResponseField name="downloadUrl" type="string | null">
+  URL to download the video file for offline use. Present when downloadable renditions are enabled for your organization and the download rendition has finished processing. `null` for carousels and while the download rendition is still preparing.
+
+  When your organization has a server-side branding pipeline configured, the file returned by `downloadUrl` reflects your organization's default download variant. Set the default to `raw` under **Settings > Downloads** if your clients composite branding on-device and must never receive a pre-branded file by default.
+
+  To fetch a specific variant on a per-request basis, or to bypass the cached URL entirely, use the SDK's `downloadVideo` method with an explicit `variant` argument.
 </ResponseField>
 
 <ResponseField name="section" type="string | null">
