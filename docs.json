@@ -54,6 +54,7 @@
             "pages": [
               "guides/content-types",
               "guides/upload-pipeline",
+              "sdk/upload",
               "guides/live-streams",
               "guides/protected-content"
             ]
