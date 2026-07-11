@@ -85,6 +85,14 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   Concurrent viewer count for live streams, refreshed on every feed read. `0` for non-live items and for live streams that are not currently being watched.
 </ResponseField>
 
+<ResponseField name="isDownloadable" type="boolean">
+  `true` when the item's organization has static renditions enabled and the item is eligible for [download](/sdk/downloads). Use this to gate download affordances in your UI.
+</ResponseField>
+
+<ResponseField name="downloadUrl" type="string | null">
+  Direct URL to the static MP4 rendition, when available. `null` while the rendition is still preparing — the SDK refreshes this lazily when you call `downloadVideo`. Short-lived; do not persist across sessions.
+</ResponseField>
+
 <ResponseField name="title" type="string">
   Display title shown in the feed. Max 200 characters.
 </ResponseField>
