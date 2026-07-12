@@ -1,7 +1,7 @@
 ---
 title: "Widgets & Entry Points"
 description: "Embed individual videos, horizontal video carousels, and vertical video grids anywhere in your app."
-keywords: ["player", "widget", "single player", "carousel", "grid", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
+keywords: ["player", "widget", "single player", "carousel", "grid", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "previewMode", "feedTransition", "instantClip", "fetchContent"]
 ---
 
 The player and widget components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews) and the **widget** for a horizontal carousel or vertical grid of video cards (home screens, dashboards, discovery surfaces).
@@ -9,7 +9,7 @@ The player and widget components let you embed short-form video outside the full
 Both components require content fetched via `fetchContent()`.
 
 <Info>
-  **Flutter:** Single player and widget components are coming soon for the Flutter SDK. For now, use the full-screen feed via [`ShortKitFeed`](/sdk/feed).
+  **Flutter:** The single player is available on the Flutter SDK. The widget (carousel and grid) is coming soon — for a multi-video surface on Flutter, use the full-screen feed via [`ShortKitFeed`](/sdk/feed).
 </Info>
 
 ## Fetching content
@@ -59,7 +59,9 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
 | `autoplay` | `Bool` / `Boolean` / `boolean` | `true` | Start playback automatically when a content item is set. |
 | `loop` | `Bool` / `Boolean` / `boolean` | `true` | Restart playback from the beginning when the video ends. |
 | `muteOnStart` | `Bool` / `Boolean` / `boolean` | `true` | Begin playback muted. |
-| `videoOverlay` | `VideoOverlayMode` / `OverlayConfig` | `.none` / `'none'` | Overlay rendered on top of the video. On React Native the property is named `overlay`. |
+| `videoOverlay` | `VideoOverlayMode` / `OverlayConfig` | `.none` / `'none'` | Overlay rendered on top of the video. On React Native and Flutter the property is named `overlay`. |
+| `previewMode` | `PreviewMode` | `.full` / `Full` | **Native iOS and Android SDKs only.** Source strategy for the player. `full` plays the complete video. `instantClip(seconds)` plays a short, reduced-bitrate preview of the first `seconds` — useful for lightweight inline previews. Not exposed on the React Native or Flutter wire. |
+| `feedTransition` | `FeedTransition` | `SLIDE_UP` | **Android only.** How the full-screen feed animates in when a tapped player opens it. `SLIDE_UP` slides the feed up from the bottom; `SLIDE_FROM_END` slides it in from the trailing edge. |
 
 ### Embedding a player
 
@@ -244,6 +246,64 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
     }
     ```
   </Tab>
+  <Tab title="Flutter">
+    ```dart PlayerScreen.dart
+    import 'package:flutter/material.dart';
+    import 'package:shortkit_flutter/shortkit_flutter.dart';
+
+    class PlayerScreen extends StatelessWidget {
+      const PlayerScreen({super.key});
+
+      @override
+      Widget build(BuildContext context) {
+        return ShortKitProvider.apiKey(
+          apiKey: 'pk_live_your_publishable_key',
+          child: const Scaffold(body: _Player()),
+        );
+      }
+    }
+
+    class _Player extends StatefulWidget {
+      const _Player();
+
+      @override
+      State<_Player> createState() => _PlayerState();
+    }
+
+    class _PlayerState extends State<_Player> {
+      ContentItem? _item;
+
+      @override
+      void didChangeDependencies() {
+        super.didChangeDependencies();
+        ShortKit.of(context).fetchContent(limit: 5).then((items) {
+          if (mounted && items.isNotEmpty) setState(() => _item = items.first);
+        });
+      }
+
+      @override
+      Widget build(BuildContext context) {
+        if (_item == null) return const SizedBox.shrink();
+        return SizedBox(
+          width: 200,
+          height: 350,
+          child: ShortKitPlayer(
+            contentItem: _item,
+            config: const PlayerConfig(
+              cornerRadius: 16,
+              clickAction: PlayerClickAction.feed,
+              muteOnStart: true,
+            ),
+          ),
+        );
+      }
+    }
+    ```
+
+    <Note>
+      `PlayerConfig.previewMode` is not exposed on the Flutter SDK. The player always plays the full video on Flutter.
+    </Note>
+  </Tab>
   <Tab title="Web">
     ```js app.js
     const sk = new ShortKit({
@@ -277,7 +337,7 @@ The player does not manage its own visibility lifecycle. Call `activate()` when 
 | `activate()` | Starts or resumes playback (respects `autoplay` and `muteOnStart`). |
 | `deactivate()` | Pauses playback and releases the active player resources. |
 
-On React Native, use the `active` prop instead of method calls. It defaults to the value of `config.autoplay` (which is `true` by default). Set it to `false` to pause and `true` to resume.
+On React Native and Flutter, use the `active` prop instead of method calls. It defaults to the value of `config.autoplay` (which is `true` by default). Set it to `false` to pause and `true` to resume.
 
 ```tsx
 <ShortKitPlayer
