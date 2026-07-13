@@ -50,6 +50,10 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
 
 ## Single player
 
+<Note>
+  The single player handles [protected content](/guides/protected-content) automatically on iOS and Android. It resolves the signed streaming URL before playback, re-applies a re-minted token before the current one expires without losing playback position, and loads the signed thumbnail for the inactive-card poster — so a protected card shows its real first frame instead of a blank placeholder. No extra integration.
+</Note>
+
 ### PlayerConfig
 
 | Property | Type | Default | Description |

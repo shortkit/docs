@@ -106,6 +106,10 @@ Protected content plays transparently in the ShortKit SDKs. There is **no extra 
   Signed-URL issuance and refresh are handled entirely inside the SDK. You don't call the playback-token endpoint, store tokens, or schedule refreshes yourself.
 </Note>
 
+<Note>
+  Protected playback works the same in the [single-player component](/sdk/player-and-widget#single-player) on iOS and Android. The player resolves the signed streaming URL on activation and loads the signed thumbnail for the inactive-card poster, so a protected card shows its real first frame instead of a blank placeholder.
+</Note>
+
 ---
 
 ## Playing protected content outside the SDK
