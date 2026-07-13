@@ -297,8 +297,8 @@ The SwiftUI `ShortKitPlayerView` takes the same `active` parameter, defaulting t
 ```swift
 ShortKitPlayerView(
     shortKit: shortKit,
-    active: isVisible,
-    config: PlayerConfig(clickAction: .mute)
+    config: PlayerConfig(clickAction: .mute),
+    active: isVisible
 )
 .frame(width: 200, height: 350)
 ```
