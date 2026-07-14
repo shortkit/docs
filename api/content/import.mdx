@@ -184,6 +184,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 
 - **Videos** are queued for async processing. They return with `status: "queued"` and transition to `processing` once transcoding begins, then `ready` once it completes. This typically takes 30–120 seconds depending on file size.
 - **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
+- **Unsupported sources** — a source that isn't a supported content type (for example a TikTok photo post or a non-reel Instagram post) resolves to `errored`. The reason is available on the content object's `errorReason` field.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
 
@@ -394,7 +395,7 @@ A profile import can produce many content items over time, and there is no per-j
     "event": "tiktok_import.completed",
     "jobId": "8f14e45f-ceea-467d-9c8e-2c1f3a9b4d20",
     "profileUrl": "https://www.tiktok.com/@nasa",
-    "summary": { "total": 50, "ready": 48, "errored": 2, "skipped": 0 },
+    "summary": { "total": 50, "ready": 48, "errored": 2 },
     "timestamp": "2026-03-10T14:45:00.000Z"
   }
   ```
