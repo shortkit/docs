@@ -94,7 +94,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 </ResponseField>
 
 <ResponseField name="uploadStatus" type="string">
-  Tracks media processing. One of `pending`, `processing`, `ready`, or `error`. See [Upload lifecycle](#upload-lifecycle) below.
+  Tracks media processing. One of `queued`, `processing`, `ready`, or `errored`. See [Upload lifecycle](#upload-lifecycle) below.
 </ResponseField>
 
 <ResponseField name="publishStatus" type="string">
@@ -232,12 +232,12 @@ The `uploadStatus` field tracks media processing — from the moment you initiat
 
 | Upload status | Description |
 |---------------|-------------|
-| `pending` | Upload or import initiated, media not yet received or not yet processing |
+| `queued` | Upload or import initiated, media not yet received or not yet processing |
 | `processing` | Media is being transcoded, thumbnails and captions are being generated |
 | `ready` | Processing complete, media is playable |
-| `error` | Processing failed |
+| `errored` | Processing failed |
 
-**Videos** move through the full lifecycle: `pending` → `processing` → `ready`.
+**Videos** move through the full lifecycle: `queued` → `processing` → `ready`.
 
 **Image carousels** skip processing entirely — images are served directly, so carousels are `ready` immediately after creation.
 
