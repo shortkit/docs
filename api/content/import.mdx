@@ -184,6 +184,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 
 - **Videos** are queued for async processing. They return with `status: "queued"` and transition to `processing` once transcoding begins, then `ready` once it completes. This typically takes 30–120 seconds depending on file size.
 - **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
+- **Unsupported sources** — a source that isn't a supported content type (for example a TikTok photo post or a non-reel Instagram post) resolves to `errored`. The reason is available on the content object's `errorReason` field.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
 

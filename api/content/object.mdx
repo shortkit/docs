@@ -97,6 +97,10 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   Tracks media processing. One of `queued`, `processing`, `ready`, or `errored`. See [Upload lifecycle](#upload-lifecycle) below.
 </ResponseField>
 
+<ResponseField name="errorReason" type="string | null">
+  Human-readable explanation of why processing failed. Set when `uploadStatus` is `errored` — for example, when an imported source is an unsupported content type. `null` in every other state.
+</ResponseField>
+
 <ResponseField name="publishStatus" type="string">
   Controls whether content appears in the feed. Either `published` or `unpublished`. See [Publish lifecycle](#publish-lifecycle) below.
 </ResponseField>
@@ -235,7 +239,7 @@ The `uploadStatus` field tracks media processing — from the moment you initiat
 | `queued` | Upload or import initiated, media not yet received or not yet processing |
 | `processing` | Media is being transcoded, thumbnails and captions are being generated |
 | `ready` | Processing complete, media is playable |
-| `errored` | Processing failed |
+| `errored` | Processing failed — `errorReason` carries the reason |
 
 **Videos** move through the full lifecycle: `queued` → `processing` → `ready`.
 
