@@ -212,7 +212,7 @@ Sent when the video has been accepted for transcoding. This is where you receive
 }
 ```
 
-The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp` (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
+The `customMetadata` field echoes the content's custom metadata. For platform imports it carries the auto-extracted fields — for TikTok that's `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_author_name`, `tiktok_upload_date`, and `tiktok_timestamp`; Instagram imports carry the equivalent `instagram_*` keys (see [Auto-populated metadata](#auto-populated-metadata)). It is `{}` when the content has no custom metadata.
 
 At this point the video is streamable (progressive delivery) but transcoding is not yet complete. If you plan to serve this content immediately, be aware that viewers of longer videos may experience buffering until encoding finishes.
 
@@ -411,3 +411,26 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
 | `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_handle`, `tiktok_caption`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` + `tiktok_uploader_id` (stable creator identifiers that survive handle changes), `tiktok_avatar_url` (creator avatar, re-hosted to a durable public URL), `tiktok_follower_count`, `tiktok_following_count`, `tiktok_heart_count` (total likes the creator has received), `tiktok_video_count` (creator-level counts — a point-in-time snapshot captured at import; rounded display values, e.g. `49600000`), `tiktok_is_ad` + `tiktok_is_ai` (booleans — branded content and AI-generated flags) |
+
+## Instagram import
+
+ShortKit imports content directly from Instagram via `POST /v1/content/import/instagram`. It works like the [TikTok import](#tiktok-import): submit single reel URLs or a creator profile URL (for example `https://www.instagram.com/natgeo`), which is expanded into that creator's most recent reels. The `urls`, `items`, `maxVideosPerProfile`, and `callbackUrl` request fields behave identically, and imports run asynchronously with the same [callback lifecycle](#callback-lifecycle).
+
+### Auto-populated metadata
+
+Instagram imports stamp the same shape of `custom_metadata` as TikTok, using `instagram_*` keys. Creator-level counts are a point-in-time snapshot captured at import and are strings, or `null` when unavailable (distinct from a real `0`).
+
+| Field | Value |
+|-------|-------|
+| `instagram_is_ad` | Branded/paid-partnership flag (boolean, or `null` when the source carried no flag). |
+| `instagram_follower_count` | Creator follower count (string, or `null`). |
+| `instagram_following_count` | Number of accounts the creator follows (string, or `null`). |
+| `instagram_video_count` | Creator's total media count — photos, carousels, and videos combined. Instagram exposes no video-only count (string, or `null`). |
+| `instagram_heart_count` | Always `null`. Instagram exposes no total-likes-received count. |
+| `instagram_is_ai` | Always `null`. Instagram exposes no AI-generated-content flag. |
+
+<Note>
+  `instagram_heart_count` and `instagram_is_ai` are always `null` — Instagram has no equivalent source. They are included so the metadata key set is identical across import sources, letting a downstream consumer read the same shape regardless of where content came from.
+</Note>
+
+Creator counts are fetched on a best-effort basis. If the lookup fails, the reel still imports and the three count fields are left `null`.
