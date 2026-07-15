@@ -417,3 +417,86 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
 | `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_handle`, `tiktok_caption`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` + `tiktok_uploader_id` (stable creator identifiers that survive handle changes), `tiktok_avatar_url` (creator avatar, re-hosted to a durable public URL), `tiktok_follower_count`, `tiktok_following_count`, `tiktok_heart_count` (total likes the creator has received), `tiktok_video_count` (creator-level counts — a point-in-time snapshot captured at import; rounded display values, e.g. `49600000`), `tiktok_is_ad` + `tiktok_is_ai` (booleans — branded content and AI-generated flags) |
+
+## Instagram import
+
+ShortKit imports content directly from Instagram via `POST /v1/content/import/instagram`. It works like the [TikTok import](#tiktok-import) endpoint — the same `urls` and `items` request shape, automatic metadata extraction, and an asynchronous job response.
+
+Each URL you submit is either a **single reel** or a **creator profile** (for example `https://www.instagram.com/@natgeo`). A profile URL is expanded automatically into that creator's reels.
+
+### Request body
+
+<ParamField body="urls" type="string[]">
+  Instagram URLs to import. Each entry is either a single reel URL or a creator profile URL. Accepts the same `urls` and `items` shapes as the [TikTok endpoint](#tiktok-import). Provide exactly one of `urls` or `items`.
+</ParamField>
+
+<ParamField body="maxReelsPerProfile" type="integer" default="20">
+  Maximum number of recent reels to import from each profile URL. Defaults to `20`. Ignored for single reel URLs. Ignored when `topByViews` is set.
+</ParamField>
+
+<ParamField body="topByViews" type="integer">
+  Import a profile's **most-viewed** reels instead of its most recent. When set to `N` (`1` or greater), ShortKit scans a window of the profile's recent reels, ranks them by view count, and imports only the `N` most-viewed. When omitted, ShortKit imports the latest `maxReelsPerProfile` reels.
+
+  `topByViews` and `maxReelsPerProfile` are mutually exclusive — setting `topByViews` overrides `maxReelsPerProfile`. Applies to profile URLs only; it has no effect on single reel URLs.
+
+  <Note>
+    The scan window covers a profile's recent reels, so `topByViews` selects the most-viewed among a creator's recent uploads rather than their all-time top reels.
+  </Note>
+</ParamField>
+
+<ParamField body="callbackUrl" type="string">
+  A webhook URL that ShortKit POSTs to as each imported item progresses. Uses the same per-item payload and delivery behavior as the [callback lifecycle](#callback-lifecycle) above, plus a job-level callback when the import completes.
+</ParamField>
+
+To import a creator's most-viewed reels, set `topByViews` to the number you want. This example imports the 5 most-viewed reels from the profile:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.shortkit.dev/v1/content/import/instagram \
+  -H "Authorization: Bearer sk_liv..._key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://www.instagram.com/@natgeo"],
+    "topByViews": 5,
+    "callbackUrl": "https://your-backend.com/webhooks/shortkit"
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/content/import/instagram",
+    headers={
+        "Authorization": "Bearer sk_liv..._key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "urls": ["https://www.instagram.com/@natgeo"],
+        "topByViews": 5,
+        "callbackUrl": "https://your-backend.com/webhooks/shortkit",
+    },
+)
+job = resp.json()["data"]
+print(f"Job {job['jobId']}: {job['profilesQueued']} profile(s) queued")
+```
+
+```javascript Node.js
+const resp = await fetch("https://api.shortkit.dev/v1/content/import/instagram", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk_liv..._key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    urls: ["https://www.instagram.com/@natgeo"],
+    topByViews: 5,
+    callbackUrl: "https://your-backend.com/webhooks/shortkit",
+  }),
+});
+const { data } = await resp.json();
+console.log(`Job ${data.jobId}: ${data.profilesQueued} profile(s) queued`);
+```
+</CodeGroup>
+
+Instagram imports are **asynchronous** and return a job summary in the same shape as the [TikTok response](#response). Track progress with `callbackUrl` or by polling `GET /v1/content/import/status`, exactly as described for [TikTok](#tracking-progress).
