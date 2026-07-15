@@ -299,6 +299,12 @@ Each URL you submit is either a **single video** or a **creator profile** (for e
   Maximum number of recent videos to import from each profile URL. Defaults to `20`, up to `10000`. Ignored for single video URLs.
 </ParamField>
 
+<ParamField body="topByViews" type="integer">
+  Import a profile's **most-viewed** videos instead of its latest. When set to `N` (≥1), ShortKit scans a window of the profile's recent videos and imports only the `N` with the highest view count — `maxVideosPerProfile` is ignored in this mode. When omitted, the latest `maxVideosPerProfile` videos are imported (default behavior).
+
+  Only the selected videos are downloaded and processed — the rest of the scanned window is ranked on metadata alone and never ingested. Applies to profile URLs only.
+</ParamField>
+
 <ParamField body="callbackUrl" type="string">
   A webhook URL that ShortKit POSTs to as each imported item progresses. Uses the same per-item payload and delivery behavior as the [callback lifecycle](#callback-lifecycle) above, plus a job-level callback when the import completes (see [Tracking progress](#tracking-progress)).
 </ParamField>
