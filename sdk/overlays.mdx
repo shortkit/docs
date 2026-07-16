@@ -223,34 +223,6 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
       <ShortKitFeed />
     </ShortKitProvider>
     ```
-
-    Your overlay component receives an `OverlayProps` object as props. Alongside the player state fields, it includes `doubleTapSequence`, a counter that increments each time the native feed cell recognizes a double tap on the overlay's surface. Watch it in an effect to trigger double-tap responses such as a like animation:
-
-    ```tsx
-    import { useEffect, useRef } from 'react';
-    import type { OverlayProps } from '@shortkitsdk/react-native';
-
-    function MyOverlay({ doubleTapSequence }: OverlayProps) {
-      const previous = useRef(doubleTapSequence);
-
-      useEffect(() => {
-        if (doubleTapSequence !== previous.current) {
-          previous.current = doubleTapSequence;
-          if (doubleTapSequence) {
-            playLikeAnimation();
-          }
-        }
-      }, [doubleTapSequence]);
-
-      // ...
-    }
-    ```
-
-    `doubleTapSequence` starts at `0` and resets to `0` when the cell is reused for a new item. Compare against the previous value rather than treating any non-zero value as a fresh tap.
-
-    <Note>
-      `doubleTapSequence` increments on iOS only. On Android it stays at `0`; wire up your own gesture handler inside the overlay if you need double-tap behavior there.
-    </Note>
   </Tab>
 </Tabs>
 
@@ -730,7 +702,7 @@ The key pattern: guard on `isActive` and `!isScrubbing` in your time stream hand
 
 ## Feed scroll control
 
-By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Toggle feed scroll to give your gesture exclusive priority while it is in flight: disable it when the gesture starts, re-enable it when the gesture ends or is cancelled. Disabling feed scroll also suspends the interactive swipe-to-dismiss gesture, so an edge-anchored drag in your overlay won't accidentally close the feed.
+By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Toggle feed scroll to give your gesture exclusive priority while it is in flight: disable it when the gesture starts, re-enable it when the gesture ends or is cancelled.
 
 <Tabs>
   <Tab title="Swift">
@@ -774,22 +746,6 @@ Call it as a matched pair driven by your gesture lifecycle: disable when the ges
 <Note>
   This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle stays where you set it: if you disable scroll and never re-enable it, vertical swipe stays blocked. Always pair a disable call with a matching re-enable.
 </Note>
-
-## Dismissing the feed
-
-When a full-screen feed is presented on top of your app — for example, a feed opened by tapping a [widget](/sdk/player-and-widget) card — call `dismissFeed()` from an overlay to close it programmatically. Use it to wire up a custom close button or a swipe-to-dismiss control inside your overlay.
-
-<Tabs>
-  <Tab title="React Native">
-    ```tsx
-    import { ShortKitCommands } from '@shortkitsdk/react-native';
-
-    ShortKitCommands.dismissFeed();
-    ```
-  </Tab>
-</Tabs>
-
-`dismissFeed()` closes the presented feed expansion that owns the active overlay. It is a no-op when the feed is embedded directly in your view hierarchy rather than presented on top of it, so it is safe to call unconditionally.
 
 ## Example: closed captions
 
