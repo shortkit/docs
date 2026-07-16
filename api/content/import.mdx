@@ -417,3 +417,130 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
 | `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_handle`, `tiktok_caption`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` + `tiktok_uploader_id` (stable creator identifiers that survive handle changes), `tiktok_avatar_url` (creator avatar, re-hosted to a durable public URL), `tiktok_follower_count`, `tiktok_following_count`, `tiktok_heart_count` (total likes the creator has received), `tiktok_video_count` (creator-level counts — a point-in-time snapshot captured at import; rounded display values, e.g. `49600000`), `tiktok_is_ad` + `tiktok_is_ai` (booleans — branded content and AI-generated flags) |
+
+## Instagram import
+
+ShortKit imports content directly from Instagram via `POST /v1/content/import/instagram`. It extracts metadata from the source automatically — you don't provide `title`, `description`, or `author`.
+
+Each URL you submit is either a **single reel** or a **creator profile** (for example `https://www.instagram.com/nasa`). A profile URL is expanded automatically into that creator's most recent reels.
+
+### Request body
+
+<ParamField body="urls" type="string[]">
+  Instagram URLs to import. Min 1, max 20 per request. Each entry is either a single reel URL or a creator profile URL. Submit at most one profile URL per request — pair it with single reel URLs if you need to, and send additional profiles as separate requests. Provide `urls` or `items`.
+</ParamField>
+
+<ParamField body="items" type="object[]">
+  Alternative to `urls` that lets you attach your own metadata per URL. Min 1, max 20 per request; the same URL rules as `urls` apply. Each item accepts the same `url`, `customMetadata`, and `externalId` fields as the [TikTok `items`](#tiktok-import) shape. When `externalId` is omitted, ShortKit derives one from the platform (`instagram_<id>`), which deduplicates repeat imports of the same reel by default.
+</ParamField>
+
+<ParamField body="maxReelsPerProfile" type="integer" default="500">
+  Maximum number of recent reels to import from each profile URL. Defaults to `500`, up to `10000`. Ignored for single reel URLs.
+</ParamField>
+
+<ParamField body="topByViews" type="integer">
+  Import a profile's **most-viewed** reels instead of its latest. When set to `N` (≥1), ShortKit scans a window of the profile's recent reels and imports only the `N` with the highest view count — `maxReelsPerProfile` is ignored in this mode. When omitted, the latest `maxReelsPerProfile` reels are imported (default behavior).
+
+  Only the selected reels are downloaded and processed — the rest of the scanned window is ranked on metadata alone and never ingested. Applies to profile URLs only.
+
+  <Note>
+    The scan window covers a profile's recent reels, so `topByViews` selects the most-viewed among a creator's recent uploads rather than their all-time top reels.
+  </Note>
+</ParamField>
+
+<ParamField body="callbackUrl" type="string">
+  A webhook URL that ShortKit POSTs to as each imported item progresses. Uses the same per-item payload and delivery behavior as the [callback lifecycle](#callback-lifecycle) above, plus a job-level callback when the import completes.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.shortkit.dev/v1/content/import/instagram \
+  -H "Authorization: Bearer sk_liv..._key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://www.instagram.com/nasa"],
+    "topByViews": 5,
+    "callbackUrl": "https://your-backend.com/webhooks/shortkit"
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.shortkit.dev/v1/content/import/instagram",
+    headers={
+        "Authorization": "Bearer sk_liv..._key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "urls": ["https://www.instagram.com/nasa"],
+        "topByViews": 5,
+        "callbackUrl": "https://your-backend.com/webhooks/shortkit",
+    },
+)
+job = resp.json()["data"]
+print(f"Job {job['jobId']}: {job['profilesQueued']} profile(s) queued")
+```
+
+```javascript Node.js
+const resp = await fetch("https://api.shortkit.dev/v1/content/import/instagram", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk_liv..._key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    urls: ["https://www.instagram.com/nasa"],
+    topByViews: 5,
+    callbackUrl: "https://your-backend.com/webhooks/shortkit",
+  }),
+});
+const { data } = await resp.json();
+console.log(`Job ${data.jobId}: ${data.profilesQueued} profile(s) queued`);
+```
+</CodeGroup>
+
+### Response
+
+Instagram imports are **asynchronous**. The endpoint returns a job summary, not the content records. A profile URL is expanded in the background, so the number of reels it produces is not known when the request returns — `reelsQueued` reflects only single reel URLs you submitted directly.
+
+```json 201
+{
+  "data": {
+    "jobId": "8f14e45f-ceea-467d-9c8e-2c1f3a9b4d20",
+    "profilesQueued": 1,
+    "reelsQueued": 0,
+    "reelsSkipped": 0
+  },
+  "queue": {
+    "orgQueuedItems": 5,
+    "estimatedMinutes": 0.1
+  },
+  "meta": {
+    "request_id": "req_instagram001"
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `data.jobId` | Identifier for this import job. |
+| `data.profilesQueued` | Number of profile URLs accepted for expansion. |
+| `data.reelsQueued` | Number of single reel URLs queued. Reels discovered by expanding a profile are not counted here. |
+| `data.reelsSkipped` | Number of URLs skipped — either already imported into your organization, or duplicated within this request. |
+| `queue.orgQueuedItems` | Items currently queued for your organization across all imports. |
+| `queue.estimatedMinutes` | Estimated time until the current queue finishes processing. |
+
+Track progress the same way as TikTok imports — use `callbackUrl` for per-item and job-level callbacks, or poll `GET /v1/content/import/status` for your organization's aggregate import state.
+
+### Auto-populated metadata
+
+ShortKit extracts and fills in the following fields automatically. You can change them after import using the [Update Content](/api/content/update) endpoint.
+
+| Field | Value |
+|-------|-------|
+| `title` | Reel title (or first 200 chars of caption) |
+| `description` | Caption text (up to 2,000 chars) |
+| `author` | Creator username |
+| `customMetadata` | `instagram_id`, `instagram_url`, `instagram_likes`, `instagram_comments` |
