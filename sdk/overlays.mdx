@@ -223,6 +223,30 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
       <ShortKitFeed />
     </ShortKitProvider>
     ```
+
+    Your overlay component receives an `OverlayProps` object as props. Alongside the player state fields, it includes `doubleTapSequence`, a counter that increments each time the native feed cell recognizes a double tap on the overlay's surface. Watch it in an effect to trigger double-tap responses such as a like animation:
+
+    ```tsx
+    import { useEffect, useRef } from 'react';
+    import type { OverlayProps } from '@shortkitsdk/react-native';
+
+    function MyOverlay({ doubleTapSequence }: OverlayProps) {
+      const previous = useRef(doubleTapSequence);
+
+      useEffect(() => {
+        if (doubleTapSequence !== previous.current) {
+          previous.current = doubleTapSequence;
+          if (doubleTapSequence) {
+            playLikeAnimation();
+          }
+        }
+      }, [doubleTapSequence]);
+
+      // ...
+    }
+    ```
+
+    `doubleTapSequence` starts at `0` and resets to `0` when the cell is reused for a new item. Compare against the previous value rather than treating any non-zero value as a fresh tap.
   </Tab>
 </Tabs>
 
