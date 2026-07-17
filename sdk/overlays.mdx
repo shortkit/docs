@@ -756,16 +756,15 @@ The native feed surface recognizes double taps and forwards them to your overlay
 ```tsx
 import { useEffect, useState } from "react";
 import { View, Animated } from "react-native";
-import { useShortKitPlayer, type OverlayProps } from "@shortkitsdk/react-native";
+import { ShortKitCommands, type OverlayProps } from "@shortkitsdk/react-native";
 
 export function LikeOverlay({ doubleTapSequence = 0 }: OverlayProps) {
-  const { sendContentSignal } = useShortKitPlayer();
   const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     if (doubleTapSequence === 0) return;
     setLiked(true);
-    sendContentSignal("positive");
+    ShortKitCommands.sendContentSignal("positive");
   }, [doubleTapSequence]);
 
   return (
@@ -775,6 +774,10 @@ export function LikeOverlay({ doubleTapSequence = 0 }: OverlayProps) {
   );
 }
 ```
+
+<Note>
+  Overlay components run in isolated React surfaces, so the `useShortKitPlayer` hook is not available inside them. Use `ShortKitCommands` for imperative player control from an overlay, and read per-cell state — including `doubleTapSequence` — from `OverlayProps`.
+</Note>
 
 <Note>
   Guard on `doubleTapSequence === 0` so the initial mount and cell reuse resets don't fire your handler. Only a real double tap advances the value.
