@@ -747,6 +747,10 @@ Call it as a matched pair driven by your gesture lifecycle: disable when the ges
   This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle stays where you set it: if you disable scroll and never re-enable it, vertical swipe stays blocked. Always pair a disable call with a matching re-enable.
 </Note>
 
+<Note>
+  On iOS, disabling feed scroll also suspends the swipe-to-dismiss gesture for as long as scroll is disabled. This lets an overlay gesture that starts near a screen edge — such as a horizontal scrubber drag — claim the touch without triggering a dismiss. Re-enabling scroll restores both feed paging and swipe-to-dismiss.
+</Note>
+
 ## Reacting to double taps (React Native)
 
 The native feed surface recognizes double taps and forwards them to your overlay through the `doubleTapSequence` prop. The value increments by one on each double tap and resets to `0` when the cell is reused for a new item. Watch it with an effect to trigger a like animation or send a positive signal.
