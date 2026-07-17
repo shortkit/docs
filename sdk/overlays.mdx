@@ -704,8 +704,6 @@ The key pattern: guard on `isActive` and `!isScrubbing` in your time stream hand
 
 By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Toggle feed scroll to give your gesture exclusive priority while it is in flight: disable it when the gesture starts, re-enable it when the gesture ends or is cancelled.
 
-On iOS, disabling feed scroll also suspends the feed's interactive swipe-to-dismiss gestures for the duration. This lets an overlay gesture that starts near a screen edge — such as a horizontal scrubber drag — run without dismissing the feed. Re-enabling restores both vertical paging and dismissal.
-
 <Tabs>
   <Tab title="Swift">
     Call it on the player:
