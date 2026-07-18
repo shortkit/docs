@@ -1,7 +1,7 @@
 ---
 title: "Overlays"
 description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, SurveyOverlay, and AdOverlay protocols."
-keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands", "doubleTapSequence", "double tap", "dismissFeed"]
+keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
@@ -746,59 +746,6 @@ Call it as a matched pair driven by your gesture lifecycle: disable when the ges
 <Note>
   This is a transient handoff for an in-flight gesture, not a persistent feed lock. The toggle stays where you set it: if you disable scroll and never re-enable it, vertical swipe stays blocked. Always pair a disable call with a matching re-enable.
 </Note>
-
-<Note>
-  On iOS, disabling feed scroll also suspends the swipe-to-dismiss gesture for as long as scroll is disabled. This lets an overlay gesture that starts near a screen edge — such as a horizontal scrubber drag — claim the touch without triggering a dismiss. Re-enabling scroll restores both feed paging and swipe-to-dismiss.
-</Note>
-
-## Reacting to double taps (React Native)
-
-The native feed surface recognizes double taps and forwards them to your overlay through the `doubleTapSequence` prop. The value increments by one on each double tap and resets to `0` when the cell is reused for a new item. Watch it with an effect to trigger a like animation or send a positive signal.
-
-```tsx
-import { useEffect, useState } from "react";
-import { View, Animated } from "react-native";
-import { ShortKitCommands, type OverlayProps } from "@shortkitsdk/react-native";
-
-export function LikeOverlay({ doubleTapSequence = 0 }: OverlayProps) {
-  const [liked, setLiked] = useState(false);
-
-  useEffect(() => {
-    if (doubleTapSequence === 0) return;
-    setLiked(true);
-    ShortKitCommands.sendContentSignal("positive");
-  }, [doubleTapSequence]);
-
-  return (
-    <View style={{ flex: 1 }}>
-      {liked && <Animated.Text style={{ fontSize: 64 }}>❤️</Animated.Text>}
-    </View>
-  );
-}
-```
-
-<Note>
-  Overlay components run in isolated React surfaces, so the `useShortKitPlayer` hook is not available inside them. Use `ShortKitCommands` for imperative player control from an overlay, and read per-cell state — including `doubleTapSequence` — from `OverlayProps`.
-</Note>
-
-<Note>
-  Guard on `doubleTapSequence === 0` so the initial mount and cell reuse resets don't fire your handler. Only a real double tap advances the value.
-</Note>
-
-## Dismissing the expanded feed (React Native)
-
-Call `ShortKitCommands.dismissFeed()` to close the full-screen feed expansion that owns the active overlay — for example, from a close button rendered in your overlay chrome.
-
-```tsx
-import { Pressable, Text } from "react-native";
-import { ShortKitCommands } from "@shortkitsdk/react-native";
-
-<Pressable onPress={() => ShortKitCommands.dismissFeed()}>
-  <Text>Close</Text>
-</Pressable>
-```
-
-`dismissFeed()` is a no-op when no feed expansion is on screen, so it is safe to call from an overlay rendered in an embedded feed.
 
 ## Example: closed captions
 
