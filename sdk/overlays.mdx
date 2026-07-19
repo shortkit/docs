@@ -785,6 +785,10 @@ export function LikeOverlay({ doubleTapSequence = 0 }: OverlayProps) {
   Guard on `doubleTapSequence === 0` so the initial mount and cell reuse resets don't fire your handler. Only a real double tap advances the value.
 </Note>
 
+<Note>
+  Double-tap recognition is currently delivered on iOS. On Android, `doubleTapSequence` stays `0` — write your overlay so the like affordance degrades gracefully when the value never advances.
+</Note>
+
 ## Dismissing the expanded feed (React Native)
 
 Call `ShortKitCommands.dismissFeed()` to close the full-screen feed expansion that owns the active overlay — for example, from a close button rendered in your overlay chrome.
