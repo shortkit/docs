@@ -778,7 +778,7 @@ export function LikeOverlay({ doubleTapSequence = 0 }: OverlayProps) {
 ```
 
 <Note>
-  Overlay components run in isolated React surfaces, so the `useShortKitPlayer` hook is not available inside them. Use `ShortKitCommands` for imperative player control from an overlay, and read per-cell state — including `doubleTapSequence` — from `OverlayProps`.
+  Double taps reach your overlay as the `doubleTapSequence` prop on `OverlayProps`, not through a hook or event subscription. Pair it with `ShortKitCommands` for any imperative response, such as sending a positive signal.
 </Note>
 
 <Note>
