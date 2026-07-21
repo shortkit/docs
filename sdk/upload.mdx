@@ -136,12 +136,24 @@ Every handle emits a stream of typed states. The set is identical across platfor
 |---|---|
 | `queued` | Waiting for a free slot in the FIFO queue |
 | `preparing` | Fingerprinting the file and creating the server-side session |
-| `uploading(fraction)` | Actively transferring chunks; `fraction` is 0–1 |
+| `uploading(fraction)` | Actively transferring chunks; `fraction` is 0–1 and advances continuously as bytes leave the device (see [Progress reporting](#progress-reporting)) |
 | `waitingForNetwork` | Parked because the device is offline. No retries are burned while parked; the upload resumes automatically when a suitable connection returns |
 | `processing` | All bytes uploaded; the server is transcoding |
 | `completed(contentId)` | The content is `ready`. Use `contentId` to display it in a feed |
 | `failed(error, retriable)` | Transfer failed. `retriable = true` means the app can call `resume()` on the handle to try again |
 | `cancelled` | The host cancelled the upload via `cancel()` |
+
+## Progress reporting
+
+`fraction` reports live transfer progress. It advances continuously as bytes leave the device, not in chunk-sized steps. A short clip that fits in a single chunk climbs smoothly from 0 toward 1 during the transfer instead of holding at 0 and snapping to 1 at the end.
+
+The value combines two counts: bytes the server has acknowledged, plus bytes of the current chunk already written to the socket. It is clamped to a maximum of 1.
+
+Progress emissions are throttled to roughly 10 per second, so `fraction` is safe to bind directly to a progress bar. The in-flight portion resets whenever a chunk finishes, fails, or the upload is paused — so a pause drops `fraction` back to the last acknowledged position, which is the point a resume will actually restart from.
+
+<Note>
+`fraction` is a display value and includes bytes that are in flight but not yet acknowledged by the server; those bytes may be re-sent on a retry. For logic that depends on durably-stored progress — checkpointing, "safe to close the app" prompts — use `committedFraction`, which counts only server-acknowledged bytes and never rewinds. `committedFraction` matches the pre-continuous behavior of `fraction`.
+</Note>
 
 ## Reliability guarantees
 
