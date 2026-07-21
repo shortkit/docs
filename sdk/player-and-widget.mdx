@@ -1,7 +1,7 @@
 ---
 title: "Widgets & Entry Points"
 description: "Embed individual videos, horizontal video carousels, and vertical video grids anywhere in your app."
-keywords: ["player", "widget", "single player", "carousel", "grid", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
+keywords: ["player", "widget", "single player", "carousel", "grid", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent", "horizontalEdgeInset", "carouselContentInset", "edge inset"]
 ---
 
 The player and widget components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews) and the **widget** for a horizontal carousel or vertical grid of video cards (home screens, dashboards, discovery surfaces).
@@ -300,6 +300,7 @@ The widget displays a horizontal carousel or vertical grid of video cards with m
 | --- | --- | --- | --- |
 | `cardCount` | integer | `3` | Number of video cards visible in the carousel. Has no effect when `layout` is `.grid`. |
 | `cardSpacing` | float | `8` | Spacing between cards (carousel) or between grid cells, in points (iOS) or dp (Android/RN). |
+| `horizontalEdgeInset` / `carouselContentInset` | float | `nil` | **Carousel only.** Horizontal inset, in points (iOS) or dp (Android), from the widget's edges to the first and last tile's *visible* edge — where the carousel content visually starts. Use it to align the row's leading edge with your app's own horizontal gutters (for example, section headers). `nil` (default) keeps the standard edge inset of `cardSpacing`. Ignored for grid layouts. iOS names this `horizontalEdgeInset`; Android names it `carouselContentInset`. |
 | `cornerRadius` | float | `12` | Corner radius applied to each card. |
 | `autoplay` | boolean | `true` | Whether the visible card plays automatically. |
 | `muteOnStart` | boolean | `true` | Whether playback starts muted. |
@@ -384,6 +385,35 @@ The `startSide` parameter on `gridAlternating` controls which column plays in th
     Coming soon.
   </Tab>
 </Tabs>
+
+---
+
+### Carousel edge inset
+
+By default a carousel insets its first and last tiles by `cardSpacing`. Set `horizontalEdgeInset` (iOS) or `carouselContentInset` (Android) to control that inset directly — the visible edge of the first and last tile lands exactly that many points (iOS) or dp (Android) from the widget's edges. Use it to align the row with your app's own horizontal gutters, so the first tile sits flush with your section headers.
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    // First tile flush with an 18pt section gutter
+    let config = WidgetConfig(
+        cardCount: 6,
+        horizontalEdgeInset: 18
+    )
+    ```
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    // First tile flush with an 18dp section gutter
+    val config = WidgetConfig(
+        cardCount = 6,
+        carouselContentInset = 18f
+    )
+    ```
+  </Tab>
+</Tabs>
+
+The inset applies to carousel layouts only; it is ignored by `WidgetLayout.Grid`.
 
 ---
 
