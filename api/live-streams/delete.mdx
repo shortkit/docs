@@ -1,12 +1,14 @@
 ---
 title: "Delete Live Stream"
 api: "DELETE /v1/live-streams/{id}"
-description: "Delete a live stream and remove it from the feed."
+description: "Permanently delete a live stream and remove it from the feed."
 ---
 
-Deletes a live stream and removes the underlying content item from your feed. If the stream is still `active` when you delete it, the broadcast is ended first. Authenticated with your secret key.
+Deletes a live stream and its underlying content item. If the stream is still `active` when you delete it, the broadcast is ended first. Streaming and playback URLs are revoked. Authenticated with your secret key.
 
-Clips already created from the stream are preserved as standalone content items.
+The delete is permanent — the stream is excluded from `GET /v1/live-streams`, `GET /v1/live-streams/{id}`, and the clips-listing endpoint from that point on.
+
+Clips already created from the stream are preserved as standalone content items. Historical viewer metrics for the stream also remain available in analytics.
 
 ## Path parameters
 
@@ -17,7 +19,7 @@ Clips already created from the stream are preserved as standalone content items.
 <RequestExample>
 ```bash cURL
 curl -X DELETE "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+  -H "Authorization: Bearer ***
 ```
 
 ```python Python
@@ -25,7 +27,7 @@ import requests
 
 resp = requests.delete(
     "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234",
-    headers={"Authorization": "Bearer sk_live_your_secret_key"},
+    headers={"Authorization": "Bearer sk_liv..._key"},
 )
 result = resp.json()["data"]
 ```
@@ -33,7 +35,7 @@ result = resp.json()["data"]
 ```javascript Node.js
 const resp = await fetch(
   "https://api.shortkit.dev/v1/live-streams/5a7b8c9d-e0f1-4234-5678-90abcdef1234",
-  { method: "DELETE", headers: { Authorization: "Bearer sk_live_your_secret_key" } }
+  { method: "DELETE", headers: { Authorization: "Bearer sk_liv..._key" } }
 );
 const { data: result } = await resp.json();
 ```
@@ -53,4 +55,4 @@ const { data: result } = await resp.json();
 ```
 </ResponseExample>
 
-Returns a `404` if the stream does not exist or does not belong to your organization.
+Returns a `404` if the stream does not exist, does not belong to your organization, or has already been deleted.
