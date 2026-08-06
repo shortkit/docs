@@ -56,14 +56,6 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
   Only applies to `contentType: "video"`. No effect for image or video carousels. If you also render this content in a custom feed via the SDK, pair with the `origin` field on [`FeedInput.video`](/guides/content-types#custom-feed-input).
 </ParamField>
 
-<ParamField body="publishAt" type="string">
-  ISO 8601 timestamp. Content won't appear in the feed before this time.
-</ParamField>
-
-<ParamField body="expiresAt" type="string">
-  ISO 8601 timestamp. Content is removed from the feed after this time.
-</ParamField>
-
 <ParamField body="images" type="object[]">
   **Carousel only.** Defines the image slots for the carousel. Each object can include:
   - `position` (integer) — Display order (0-indexed). Defaults to array index.
