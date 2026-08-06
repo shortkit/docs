@@ -8,6 +8,8 @@ Ends a live stream immediately, regardless of whether the broadcaster is still c
 
 The response returns the stream in its current state. The `status` transitions to `ended` asynchronously — poll [Get Live Stream](/api/live-streams/get) or listen for a webhook to confirm the transition. Once ended, the recording becomes available for [clipping](/api/live-streams/clip). Authenticated with your secret key.
 
+Ending a stream also unpublishes the associated content item if it was `published`, so it stops surfacing in feeds. If the stream ends without producing a playable recording, the content item is automatically soft-deleted after a short grace window — see [Lifecycle](/api/live-streams/object#lifecycle).
+
 ## Path parameters
 
 <ParamField path="id" type="string" required>
