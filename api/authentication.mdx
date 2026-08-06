@@ -74,7 +74,6 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 | `/v1/content/{id}` | GET | Get a single content item |
 | `/v1/content/upload` | POST | Upload video files |
 | `/v1/events` | POST | Ingest client-side events |
-| `/v1/surveys/{id}/responses` | POST | Submit a survey response |
 
 ### Secret key (`Authorization: Bearer` header)
 
@@ -82,7 +81,6 @@ Secret keys are bcrypt-hashed before storage. The plaintext is shown **exactly o
 |----------|--------|-------------|
 | `/v1/content/*` | GET / PATCH / DELETE | Content management |
 | `/v1/content/import/*` | POST | Import content from a URL |
-| `/v1/surveys/*` | GET / POST / PUT / DELETE | Survey management |
 | `/v1/events/*` | GET | Query events and analytics |
 | `/v1/analytics/*` | GET | Analytics data |
 | `/v1/ad-config` | GET / PUT | Ad configuration |

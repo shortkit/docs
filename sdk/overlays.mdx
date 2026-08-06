@@ -1,7 +1,7 @@
 ---
 title: "Overlays"
-description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, SurveyOverlay, and AdOverlay protocols."
-keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
+description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, and AdOverlay protocols."
+keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "AdOverlay", "player", "publishers", "commands"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
@@ -1110,9 +1110,9 @@ When your custom overlay includes actions like likes, shares, or saves, report t
 
 Custom overlays handle their own user interaction callbacks and report engagement through content signals.
 
-## Carousel, survey, and ad overlay modes
+## Carousel and ad overlay modes
 
-Image carousels, video carousels, surveys, and native ads follow the same overlay pattern as video content. Each has a mode enum with `.none` and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
+Image carousels, video carousels, and native ads follow the same overlay pattern as video content. Each has a mode enum with `.none` and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
 
 <Tabs>
   <Tab title="Swift">
@@ -1121,7 +1121,6 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
         videoOverlay: .custom { MyVideoOverlay() },
         carouselOverlay: .custom { MyCarouselOverlay() },
         videoCarouselOverlay: .custom { MyVideoCarouselOverlay() },
-        surveyOverlay: .custom { MySurveyOverlay() },
         adOverlay: .custom { MyAdOverlay() }
     )
     ```
@@ -1132,7 +1131,6 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
         videoOverlay = VideoOverlayMode.Custom { MyVideoOverlay(context) },
         carouselOverlay = CarouselOverlayMode.Custom { MyCarouselOverlay(context) },
         videoCarouselOverlay = VideoCarouselOverlayMode.Custom { MyVideoCarouselOverlay(context) },
-        surveyOverlay = SurveyOverlayMode.Custom { MySurveyOverlay(context) },
         adOverlay = AdOverlayMode.Custom { MyAdOverlay(context) }
     )
     ```
@@ -1146,7 +1144,6 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
         overlay: { type: "custom", component: MyVideoOverlay },
         carouselOverlay: { type: "custom", component: MyCarouselOverlay },
         videoCarouselOverlay: { type: "custom", name: "myVideoCarousel", component: MyVideoCarouselOverlay },
-        surveyMode: { type: "template", name: "default" },
       }}
     >
       <ShortKitFeed />
@@ -1154,7 +1151,7 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
     ```
 
     <Note>
-      React Native uses `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. Survey overlays in React Native only support a built-in template — custom survey components are available on iOS and Android only.
+      React Native uses `overlay` (not `videoOverlay`) and does not support `adOverlay`.
     </Note>
   </Tab>
 </Tabs>
@@ -1165,8 +1162,6 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
 | | `.none` | No carousel UI. Developer accesses raw `ImageCarouselItem` data. |
 | `VideoCarouselOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. The SDK handles video paging and playback natively; your overlay provides chrome (titles, buttons, page indicators) on top. |
 | | `.none` | SDK renders the native video pager with built-in page indicators. No custom overlay. |
-| `SurveyOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the survey UI and report responses via callbacks. |
-| | `.none` | No survey UI. Developer accesses raw `SurveyItem` data. |
 | `AdOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the ad UI and must handle policy compliance. |
 | | `.none` | No ad overlay UI. Developer accesses raw `NativeAdContent` data. |
 
@@ -1306,40 +1301,6 @@ function MyVideoCarouselOverlay({ feedId, carouselItem }: VideoCarouselOverlayPr
 <Note>
   At its first or last page, the video carousel **releases** a horizontal pan instead of consuming it, so the gesture can flow to whatever scroll container wraps the feed. This is what makes edge-swipe tab navigation *possible* — but it is not automatic on its own. You have to host the feed inside a swipe-enabled pager (e.g. a tab navigator with swipe gestures enabled), and whether an edge swipe actually advances a tab is determined by that pager's own gesture handling, which you configure on the host side. The SDK's only role is to stop the carousel from absorbing the pan at its edges.
 </Note>
-
-### Custom survey overlays
-
-Custom survey overlays conform to `SurveyOverlay`. The protocol includes two callback properties that the SDK sets on your overlay after creation. Your overlay calls these when the user selects a survey option — the SDK handles forwarding the response to the host app delegate and triggering auto-advance.
-
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    public protocol SurveyOverlay: AnyObject {
-        var onSurveyResponse: ((String, SurveyOption) -> Void)? { get set }
-        var onAutoAdvance: (() -> Void)? { get set }
-        func configure(with item: SurveyItem)
-        func resetState()
-    }
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    interface SurveyOverlay {
-        var onSurveyResponse: ((surveyId: String, option: SurveyOption) -> Unit)?
-        var onAutoAdvance: (() -> Unit)?
-        fun configure(item: SurveyItem)
-        fun resetState()
-    }
-    ```
-  </Tab>
-</Tabs>
-
-| Method | When the SDK calls it | What your overlay should do |
-|--------|----------------------|----------------------------|
-| `configure(with:)` | A cell receives a new survey item. | Display the question and option buttons from the `SurveyItem`. |
-| `resetState()` | The cell is being prepared for new content. | Cancel any pending auto-advance timers, clear selection state, reset button styling. |
-| `onSurveyResponse` | Set by SDK after creation. | Call this with the survey ID and selected option when the user taps an answer. |
-| `onAutoAdvance` | Set by SDK after creation. | Call this after a short delay following selection (e.g. 500ms). The SDK scrolls to the next feed item. |
 
 ### Custom ad overlays
 
