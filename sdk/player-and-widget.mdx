@@ -797,3 +797,7 @@ Both `PlayerConfig.clickAction` and `WidgetConfig.clickAction` accept the same v
 | `.feed` / `PlayerClickAction.FEED` / `'feed'` | Opens the full-screen feed starting at the tapped item. This is the default. |
 | `.mute` / `PlayerClickAction.MUTE` / `'mute'` | Toggles audio mute. |
 | `.none` / `PlayerClickAction.NONE` / `'none'` | No action. Useful when you handle taps yourself. |
+
+<Note>
+  The feed opened from a player or widget always has pull-to-refresh disabled, regardless of the `pullToRefreshEnabled` value in your `FeedConfig`. This matches iOS, where a swipe down at the top of this surface triggers the dismiss gesture, so pull-to-refresh is never reachable. Standalone full-screen feeds keep pull-to-refresh and are unaffected.
+</Note>
