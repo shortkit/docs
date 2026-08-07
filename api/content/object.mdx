@@ -117,6 +117,10 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   Thumbnail image URL. For videos, auto-generated from the first frame. For carousels, the first image.
 </ResponseField>
 
+<ResponseField name="protected" type="boolean">
+  When `true`, this content item is **protected**: `streamingUrl` and `thumbnailUrl` are not directly playable, and the client must mint a short-lived signed URL via [`POST /v1/content/{id}/playback-token`](/api/content/playback-token) before playback. The ShortKit mobile SDKs handle this transparently — they detect `protected: true`, mint a token, apply the signed URL, and refresh it before expiry. Defaults to `false`.
+</ResponseField>
+
 <ResponseField name="section" type="string | null">
   Editorial section (e.g., `"Sports"`, `"News"`). Max 200 characters. Passed through to the feed for use in your UI.
 </ResponseField>
