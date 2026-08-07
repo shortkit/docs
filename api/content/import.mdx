@@ -250,10 +250,6 @@ A few rules worth knowing:
 - **Carousel items ignore priority.** The field is accepted on a carousel item but has no effect, and carousels carry no `priority` in the response.
 - **This applies to this endpoint only** — the [TikTok](#tiktok-import) and Instagram import endpoints do not take a `priority`; their items are processed at normal priority.
 
-<Note>
-  Small imports started from the ShortKit dashboard are processed ahead of both priorities — someone is watching those in the UI. They are the `queuedExpress` count described below.
-</Note>
-
 ### Watching the queue
 
 `GET /v1/content/import/status` reports your organization's queued items broken out by priority:
