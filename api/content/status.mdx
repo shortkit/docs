@@ -1,0 +1,91 @@
+---
+title: "Get Upload Status"
+api: "GET /v1/content/{id}/status"
+description: "Poll the processing lifecycle of an upload. Safe to call with a publishable key."
+keywords: ["status", "upload", "poll", "processing", "publishable key"]
+---
+
+Returns a minimal projection of an upload's lifecycle — `uploadStatus`, `publishStatus`, and (once available) `playbackId` and `streamingUrl`. Designed for client-side polling while a video finishes processing.
+
+This endpoint accepts both **publishable keys** and **secret keys**. Publishable-key access requires your organization to have SDK uploads enabled (`sdk_uploads_enabled`); contact ShortKit support to opt in.
+
+Unlike [Get Content](/api/content/get), this endpoint returns only lifecycle fields — no metadata, tags, or custom fields. Use it in tight polling loops from clients; use `GET /v1/content/{id}` when you need the full record.
+
+## Path parameters
+
+<ParamField path="id" type="string" required>
+  The content item's UUID.
+</ParamField>
+
+## Rate limits
+
+Publishable-key requests are limited to **300 per minute** per key + IP. Secret-key requests use the standard secret-key limits.
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/status" \
+  -H "X-API-Key: pk_live_your_publishable_key"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/status",
+    headers={"X-API-Key": "pk_live_your_publishable_key"},
+)
+status = resp.json()["data"]
+```
+
+```javascript Node.js
+const resp = await fetch(
+  "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/status",
+  { headers: { "X-API-Key": "pk_live_your_publishable_key" } }
+);
+const { data: status } = await resp.json();
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "uploadStatus": "processing",
+    "publishStatus": "unpublished",
+    "playbackId": "rJ4OE02Z0Z4IY01Eo4Vgup5OilG8xZB9",
+    "streamingUrl": null,
+    "uploadUrlExpiresAt": "2026-07-15T12:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_status001"
+  }
+}
+```
+</ResponseExample>
+
+## Response fields
+
+<ResponseField name="uploadStatus" type="string">
+  One of `waiting_for_upload`, `processing`, `ready`, `errored`.
+</ResponseField>
+
+<ResponseField name="publishStatus" type="string">
+  One of `unpublished`, `published`, `archived`.
+</ResponseField>
+
+<ResponseField name="playbackId" type="string | null">
+  Available once the upload has been received and processing has begun. `null` before then.
+</ResponseField>
+
+<ResponseField name="streamingUrl" type="string | null">
+  Populated once the content reaches `ready`. `null` while still processing.
+</ResponseField>
+
+<ResponseField name="uploadUrlExpiresAt" type="string | null">
+  ISO 8601 timestamp when the current signed upload URL stops accepting bytes. `null` after the file has been received. If a client hits an expiry, [re-mint the URL](/api/content/upload-url).
+</ResponseField>
+
+<Note>
+  Returns `404` if the content item does not exist or does not belong to your organization.
+</Note>
