@@ -72,6 +72,7 @@
               "sdk/player",
               "sdk/overlays",
               "sdk/carousel",
+              "sdk/downloads",
               "guides/language-detection"
             ]
           },
