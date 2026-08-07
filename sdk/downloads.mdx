@@ -1,0 +1,171 @@
+---
+title: "Downloads"
+description: "Download the static MP4 rendition of a content item to the device."
+keywords: ["download", "downloadVideo", "cancelDownload", "downloadDelegate", "downloadUrl", "isDownloadable", "offline"]
+---
+
+Use `downloadVideo` to fetch the static MP4 rendition of a content item and write it to the device. The SDK resolves the download URL, streams the bytes, and returns a local file path you can share, save, or hand to another view.
+
+<Note>
+Downloads are available on the iOS (Swift), Android (Kotlin), and React Native SDKs. Flutter does not expose a download surface yet.
+</Note>
+
+## When a content item is downloadable
+
+Every `ContentItem` exposes two download fields:
+
+- `downloadUrl` — the URL of the static MP4 rendition, or `nil`/`null` if a rendition is not yet ready.
+- `isDownloadable` — convenience boolean; `true` when `downloadUrl` is set.
+
+The SDK also lazily refreshes the URL when you call `downloadVideo`, so an item that reports `isDownloadable == false` at feed load time may still succeed if the rendition finishes preparing before the call.
+
+## Request a download
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let fileURL = try await shortKit.downloadVideo(item)
+    ```
+
+    `item` is a `ContentItem` from the feed. The call throws `ShortKitDownloadError.downloadNotAvailable` if the rendition is still preparing, or `ShortKitDownloadError.cancelled` if you called `cancelDownload()` mid-flight.
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val file: File = shortKit.downloadVideo(item)
+    ```
+
+    Runs as a `suspend` function. On success returns a `java.io.File` pointing at the MP4 in the app cache directory (`cacheDir/ShortKitDownloads/{id}.mp4`). Throws `ShortKitDownloadError` on failure.
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    import { useShortKit } from '@shortkitsdk/react-native';
+
+    function DownloadButton({ item }) {
+      const { downloadVideo, downloadState } = useShortKit();
+
+      return (
+        <Pressable onPress={() => downloadVideo(item.id)}>
+          <Text>
+            {downloadState.status === 'downloading'
+              ? `Downloading ${Math.round(downloadState.progress * 100)}%`
+              : 'Download'}
+          </Text>
+        </Pressable>
+      );
+    }
+    ```
+
+    `downloadVideo(itemId)` starts the download; `downloadState` on the hook exposes lifecycle updates as they arrive from native. On completion, `downloadState.status === 'completed'` and `downloadState.fileUrl` contains a `file://` URL.
+  </Tab>
+</Tabs>
+
+## Cancel an in-flight download
+
+Only one download runs at a time. Calling `downloadVideo` while another download is active throws `ShortKitDownloadError.downloadInProgress`. Use `cancelDownload()` to stop the current one.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.cancelDownload()
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.cancelDownload()
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { cancelDownload } = useShortKit();
+    cancelDownload();
+    ```
+  </Tab>
+</Tabs>
+
+The active download fails with a `cancelled` error and no completion callback fires.
+
+## Observe download lifecycle
+
+Attach a delegate (Swift, Kotlin) or read `downloadState` from `useShortKit()` (React Native) to observe `start`, `progress`, `complete`, and `fail` events. Callbacks fire on the main thread.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    class MyDownloadObserver: ShortKitDownloadDelegate {
+        func shortKit(_ shortKit: ShortKit, didStartDownload item: ContentItem) {}
+        func shortKit(_ shortKit: ShortKit, didUpdateDownloadProgress item: ContentItem, progress: Double) {}
+        func shortKit(_ shortKit: ShortKit, didCompleteDownload item: ContentItem, fileURL: URL) {}
+        func shortKit(_ shortKit: ShortKit, didFailDownload item: ContentItem, error: ShortKitDownloadError) {}
+    }
+
+    shortKit.downloadDelegate = MyDownloadObserver()
+    ```
+
+    All methods have default no-op implementations, so you only implement the ones you need.
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    shortKit.downloadDelegate = object : ShortKitDownloadDelegate {
+        override fun onDownloadStarted(item: ContentItem) {}
+        override fun onDownloadProgress(item: ContentItem, progress: Double) {}
+        override fun onDownloadCompleted(item: ContentItem, file: File) {}
+        override fun onDownloadFailed(item: ContentItem, error: ShortKitDownloadError) {}
+    }
+    ```
+
+    All methods have default no-op implementations. Callbacks are dispatched on the main thread.
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { downloadState } = useShortKit();
+
+    // downloadState.status is one of: 'idle' | 'downloading' | 'completed' | 'failed'
+    // downloadState.progress is a 0.0 – 1.0 fraction while status === 'downloading'
+    // downloadState.fileUrl is set when status === 'completed'
+    // downloadState.error is set when status === 'failed'
+    ```
+
+    The provider dispatches four native events — `onDownloadStarted`, `onDownloadProgress`, `onDownloadCompleted`, `onDownloadFailed` — into `downloadState`. Read it directly from the hook.
+  </Tab>
+</Tabs>
+
+## Bandwidth mode
+
+`downloadVideo` accepts an optional `mode` parameter that controls how the download shares bandwidth with active playback.
+
+| Mode | Behavior |
+|------|----------|
+| `nonInterruptive` (default) | Download yields to playback. Playback is never starved of bandwidth. |
+| `interruptive` | Download competes equally with playback. Fastest completion, may cause buffering. |
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let fileURL = try await shortKit.downloadVideo(item, mode: .interruptive)
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val file = shortKit.downloadVideo(item, mode = DownloadMode.INTERRUPTIVE)
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    downloadVideo(item.id, { mode: 'interruptive' });
+    ```
+  </Tab>
+</Tabs>
+
+## Error cases
+
+`ShortKitDownloadError` covers every failure the SDK can surface:
+
+- `downloadNotAvailable` — the item has no static rendition (org not configured, or rendition still preparing).
+- `downloadInProgress` — another download is already active; call `cancelDownload()` first.
+- `networkError` — transport-level failure.
+- `httpError(statusCode)` — the download server returned a non-2xx response.
+- `cancelled` — `cancelDownload()` was called.
+
+<Warning>
+Downloaded files land in the app's cache directory and can be evicted by the OS. Move the file into your own persistent storage if you need to keep it across app launches.
+</Warning>
