@@ -24,6 +24,7 @@ Use this when you have media hosted elsewhere — migrating from another platfor
   **For videos:**
   - `sourceUrl` (string, required) — URL to the video file.
   - `externalId` (string) — Your own identifier for this content. Used for idempotency — if you re-import an item with the same `externalId`, ShortKit skips it instead of creating a duplicate.
+  - `priority` (string) — `"high"` or `"normal"`. Defaults to `"normal"`. A `"high"` item is processed ahead of every `"normal"` import. See [Processing priority](#processing-priority).
 
   **For image carousels:**
   - `images` (object[], required) — Array of image objects, each with:
@@ -147,6 +148,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
       "contentType": "video",
       "title": "Quarterly Recap",
       "status": "queued",
+      "priority": "normal",
       "error": null
     },
     {
@@ -186,6 +188,52 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 - **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
+
+## Processing priority
+
+Imports are processed in the order they arrive. When one item matters more than the rest — a video a user is waiting on, rather than a catalog backfill — mark it `priority: "high"` and it moves ahead of every `"normal"` import, including items submitted before it.
+
+```json
+{
+  "items": [
+    {
+      "contentType": "video",
+      "title": "User upload — Priya M.",
+      "sourceUrl": "https://cdn.example.com/uploads/priya-m-4711.mp4",
+      "externalId": "user-upload-4711",
+      "priority": "high"
+    },
+    {
+      "contentType": "video",
+      "title": "Catalog backfill 0001",
+      "sourceUrl": "https://cdn.example.com/catalog/0001.mp4",
+      "externalId": "catalog-0001"
+    }
+  ]
+}
+```
+
+Every video item in the response reports the priority it was granted:
+
+```json
+{
+  "data": [
+    { "id": "9f2b...", "externalId": "user-upload-4711", "priority": "high" },
+    { "id": "3c81...", "externalId": "catalog-0001", "priority": "normal" }
+  ]
+}
+```
+
+A few rules worth knowing:
+
+- **Order within a priority is preserved.** Items of equal priority are processed in the order you list them, so you can sequence a batch by arranging the array.
+- **High priority is subject to fair use.** It is meant for items a person is waiting on, not for accelerating bulk backfills. If a request exceeds a fair-use limit, the item is accepted at `"normal"` instead and its response entry also carries `requestedPriority: "high"`, so the change is visible rather than silent. This is never an error, and the item still imports normally.
+- **Carousel items do not accept a priority** and carry none in the response.
+- **This applies to this endpoint only** — the [TikTok](#tiktok-import) and Instagram import endpoints do not accept `priority`; their items are processed at normal priority.
+
+<Note>
+  Uploads created with [Upload](/api/content/upload) never wait behind imports at all — they are transferred and processed on their own path, whatever your import queue looks like.
+</Note>
 
 ## Callback lifecycle
 
@@ -405,7 +453,7 @@ A profile import can produce many content items over time, and there is no per-j
   }
   ```
 
-- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`).
+- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`). `queued` is also broken out by priority: `queuedInteractive` counts items you marked `priority: "high"`, `queuedBulk` counts normal-priority items, and `queuedExpress` counts imports started from the ShortKit dashboard.
 
 ### Auto-populated metadata
 
