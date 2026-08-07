@@ -18,6 +18,10 @@ description: "Returns a paginated list of content items in your organization."
   Filter by upload status: `pending`, `processing`, `ready`, or `error`.
 </ParamField>
 
+<ParamField query="publishStatus" type="string">
+  Filter by publish status: `published` or `unpublished`.
+</ParamField>
+
 <ParamField query="tags" type="string">
   Comma-separated tag filter. Returns content matching **any** of the given tags.
 </ParamField>
@@ -96,4 +100,4 @@ When `meta.nextCursor` is absent, you've reached the end.
 
 ## Filtering
 
-You can filter by `uploadStatus` and `tags` using the query parameters above. Additional filters (by `publishStatus`, `section`, `contentType`, `author`, and date ranges) are coming soon.
+You can filter by `uploadStatus`, `publishStatus`, and `tags` using the query parameters above. Additional filters (by `section`, `contentType`, `author`, and date ranges) are coming soon.
