@@ -32,7 +32,7 @@ Every video uploaded to ShortKit is analyzed for spoken language automatically. 
 }
 ```
 
-`"und"` is returned when no spoken language is detected — for example, music-only or ambient audio content.
+`"und"` is returned when no spoken language is detected — for example, music-only or ambient audio content, or when automatic caption generation cannot produce a track. Every video that reaches `ready` status eventually gets a `language` value, so items will not be missing from language-filtered feeds indefinitely.
 
 ## Language codes
 
@@ -58,7 +58,7 @@ Detection covers a broad range of languages. The table below lists the most comm
 | `sv` | Swedish |
 | `tr` | Turkish |
 | `uk` | Ukrainian |
-| `und` | Undetermined (no detectable speech) |
+| `und` | Undetermined (no detectable speech, or captions could not be generated) |
 
 ## Filtering the feed by language
 
