@@ -215,7 +215,7 @@ Imports are processed in the order they arrive. When one item matters more than 
 }
 ```
 
-Every video item in the response reports the priority it was granted:
+Every video item in the response reports its priority:
 
 ```json
 {
@@ -242,13 +242,7 @@ Every video item in the response reports the priority it was granted:
 }
 ```
 
-A few rules worth knowing:
-
-- **Priority is a request, not a reservation.** ShortKit may accept a `"high"` item at `"normal"` instead — high priority is meant for items a person is waiting on, not for accelerating large backfills. When that happens the response entry also carries `requestedPriority: "high"`, so the change is visible rather than silent. It is never an error, and the item still imports normally.
-- **Priority is fixed at first submission.** Re-importing an item with an `externalId` you have used before returns the original record with its original priority — resubmitting at a higher priority does not raise it.
-- **Ordering is best effort.** Items of equal priority are submitted in the order you list them and are generally processed in that order, but strict ordering is not guaranteed: items are processed concurrently, and an individual retry can put one behind its neighbors.
-- **Carousel items ignore priority.** The field is accepted on a carousel item but has no effect, and carousels carry no `priority` in the response.
-- **This applies to this endpoint only** — the [TikTok](#tiktok-import) and Instagram import endpoints do not take a `priority`; their items are processed at normal priority.
+Priority applies to this endpoint only — the [TikTok](#tiktok-import) and Instagram import endpoints do not take a `priority`, and their items are processed at normal priority.
 
 ### Watching the queue
 
