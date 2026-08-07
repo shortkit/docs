@@ -220,6 +220,26 @@ Videos are managed through dedicated endpoints after the carousel is created:
 
 The carousel inherits its own metadata fields (`title`, `description`, `author`, `section`, `articleUrl`) separate from the individual videos it contains. In the feed response, the `videos` array contains full `ContentItem` objects for each referenced video.
 
+#### Per-slide dimensions
+
+Each entry in a `video_carousel` item's `videos` array in a `GET /v1/feed` response carries the referenced video's dimensions when they are known:
+
+<ResponseField name="videoWidth" type="integer">
+  Slide video width in pixels. Omitted when the referenced video has no measured width.
+</ResponseField>
+
+<ResponseField name="videoHeight" type="integer">
+  Slide video height in pixels. Omitted when the referenced video has no measured height.
+</ResponseField>
+
+<ResponseField name="aspectRatio" type="number">
+  Slide aspect ratio as `videoWidth / videoHeight`, rounded to six decimal places (e.g. `1.777778` for a 1920×1080 slide). Omitted when either dimension is missing.
+
+  Distinct from the top-level `aspectRatio` on a standalone video content item, which is a string like `"16:9"`.
+</ResponseField>
+
+All three keys are **omitted** — not `null` — when dimensions are unavailable, so slides without measured dimensions keep the compact `{ "playbackId": "..." }` wire shape. Use these to lay out landscape carousel slides aspect-fit instead of center-cropping.
+
 <Note>
   Empty video carousels (no videos added) are automatically excluded from the feed response.
 </Note>
