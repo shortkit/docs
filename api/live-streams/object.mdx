@@ -18,6 +18,7 @@ While a stream is `active`, it appears in the feed as a content item with `conte
   "title": "Friday morning yoga",
   "latencyMode": "low",
   "reconnectWindow": 60,
+  "customMetadata": {},
   "rtmpUrl": "rtmps://global-live.example/app/<stream-key>",
   "streamKey": "abc123def456...",
   "startedAt": "2026-04-17T14:00:00Z",
@@ -56,6 +57,12 @@ While a stream is `active`, it appears in the feed as a content item with `conte
 
 <ResponseField name="reconnectWindow" type="integer | null">
   HLS streams only. Number of seconds the stream will hold the slot if the broadcaster disconnects. After this window expires without a reconnect, the stream automatically transitions to `ended`. Range 0–1800. Defaults to 60. `null` for WebRTC streams.
+</ResponseField>
+
+<ResponseField name="customMetadata" type="object">
+  Arbitrary key-value pairs attached to the stream at creation time. Both keys and values are strings. Defaults to `{}`.
+
+  Use this to tag the stream with app-specific data (e.g. feed-filter identifiers, event IDs) so the SDK can surface it without a follow-up update call. You can update these values later via [Update Content](/api/content/update).
 </ResponseField>
 
 <ResponseField name="rtmpUrl" type="string | null">
