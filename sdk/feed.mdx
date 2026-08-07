@@ -13,6 +13,33 @@ Live streams render as videos with an `isLive` flag set on the content item — 
 
 When `FeedConfig.filter` is set, the feed only shows content matching the filter criteria. Filtering is handled server-side — the SDK applies the filter automatically on every request (initial load, pagination, pull-to-refresh).
 
+### Preloading a custom tranche before algorithmic content
+
+You can seed an algorithmic feed with a short list of client-curated items before the SDK hands off to ShortKit's recommendation engine. Use this when you want to lead with a hand-picked opener (a launch promo, a personalized hero set, a campaign block) and then transition into the standard algorithmic feed.
+
+Call `shortKit.preloadFeed(initialItems:)` to build a preload, then pass it on `FeedConfig` alongside `feedSource: .algorithmic`:
+
+```swift
+let preload = shortKit.preloadFeed(initialItems: [
+    .video(playbackId: "abc123"),
+    .video(playbackId: "def456"),
+])
+let config = FeedConfig(feedSource: .algorithmic, preload: preload)
+let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+```
+
+Behavior:
+
+- Tranche items render first, in the order you provide.
+- After the tranche is displayed, the SDK fetches and appends the algorithmic continuation.
+- Items that appear in both the tranche and the algorithmic page are deduplicated and shown only once.
+- Pull-to-refresh is always pure algorithmic — the tranche is never re-shown.
+- An empty `initialItems` array is valid and behaves identically to a pure algorithmic feed.
+
+<Note>
+`preloadFeed(initialItems:)` is iOS-only. On Android, Flutter, React Native, and Web, set `feedSource: .algorithmic` directly.
+</Note>
+
 ## ShortKitFeedViewController (UIKit)
 
 ```swift
