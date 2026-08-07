@@ -24,6 +24,7 @@ Use this when you have media hosted elsewhere — migrating from another platfor
   **For videos:**
   - `sourceUrl` (string, required) — URL to the video file.
   - `externalId` (string) — Your own identifier for this content. Used for idempotency — if you re-import an item with the same `externalId`, ShortKit skips it instead of creating a duplicate.
+  - `priority` (string) — `"high"` or `"normal"`. Defaults to `"normal"`. A `"high"` item is processed ahead of every `"normal"` import. See [Processing priority](#processing-priority).
 
   **For image carousels:**
   - `images` (object[], required) — Array of image objects, each with:
@@ -57,7 +58,8 @@ curl -X POST https://api.shortkit.dev/v1/content/import \
         "title": "Product Launch",
         "sourceUrl": "https://storage.example.com/videos/launch.mp4",
         "externalId": "vid-launch-spring",
-        "section": "Product"
+        "section": "Product",
+        "priority": "high"
       },
       {
         "contentType": "carousel",
@@ -147,6 +149,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
       "contentType": "video",
       "title": "Quarterly Recap",
       "status": "queued",
+      "priority": "normal",
       "error": null
     },
     {
@@ -154,6 +157,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
       "contentType": "video",
       "title": "Product Launch",
       "status": "queued",
+      "priority": "normal",
       "error": null
     },
     {
@@ -186,6 +190,83 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 - **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
+
+## Processing priority
+
+Imports are processed in the order they arrive. When one item matters more than the rest — a video a user is waiting on, rather than a catalog backfill — mark it `priority: "high"` and it moves ahead of `"normal"` imports that are still waiting, including ones submitted before it.
+
+```json
+{
+  "items": [
+    {
+      "contentType": "video",
+      "title": "User upload — Priya M.",
+      "sourceUrl": "https://cdn.example.com/uploads/priya-m-4711.mp4",
+      "externalId": "user-upload-4711",
+      "priority": "high"
+    },
+    {
+      "contentType": "video",
+      "title": "Catalog backfill 0001",
+      "sourceUrl": "https://cdn.example.com/catalog/0001.mp4",
+      "externalId": "catalog-0001"
+    }
+  ]
+}
+```
+
+Every video item in the response reports the priority it was granted:
+
+```json
+{
+  "data": [
+    {
+      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "externalId": "user-upload-4711",
+      "contentType": "video",
+      "title": "User upload — Priya M.",
+      "status": "queued",
+      "priority": "high",
+      "error": null
+    },
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
+      "externalId": "catalog-0001",
+      "contentType": "video",
+      "title": "Catalog backfill 0001",
+      "status": "queued",
+      "priority": "normal",
+      "error": null
+    }
+  ]
+}
+```
+
+A few rules worth knowing:
+
+- **Priority is a request, not a reservation.** ShortKit may accept a `"high"` item at `"normal"` instead — high priority is meant for items a person is waiting on, not for accelerating large backfills. When that happens the response entry also carries `requestedPriority: "high"`, so the change is visible rather than silent. It is never an error, and the item still imports normally.
+- **Priority is fixed at first submission.** Re-importing an item with an `externalId` you have used before returns the original record with its original priority — resubmitting at a higher priority does not raise it.
+- **Ordering is best effort.** Items of equal priority are submitted in the order you list them and are generally processed in that order, but strict ordering is not guaranteed: items are processed concurrently, and an individual retry can put one behind its neighbors.
+- **Carousel items ignore priority.** The field is accepted on a carousel item but has no effect, and carousels carry no `priority` in the response.
+- **This applies to this endpoint only** — the [TikTok](#tiktok-import) and Instagram import endpoints do not take a `priority`; their items are processed at normal priority.
+
+<Note>
+  Small imports started from the ShortKit dashboard are processed ahead of both priorities — someone is watching those in the UI. They are the `queuedExpress` count described below.
+</Note>
+
+### Watching the queue
+
+`GET /v1/content/import/status` reports your organization's queued items broken out by priority:
+
+| Field | What it counts |
+|-------|----------------|
+| `queuedInteractive` | Items granted `"high"` priority. An item you sent as `"high"` that was accepted at `"normal"` is counted in `queuedBulk` instead. |
+| `queuedBulk` | Everything else still waiting — normal-priority imports, carousels, and imports from the TikTok and Instagram endpoints. |
+| `queuedExpress` | Imports of ten items or fewer started from the ShortKit dashboard. Larger dashboard imports are counted in `queuedBulk`. |
+
+<Note>
+  Content created with [Upload](/api/content/upload) never waits behind imports at all — it is transferred and processed on its own path, whatever your import queue looks like, and is not counted in any of these figures.
+</Note>
 
 ## Callback lifecycle
 
@@ -263,6 +344,8 @@ The callback includes the `playbackId` once the video has been accepted for proc
 Set `externalId` on each item to prevent duplicate imports. If you submit an item with an `externalId` that already exists in your organization, ShortKit skips it and returns the existing content record. This makes it safe to retry failed import requests without worrying about creating duplicates.
 
 Use whatever stable identifier you already have for each content record in your own system — a database primary key, a CMS slug, an internal content ID. As long as you use the same `externalId` for the same piece of content, ShortKit will recognize it as a duplicate and skip re-importing it. `externalId` is scoped to your organization, so different organizations can use the same values independently.
+
+The returned record keeps the values it was created with, including its [priority](#processing-priority) — resubmitting an existing `externalId` at a higher priority returns the original item unchanged rather than raising it.
 
 ## TikTok import
 
@@ -405,7 +488,7 @@ A profile import can produce many content items over time, and there is no per-j
   }
   ```
 
-- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`).
+- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`). The queued figure is also broken out by priority — see [Watching the queue](#watching-the-queue).
 
 ### Auto-populated metadata
 
