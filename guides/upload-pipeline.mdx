@@ -511,22 +511,22 @@ Upload a VTT or SRT caption file for video content:
 
 External captions are immediately `ready` -- no processing delay. They appear alongside any auto-generated tracks in feed responses and the SDK renders them automatically.
 
-### Add publication URLs
+### Attach an external article link
 
-Attach external links to content (e.g., the source article, a product page). The first URL (position 0) is surfaced as `publisherUrl` in the feed.
+Attach a link to the source article, product page, or any external URL by setting `customMetadata.publicationUrl` on the content. The feed delivers it to the SDK on `customMetadata.publicationUrl`, and the built-in news overlay templates render a "Read more" button when the key is present.
 
 ```bash
-curl -X POST "https://api.shortkit.dev/v1/content/${contentId}/publication-urls" \
-  -H "Authorization: Bearer sk_live_your_secret_key" \
+curl -X PATCH "https://api.shortkit.dev/v1/content/${contentId}" \
+  -H "Authorization: Bearer *** \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://example.com/article/spring-launch",
-    "label": "Read the full article",
-    "position": 0
+    "customMetadata": {
+      "publicationUrl": "https://example.com/article/spring-launch"
+    }
   }'
 ```
 
-Update, reorder, or delete publication URLs with `PUT /v1/content/{id}/publication-urls/{urlId}`, `PUT /v1/content/{id}/publication-urls/order`, and `DELETE /v1/content/{id}/publication-urls/{urlId}`.
+`customMetadata` uses merge semantics — pass `{"publicationUrl": null}` to clear the link without touching other keys. See [Update Content](/api/content/update) for full merge behavior.
 
 ### Archive content
 

@@ -35,7 +35,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   "author": "Jane Doe",
   "tags": ["weather", "severe", "breaking"],
   "customMetadata": {
-    "articleUrl": "https://example.com/weather-alert",
+    "publicationUrl": "https://example.com/weather-alert",
     "language": "en"
   },
   "captionTracks": [],
@@ -135,6 +135,10 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
   ShortKit automatically populates one reserved key:
 
   - **`language`** — [BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) language code detected from the video's audio track (e.g. `"en"`, `"es"`, `"ja"`). Set asynchronously after processing completes. `"und"` indicates no speech was detected. You can filter the feed by this key using [`FeedFilter.metadata`](/sdk/configuration#feedfilter).
+
+  One key has special meaning when present:
+
+  - **`publicationUrl`** — Link to the source article, product page, or any external URL associated with the content. The built-in news overlay templates render a "Read more" button when this key is set. Plain string.
 </ResponseField>
 
 <ResponseField name="captionTracks" type="object[]">
@@ -218,7 +222,7 @@ Videos are managed through dedicated endpoints after the carousel is created:
 - `PUT /v1/content/{id}/videos/order` — Reorder videos within the carousel
 - `DELETE /v1/content/{id}/videos/{entry_id}` — Remove a video from the carousel
 
-The carousel inherits its own metadata fields (`title`, `description`, `author`, `section`, `articleUrl`) separate from the individual videos it contains. In the feed response, the `videos` array contains full `ContentItem` objects for each referenced video.
+The carousel inherits its own metadata fields (`title`, `description`, `author`, `section`, and `customMetadata`) separate from the individual videos it contains. In the feed response, the `videos` array contains full `ContentItem` objects for each referenced video.
 
 <Note>
   Empty video carousels (no videos added) are automatically excluded from the feed response.
