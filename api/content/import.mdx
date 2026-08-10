@@ -244,20 +244,6 @@ Every video item in the response reports its priority:
 
 Priority applies to this endpoint only — the [TikTok](#tiktok-import) and Instagram import endpoints do not take a `priority`, and their items are processed at normal priority.
 
-### Watching the queue
-
-`GET /v1/content/import/status` reports your organization's queued items broken out by priority:
-
-| Field | What it counts |
-|-------|----------------|
-| `queuedInteractive` | Items granted `"high"` priority. An item you sent as `"high"` that was accepted at `"normal"` is counted in `queuedBulk` instead. |
-| `queuedBulk` | Everything else still waiting — normal-priority imports, carousels, and imports from the TikTok and Instagram endpoints. |
-| `queuedExpress` | Imports of ten items or fewer started from the ShortKit dashboard. Larger dashboard imports are counted in `queuedBulk`. |
-
-<Note>
-  Content created with [Upload](/api/content/upload) never waits behind imports at all — it is transferred and processed on its own path, whatever your import queue looks like, and is not counted in any of these figures.
-</Note>
-
 ## Callback lifecycle
 
 When you provide a `callbackUrl`, ShortKit sends a POST request to that URL at each stage of the import pipeline. Your endpoint must respond with a `2xx` status code to acknowledge receipt.
@@ -478,7 +464,7 @@ A profile import can produce many content items over time, and there is no per-j
   }
   ```
 
-- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`). The queued figure is also broken out by priority — see [Watching the queue](#watching-the-queue).
+- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`). The queued figure is also split by priority: `queuedInteractive` for items granted `"high"`, `queuedExpress` for small imports started from the ShortKit dashboard, and `queuedBulk` for everything else waiting.
 
 ### Auto-populated metadata
 
