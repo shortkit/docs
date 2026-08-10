@@ -193,7 +193,7 @@ If an individual item fails (bad URL, timeout, invalid format), it's marked with
 
 ## Processing priority
 
-Imports are processed in the order they arrive. When one item matters more than the rest — a video a user is waiting on, rather than a catalog backfill — mark it `priority: "high"` and it moves ahead of `"normal"` imports that are still waiting, including ones submitted before it.
+Imports are generally processed in the order they arrive. Set `priority: "high"` on an item that shouldn't wait its turn (ex. a time sensitive, user facing import, rather than a catalog backfill) and it jumps ahead of every item at the default priority still queued, including ones submitted earlier.
 
 ```json
 {
@@ -464,7 +464,7 @@ A profile import can produce many content items over time, and there is no per-j
   }
   ```
 
-- **`GET /v1/content/import/status`** — poll for your organization's aggregate import state (`queued`, `processing`, `readyToday`, `failedToday`, `dailyQuota`, `dailyUsed`). The queued figure is also split by priority: `queuedInteractive` for items granted `"high"`, `queuedExpress` for small imports started from the ShortKit dashboard, and `queuedBulk` for everything else waiting.
+- **`GET /v1/content/import/status`** — poll for your organization's import queue and daily usage. `queued` counts imports still waiting, broken out by priority: `queuedInteractive` counts items you sent with `priority: "high"`, `queuedExpress` counts imports your team started from the ShortKit dashboard, and `queuedBulk` counts everything else. `processing`, `readyToday`, `failedToday` and `dailyUsed` count all content, including direct uploads.
 
 ### Auto-populated metadata
 
