@@ -1,135 +1,209 @@
-/* Import Roboto Mono font */
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap');
-
-/* shortkit Custom Styles */
-/* Styled like fal.ai docs - clean, minimal, light */
-/* Accent color: shortkit Orange #FF6600 */
+/* Roboto Mono for code, tabs and eyebrows (Mintlify's `fonts` config covers headings/body only) */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600&display=swap');
 
 /* ========================================
-   BASE STYLES
+   shortkit docs theme
+   Mirrors the marketing site (shortkit.dev, components/marketing/marketing.css):
+   monochrome ink, Manrope, Roboto Mono eyebrows, 12-16px cards, 8px controls,
+   hairline borders. Accent is ink, never a hue.
    ======================================== */
+
+:root {
+  --sk-ink: #181818;
+  --sk-muted: #686868;
+  --sk-line: #e4e4e4;
+  --sk-soft: #f5f5f5;
+  --sk-soft-2: #f4f4f5;
+  --sk-paper: #ffffff;
+  --sk-hover: #383838;
+  --sk-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sk-radius-card: 14px;
+  --sk-radius-control: 8px;
+}
+
+html.dark,
+.dark {
+  --sk-ink: #ededed;
+  --sk-muted: #9a9a9a;
+  --sk-line: #262626;
+  --sk-soft: #181818;
+  --sk-soft-2: #1c1c1c;
+  --sk-paper: #111111;
+  --sk-hover: #d4d4d4;
+}
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Slightly rounded corners throughout */
-* {
-  border-radius: 4px !important;
-}
-
-/* Square cards */
-.card,
-.callout,
-.accordion {
-  border-radius: 4px !important;
-}
-
-/* Buttons - rounded pill */
-button,
-[role="button"] {
-  border-radius: 4px !important;
-}
-
-/* Code blocks */
-pre,
-code,
-.code-block {
-  border-radius: 4px !important;
-}
-
-/* ========================================
-   LIGHT THEME - Clean & Minimal
-   ======================================== */
-
-/* Selection highlight */
 ::selection {
-  background: rgba(255, 102, 0, 0.2);
-  color: inherit;
+  background: #181818;
+  color: #ffffff;
 }
 
-/* Inline code */
-:not(pre) > code {
-  background: #f4f4f5 !important;
-  padding: 0.125rem 0.375rem !important;
-  color: #18181b !important;
-  font-size: 0.875em;
+html.dark ::selection {
+  background: #ededed;
+  color: #111111;
 }
 
-.dark :not(pre) > code,
-html.dark :not(pre) > code,
-html[class*="dark"] :not(pre) > code {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #e4e4e7 !important;
-}
-
-/* Links */
-a {
-  transition: color 0.15s ease;
-}
-
-a:hover {
-  color: #FF6600 !important;
-}
-
-/* Focus states */
 *:focus-visible {
-  outline: 2px solid #FF6600 !important;
+  outline: 2px solid #767676 !important;
   outline-offset: 2px;
 }
 
 /* ========================================
-   NAVBAR - Clean top bar
+   TYPOGRAPHY
    ======================================== */
 
-#navbar {
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid #e4e4e7 !important;
+#page-title,
+.mdx-content h1,
+.mdx-content h2,
+.mdx-content h3,
+.mdx-content h4 {
+  color: var(--sk-ink);
 }
 
-.dark #navbar,
-html.dark #navbar,
-html[class*="dark"] #navbar {
-  background: rgba(15, 15, 18, 0.8) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+#page-title {
+  font-weight: 500 !important;
+  letter-spacing: -0.035em !important;
 }
 
-/* Active nav tab - orange text and underline */
-.nav-tabs-item[data-state="active"],
-.nav-tabs-item.active,
-[role="tablist"] [aria-selected="true"],
-[role="tab"][aria-selected="true"],
-nav [data-state="active"],
-nav .active,
-#navbar [data-state="active"],
-#navbar .active,
-.tabs-trigger[data-state="active"],
-[data-radix-collection-item][data-state="active"] {
-  border-bottom: 2px solid #FF6600 !important;
-  color: #FF6600 !important;
+.mdx-content h2 {
+  font-weight: 500;
+  letter-spacing: -0.03em;
 }
 
-/* Top navigation tabs - active state (has text-shadow when active) */
-.nav-tabs-item[style*="text-shadow"],
-.nav-tabs-item.\[text-shadow\:-0\.2px_0_0_currentColor\,0\.2px_0_0_currentColor\] {
-  color: #FF6600 !important;
+.mdx-content h3,
+.mdx-content h4 {
+  font-weight: 550;
+  letter-spacing: -0.02em;
+}
+
+/* Eyebrow above the page title: mono small caps, like the site's labels */
+.eyebrow {
+  font-family: var(--sk-mono) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sk-muted) !important;
+}
+
+/* Sidebar group headers: same mono label treatment */
+.sidebar-group-header {
+  font-family: var(--sk-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--sk-muted) !important;
+}
+
+/* Inline code */
+:not(pre) > code {
+  font-family: var(--sk-mono) !important;
+  background: var(--sk-soft-2) !important;
+  border: 1px solid var(--sk-line) !important;
+  border-radius: 5px !important;
+  padding: 0.1rem 0.35rem !important;
+  color: var(--sk-ink) !important;
+  font-size: 0.85em;
+}
+
+/* Links: ink with a hairline underline */
+.mdx-content a:not(.card):not([class*="card"]) {
+  text-decoration-color: #b5b5b5;
+  text-underline-offset: 4px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.mdx-content a:not(.card):not([class*="card"]):hover {
+  color: var(--sk-hover) !important;
+  text-decoration-color: currentColor;
+}
+
+html.dark .mdx-content a:not(.card):not([class*="card"]) {
+  text-decoration-color: #555555;
 }
 
 /* ========================================
-   SIDEBAR - Clean with subtle active state
+   NAVBAR
    ======================================== */
 
+#navbar {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: 1px solid var(--sk-line) !important;
+}
+
+html.dark #navbar {
+  background: rgba(17, 17, 17, 0.96) !important;
+}
+
+/* Bracketed wordmark: sized like the site header */
+#navbar .nav-logo {
+  height: 1.625rem !important;
+}
+
+/* Top tabs (Docs / API Reference): ink underline for the active tab */
+.nav-tabs-item[data-active="true"] {
+  color: var(--sk-ink) !important;
+}
+
+.nav-tabs-item[data-active="true"] > div:last-child {
+  background-color: var(--sk-ink) !important;
+}
+
+/* "Book a demo" CTA: .mk-button (ink fill, 8px radius); inverted in dark mode */
+#topbar-cta-button a > span:first-child {
+  background: #181818 !important;
+  border-radius: var(--sk-radius-control) !important;
+  opacity: 1 !important;
+}
+
+#topbar-cta-button a:hover > span:first-child {
+  background: #383838 !important;
+}
+
+html.dark #topbar-cta-button a > span:first-child {
+  background: #ededed !important;
+}
+
+html.dark #topbar-cta-button a:hover > span:first-child {
+  background: #ffffff !important;
+}
+
+html.dark #topbar-cta-button a .text-white,
+html.dark #topbar-cta-button a svg {
+  color: #111111 !important;
+}
+
+#topbar-cta-button a {
+  padding-left: 0.875rem !important;
+  padding-right: 0.75rem !important;
+}
+
+/* Search */
+#search-bar-entry {
+  border-radius: var(--sk-radius-control) !important;
+  border-color: var(--sk-line) !important;
+}
+
+/* ========================================
+   SIDEBAR
+   ======================================== */
+
+#sidebar,
+#sidebar-content {
+  border-color: var(--sk-line) !important;
+}
+
 /* Replace sidebar expand/collapse icons with clean chevrons */
-/* Hide default SVG icons in sidebar group buttons */
 #sidebar-content button[aria-expanded] svg,
 #sidebar-content [data-state] > svg {
   display: none !important;
 }
 
-/* Sidebar group buttons layout */
 #sidebar-content button[aria-expanded] {
   display: flex !important;
   align-items: center !important;
@@ -137,7 +211,6 @@ nav .active,
   position: relative;
 }
 
-/* Chevron icon - collapsed (pointing right) */
 #sidebar-content button[aria-expanded]::after {
   content: '';
   display: inline-block;
@@ -147,375 +220,184 @@ nav .active,
   flex-shrink: 0;
   background-color: currentColor;
   opacity: 0.4;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E");
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E") center / contain no-repeat;
   margin-left: auto;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-/* Chevron icon - expanded (pointing down) */
 #sidebar-content button[aria-expanded="true"]::after {
   transform: rotate(90deg);
   opacity: 0.6;
 }
 
-#sidebar,
-#sidebar-content {
-  background: #fafafa !important;
+/* Active page: soft grey surface, ink text, 8px radius (like the site's dropdown hover) */
+#sidebar-content a[class*="bg-primary/10"] {
+  background: var(--sk-soft-2) !important;
+  color: var(--sk-ink) !important;
+  border-radius: var(--sk-radius-control) !important;
 }
 
-#sidebar,
-#sidebar-content {
-  border-right: 1px solid #e4e4e7 !important;
+html.dark #sidebar-content a[class*="bg-primary/10"] {
+  background: #1f1f1f !important;
 }
 
-/* Left area beside sidebar */
-html,
-body {
-  background: #fafafa !important;
-}
-
-.dark #sidebar,
-.dark #sidebar-content,
-html.dark #sidebar,
-html.dark #sidebar-content,
-html[class*="dark"] #sidebar,
-html[class*="dark"] #sidebar-content {
-  background: #0f0f12 !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Sidebar group headers */
-.sidebar-group-header {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #71717a;
-}
-
-/* Indent page links under sidebar group headers */
 #sidebar-content a {
   padding-left: 1.5rem !important;
-}
-
-/* Active sidebar item - lavender background like fal.ai */
-.sidebar-title.active,
-.nav-anchor.active,
-[data-active="true"] {
-  background: rgba(255, 102, 0, 0.1) !important;
-  color: #FF6600 !important;
-  border-radius: 4px !important;
+  border-radius: var(--sk-radius-control) !important;
 }
 
 /* ========================================
-   CONTENT AREA
+   TABLE OF CONTENTS
    ======================================== */
 
-/* Main content wrapper */
-.lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip,
-.max-lg\:contents.lg\:flex-1,
-.almond-layout,
-.mint-layout {
-  background: #fafafa !important;
-}
-
-.dark .lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip,
-.dark .almond-layout,
-.dark .mint-layout,
-html.dark .lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip,
-html[class*="dark"] .lg\:flex-1.lg\:min-w-0.lg\:overflow-x-clip {
-  background: #0f0f12 !important;
+.toc-item[data-active="true"] > a {
+  color: var(--sk-ink) !important;
+  font-weight: 550;
 }
 
 /* ========================================
-   CARDS - Clean with subtle border
+   CODE
    ======================================== */
 
-.card {
-  background: #ffffff !important;
-  border: 1px solid #e4e4e7 !important;
-  transition: all 0.2s ease;
+pre,
+pre code,
+.code-block code,
+.code-group code {
+  font-family: var(--sk-mono) !important;
 }
 
-.dark .card,
-html.dark .card,
-html[class*="dark"] .card {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.card:hover {
-  border-color: #FF6600 !important;
-  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.1) !important;
-}
-
-/* ========================================
-   TABLE OF CONTENTS - Purple active indicator
-   ======================================== */
-
-#table-of-contents,
-#table-of-contents-content {
-  border-left: none !important;
-}
-
-/* Active TOC item - purple left border like fal.ai */
-.toc-item.active,
-.toc-item[data-active="true"] {
-  color: #FF6600 !important;
-  border-left: 2px solid #FF6600 !important;
-  padding-left: 8px;
-}
-
-/* ========================================
-   CODE BLOCKS - Clean, developer-focused
-   ======================================== */
-
-/* Code block container */
 .code-block,
-pre {
-  background: #f8f8f8 !important;
-  border: 1px solid #e4e4e7 !important;
-  border-radius: 6px !important;
-}
-
-.dark .code-block,
-.dark pre,
-html.dark .code-block,
-html.dark pre,
-html[class*="dark"] .code-block,
-html[class*="dark"] pre {
-  background: #1a1a1e !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Code block tab bar (language selector) */
-.code-group-tabs,
-[role="tablist"]:has(+ pre),
-[role="tablist"]:has(+ .code-block),
-.code-block [role="tablist"],
-pre + [role="tablist"],
-div:has(> pre) > [role="tablist"],
-.code-header,
-.code-block-header {
-  background: #f0f0f2 !important;
-  border-bottom: 1px solid #e4e4e7 !important;
-  border-radius: 6px 6px 0 0 !important;
-  padding: 0 !important;
-  gap: 0 !important;
-}
-
-.dark .code-group-tabs,
-.dark .code-header,
-.dark .code-block-header,
-html.dark .code-group-tabs,
-html[class*="dark"] .code-group-tabs {
-  background: #141417 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Individual code tabs */
-.code-group-tabs button,
-.code-group-tabs [role="tab"],
-.code-header button,
-.code-block-header button {
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 2px solid transparent !important;
-  color: #71717a !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  font-family: 'Roboto Mono', monospace !important;
-  padding: 0.5rem 0.875rem !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  transition: color 0.15s ease, border-color 0.15s ease !important;
-}
-
-/* Active code tab */
-.code-group-tabs button[data-state="active"],
-.code-group-tabs [role="tab"][aria-selected="true"],
-.code-group-tabs [role="tab"][data-state="active"],
-.code-header button[data-state="active"],
-.code-block-header button[data-state="active"] {
-  background: transparent !important;
-  color: #18181b !important;
-  border-bottom: 2px solid #FF6600 !important;
+.code-group {
+  border-radius: 12px !important;
+  border-color: var(--sk-line) !important;
   box-shadow: none !important;
 }
 
-.dark .code-group-tabs button[data-state="active"],
-.dark .code-group-tabs [role="tab"][aria-selected="true"],
-html.dark .code-group-tabs button[data-state="active"],
-html[class*="dark"] .code-group-tabs button[data-state="active"] {
-  color: #e4e4e7 !important;
-  border-bottom: 2px solid #FF6600 !important;
+.code-group {
+  background: var(--sk-soft) !important;
 }
 
-/* Code tab hover */
-.code-group-tabs button:hover,
-.code-group-tabs [role="tab"]:hover,
-.code-header button:hover {
-  color: #18181b !important;
-  background: transparent !important;
+.code-block [data-component-part="code-block-root"] {
+  border-radius: 11px;
 }
 
-.dark .code-group-tabs button:hover,
-html.dark .code-group-tabs button:hover,
-html[class*="dark"] .code-group-tabs button:hover {
-  color: #e4e4e7 !important;
+/* Filename / language tabs inside a code group */
+.code-group [role="tab"],
+.code-group [role="tablist"] button {
+  font-family: var(--sk-mono) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 }
 
-/* ----------------------------------------
-   Platform/language tab list above code blocks
-   (Mintlify <Tabs> component: ul[role="tablist"] > li[role="tab"])
-   ---------------------------------------- */
+.code-group [role="tab"][aria-selected="true"],
+.code-group [role="tab"][data-selected],
+.code-group [role="tab"][data-active="true"] {
+  color: var(--sk-ink) !important;
+}
 
-/* Tab bar container */
+/* Platform tabs (Mintlify <Tabs>): mono labels, ink underline on the active tab */
 ul[role="tablist"][data-component-part="tabs-list"] {
-  border-bottom: 1px solid #e4e4e7 !important;
-  gap: 0 !important;
-  padding-left: 0.25rem !important;
+  border-bottom: 1px solid var(--sk-line) !important;
 }
 
-.dark ul[role="tablist"][data-component-part="tabs-list"],
-html.dark ul[role="tablist"][data-component-part="tabs-list"],
-html[class*="dark"] ul[role="tablist"][data-component-part="tabs-list"] {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-/* All tab buttons */
-ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"] {
-  font-family: 'Roboto Mono', monospace !important;
-  font-size: 0.8rem !important;
+[data-component-part="tab-button"] {
+  font-family: var(--sk-mono) !important;
+  font-size: 12.5px !important;
   font-weight: 500 !important;
-  color: #a1a1aa !important;
-  border-bottom: 2px solid transparent !important;
-  border-color: transparent !important;
-  padding: 0.5rem 0.75rem !important;
-  border-radius: 0 !important;
-  transition: color 0.15s ease, border-color 0.15s ease !important;
 }
 
-ul[role="tablist"] li[role="tab"] {
-  border-radius: 0 !important;
+[data-component-part="tab-button"][data-active="true"] {
+  color: var(--sk-ink) !important;
+  border-color: var(--sk-ink) !important;
 }
 
-/* Active tab */
-ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"] {
-  color: #18181b !important;
-  border-bottom: 2px solid #FF6600 !important;
-  border-color: #FF6600 !important;
+[data-component-part="tab-button"][data-active="false"] {
+  color: var(--sk-muted) !important;
 }
 
-.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"],
-html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"],
-html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="true"] {
-  color: #e4e4e7 !important;
-  border-bottom: 2px solid #FF6600 !important;
-  border-color: #FF6600 !important;
-}
-
-/* Inactive tab hover */
-ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover {
-  color: #52525b !important;
-  border-color: #d4d4d8 !important;
-}
-
-.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover,
-html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover,
-html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"]:hover {
-  color: #a1a1aa !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Inactive tab - override Tailwind classes */
-ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"] {
-  color: #a1a1aa !important;
-  border-color: transparent !important;
-}
-
-.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"],
-html.dark ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"],
-html[class*="dark"] ul[role="tablist"] li[role="tab"] div[data-component-part="tab-button"][data-active="false"] {
-  color: #52525b !important;
-}
-
-/* Code block title/filename bar */
-.code-block-title,
-[data-rehype-pretty-code-title] {
-  background: #f0f0f2 !important;
-  color: #52525b !important;
-  font-family: 'Roboto Mono', monospace !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  border-bottom: 1px solid #e4e4e7 !important;
-  padding: 0.5rem 0.875rem !important;
-  border-radius: 6px 6px 0 0 !important;
-}
-
-.dark .code-block-title,
-.dark [data-rehype-pretty-code-title],
-html.dark .code-block-title,
-html[class*="dark"] [data-rehype-pretty-code-title] {
-  background: #141417 !important;
-  color: #a1a1aa !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Code text styling */
-pre code {
-  font-family: 'Roboto Mono', monospace !important;
-  font-size: 0.85rem !important;
-  line-height: 1.6 !important;
-  padding: 1rem 1.25rem !important;
-  display: block !important;
-}
-
-pre {
-  padding: 0 !important;
-}
-
-/* Copy button in code blocks */
-.code-block button[aria-label*="copy"],
-.code-block button[aria-label*="Copy"],
-pre + button,
-.copy-button {
-  opacity: 0.4 !important;
-  transition: opacity 0.15s ease !important;
-}
-
-.code-block:hover button[aria-label*="copy"],
-.code-block:hover button[aria-label*="Copy"],
-pre:hover + button,
-.code-block:hover .copy-button {
-  opacity: 0.7 !important;
+[data-component-part="tab-button"][data-active="false"]:hover {
+  color: var(--sk-ink) !important;
 }
 
 /* ========================================
-   CALLOUTS
+   CALLOUTS: monochrome surface, hairline, 12px
+   (warning / danger keep a muted semantic icon so they stay distinguishable)
    ======================================== */
 
 .callout {
-  background: #fafafa !important;
-  border: 1px solid #e4e4e7 !important;
+  background: var(--sk-soft) !important;
+  border: 1px solid var(--sk-line) !important;
+  border-radius: 12px !important;
 }
 
-.dark .callout,
-html.dark .callout,
-html[class*="dark"] .callout {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+.callout,
+.callout [data-component-part="callout-content"],
+.callout [data-component-part="callout-content"] * {
+  color: var(--sk-ink);
+}
+
+.callout [data-component-part="callout-content"] {
+  color: var(--sk-ink) !important;
+}
+
+.callout [data-component-part="callout-icon"] svg {
+  color: var(--sk-ink) !important;
+}
+
+.callout[data-callout-type="warning"] [data-component-part="callout-icon"] svg {
+  color: #a16207 !important;
+}
+
+.callout[data-callout-type="danger"] [data-component-part="callout-icon"] svg {
+  color: #b91c1c !important;
+}
+
+html.dark .callout[data-callout-type="warning"] [data-component-part="callout-icon"] svg {
+  color: #eab308 !important;
+}
+
+html.dark .callout[data-callout-type="danger"] [data-component-part="callout-icon"] svg {
+  color: #f87171 !important;
 }
 
 /* ========================================
-   SCROLLBAR - Minimal
+   CARDS & ACCORDIONS: .mk-tile / .mk-faq
+   ======================================== */
+
+.card {
+  border: 1px solid var(--sk-line) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--sk-ink) !important;
+}
+
+.accordion,
+details {
+  border-color: var(--sk-line) !important;
+  border-radius: 12px !important;
+}
+
+/* ========================================
+   TABLES & API FIELDS: hairlines
+   ======================================== */
+
+.mdx-content table th,
+.mdx-content table td,
+.mdx-content table tr {
+  border-color: var(--sk-line) !important;
+}
+
+.field {
+  border-color: var(--sk-line) !important;
+}
+
+/* ========================================
+   SCROLLBAR
    ======================================== */
 
 ::-webkit-scrollbar {
@@ -528,24 +410,12 @@ html[class*="dark"] .callout {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
-  border-radius: 0;
+  background: #cfcfcf;
+  border-radius: 999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1aa;
-}
-
-.dark ::-webkit-scrollbar-thumb,
-html.dark ::-webkit-scrollbar-thumb,
-html[class*="dark"] ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover,
-html.dark ::-webkit-scrollbar-thumb:hover,
-html[class*="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+html.dark ::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
 }
 
 /* ========================================
@@ -558,216 +428,39 @@ html[class*="dark"] ::-webkit-scrollbar-thumb:hover {
   width: 100% !important;
 }
 
-/* Lone next link (has ml-auto) stays right — no override needed */
-/* Lone prev link (no ml-auto) stays left — no override needed */
-
-/* ========================================
-   ACCORDION
-   ======================================== */
-
-.accordion {
-  background: #ffffff !important;
-  border: 1px solid #e4e4e7 !important;
-}
-
-.dark .accordion,
-html.dark .accordion,
-html[class*="dark"] .accordion {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
 /* ========================================
    FOOTER
    ======================================== */
 
 footer {
-  border-top: 1px solid #e4e4e7 !important;
-}
-
-.dark footer,
-html.dark footer,
-html[class*="dark"] footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-/* ========================================
-   CTA BUTTON
-   ======================================== */
-
-/* Logo - make it bigger */
-.nav-logo img,
-#navbar img[src*="logo"],
-.nav-logo,
-header img {
-  height: 2.5rem !important;
-  width: auto !important;
-}
-
-/* Parent container - no background */
-.flex.space-x-6.items-center,
-.flex.space-x-6.items-center * {
-  background: transparent !important;
-}
-
-/* Reduce space between Contact Us and light/dark toggle */
-#topbar-cta-button {
-  margin-right: 0.5rem !important;
-}
-
-button[aria-label*="theme"],
-button[aria-label*="mode"],
-button[aria-label*="dark"],
-button[aria-label*="light"],
-.theme-toggle {
-  margin-left: 0 !important;
-}
-
-/* Reduce spacing to the left of flex items-center */
-.flex.items-center {
-  margin-left: 0 !important;
-}
-
-/* Contact Us button background element - light mode */
-.absolute.inset-0.bg-primary-dark.rounded-xl {
-  background: #000000 !important;
-  border-radius: 4px !important;
-}
-
-.absolute.inset-0.bg-primary-dark.rounded-xl.group-hover\:opacity-\[0\.9\]:hover,
-.group:hover .absolute.inset-0.bg-primary-dark.rounded-xl {
-  background: #1a1a1a !important;
-}
-
-/* Contact Us button - dark mode */
-.dark .absolute.inset-0.bg-primary-dark.rounded-xl,
-html.dark .absolute.inset-0.bg-primary-dark.rounded-xl,
-html[class*="dark"] .absolute.inset-0.bg-primary-dark.rounded-xl {
-  background: #E97043 !important;
-}
-
-.dark .group:hover .absolute.inset-0.bg-primary-dark.rounded-xl,
-html.dark .group:hover .absolute.inset-0.bg-primary-dark.rounded-xl,
-html[class*="dark"] .group:hover .absolute.inset-0.bg-primary-dark.rounded-xl {
-  background: #d4633a !important;
-}
-
-/* Light/dark mode toggle button */
-button[aria-label*="theme"],
-button[aria-label*="mode"],
-button[aria-label*="dark"],
-button[aria-label*="light"],
-.theme-toggle {
-  background: #e4e4e7 !important;
-  padding: 0.5rem !important;
-  border-radius: 4px !important;
-  height: 2rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.dark button[aria-label*="theme"],
-.dark button[aria-label*="mode"],
-.dark button[aria-label*="dark"],
-.dark button[aria-label*="light"],
-.dark .theme-toggle,
-html.dark button[aria-label*="theme"],
-html[class*="dark"] button[aria-label*="theme"] {
-  background: #3f3f46 !important;
-}
-
-/* Tab padding */
-.nav-tabs-item {
-  padding-left: 0.5rem !important;
-  padding-right: 0.5rem !important;
-}
-
-/* Custom home icon for Home tab */
-/* Custom home icon override removed — all tabs use their docs.json icon */
-
-/* Keep search bar clean */
-.relative.lg\:flex.items-center.flex-1.z-20.justify-center,
-.relative.lg\:flex.items-center.flex-1.z-20.justify-center * {
-  background: transparent !important;
-}
-
-
-/* Contact Us button text - same as rest of docs */
-#topbar-cta-button,
-#topbar-cta-button *,
-#topbar-cta-button span,
-.mr-0\.5.space-x-2\.5.flex.items-center,
-.mr-0\.5.space-x-2\.5.flex.items-center *,
-.mr-0\.5.space-x-2\.5.flex.items-center span {
-  font-family: inherit !important;
-  text-transform: none !important;
-}
-
-/* Hide arrow after Contact Us button */
-#topbar-cta-button svg,
-#topbar-cta-button .icon,
-#topbar-cta-button::after,
-.mr-0\.5.space-x-2\.5.flex.items-center svg,
-.mr-0\.5.space-x-2\.5.flex.items-center .icon {
-  display: none !important;
-}
-
-/* ========================================
-   SEARCH BAR
-   ======================================== */
-
-#search-bar-entry,
-.search-bar-entry {
-  background: #ffffff !important;
-  border: 1px solid #e4e4e7 !important;
-  border-radius: 4px !important;
-  min-width: 350px !important;
-  width: 100% !important;
-  max-width: 500px !important;
-}
-
-.dark #search-bar-entry,
-.dark .search-bar-entry,
-html.dark #search-bar-entry,
-html[class*="dark"] #search-bar-entry {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top: 1px solid var(--sk-line) !important;
 }
 
 /* ========================================
    CHANGELOG PAGE
    ======================================== */
 
-/* Hide sidebar on changelog page */
 body:has(.changelog-wrapper) #sidebar-content,
-body:has(.changelog-wrapper) #sidebar {
-  display: none !important;
-}
-
-/* Hide page title, subtitle, and TOC on changelog page */
+body:has(.changelog-wrapper) #sidebar,
 body:has(.changelog-wrapper) #table-of-contents,
 body:has(.changelog-wrapper) #table-of-contents-content {
   display: none !important;
 }
 
-/* Hide the auto-generated page heading and description */
 body:has(.changelog-wrapper) article > h1:first-of-type,
 body:has(.changelog-wrapper) .page-header,
 body:has(.changelog-wrapper) article > p:first-of-type {
   display: none !important;
 }
 
-/* Changelog wrapper */
 .changelog-wrapper {
   max-width: 620px;
   margin: 0 auto;
   padding: 2rem 0;
 }
 
-/* Individual entry — timeline style */
 .changelog-entry {
-  border-left: 2px solid #e4e4e7;
+  border-left: 1px solid var(--sk-line);
   padding: 0 0 2.5rem 1.5rem;
   position: relative;
 }
@@ -776,19 +469,17 @@ body:has(.changelog-wrapper) article > p:first-of-type {
   padding-bottom: 0;
 }
 
-/* Timeline dot */
 .changelog-entry::before {
   content: '';
   position: absolute;
-  left: -5px;
+  left: -4px;
   top: 6px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50% !important;
-  background: #FF6600;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sk-ink);
 }
 
-/* Header row — date + tags */
 .changelog-header {
   display: flex;
   align-items: center;
@@ -796,89 +487,48 @@ body:has(.changelog-wrapper) article > p:first-of-type {
   margin-bottom: 0.5rem;
 }
 
-/* Date */
 .changelog-date {
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.8rem;
-  color: #a1a1aa;
+  font-family: var(--sk-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--sk-muted);
   font-weight: 500;
 }
 
-/* Tags row */
 .changelog-tags-row {
   display: flex;
   gap: 0.375rem;
 }
 
-/* Tag pill */
 .changelog-tag {
-  font-family: 'Roboto Mono', monospace;
+  font-family: var(--sk-mono);
   font-size: 0.65rem;
   font-weight: 500;
-  color: #a1a1aa;
-  background: #f4f4f5;
+  color: var(--sk-muted);
+  background: var(--sk-soft);
+  border: 1px solid var(--sk-line);
   padding: 0.125rem 0.5rem;
-  border-radius: 2px !important;
+  border-radius: 5px;
   text-transform: lowercase;
   letter-spacing: 0.02em;
 }
 
-/* Entry title */
 .changelog-entry h3 {
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 550;
+  letter-spacing: -0.02em;
   margin: 0 0 0.375rem 0;
-  color: #18181b;
+  color: var(--sk-ink);
 }
 
-/* Entry description */
 .changelog-entry p {
   font-size: 0.875rem;
   line-height: 1.6;
-  color: #71717a;
+  color: var(--sk-muted);
   margin: 0;
 }
 
-/* Inline code inside changelog */
 .changelog-entry code {
-  font-family: 'Roboto Mono', monospace;
+  font-family: var(--sk-mono);
   font-size: 0.8rem;
-  background: #f4f4f5 !important;
-  padding: 0.1rem 0.35rem !important;
-  border-radius: 3px !important;
-  color: #18181b !important;
-}
-
-/* ---- Dark mode ---- */
-
-.dark .changelog-entry,
-html.dark .changelog-entry,
-html[class*="dark"] .changelog-entry {
-  border-left-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark .changelog-tag,
-html.dark .changelog-tag,
-html[class*="dark"] .changelog-tag {
-  background: rgba(255, 255, 255, 0.06);
-  color: #71717a;
-}
-
-.dark .changelog-entry h3,
-html.dark .changelog-entry h3,
-html[class*="dark"] .changelog-entry h3 {
-  color: #e4e4e7;
-}
-
-.dark .changelog-entry p,
-html.dark .changelog-entry p,
-html[class*="dark"] .changelog-entry p {
-  color: #71717a;
-}
-
-.dark .changelog-entry code,
-html.dark .changelog-entry code,
-html[class*="dark"] .changelog-entry code {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #e4e4e7 !important;
 }
