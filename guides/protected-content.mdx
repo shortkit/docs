@@ -17,7 +17,7 @@ Use protected content when you want to limit who can play a video and for how lo
 ## How it works
 
 1. You mark a content item **protected** at upload or import time (or rely on your organization's default).
-2. In the feed and content responses, the item's `streamingUrl` is withheld (returned as an empty string `""`) and a `protected` flag is set to `true`.
+2. A `protected` flag is set to `true`. In the SDK feed the item's `streamingUrl` is withheld (returned as an empty string `""`) — the SDK resolves a signed URL itself. On the secret-key content API (`/v1/content`), `streamingUrl` is a **signed** HLS URL valid for up to 24 hours (`""` only if signed playback is not configured).
 3. To play the item, a **signed streaming URL** is issued from the [playback-token endpoint](/api/content/playback-token). The URL is short-lived and expires at a fixed time.
 4. Before the URL expires, a fresh one is requested so playback is never interrupted.
 
@@ -77,7 +77,7 @@ Your organization has a **default playback protected** setting that decides whet
 Protected items appear in the feed like any other content, with two differences:
 
 - **`protected`** is `true`.
-- **`streamingUrl`** is an empty string (`""`) — the streaming URL is withheld until a signed URL is issued.
+- **`streamingUrl`** is an empty string (`""`) in feed responses — withheld until the SDK issues a signed URL. Content-API responses (secret key or portal) carry a signed URL valid for up to 24 hours instead.
 
 Everything else — title, thumbnail, metadata — is present, so protected items render in the feed and browse exactly like public ones.
 
