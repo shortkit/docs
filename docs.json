@@ -4,23 +4,23 @@
   "name": "shortkit",
   "description": "Drop-in short-form video feeds for your app. TikTok-quality video experience without the infrastructure complexity.",
   "colors": {
-    "primary": "#FF6600",
-    "light": "#fff8f5",
-    "dark": "#121216"
+    "primary": "#181818",
+    "light": "#FAFAFA",
+    "dark": "#181818"
   },
   "background": {
     "color": {
-      "light": "#ffffff",
-      "dark": "#0f0f12"
+      "light": "#FFFFFF",
+      "dark": "#111111"
     }
   },
   "fonts": {
     "heading": {
-      "family": "Inter",
-      "weight": 600
+      "family": "Manrope",
+      "weight": 500
     },
     "body": {
-      "family": "Inter",
+      "family": "Manrope",
       "weight": 400
     }
   },
@@ -206,8 +206,8 @@
   "styling": {
     "codeblocks": {
       "theme": {
-        "light": "catppuccin-latte",
-        "dark": "tokyo-night"
+        "light": "github-light-default",
+        "dark": "github-dark-default"
       }
     }
   }
