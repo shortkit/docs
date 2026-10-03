@@ -6,7 +6,7 @@ description: "Update metadata on up to 500 content items in one atomic request."
 
 Select each content item by its ShortKit ID or your own external ID. ShortKit validates every item before changing anything. If any selector cannot be resolved, the complete request fails and no items are changed.
 
-This endpoint requires a [secret key](/api/authentication#secret-keys). Publishable keys and portal sessions cannot call it.
+This endpoint requires a [secret key](/api/authentication#secret-keys). Publishable keys cannot call it.
 
 ## Request body
 
@@ -19,7 +19,7 @@ This endpoint requires a [secret key](/api/authentication#secret-keys). Publisha
 </ParamField>
 
 <ParamField body="items[].externalId" type="string">
-  Your identifier for the content item. ShortKit resolves it within your organization. Maximum 255 characters. Provide exactly one of `externalId` or `contentId` for each item.
+  Your non-empty identifier for the content item. ShortKit resolves it within your organization. Maximum 255 characters. Provide exactly one of `externalId` or `contentId` for each item.
 </ParamField>
 
 <ParamField body="items[].updates" type="object" required>
@@ -51,7 +51,7 @@ This endpoint requires a [secret key](/api/authentication#secret-keys). Publisha
 </ParamField>
 
 <ParamField body="onlyIfMissing" type="string[]">
-  Prevent overwriting existing values. Allowed values are `author`, `description`, and `section`.
+  Prevent overwriting existing values. Allowed values are `author`, `description`, and `section`. List each guarded field at most once.
 
   Every guarded field must appear in every item's `updates`. If any guarded field already contains a value, ShortKit skips that entire item. Only `null` counts as missing; an empty string is an existing value.
 </ParamField>
@@ -166,7 +166,7 @@ console.log(data.summary);
     }
   },
   "meta": {
-    "request_id": "req_01k6d98t3n"
+    "request_id": "req_01a2b3c4d5e6"
   }
 }
 ```
@@ -186,7 +186,7 @@ Results appear in the same order as the request. `externalId` is `null` when the
 
 ShortKit commits all non-skipped changes in one transaction. A malformed item, an unknown or deleted item, or an item from another organization rejects the complete request without applying any changes.
 
-You can safely retry the same request after a network timeout. Items that were already committed return `unchanged`, unless an `onlyIfMissing` safeguard now causes them to return `skipped`.
+If no other request changes the same fields between attempts, you can retry after a network timeout. An identical unguarded retry returns `unchanged`; an `onlyIfMissing` retry can return `skipped` after the first attempt fills the guarded field. If another request changes those fields before your retry, the retry applies its supplied values again and can return `updated`.
 
 For more than 500 items, split the update into batches of at most 500. Keep each batch below 2 MiB and inspect its summary before advancing.
 
