@@ -112,6 +112,7 @@
                   "api/content/count",
                   "api/content/search",
                   "api/content/update",
+                  "api/content/bulk-update",
                   "api/content/delete"
                 ]
               },
