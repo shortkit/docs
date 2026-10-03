@@ -186,7 +186,7 @@ Results appear in the same order as the request. `externalId` is `null` when the
 
 ShortKit commits all non-skipped changes in one transaction. A malformed item, an unknown or deleted item, or an item from another organization rejects the complete request without applying any changes.
 
-If no other request changes the same fields between attempts, you can retry after a network timeout. An identical unguarded retry returns `unchanged`; an `onlyIfMissing` retry can return `skipped` after the first attempt fills the guarded field. If another request changes those fields before your retry, the retry applies its supplied values again and can return `updated`.
+If no other request changes the same fields between attempts, you can retry after a network timeout. An identical unguarded retry returns `unchanged`; an `onlyIfMissing` retry can return `skipped` after the first attempt fills the guarded field. If another request changes those fields before your retry, an unguarded retry reapplies its supplied values and can return `updated`. A guarded retry reevaluates `onlyIfMissing` against the current values and can instead return `skipped`.
 
 For more than 500 items, split the update into batches of at most 500. Keep each batch below 2 MiB and inspect its summary before advancing.
 
