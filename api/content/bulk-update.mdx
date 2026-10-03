@@ -1,0 +1,203 @@
+---
+title: "Bulk update content metadata"
+api: "POST /v1/content/bulk-update"
+description: "Update metadata on up to 500 content items in one atomic request."
+---
+
+Select each content item by its ShortKit ID or your own external ID. ShortKit validates every item before changing anything. If any selector cannot be resolved, the complete request fails and no items are changed.
+
+This endpoint requires a [secret key](/api/authentication#secret-keys). Publishable keys cannot call it.
+
+## Request body
+
+<ParamField body="items" type="object[]" required>
+  The content items to update. Include 1–500 items. Selectors cannot repeat, and two selectors cannot resolve to the same content item.
+</ParamField>
+
+<ParamField body="items[].contentId" type="string">
+  The ShortKit content UUID. Provide exactly one of `contentId` or `externalId` for each item.
+</ParamField>
+
+<ParamField body="items[].externalId" type="string">
+  Your non-empty identifier for the content item. ShortKit resolves it within your organization. Maximum 255 characters. Provide exactly one of `externalId` or `contentId` for each item.
+</ParamField>
+
+<ParamField body="items[].updates" type="object" required>
+  The metadata fields to change. Include at least one supported field. Fields omitted from this object remain unchanged.
+</ParamField>
+
+<ParamField body="items[].updates.title" type="string">
+  Replace the display title. Maximum 200 characters.
+</ParamField>
+
+<ParamField body="items[].updates.description" type="string | null">
+  Replace the description, or set it to `null` to clear it. Maximum 2,000 characters.
+</ParamField>
+
+<ParamField body="items[].updates.tags" type="string[]">
+  Replace all tags. Include at most 100 tags, with up to 200 characters per tag.
+</ParamField>
+
+<ParamField body="items[].updates.section" type="string | null">
+  Replace the editorial section, or set it to `null` to clear it. Maximum 200 characters.
+</ParamField>
+
+<ParamField body="items[].updates.author" type="string | null">
+  Replace the content author, or set it to `null` to clear it. Maximum 200 characters.
+</ParamField>
+
+<ParamField body="items[].updates.customMetadata" type="object">
+  Merge keys into the existing metadata. A `null` value removes that key; omitted keys remain unchanged. Include at most 100 keys, with up to 200 characters per key and 32 KiB of JSON per item.
+</ParamField>
+
+<ParamField body="onlyIfMissing" type="string[]">
+  Prevent overwriting existing values. Allowed values are `author`, `description`, and `section`. List each guarded field at most once.
+
+  Every guarded field must appear in every item's `updates`. If any guarded field already contains a value, ShortKit skips that entire item. Only `null` counts as missing; an empty string is an existing value.
+</ParamField>
+
+The complete JSON request body cannot exceed 2 MiB. Unknown fields, non-finite numbers, and strings containing NUL characters are rejected.
+
+## Example
+
+This request fills missing authors without replacing authors that are already set.
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.shortkit.dev/v1/content/bulk-update" \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "externalId": "recommendation-1803550",
+        "updates": {"author": "maya_chen"}
+      },
+      {
+        "externalId": "recommendation-1803551",
+        "updates": {"author": "jordan_lee"}
+      }
+    ],
+    "onlyIfMissing": ["author"]
+  }'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.shortkit.dev/v1/content/bulk-update",
+    headers={
+        "Authorization": "Bearer sk_live_your_secret_key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "items": [
+            {
+                "externalId": "recommendation-1803550",
+                "updates": {"author": "maya_chen"},
+            },
+            {
+                "externalId": "recommendation-1803551",
+                "updates": {"author": "jordan_lee"},
+            },
+        ],
+        "onlyIfMissing": ["author"],
+    },
+    timeout=30,
+)
+response.raise_for_status()
+result = response.json()["data"]
+print(result["summary"])
+```
+
+```javascript Node.js
+const response = await fetch("https://api.shortkit.dev/v1/content/bulk-update", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk_live_your_secret_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    items: [
+      {
+        externalId: "recommendation-1803550",
+        updates: { author: "maya_chen" },
+      },
+      {
+        externalId: "recommendation-1803551",
+        updates: { author: "jordan_lee" },
+      },
+    ],
+    onlyIfMissing: ["author"],
+  }),
+});
+
+if (!response.ok) {
+  throw new Error(`Bulk update failed: ${response.status} ${await response.text()}`);
+}
+
+const { data } = await response.json();
+console.log(data.summary);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "results": [
+      {
+        "contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+        "externalId": "recommendation-1803550",
+        "status": "updated"
+      },
+      {
+        "contentId": "e3a1b2c3-d4e5-4f67-8901-23456789abcd",
+        "externalId": "recommendation-1803551",
+        "status": "skipped"
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "updated": 1,
+      "unchanged": 0,
+      "skipped": 1
+    }
+  },
+  "meta": {
+    "request_id": "req_01a2b3c4d5e6"
+  }
+}
+```
+</ResponseExample>
+
+## Result statuses
+
+| Status | Meaning |
+|---|---|
+| `updated` | At least one supplied value changed. |
+| `unchanged` | The supplied values already matched the stored values. |
+| `skipped` | An `onlyIfMissing` safeguard prevented every change for that item. |
+
+Results appear in the same order as the request. `externalId` is `null` when the content item does not have one.
+
+## Atomicity and retries
+
+ShortKit commits all non-skipped changes in one transaction. A malformed item, an unknown or deleted item, or an item from another organization rejects the complete request without applying any changes.
+
+If no other request changes the same fields between attempts, you can retry after a network timeout. An identical unguarded retry returns `unchanged`; an `onlyIfMissing` retry can return `skipped` after the first attempt fills the guarded field. If another request changes those fields before your retry, an unguarded retry reapplies its supplied values and can return `updated`. A guarded retry reevaluates `onlyIfMissing` against the current values and can instead return `skipped`.
+
+For more than 500 items, split the update into batches of at most 500. Keep each batch below 2 MiB and inspect its summary before advancing.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | The body is malformed or fails field validation. |
+| `401` | The secret key is missing or invalid. |
+| `404` | At least one selector does not resolve in your organization. |
+| `413` | The request body exceeds 2 MiB. |
+| `422` | Two different selectors resolve to the same content item. |
+
+See [Errors](/api/errors) for the standard error envelope.
