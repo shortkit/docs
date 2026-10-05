@@ -21,8 +21,10 @@ rss: true
   - `rss` is required. Its title and description are what RSS readers get and what the
     portal's "What's new" card shows, so write them as a headline and one sentence.
     Without it, Mintlify makes one feed item per `##` heading.
-  - An image (a Markdown image, `![alt](/images/changelog/...)`) at the top of the entry
-    becomes the picture on the portal's announcement card. Optional.
+  - An image decides how loudly the portal announces the entry. With one (a Markdown image,
+    `![alt](/images/changelog/...)`, at the top), the entry is a launch: it pops up as a
+    card over the corner of the portal, picture first. Without one, it waits quietly in
+    the portal's sidebar. Use an image only for the few releases worth interrupting for.
   - SDK entries say what a customer gets, never how the SDK does it: name the capability
     ("protected playback is more reliable"), not players, pools, caches or tokens.
   - Link to the guide for anything new. Never mention customers, internal ticket ids or
