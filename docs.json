@@ -167,6 +167,13 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Changelog",
+        "icon": "newspaper",
+        "pages": [
+          "changelog"
+        ]
       }
     ],
     "global": {
