@@ -14,13 +14,16 @@ rss: true
 
   - One <Update> per announcement, newest first. `label` is the date ("October 4, 2026") and
     becomes the anchor (#october-4-2026). A second entry on the same day gets
-    #october-4-2026-2, so add same-day entries below the first and never reorder them.
+    #october-4-2026-2 on the page, so add it below the first and never reorder them. The
+    RSS feed links both to #october-4-2026, so the first one should be the one announced.
   - `description` is the short name shown under the date: "SDK 0.2.91", "Portal", "API".
   - `tags` come from this list only, so the filters stay short:
     iOS, Android, React Native, Flutter, API, Portal.
-  - `rss` is required. Its title and description are what RSS readers get and what the
-    portal's "What's new" card shows, so write them as a headline and one sentence.
-    Without it, Mintlify makes one feed item per `##` heading.
+  - `rss` with a `title` is required: without it, Mintlify makes one feed item per `##`
+    heading. Write the title as a headline.
+  - `rss.description` decides whether the portal announces the entry. It is never shown
+    on this page; it is the one-sentence blurb on the portal's "What's new" card. Leave it
+    out and the entry is quiet: here and in RSS for anyone looking, never in the portal.
   - An image decides how loudly the portal announces the entry. With one (a Markdown image,
     `![alt](/images/changelog/...)`, at the top), the entry is a launch: it pops up as a
     card over the corner of the portal, picture first. Without one, it waits quietly in
