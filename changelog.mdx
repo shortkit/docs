@@ -13,47 +13,71 @@ rss: true
   releases do not get an entry; fold them into the next notable one.
 
   - One <Update> per announcement, newest first. `label` is the date ("October 4, 2026") and
-    must be unique on the page, because it becomes the anchor (#october-4-2026). Two
-    announcements on one day share an entry, with an `##` heading for each.
+    becomes the anchor (#october-4-2026). A second entry on the same day gets
+    #october-4-2026-2, so add same-day entries below the first and never reorder them.
   - `description` is the short name shown under the date: "SDK 0.2.91", "Portal", "API".
   - `tags` come from this list only, so the filters stay short:
     iOS, Android, React Native, Flutter, API, Portal.
   - `rss` is required. Its title and description are what RSS readers get and what the
     portal's "What's new" card shows, so write them as a headline and one sentence.
     Without it, Mintlify makes one feed item per `##` heading.
+  - An image (a Markdown image, `![alt](/images/changelog/...)`) at the top of the entry
+    becomes the picture on the portal's announcement card. Optional.
+  - SDK entries say what a customer gets, never how the SDK does it: name the capability
+    ("protected playback is more reliable"), not players, pools, caches or tokens.
   - Link to the guide for anything new. Never mention customers, internal ticket ids or
     unreleased work.
 */}
 
 <Update
   label="October 4, 2026"
-  description="Portal · SDK 0.2.91"
-  tags={["Portal", "iOS", "Android", "React Native"]}
+  description="Portal"
+  tags={["Portal"]}
   rss={{
-    title: "A redesigned portal, and SDK 0.2.91",
-    description: "The portal has a new look and a dark theme, and SDK 0.2.91 adds per-surface mute.",
+    title: "A redesigned admin portal",
+    description: "Clearer pages throughout, a usage view you can read at a glance, deeper analytics, and a dark theme.",
   }}
 >
-  ## A redesigned portal
+  ![The redesigned portal dashboard](/images/changelog/portal-redesign.png)
 
-  Every page of the portal has been redrawn: the dashboard, content library, tags, settings
-  and organization picker. Navigation is unchanged, and on a phone the sidebar now opens
-  from a menu in the top bar.
+  ## A redesigned admin portal
 
-  - **Themes.** Choose Light, Dark, or System from the account menu at the foot of the
+  We rebuilt the admin portal from the ground up. Every page is simpler to read, the things
+  you check most are easier to find, and it now works on a phone.
+
+  - **Usage, rethought.** **Settings → Usage** shows what you've used this period against what
+    your plan includes, for storage, encoding and delivery, with a projection for the rest of
+    the period and a day-by-day view of each.
+  - **A calmer content drawer.** Opening a video shows what matters first: its status,
+    preview and key details. Everything else is a click away instead of on one long panel.
+  - **Analytics overhaul.** New filters, period-over-period comparisons on every headline
+    number, and a definition behind each metric: hover the ⓘ to see exactly what's counted.
+    More is on the way.
+  - **Themes.** Choose Light, Dark or System from the account menu at the foot of the
     sidebar, or from **Settings → Account → Appearance**.
-  - **Audio tracks.** A video's details now list its audio tracks, and the content library
-    can show which videos carry more than one.
+  - **Audio tracks.** A video's details list its audio tracks, and the content library can
+    show which videos carry more than one.
+  - **A collapsible sidebar.** Fold the sidebar down to icons for more room, and the portal
+    remembers your choice. On a phone, the sidebar opens from the menu in the top bar.
+</Update>
 
+<Update
+  label="October 4, 2026"
+  description="SDK 0.2.91"
+  tags={["iOS", "Android", "React Native"]}
+  rss={{
+    title: "SDK 0.2.91",
+    description: "More reliable protected playback, and mute that stays where you set it.",
+  }}
+>
   ## SDK 0.2.91
 
   Released for iOS, Android and React Native.
 
-  - **Protected playback.** Hardening for organizations whose whole library is protected.
+  - **Protected playback.** More reliable playback for protected content.
     See [Protected content](/guides/protected-content).
-  - **Mute per surface.** Muting a feed, player or widget no longer mutes the others.
-  - **Android.** Tile previews and cached feed stills recover correctly after a token
-    refresh, and stills decode at a bounded size to save memory.
+  - **Mute.** Muting one feed, player or widget no longer changes the others.
+  - Stability and performance improvements.
 </Update>
 
 <Update
