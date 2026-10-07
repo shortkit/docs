@@ -1,6 +1,6 @@
 ---
 title: "Changelog"
-description: "Notable releases across the ShortKit SDKs, API and portal."
+description: "Notable releases across the ShortKit SDKs, API and admin portal."
 rss: true
 ---
 
@@ -9,16 +9,16 @@ rss: true
 
   This page is curated, not a release log. Add an entry when a release changes something a
   customer would act on or notice: a new capability, a behaviour change, a deprecation, a
-  fix for a bug customers reported, or a portal change worth showing. Routine SDK patch
+  fix for a bug customers reported, or an admin portal change worth showing. Routine SDK patch
   releases do not get an entry; fold them into the next notable one.
 
   - One <Update> per announcement, newest first. `label` is the date ("October 4, 2026") and
     becomes the anchor (#october-4-2026). A second entry on the same day gets
     #october-4-2026-2 on the page, so add it below the first and never reorder them. The
     RSS feed links both to #october-4-2026, so the first one should be the one announced.
-  - `description` is the short name shown under the date: "SDK 0.2.91", "Portal", "API".
+  - `description` is the short name shown under the date: "SDK 0.2.91", "Redesign", "API". Don't repeat the tag.
   - `tags` come from this list only, so the filters stay short:
-    iOS, Android, React Native, Flutter, API, Portal.
+    iOS, Android, React Native, Flutter, API, Admin portal.
   - `rss` with a `title` is required: without it, Mintlify makes one feed item per `##`
     heading. Write the title as a headline.
   - `rss.description` decides whether the portal announces the entry. It is never shown
@@ -36,16 +36,16 @@ rss: true
 
 <Update
   label="October 7, 2026"
-  description="SDK 0.2.92 and portal"
-  tags={["iOS", "Android", "React Native", "Portal"]}
+  description="Usage alerts"
+  tags={["Admin portal"]}
   rss={{
-    title: "Usage alerts, shareable Tags links and SDK 0.2.92",
-    description: "Usage and spike alerts by email, shareable links in Tags, and faster thumbnails in the SDK.",
+    title: "Usage alerts, spike alerts and shareable Tags links",
+    description: "Email alerts at the usage thresholds you choose or when usage spikes, and shareable links in Tags.",
   }}
 >
-  ## Usage alerts, shareable Tags links and SDK 0.2.92
+  ![Usage and spike alert settings](/images/changelog/usage-alerts.png)
 
-  ### Portal
+  ## Usage alerts, spike alerts and shareable Tags links
 
   - **Usage alerts.** Get an email when your usage reaches the thresholds you choose,
     from 50% to 100% of what your plan includes.
@@ -53,10 +53,20 @@ rss: true
     its recent average.
   - Turn either one on in **Settings → Account → Notifications**. Each teammate chooses
     their own alerts, and both start off.
-  - **Shareable links in Tags.** Copy a link to any clip in Tags and share it with a
+  - **Shareable links in Tags (beta).** Copy a link to any clip in Tags and share it with a
     teammate. The link opens straight to that clip.
+</Update>
 
-  ### SDK 0.2.92
+<Update
+  label="October 7, 2026"
+  description="SDK 0.2.92"
+  tags={["iOS", "Android", "React Native"]}
+  rss={{
+    title: "SDK 0.2.92",
+    description: "Faster thumbnails in tiles and grids, and more reliable protected content.",
+  }}
+>
+  ## SDK 0.2.92
 
   Released for iOS, Android and React Native.
 
@@ -68,14 +78,14 @@ rss: true
 
 <Update
   label="October 4, 2026"
-  description="Admin portal"
-  tags={["Portal"]}
+  description="Redesign"
+  tags={["Admin portal"]}
   rss={{
     title: "A redesigned admin portal",
     description: "Clearer pages throughout, a usage view you can read at a glance, deeper analytics, and a dark theme.",
   }}
 >
-  ![The redesigned portal dashboard](/images/changelog/portal-redesign.png)
+  ![The redesigned admin portal dashboard](/images/changelog/portal-redesign.png)
 
   ## A redesigned admin portal
 
@@ -94,7 +104,7 @@ rss: true
     sidebar, or from **Settings → Account → Appearance**.
   - **Audio tracks.** A video's details list its audio tracks, and the content library can
     show which videos carry more than one.
-  - **A collapsible sidebar.** Fold the sidebar down to icons for more room, and the portal
+  - **A collapsible sidebar.** Fold the sidebar down to icons for more room, and the admin portal
     remembers your choice. On a phone, the sidebar opens from the menu in the top bar.
 </Update>
 
