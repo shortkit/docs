@@ -18,10 +18,10 @@ Use protected content when you want to limit who can play a video and for how lo
 
 1. You mark a content item **protected** at upload or import time (or rely on your organization's default).
 2. In the feed and content responses, the item's `streamingUrl` is withheld (returned as an empty string `""`) and a `protected` flag is set to `true`.
-3. To play the item, a **signed streaming URL** is issued from the [playback-token endpoint](/api/content/playback-token). The URL is short-lived and expires at a fixed time.
-4. Before the URL expires, a fresh one is requested so playback is never interrupted.
+3. To play the item, the ShortKit SDK requests a short-lived **signed streaming URL**. The URL expires at a fixed time.
+4. Before the URL expires, the SDK requests a fresh one so playback is never interrupted.
 
-In the ShortKit SDKs, steps 3 and 4 happen automatically. You only issue signed URLs yourself if you play protected content outside the SDK.
+Steps 3 and 4 happen entirely inside the ShortKit SDK — there's nothing for you to build. Protected content is played through the SDK; direct playback outside the SDK isn't currently supported.
 
 ---
 
@@ -103,39 +103,13 @@ Protected content plays transparently in the ShortKit SDKs. There is **no extra 
 </Tabs>
 
 <Note>
-  Signed-URL issuance and refresh are handled entirely inside the SDK. You don't call the playback-token endpoint, store tokens, or schedule refreshes yourself.
+  Signed-URL issuance and refresh are handled entirely inside the SDK — you don't store tokens or schedule refreshes yourself. Playing protected content outside the ShortKit SDK isn't currently supported.
 </Note>
-
----
-
-## Playing protected content outside the SDK
-
-If you play protected content in a player that isn't the ShortKit SDK — for example, a custom web player — issue the signed streaming URL yourself with the [playback-token endpoint](/api/content/playback-token).
-
-```bash
-curl -X POST https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851/playback-token \
-  -H "X-API-Key: pk_live_your_publishable_key" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
-The response returns a signed `video.url` and `thumbnail.url`, each with an `expiresAt` timestamp (Unix epoch seconds):
-
-```json
-{
-  "playbackId": "DS00Spx1CV",
-  "video": { "url": "https://stream.media.shortkit.dev/DS00Spx1CV.m3u8?token=<signed>", "expiresAt": 1893456000 },
-  "thumbnail": { "url": "https://image.media.shortkit.dev/DS00Spx1CV/thumbnail.jpg?token=<signed>", "expiresAt": 1893456000 }
-}
-```
-
-Signed URLs are short-lived. Request a fresh URL before `expiresAt` to keep playback uninterrupted. See the [playback-token endpoint reference](/api/content/playback-token) for request parameters, the client allowlist, and error codes.
 
 ---
 
 ## Next steps
 
-- [Create a playback token](/api/content/playback-token) — issue a signed streaming URL for playback outside the SDK.
 - [The content object](/api/content/object) — the `protected` and `streamingUrl` fields in full.
 - [Content types](/guides/content-types) — every feed item type and its fields.
 - [Embedding a feed](/sdk/feed) — set up the SDK feed that plays protected items automatically.

@@ -108,7 +108,6 @@
                   "api/content/import",
                   "api/content/list",
                   "api/content/get",
-                  "api/content/playback-token",
                   "api/content/count",
                   "api/content/search",
                   "api/content/update",
