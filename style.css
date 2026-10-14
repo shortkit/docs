@@ -361,6 +361,20 @@ html.dark .callout[data-callout-type="danger"] [data-component-part="callout-ico
   color: #f87171 !important;
 }
 
+/* Inline code inside a callout: the callout already supplies a surface and a
+   hairline, so the chip treatment nests a box inside a box. Drop the chip and
+   let the mono face plus a weight bump carry the distinction — the theme's
+   accent is ink, never a hue. */
+.callout :not(pre) > code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: var(--sk-ink) !important;
+  font-weight: 550;
+  font-size: 0.875em;
+}
+
 /* ========================================
    CARDS & ACCORDIONS: .mk-tile / .mk-faq
    ======================================== */

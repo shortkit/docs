@@ -62,6 +62,7 @@
             "group": "Display",
             "pages": [
               "sdk/feed",
+              "sdk/feed-replacement",
               "sdk/player-and-widget",
               "sdk/configuration"
             ]
