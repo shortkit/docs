@@ -34,17 +34,9 @@ With `afterItem` you commit to a boundary before your network request and the SD
 Use `afterCount` or `unseen` for interaction-triggered replacement. Use `afterItem` when the queue position cannot move during the request — a server-driven replacement, a paused feed, a backgrounded surface.
 </Warning>
 
-`afterItem` also accepts an optional `untilId` to bound the end of the range, replacing a window rather than the entire tail. An `afterItem` boundary never matches an ad slot.
+`keepUpcoming` counts entries in the queue, which is what `itemIds` lists.
 
-<Warning>
-**`afterCount` counts queue entries, including ad slots.**
-
-`keepUpcoming` indexes the queue directly, so an ad slot between the viewer and the boundary consumes one of the N. For an organization with ads enabled this makes the mode diverge by platform: Android places an ad slot after every fifth video in a custom feed, while iOS places none. The same `keepUpcoming: 2` can therefore keep one of your posts plus one ad slot on Android, and two of your posts on iOS.
-
-This cadence is fixed by the SDK for custom feeds. It does not follow the `frequency` or `firstAdOffset` values in your ad configuration.
-
-If you need a guaranteed number of your own posts ahead of the viewer, count your own ids in the queue and use `afterItem`, or use `unseen`.
-</Warning>
+`afterItem` also accepts an optional `untilId` to bound the end of the range, replacing a window rather than the entire tail.
 
 <Note>
 No boundary can replace the item on screen or anything before it: a replacement always keeps the queue up to at least the viewer's current position.
@@ -135,7 +127,7 @@ The SDK exposes a read-back of the queue as it currently stands: the ordered ite
 
 | Field | Description |
 | --- | --- |
-| `itemIds` | Ordered ids of the items in the queue, including any ad slots |
+| `itemIds` | Ordered ids of the items in the queue |
 | `currentIndex` | Index of the item on screen |
 | `currentItemId` | Id of the item on screen, or null before any content exists |
 | `deepestSeenItemId` | Furthest item the viewer has reached, or null |
@@ -174,7 +166,7 @@ The SDK exposes a read-back of the queue as it currently stands: the ordered ite
 | `status` | `applied` or `rejected` |
 | `reason` | Present only when rejected |
 | `boundaryId` | The last item kept. For `unseen`, this reports the item the SDK selected |
-| `keptCount` | Items kept, up to and including the boundary. Excludes any preserved tail beyond `untilId`, and counts an ad slot as an entry |
+| `keptCount` | Items kept, up to and including the boundary. Excludes any preserved tail beyond `untilId` |
 | `removedCount` | Items removed from the replaced range |
 | `insertedCount` | Items actually inserted |
 | `removedIds` | Ids of the items removed from the queue |
