@@ -543,3 +543,142 @@ body:has(.changelog-wrapper) article > p:first-of-type {
   font-family: var(--sk-mono);
   font-size: 0.8rem;
 }
+
+/* ========================================
+   FEED SPLICE DIAGRAMS (sdk/feed-replacement)
+   A row of queue cells, each state carrying its own colour so the legend
+   and the diagram agree. Two muted hues mark the two positions readers
+   confuse: where the viewer is, and where the cut lands.
+   ======================================== */
+
+.sk-dg {
+  --sk-dg-keep: var(--sk-ink);
+  --sk-dg-rem: #a16207;
+  --sk-dg-rem-bg: #fdf6e6;
+  --sk-dg-cur: #2454b8;
+  --sk-dg-cur-bg: #eaf1fd;
+  --sk-dg-bnd: #6d28d9;
+  --sk-dg-bnd-bg: #f4efff;
+}
+
+html.dark .sk-dg {
+  --sk-dg-rem: #eab308;
+  --sk-dg-rem-bg: #241f0e;
+  --sk-dg-cur: #7aa2f7;
+  --sk-dg-cur-bg: #121c30;
+  --sk-dg-bnd: #b794f6;
+  --sk-dg-bnd-bg: #1d1430;
+}
+
+/* the worked-example block */
+.sk-ex {
+  border: 1px solid var(--sk-line);
+  border-radius: 12px;
+  background: var(--sk-soft);
+  padding: 18px;
+  margin: 20px 0 26px;
+}
+.sk-ex-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+.sk-ex-row:first-of-type { margin-top: 0 }
+.sk-cap {
+  font-family: var(--sk-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sk-muted);
+  flex: 0 0 72px;
+  text-align: right;
+}
+
+/* the cell row */
+.sk-strip { display: flex; gap: 3px; flex-wrap: wrap }
+.sk-strip span {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--sk-line);
+  background: var(--sk-paper);
+  font-family: var(--sk-mono);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 22px;
+  text-align: center;
+  color: var(--sk-muted);
+}
+.sk-strip span.k { border-color: var(--sk-dg-keep); color: var(--sk-ink) }
+.sk-strip span.r { background: var(--sk-dg-rem-bg); border-color: var(--sk-dg-rem); color: var(--sk-dg-rem) }
+.sk-strip span.i { border-color: var(--sk-dg-keep); background: var(--sk-soft-2); color: var(--sk-ink) }
+.sk-strip span.d { border-color: var(--sk-dg-rem); border-style: dashed; color: var(--sk-dg-rem) }
+.sk-strip span.c { background: var(--sk-dg-cur-bg); border-color: var(--sk-dg-cur); color: var(--sk-dg-cur) }
+.sk-strip span.b { background: var(--sk-dg-bnd-bg); border-color: var(--sk-dg-bnd); color: var(--sk-dg-bnd) }
+.sk-strip span.o { opacity: 0.3 }
+
+/* legend */
+.sk-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 15px;
+  font-family: var(--sk-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--sk-muted);
+}
+.sk-key i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--sk-line);
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.sk-key .k i { border-color: var(--sk-dg-keep) }
+.sk-key .r i { background: var(--sk-dg-rem-bg); border-color: var(--sk-dg-rem) }
+.sk-key .c i { background: var(--sk-dg-cur-bg); border-color: var(--sk-dg-cur) }
+.sk-key .b i { background: var(--sk-dg-bnd-bg); border-color: var(--sk-dg-bnd) }
+
+/* one card per response field */
+.sk-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--sk-line);
+  border: 1px solid var(--sk-line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+.sk-f { background: var(--sk-paper); padding: 15px 17px }
+.sk-f-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.sk-f-nm { font-family: var(--sk-mono); font-size: 13px; font-weight: 600; color: var(--sk-ink) }
+.sk-f-v {
+  font-family: var(--sk-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sk-ink);
+  font-variant-numeric: tabular-nums;
+}
+.sk-f-v.na { color: var(--sk-muted); font-weight: 500 }
+.sk-f p { margin: 6px 0 0; color: var(--sk-muted); font-size: 14px; max-width: 66ch }
+.sk-f .sk-strip { margin-top: 11px }
+.sk-f-tp {
+  margin-top: 10px !important;
+  border-left: 2px solid var(--sk-line);
+  padding-left: 11px;
+  font-size: 13px !important;
+}
+.sk-f-tp strong { color: var(--sk-ink); font-weight: 600 }

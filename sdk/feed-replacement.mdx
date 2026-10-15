@@ -161,36 +161,98 @@ The SDK exposes a read-back of the queue as it currently stands: the ordered ite
 
 ## Result fields
 
-| Field | Description |
-| --- | --- |
-| `status` | `applied` or `rejected` |
-| `reason` | Present only when rejected |
-| `boundaryId` | The last item kept. For `unseen`, this reports the item the SDK selected |
-| `keptCount` | Items kept, up to and including the boundary. Excludes any preserved tail beyond `untilId` |
-| `removedCount` | Items removed from the replaced range |
-| `insertedCount` | Items actually inserted |
-| `removedIds` | Ids of the items removed from the queue |
-| `droppedIds` | Incoming items that never entered the queue |
-| `queueLength` | Queue length after the call |
-| `remainingCount` | Entries after the viewer's position once the call has been applied |
+Ten fields come back. Every number below is from the same splice, so the fields read as slices of one event rather than ten separate definitions.
 
-Use `removedIds`, not `droppedIds`, to prune host-side state keyed by item id. `removedIds` lists items that were in the queue and are now gone; `droppedIds` lists incoming items that never entered it.
+<div class="sk-dg">
+<div class="sk-ex">
+<div class="sk-ex-row"><span class="sk-cap">before</span><div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="r">6</span><span class="r">7</span><span class="r">8</span></div></div>
+<div class="sk-ex-row"><span class="sk-cap">you sent</span><div class="sk-strip"><span class="i">n1</span><span class="i">n2</span><span class="d">n3</span></div></div>
+<div class="sk-ex-row"><span class="sk-cap">after</span><div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div></div>
+<div class="sk-key">
+<span class="k"><i></i>kept</span>
+<span class="r"><i></i>removed</span>
+<span class="c"><i></i>current item</span>
+<span class="b"><i></i>boundary</span>
+<span>n1 n2 inserted · dashed dropped</span>
+</div>
+</div>
 
-`queueLength` and `remainingCount` are both `0` on a rejection raised before the feed was consulted. Treat `0/0` on a rejection as unknown rather than as an empty queue.
+A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and items 6 to 8 are replaced. You sent three items; one duplicated something already in the kept head.
 
-A rejection never changes the queue. An applied replacement can still insert fewer items than you supplied.
+<div class="sk-fields">
 
-### Dropped items
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">status</span><span class="sk-f-v">"applied"</span></div>
+<p>Whether the splice happened. Only ever `applied` or `rejected` — there is no partial outcome.</p>
+<p class="sk-f-tp">A rejection leaves the queue <strong>unchanged</strong>. There is nothing to undo.</p>
+</div>
 
-`insertedCount` can be lower than the number of items you supplied. An item is dropped when:
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">reason</span><span class="sk-f-v na">absent</span></div>
+<p>Why it was refused. Present only when `status` is `rejected`.</p>
+<p class="sk-f-tp">Branch on this rather than on the counts: a rejection zeroes every count, so <strong>`keptCount: 0` does not mean the queue is empty</strong>.</p>
+</div>
 
-- the viewer dismissed it earlier in this feed session, which blocks both its `id` and its playback id — re-sending the same video under a new `id` is still dropped
-- its `id` duplicates a kept item, or an earlier item in the same batch — the first occurrence wins
-- its playback id duplicates that of a kept item, or of an earlier item in the same batch
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">boundaryId</span><span class="sk-f-v">"item-5"</span></div>
+<p>The last item kept. With `afterItem` this echoes what you asked for. With `unseen` and `afterCount` it reports which item the SDK chose, which you had no way to know in advance.</p>
+<div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k o">4</span><span class="b">5</span><span class="r o">6</span><span class="r o">7</span><span class="r o">8</span></div>
+<p class="sk-f-tp">With a relative boundary this is your only record of where the cut landed.</p>
+</div>
 
-Dropped items are identified by `id` where set, by playback id otherwise, and by the carousel id for a carousel. An item that the React Native bridge could not parse at all appears as `__sk_unparsable_<index>`, keyed to its position in the batch you sent.
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">keptCount</span><span class="sk-f-v">6</span></div>
+<p>Entries that survived ahead of the cut — items 0 through 5, boundary included.</p>
+<div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="r o">6</span><span class="r o">7</span><span class="r o">8</span></div>
+<p class="sk-f-tp">With `untilId` this counts the <strong>head only</strong>. Items preserved beyond the far end of the range are excluded, so `keptCount + removedCount` will not equal the original length.</p>
+</div>
 
-`droppedIds` is empty on any rejection raised before the feed was consulted, including `invalid_items`, so an empty list does not by itself mean nothing was refused.
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">removedCount</span><span class="sk-f-v">3</span></div>
+<p>Entries taken out of the replaced range: items 6, 7 and 8.</p>
+<div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k o">4</span><span class="b o">5</span><span class="r">6</span><span class="r">7</span><span class="r">8</span></div>
+<p class="sk-f-tp">Compare against `insertedCount` to see whether the queue grew or shrank. Here it shrank by one.</p>
+</div>
+
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">insertedCount</span><span class="sk-f-v">2</span></div>
+<p>How many of your items actually went in. You sent three; one was refused.</p>
+<div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k o">4</span><span class="b o">5</span><span class="i">n1</span><span class="i">n2</span></div>
+<p class="sk-f-tp">When this is lower than what you sent, the difference is in `droppedIds`. Check it — a silent shortfall is how a feed quietly thins.</p>
+</div>
+
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">removedIds</span><span class="sk-f-v">["item-6","item-7","item-8"]</span></div>
+<p>The ids of the entries that left the queue. `removedCount`, named.</p>
+<div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k o">4</span><span class="b o">5</span><span class="r">6</span><span class="r">7</span><span class="r">8</span></div>
+<p class="sk-f-tp"><strong>Use this to prune host-side state</strong> keyed by item id — cached metadata, like counts, analytics rows. Not `droppedIds`, which answers a different question.</p>
+</div>
+
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">droppedIds</span><span class="sk-f-v">["n3"]</span></div>
+<p>Items <em>you sent</em> that never entered the queue. Nothing here was ever in the feed.</p>
+<div class="sk-strip"><span class="i o">n1</span><span class="i o">n2</span><span class="d">n3</span></div>
+<p class="sk-f-tp">An item is dropped when its `id` duplicates a kept item or an earlier item in the same batch, when its playback id duplicates a kept item's, or when the viewer dismissed that video earlier in the session. Dismissal blocks the playback id too, so re-sending under a fresh `id` is still refused.</p>
+</div>
+
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">queueLength</span><span class="sk-f-v">8</span></div>
+<p>How long the queue is now: six kept plus two inserted.</p>
+<div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div>
+<p class="sk-f-tp">On a rejection this is `0`, meaning <strong>unknown, not empty</strong> — the call was refused before the feed was consulted.</p>
+</div>
+
+<div class="sk-f">
+<div class="sk-f-hd"><span class="sk-f-nm">remainingCount</span><span class="sk-f-v">4</span></div>
+<p>Entries ahead of the viewer once the splice has landed — the runway left before the feed needs more content.</p>
+<div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div>
+<p class="sk-f-tp">Use it to decide whether to paginate. Same `0`-means-unknown caveat as `queueLength`.</p>
+</div>
+
+</div>
+</div>
+
+Dedup runs against the survivors — the kept head plus any tail preserved by `untilId` — and not against the range being replaced. An item you remove in the same call can therefore come straight back, which is what makes reordering a stretch of content possible.
 
 ## Rejection reasons
 
