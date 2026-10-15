@@ -18,13 +18,13 @@ Every call takes a boundary: the last item to keep.
 
 | Boundary | Keeps | Anchored to |
 | --- | --- | --- |
-| `unseen` (default) | Everything the viewer has reached | The deepest position the viewer has reached |
-| `afterCount` | The current item plus the next `keepUpcoming` entries | The viewer's current position |
+| `unseen` (default) | Everything the viewer has reached | The deepest item seen — `deepestSeenItemId` |
+| `afterCount` | The current item plus the next `keepUpcoming` entries | The current item — `currentIndex` |
 | `afterItem` | Everything through the item id you supply | An item id you choose before the call |
 
-**All three are resolved when the replacement is applied**, against the queue and playhead as they stand at that moment. The difference is what each one is anchored to.
+**All three are resolved when the replacement is applied**, against the queue and the viewer's position as they stand at that moment. The difference is what each one is anchored to.
 
-`unseen` and `afterCount` are *relative*: they are recomputed from the live playhead, so they follow the viewer. `afterItem` is *absolute*: you name an item before the call, and the SDK locates it later.
+`unseen` and `afterCount` are *relative*: they are recomputed from the viewer's live position, so they follow the viewer. `afterItem` is *absolute*: you name an item before the call, and the SDK locates it later.
 
 <Warning>
 **Prefer a relative boundary when the viewer can move during the call.**
@@ -41,7 +41,9 @@ Use `afterCount` or `unseen` for interaction-triggered replacement. Use `afterIt
 <Note>
 No boundary can replace the item on screen or anything before it: a replacement always keeps the queue up to at least the viewer's current position.
 
-`unseen` keeps more than that. It anchors to the deepest position the viewer has ever reached, and that marker also moves on programmatic activation, so `startAt` and `scrollToItem` advance it. If the viewer then scrolls back, `unseen` still preserves everything up to that high-water mark, while `afterCount` and `afterItem` ignore that marker — they are bounded only by the current position, so they can replace the region between the playhead and the mark.
+`unseen` keeps more than that. It anchors to the deepest item the viewer has reached — `deepestSeenItemId` in the queue state — and that marker only ever moves forward. Programmatic activation advances it too, so `startAt` and `scrollToItem` move it.
+
+The consequence shows up when the viewer scrolls back. `unseen` still preserves everything up to the deepest item they reached. `afterCount` and `afterItem` ignore that marker and are bounded only by the current item, so they can replace the stretch between the two.
 </Note>
 
 ## Usage
@@ -123,7 +125,7 @@ Give each item a stable `id`. Items are matched by id alone, so reusing an id fo
 
 ## Queue state
 
-The SDK exposes a read-back of the queue as it currently stands: the ordered item ids, the viewer's position, and the deepest item reached. Use it to compute a boundary, or to reconcile the outcome of a call.
+Read the queue as it currently stands: the ordered item ids, the current item, and the deepest item the viewer has reached. Use it to compute a boundary, or to reconcile the outcome of a call.
 
 | Field | Description |
 | --- | --- |
