@@ -8,7 +8,7 @@ keywords: ["replaceFeedItems", "getFeedQueueState", "custom feed", "replace", "b
 
 Use it to revise upcoming content while the feed is in use — to apply updated recommendations, to reflect a user action, or to correct a ranking decision after playback has begun.
 
-`setFeedItems` replaces the entire queue and `appendFeedItems` adds to the end. Use `replaceFeedItems` when the viewer's position must be preserved.
+To replace the whole queue, use [`setFeedItems`](/sdk/configuration). To add to the end, use [`appendFeedItems`](/sdk/configuration). `replaceFeedItems` is the case in between: changing what plays next while the viewer keeps watching.
 
 This operation requires a custom feed. Set `feedSource` to custom first — see [Configuration](/sdk/configuration) and [Custom feed input](/guides/content-types#custom-feed-input-feedinput-video).
 
