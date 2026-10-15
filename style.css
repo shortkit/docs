@@ -370,9 +370,7 @@ html.dark .callout[data-callout-type="danger"] [data-component-part="callout-ico
   border: none !important;
   padding: 0 !important;
   border-radius: 0 !important;
-  color: var(--sk-ink) !important;
-  font-weight: 550;
-  font-size: 0.875em;
+  font-weight: 600;
 }
 
 /* ========================================

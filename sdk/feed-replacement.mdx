@@ -1,46 +1,54 @@
 ---
 title: "Item Replacement"
-description: "Replace the part of a custom feed the viewer has not yet reached with replaceFeedItems, choose where the replacement starts, and read the result."
-keywords: ["replaceFeedItems", "getFeedQueueState", "custom feed", "replace", "boundary", "afterCount", "unseen", "recommendations"]
+description: "Replace part of a custom feed with replaceFeedItems, choose what the boundary is anchored to, and read the result."
+keywords: ["replaceFeedItems", "custom feed", "replace", "boundary", "afterCount", "unseen", "recommendations"]
 ---
 
-`replaceFeedItems` replaces the trailing portion of a custom feed queue: the items the viewer has not yet reached. Everything before the boundary is preserved, including the item currently playing.
+`replaceFeedItems` replaces a trailing range of a custom feed queue. Items up to and including the boundary are preserved; everything after it is replaced.
 
 Use it to revise upcoming content while the feed is in use — to apply updated recommendations, to reflect a user action, or to correct a ranking decision after playback has begun.
 
 `setFeedItems` replaces the entire queue and `appendFeedItems` adds to the end. Use `replaceFeedItems` when the viewer's position must be preserved.
 
-This operation requires a custom feed. Set `feedSource` to custom first — see [Configuration](/sdk/configuration) and [Custom feed input](/guides/content-types#custom-feed-input).
+This operation requires a custom feed. Set `feedSource` to custom first — see [Configuration](/sdk/configuration) and [Custom feed input](/guides/content-types#custom-feed-input-feedinput-video).
 
 ## Boundary resolution
 
-Every call takes a boundary: the last item to keep. Everything after it is replaced.
+Every call takes a boundary: the last item to keep.
 
-| Boundary | Keeps | Resolved |
+| Boundary | Keeps | Anchored to |
 | --- | --- | --- |
-| `unseen` (default) | Everything the viewer has reached | At apply time |
-| `afterCount` | The current item plus the next `keepUpcoming` items | At apply time |
-| `afterItem` | Everything through the item id you supply | At call time |
+| `unseen` (default) | Everything the viewer has reached | The deepest position the viewer has reached |
+| `afterCount` | The current item plus the next `keepUpcoming` entries | The viewer's current position |
+| `afterItem` | Everything through the item id you supply | An item id you choose before the call |
 
-Resolution time determines which boundary to use. `unseen` and `afterCount` resolve the boundary when the replacement is applied, so it reflects the viewer's position at that moment. `afterItem` resolves it when you call, against the queue as it was then.
+**All three are resolved when the replacement is applied**, against the queue and playhead as they stand at that moment. The difference is what each one is anchored to.
+
+`unseen` and `afterCount` are *relative*: they are recomputed from the live playhead, so they follow the viewer. `afterItem` is *absolute*: you name an item before the call, and the SDK locates it later.
 
 <Warning>
-**Prefer a relative boundary for server-computed replacements.**
+**Prefer a relative boundary when the viewer can move during the call.**
 
-The viewer continues scrolling while a network request is in flight. With `afterItem`, the named item can fall behind the playhead before the replacement is applied, and the call is rejected with `boundary_behind_current`. The rejection rate scales with latency: frequent over mobile connections, rare over a local network, which makes it straightforward to miss during development.
+With `afterItem` you commit to a boundary before your network request and the SDK resolves it after. If the viewer scrolls past that item in the meantime, the boundary lands behind the item on screen and the call is rejected with `boundary_behind_current` — correctly, since honouring it would replace the video being watched. The rejection rate scales with round-trip time: frequent over mobile connections, rare over a local network, which makes it straightforward to miss during development.
 
-Use `afterCount` or `unseen` for boundaries computed on your server. Use `afterItem` only when a specific item must be the cut point and your code handles rejection.
+Use `afterCount` or `unseen` for interaction-triggered replacement. Use `afterItem` when the queue position cannot move during the request — a server-driven replacement, a paused feed, a backgrounded surface.
 </Warning>
 
-`afterItem` also accepts an optional `untilId` to bound the end of the range, replacing a window rather than the entire tail.
+`afterItem` also accepts an optional `untilId` to bound the end of the range, replacing a window rather than the entire tail. An `afterItem` boundary never matches an ad slot.
 
 <Warning>
 **`afterCount` counts queue entries, including ad slots.**
 
-`keepUpcoming` indexes `itemIds` directly, so an ad slot between the viewer and the boundary consumes one of the N. For an organization with ads enabled this makes the mode diverge by platform: Android places an ad slot after every fifth video in a custom feed, while iOS places none. The same `keepUpcoming: 2` can therefore keep one of your posts plus one ad slot on Android, and two of your posts on iOS.
+`keepUpcoming` indexes the queue directly, so an ad slot between the viewer and the boundary consumes one of the N. For an organization with ads enabled this makes the mode diverge by platform: Android places an ad slot after every fifth video in a custom feed, while iOS places none. The same `keepUpcoming: 2` can therefore keep one of your posts plus one ad slot on Android, and two of your posts on iOS.
 
-If you need a guaranteed number of your own posts ahead of the viewer, count your own ids in `itemIds` and use `afterItem`, or use `unseen`.
+This cadence is fixed by the SDK for custom feeds. It does not follow the `frequency` or `firstAdOffset` values in your ad configuration.
+
+If you need a guaranteed number of your own posts ahead of the viewer, count your own ids in the queue and use `afterItem`, or use `unseen`.
 </Warning>
+
+<Note>
+`unseen` tracks the deepest position the viewer has reached, and that marker also moves on programmatic activation. If you open the feed deep into the queue with `startAt`, or jump with `scrollToItem`, everything above the entry point counts as reached and cannot be replaced by `unseen`. Use `afterCount` for a feed opened at an arbitrary position.
+</Note>
 
 ## Usage
 
@@ -62,7 +70,7 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
     }
     ```
 
-    `boundary` defaults to `.unseen`. The remaining cases are `.afterCount(keepUpcoming:)` and `.afterItem(afterId:untilId:)`.
+    `boundary` defaults to `.unseen`. The remaining cases are `.afterCount(keepUpcoming:)` and `.afterItem(afterId:untilId:)`. The method is main-actor bound.
   </Tab>
 
   <Tab title="Android">
@@ -82,7 +90,7 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
     }
     ```
 
-    `boundary` defaults to `ReplaceBoundary.Unseen`. The remaining variants are `ReplaceBoundary.AfterCount(keepUpcoming)` and `ReplaceBoundary.AfterItem(afterId, untilId)`. The method may be called from any thread; the SDK dispatches to the main thread.
+    `boundary` defaults to `ReplaceBoundary.Unseen`. The remaining variants are `ReplaceBoundary.AfterCount(keepUpcoming)` and `ReplaceBoundary.AfterItem(afterId, untilId)`. The method may be called from any thread and dispatches to the main thread, but calls made from different threads are not guaranteed to be ordered relative to one another.
   </Tab>
 
   <Tab title="React Native">
@@ -110,17 +118,23 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
       | { mode: 'afterCount'; keepUpcoming: number }
       | { mode: 'afterItem'; afterId: string; untilId?: string };
     ```
+
+    The promise never rejects — failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered, such as one in a backgrounded tab, can stay pending until that feed is mounted again. Do not await it on a path that must complete.
   </Tab>
 </Tabs>
 
+Passing an empty `items` array is legal, and truncates the queue at the boundary.
+
+Give each item a stable `id`. Items are matched by id alone, so reusing an id for materially different content will not rebind the cell.
+
 ## Queue state
 
-`getFeedQueueState` returns the queue as it currently stands: the ordered item ids, the viewer's position, and the deepest item reached. Use it to compute a boundary, or to reconcile the outcome of a call.
+The SDK exposes a read-back of the queue as it currently stands: the ordered item ids, the viewer's position, and the deepest item reached. Use it to compute a boundary, or to reconcile the outcome of a call.
 
 | Field | Description |
 | --- | --- |
 | `itemIds` | Ordered ids of the items in the queue, including any ad slots |
-| `currentIndex` | Index of the item on screen |
+| `currentIndex` | Index of the item on screen. `-1` when the feed is unregistered or dismissed |
 | `currentItemId` | Id of the item on screen, or null before any content exists |
 | `deepestSeenItemId` | Furthest item the viewer has reached, or null |
 
@@ -137,6 +151,8 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
     val state = feedFragment.feedQueueState()
     Log.d("Feed", "${state.itemIds.size} items, viewer at ${state.currentIndex}")
     ```
+
+    Call this on the main thread.
   </Tab>
 
   <Tab title="React Native">
@@ -145,46 +161,61 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
     console.log(`${state?.itemIds.length} items, viewer at ${state?.currentIndex}`);
     ```
 
-    A feed that is not mounted resolves immediately with an empty snapshot.
+    A feed that is unregistered or dismissed resolves immediately with an empty snapshot, in which `currentIndex` is `-1`.
   </Tab>
 </Tabs>
 
 ## Result fields
-
-A replacement either applies in full or leaves the queue unchanged. There is no partial state.
 
 | Field | Description |
 | --- | --- |
 | `status` | `applied` or `rejected` |
 | `reason` | Present only when rejected |
 | `boundaryId` | The last item kept. For `unseen`, this reports the item the SDK selected |
-| `keptCount` | Items kept, up to and including the boundary |
+| `keptCount` | Items kept, up to and including the boundary. Excludes any preserved tail beyond `untilId`, and counts an ad slot as an entry |
 | `removedCount` | Items removed from the replaced range |
 | `insertedCount` | Items actually inserted |
+| `removedIds` | Ids of the items removed from the queue |
 | `droppedIds` | Incoming items that never entered the queue |
+| `queueLength` | Queue length after the call |
+| `remainingCount` | Entries after the viewer's position once the call has been applied |
+
+Use `removedIds`, not `droppedIds`, to prune host-side state keyed by item id. `removedIds` lists items that were in the queue and are now gone; `droppedIds` lists incoming items that never entered it.
+
+`queueLength` and `remainingCount` are both `0` on a rejection raised before the feed was consulted. Treat `0/0` on a rejection as unknown rather than as an empty queue.
+
+A rejection never changes the queue. An applied replacement can still insert fewer items than you supplied.
 
 ### Dropped items
 
-`insertedCount` can be lower than the number of items supplied. Items the feed refused are listed in `droppedIds`, identified by `id` where set and by `playbackId` otherwise. An item is dropped when it duplicates one already in the queue, or when it carries no usable playback reference.
+`insertedCount` can be lower than the number of items you supplied. An item is dropped when:
 
-Compare `insertedCount` against the number of items sent, and read `droppedIds` when the two differ. Refused items are always reported.
+- it has been tombstoned by an earlier removal
+- its `id` duplicates a kept item, or an earlier item in the same batch — the first occurrence wins
+- its playback id duplicates that of a kept item
+
+Dropped items are identified by `id` where set, by playback id otherwise, and by the carousel id for a carousel. An item that the React Native bridge could not parse at all appears as `__sk_unparsable_<index>`, keyed to its position in the batch you sent.
+
+`droppedIds` is empty on any rejection raised before the feed was consulted, including `invalid_items`, so an empty list does not by itself mean nothing was refused.
 
 ## Rejection reasons
 
 | Reason | Meaning |
 | --- | --- |
-| `feed_not_ready` | The feed is not registered, is empty, is not a custom feed, or its view was torn down |
+| `feed_not_ready` | The feed is not registered, is empty, is not a custom feed, its view was torn down, or the wait for the feed to settle was exhausted |
 | `boundary_not_found` | `afterId` was not present in the queue at apply time |
 | `until_not_found` | `untilId` was supplied but was not present in the queue |
 | `until_not_after_boundary` | `untilId` resolved at or before `afterId` |
-| `boundary_behind_current` | The boundary fell behind the item on screen |
+| `boundary_behind_current` | The boundary fell behind the item on screen, or `keepUpcoming` was negative |
 | `superseded` | The queue was reset between the call and the apply |
-| `invalid_items` | None of the items carried a usable playback reference |
+| `invalid_items` | React Native only — the items or options payload was malformed at the bridge |
 
 `superseded` warrants explicit handling. It indicates that the queue was replaced between the call and the apply, either by a pull-to-refresh or by your own `setFeedItems`. The replacement was discarded rather than applied to a queue that no longer existed. Re-read the queue state to determine whether the replacement remains appropriate.
+
+Retry behaviour differs by reason. A `feed_not_ready` from an exhausted settle wait, and a `boundary_behind_current` from an `afterItem` boundary, are both worth retrying. A `boundary_behind_current` from `afterCount` means `keepUpcoming` was negative, which is a static bug — do not retry it.
 
 <Warning>
 **Results differ if the surface is torn down during apply.**
 
-If the feed is dismissed while a replacement is being applied, iOS resolves `rejected` with `feed_not_ready`, while Android resolves `applied`, because the change is applied to the queue and persists. Do not treat the two results as equivalent in this case; call `getFeedQueueState` to establish the outcome.
+If the feed is dismissed while a replacement is being applied, iOS resolves `rejected` with `feed_not_ready`, while Android resolves `applied` with the real counts. This is deliberate rather than a defect: on Android the change is applied and persists, on iOS it is not. Do not treat the two results as equivalent in this case; read the queue state to establish the outcome.
 </Warning>
