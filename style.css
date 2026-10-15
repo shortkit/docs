@@ -363,8 +363,7 @@ html.dark .callout[data-callout-type="danger"] [data-component-part="callout-ico
 
 /* Inline code inside a callout: the callout already supplies a surface and a
    hairline, so the chip treatment nests a box inside a box. Drop the chip and
-   let the mono face plus a weight bump carry the distinction — the theme's
-   accent is ink, never a hue. */
+   let the mono face plus a weight bump carry the distinction. */
 .callout :not(pre) > code {
   background: transparent !important;
   border: none !important;

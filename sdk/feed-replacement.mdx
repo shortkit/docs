@@ -1,7 +1,7 @@
 ---
 title: "Item Replacement"
 description: "Replace part of a custom feed with replaceFeedItems, choose what the boundary is anchored to, and read the result."
-keywords: ["replaceFeedItems", "custom feed", "replace", "boundary", "afterCount", "unseen", "recommendations"]
+keywords: ["replaceFeedItems", "getFeedQueueState", "custom feed", "replace", "boundary", "afterCount", "unseen", "recommendations"]
 ---
 
 `replaceFeedItems` replaces a trailing range of a custom feed queue. Items up to and including the boundary are preserved; everything after it is replaced.
@@ -47,7 +47,9 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
 </Warning>
 
 <Note>
-`unseen` tracks the deepest position the viewer has reached, and that marker also moves on programmatic activation. If you open the feed deep into the queue with `startAt`, or jump with `scrollToItem`, everything above the entry point counts as reached and cannot be replaced by `unseen`. Use `afterCount` for a feed opened at an arbitrary position.
+No boundary can replace the item on screen or anything before it: a replacement always keeps the queue up to at least the viewer's current position.
+
+`unseen` keeps more than that. It anchors to the deepest position the viewer has ever reached, and that marker also moves on programmatic activation, so `startAt` and `scrollToItem` advance it. If the viewer then scrolls back, `unseen` still preserves everything up to that high-water mark, while `afterCount` and `afterItem` anchor to the current position and can replace the region between the playhead and the mark.
 </Note>
 
 ## Usage
@@ -119,7 +121,7 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
       | { mode: 'afterItem'; afterId: string; untilId?: string };
     ```
 
-    The promise never rejects — failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered, such as one in a backgrounded tab, can stay pending until that feed is mounted again. Do not await it on a path that must complete.
+    The promise never rejects — failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered, such as one in a backgrounded tab, can stay pending until that feed is registered again. Do not await it on a path that must complete.
   </Tab>
 </Tabs>
 
@@ -134,7 +136,7 @@ The SDK exposes a read-back of the queue as it currently stands: the ordered ite
 | Field | Description |
 | --- | --- |
 | `itemIds` | Ordered ids of the items in the queue, including any ad slots |
-| `currentIndex` | Index of the item on screen. `-1` when the feed is unregistered or dismissed |
+| `currentIndex` | Index of the item on screen |
 | `currentItemId` | Id of the item on screen, or null before any content exists |
 | `deepestSeenItemId` | Furthest item the viewer has reached, or null |
 
@@ -190,9 +192,9 @@ A rejection never changes the queue. An applied replacement can still insert few
 
 `insertedCount` can be lower than the number of items you supplied. An item is dropped when:
 
-- it has been tombstoned by an earlier removal
+- the viewer dismissed it earlier in this feed session, which blocks both its `id` and its playback id — re-sending the same video under a new `id` is still dropped
 - its `id` duplicates a kept item, or an earlier item in the same batch — the first occurrence wins
-- its playback id duplicates that of a kept item
+- its playback id duplicates that of a kept item, or of an earlier item in the same batch
 
 Dropped items are identified by `id` where set, by playback id otherwise, and by the carousel id for a carousel. An item that the React Native bridge could not parse at all appears as `__sk_unparsable_<index>`, keyed to its position in the batch you sent.
 
@@ -210,7 +212,7 @@ Dropped items are identified by `id` where set, by playback id otherwise, and by
 | `superseded` | The queue was reset between the call and the apply |
 | `invalid_items` | React Native only — the items or options payload was malformed at the bridge |
 
-`superseded` warrants explicit handling. It indicates that the queue was replaced between the call and the apply, either by a pull-to-refresh or by your own `setFeedItems`. The replacement was discarded rather than applied to a queue that no longer existed. Re-read the queue state to determine whether the replacement remains appropriate.
+`superseded` warrants explicit handling. It indicates that the queue was replaced between the call and the apply, by a pull-to-refresh, a preload reseed, or your own `setFeedItems`. The replacement was discarded rather than applied to a queue that no longer existed. Re-read the queue state to determine whether the replacement remains appropriate.
 
 Retry behaviour differs by reason. A `feed_not_ready` from an exhausted settle wait, and a `boundary_behind_current` from an `afterItem` boundary, are both worth retrying. A `boundary_behind_current` from `afterCount` means `keepUpcoming` was negative, which is a static bug — do not retry it.
 
