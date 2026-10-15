@@ -115,7 +115,7 @@ The consequence shows up when the viewer scrolls back. `unseen` still preserves 
       | { mode: 'afterItem'; afterId: string; untilId?: string };
     ```
 
-    The promise never rejects. Failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered, such as one in a backgrounded tab, can stay pending until that feed is registered again. Do not await it on a path that must complete.
+    The promise never rejects. Failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered can stay pending until that feed is registered again. Whether a given navigation produces that state depends on the host: it requires the feed's view to leave the window while the surface is still active. Do not await the promise on a path that must complete.
   </Tab>
 </Tabs>
 
