@@ -62,7 +62,6 @@
             "group": "Display",
             "pages": [
               "sdk/feed",
-              "sdk/feed-replacement",
               "sdk/player-and-widget",
               "sdk/configuration"
             ]
@@ -73,6 +72,7 @@
               "sdk/player",
               "sdk/overlays",
               "sdk/carousel",
+              "sdk/feed-replacement",
               "guides/language-detection"
             ]
           },
