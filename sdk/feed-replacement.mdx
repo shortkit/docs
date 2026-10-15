@@ -6,32 +6,32 @@ keywords: ["replaceFeedItems", "getFeedQueueState", "custom feed", "replace", "b
 
 `replaceFeedItems` replaces a trailing range of a custom feed queue. Items up to and including the boundary are preserved; everything after it is replaced.
 
-Use it to revise upcoming content while the feed is in use — to apply updated recommendations, to reflect a user action, or to correct a ranking decision after playback has begun.
+Use it to revise upcoming content while the feed is in use. Typical cases are applying updated recommendations, reflecting a user action, and correcting a ranking decision after playback has begun.
 
-To replace the whole queue, use [`setFeedItems`](/sdk/configuration). To add to the end, use [`appendFeedItems`](/sdk/configuration). `replaceFeedItems` is the case in between: changing what plays next while the viewer keeps watching.
+To replace the whole queue, use [`setFeedItems`](/sdk/configuration). To add to the end, use [`appendFeedItems`](/sdk/configuration).
 
-This operation requires a custom feed. Set `feedSource` to custom first — see [Configuration](/sdk/configuration) and [Custom feed input](/guides/content-types#custom-feed-input-feedinput-video).
+This operation requires a custom feed. Set `feedSource` to custom first. See [Configuration](/sdk/configuration) and [Custom feed input](/guides/content-types#custom-feed-input-feedinput-video).
 
 ## Boundary resolution
 
-Every call takes a boundary: the last item to keep.
+A boundary identifies the last item to keep. Every call requires one.
 
 | Boundary | Keeps | Anchored to |
 | --- | --- | --- |
-| `unseen` (default) | Everything the viewer has reached | The deepest item seen — `deepestSeenItemId` |
-| `afterCount` | The current item plus the next `keepUpcoming` entries | The current item — `currentIndex` |
+| `unseen` (default) | Everything the viewer has reached | The deepest item seen, `deepestSeenItemId` |
+| `afterCount` | The current item plus the next `keepUpcoming` entries | The current item, `currentIndex` |
 | `afterItem` | Everything through the item id you supply | An item id you choose before the call |
 
 **All three are resolved when the replacement is applied**, against the queue and the viewer's position as they stand at that moment. The difference is what each one is anchored to.
 
-`unseen` and `afterCount` are *relative*: they are recomputed from the viewer's live position, so they follow the viewer. `afterItem` is *absolute*: you name an item before the call, and the SDK locates it later.
+`unseen` and `afterCount` are relative. They are recomputed from the viewer's live position, so they follow the viewer. `afterItem` is absolute. You name an item before the call and the SDK locates it later.
 
 <Warning>
 **Prefer a relative boundary when the viewer can move during the call.**
 
-With `afterItem` you commit to a boundary before your network request and the SDK resolves it after. If the viewer scrolls past that item in the meantime, the boundary lands behind the item on screen and the call is rejected with `boundary_behind_current` — correctly, since honouring it would replace the video being watched. The rejection rate scales with round-trip time: frequent over mobile connections, rare over a local network, which makes it straightforward to miss during development.
+With `afterItem` you commit to a boundary before your network request and the SDK resolves it after. If the viewer scrolls past that item in the meantime, the boundary lands behind the item on screen and the call is rejected with `boundary_behind_current`. Honouring it would replace the video being watched. The rejection rate scales with round-trip time: frequent over mobile connections, rare over a local network, which makes it straightforward to miss during development.
 
-Use `afterCount` or `unseen` for interaction-triggered replacement. Use `afterItem` when the queue position cannot move during the request — a server-driven replacement, a paused feed, a backgrounded surface.
+Use `afterCount` or `unseen` for interaction-triggered replacement. Use `afterItem` when the queue position cannot move during the request. A server-driven replacement, a paused feed and a backgrounded surface all qualify.
 </Warning>
 
 `keepUpcoming` counts entries in the queue, which is what `itemIds` lists.
@@ -41,7 +41,7 @@ Use `afterCount` or `unseen` for interaction-triggered replacement. Use `afterIt
 <Note>
 No boundary can replace the item on screen or anything before it: a replacement always keeps the queue up to at least the viewer's current position.
 
-`unseen` keeps more than that. It anchors to the deepest item the viewer has reached — `deepestSeenItemId` in the queue state — and that marker only ever moves forward. Programmatic activation advances it too, so `startAt` and `scrollToItem` move it.
+`unseen` keeps more than that. It anchors to the deepest item the viewer has reached, reported as `deepestSeenItemId` in the queue state. That marker only ever moves forward. Programmatic activation advances it too, so `startAt` and `scrollToItem` move it.
 
 The consequence shows up when the viewer scrolls back. `unseen` still preserves everything up to the deepest item they reached. `afterCount` and `afterItem` ignore that marker and are bounded only by the current item, so they can replace the stretch between the two.
 </Note>
@@ -115,7 +115,7 @@ The consequence shows up when the viewer scrolls back. `unseen` still preserves 
       | { mode: 'afterItem'; afterId: string; untilId?: string };
     ```
 
-    The promise never rejects — failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered, such as one in a backgrounded tab, can stay pending until that feed is registered again. Do not await it on a path that must complete.
+    The promise never rejects. Failures arrive as a `rejected` status. It resolves once the feed applies or refuses the call, so a call made against a feed that is not currently registered, such as one in a backgrounded tab, can stay pending until that feed is registered again. Do not await it on a path that must complete.
   </Tab>
 </Tabs>
 
@@ -125,7 +125,7 @@ Give each item a stable `id`. Items are matched by id alone, so reusing an id fo
 
 ## Queue state
 
-Read the queue as it currently stands: the ordered item ids, the current item, and the deepest item the viewer has reached. Use it to compute a boundary, or to reconcile the outcome of a call.
+Read the queue as it currently stands. The snapshot carries the ordered item ids, the current item, and the deepest item the viewer has reached. Use it to compute a boundary, or to reconcile the outcome of a call.
 
 | Field | Description |
 | --- | --- |
@@ -186,7 +186,7 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">status</span><span class="sk-f-v">"applied"</span></div>
-<p>Whether the splice happened. Only ever `applied` or `rejected` — there is no partial outcome.</p>
+<p>Whether the splice happened. The value is always `applied` or `rejected`. There is no partial outcome.</p>
 <p class="sk-f-tp">A rejection leaves the queue <strong>unchanged</strong>. There is nothing to undo.</p>
 </div>
 
@@ -205,7 +205,7 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">keptCount</span><span class="sk-f-v">6</span></div>
-<p>Entries that survived ahead of the cut — items 0 through 5, boundary included.</p>
+<p>Entries that survived ahead of the cut, meaning items 0 through 5 with the boundary included.</p>
 <div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="r o">6</span><span class="r o">7</span><span class="r o">8</span></div>
 <p class="sk-f-tp">With `untilId` this counts the <strong>head only</strong>. Items preserved beyond the far end of the range are excluded, so `keptCount + removedCount` will not equal the original length.</p>
 </div>
@@ -221,19 +221,19 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 <div class="sk-f-hd"><span class="sk-f-nm">insertedCount</span><span class="sk-f-v">2</span></div>
 <p>How many of your items actually went in. You sent three; one was refused.</p>
 <div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k o">4</span><span class="b o">5</span><span class="i">n1</span><span class="i">n2</span></div>
-<p class="sk-f-tp">When this is lower than what you sent, the difference is in `droppedIds`. Check it — a silent shortfall is how a feed quietly thins.</p>
+<p class="sk-f-tp">When this is lower than what you sent, the difference is in `droppedIds`. Check it, because a silent shortfall is how a feed quietly thins.</p>
 </div>
 
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">removedIds</span><span class="sk-f-v">["item-6","item-7","item-8"]</span></div>
-<p>The ids of the entries that left the queue. `removedCount`, named.</p>
+<p>The ids of the entries that left the queue. The named form of `removedCount`.</p>
 <div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k o">4</span><span class="b o">5</span><span class="r">6</span><span class="r">7</span><span class="r">8</span></div>
-<p class="sk-f-tp"><strong>Use this to prune host-side state</strong> keyed by item id — cached metadata, like counts, analytics rows. Not `droppedIds`, which answers a different question.</p>
+<p class="sk-f-tp"><strong>Use this to prune host-side state</strong> keyed by item id, such as cached metadata, like counts and analytics rows. Do not use `droppedIds`, which answers a different question.</p>
 </div>
 
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">droppedIds</span><span class="sk-f-v">["n3"]</span></div>
-<p>Items <em>you sent</em> that never entered the queue. Nothing here was ever in the feed.</p>
+<p>Items you sent that never entered the queue. Nothing listed here was ever in the feed.</p>
 <div class="sk-strip"><span class="i o">n1</span><span class="i o">n2</span><span class="d">n3</span></div>
 <p class="sk-f-tp">An item is dropped when its `id` duplicates a kept item or an earlier item in the same batch, when its playback id duplicates a kept item's, or when the viewer dismissed that video earlier in the session. Dismissal blocks the playback id too, so re-sending under a fresh `id` is still refused.</p>
 </div>
@@ -242,12 +242,12 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 <div class="sk-f-hd"><span class="sk-f-nm">queueLength</span><span class="sk-f-v">8</span></div>
 <p>How long the queue is now: six kept plus two inserted.</p>
 <div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div>
-<p class="sk-f-tp">On a rejection this is `0`, meaning <strong>unknown, not empty</strong> — the call was refused before the feed was consulted.</p>
+<p class="sk-f-tp">On a rejection this is `0`, meaning <strong>unknown rather than empty</strong>, because the call was refused before the feed was consulted.</p>
 </div>
 
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">remainingCount</span><span class="sk-f-v">4</span></div>
-<p>Entries ahead of the viewer once the splice has landed — the runway left before the feed needs more content.</p>
+<p>Entries ahead of the viewer once the splice has landed. This is the runway left before the feed needs more content.</p>
 <div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div>
 <p class="sk-f-tp">Use it to decide whether to paginate. Same `0`-means-unknown caveat as `queueLength`.</p>
 </div>
@@ -255,7 +255,7 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 </div>
 </div>
 
-Dedup runs against the survivors — the kept head plus any tail preserved by `untilId` — and not against the range being replaced. An item you remove in the same call can therefore come straight back, which is what makes reordering a stretch of content possible.
+Dedup runs against the survivors, which are the kept head plus any tail preserved by `untilId`, and not against the range being replaced. An item you remove in the same call can therefore come straight back, which is what makes reordering a stretch of content possible.
 
 ## Rejection reasons
 
@@ -267,11 +267,11 @@ Dedup runs against the survivors — the kept head plus any tail preserved by `u
 | `until_not_after_boundary` | `untilId` resolved at or before `afterId` |
 | `boundary_behind_current` | The boundary fell behind the item on screen, or `keepUpcoming` was negative |
 | `superseded` | The queue was reset between the call and the apply |
-| `invalid_items` | React Native only — the items or options payload was malformed at the bridge |
+| `invalid_items` | React Native only. The items or options payload was malformed at the bridge |
 
 `superseded` warrants explicit handling. It indicates that the queue was replaced between the call and the apply, by a pull-to-refresh, a preload reseed, or your own `setFeedItems`. The replacement was discarded rather than applied to a queue that no longer existed. Re-read the queue state to determine whether the replacement remains appropriate.
 
-Retry behaviour differs by reason. A `feed_not_ready` from an exhausted settle wait, and a `boundary_behind_current` from an `afterItem` boundary, are both worth retrying. A `boundary_behind_current` from `afterCount` means `keepUpcoming` was negative, which is a static bug — do not retry it.
+Retry behaviour differs by reason. A `feed_not_ready` from an exhausted settle wait, and a `boundary_behind_current` from an `afterItem` boundary, are both worth retrying. A `boundary_behind_current` from `afterCount` means `keepUpcoming` was negative, which is a static bug. Do not retry it.
 
 <Warning>
 **Results differ if the surface is torn down during apply.**
