@@ -644,6 +644,8 @@ html.dark .sk-dg {
 .sk-key .r i { background: var(--sk-dg-rem-bg); border-color: var(--sk-dg-rem) }
 .sk-key .c i { background: var(--sk-dg-cur-bg); border-color: var(--sk-dg-cur) }
 .sk-key .b i { background: var(--sk-dg-bnd-bg); border-color: var(--sk-dg-bnd) }
+.sk-key .i i { background: var(--sk-soft-2); border-color: var(--sk-dg-keep) }
+.sk-key .d i { border-color: var(--sk-dg-rem); border-style: dashed }
 
 /* one card per response field */
 .sk-fields {
