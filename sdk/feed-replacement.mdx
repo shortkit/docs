@@ -49,7 +49,7 @@ If you need a guaranteed number of your own posts ahead of the viewer, count you
 <Note>
 No boundary can replace the item on screen or anything before it: a replacement always keeps the queue up to at least the viewer's current position.
 
-`unseen` keeps more than that. It anchors to the deepest position the viewer has ever reached, and that marker also moves on programmatic activation, so `startAt` and `scrollToItem` advance it. If the viewer then scrolls back, `unseen` still preserves everything up to that high-water mark, while `afterCount` and `afterItem` anchor to the current position and can replace the region between the playhead and the mark.
+`unseen` keeps more than that. It anchors to the deepest position the viewer has ever reached, and that marker also moves on programmatic activation, so `startAt` and `scrollToItem` advance it. If the viewer then scrolls back, `unseen` still preserves everything up to that high-water mark, while `afterCount` and `afterItem` ignore that marker — they are bounded only by the current position, so they can replace the region between the playhead and the mark.
 </Note>
 
 ## Usage
