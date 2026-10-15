@@ -130,7 +130,7 @@ Read the queue as it currently stands. The snapshot carries the ordered item ids
 | Field | Description |
 | --- | --- |
 | `itemIds` | Ordered ids of the items in the queue |
-| `currentIndex` | Index of the item on screen |
+| `currentIndex` | Index of the item on screen. A registered feed with no content yet reports `0`, so test `currentItemId` against null to detect an empty queue |
 | `currentItemId` | Id of the item on screen, or null before any content exists |
 | `deepestSeenItemId` | Furthest item the viewer has reached, or null |
 
@@ -193,7 +193,7 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">reason</span><span class="sk-f-v na">absent</span></div>
 <p>Why it was refused. Present only when `status` is `rejected`.</p>
-<p class="sk-f-tp">Branch on this rather than on the counts: a rejection zeroes every count, so <strong>`keptCount: 0` does not mean the queue is empty</strong>.</p>
+<p class="sk-f-tp">Branch on this rather than on the counts. A rejection sets <code>keptCount</code>, <code>removedCount</code> and <code>insertedCount</code> to <code>0</code> because nothing was spliced, so <strong><code>keptCount: 0</code> does not mean the queue is empty</strong>.</p>
 </div>
 
 <div class="sk-f">
@@ -242,14 +242,14 @@ A nine-item queue. The viewer is on item 3, the boundary resolved to item 5, and
 <div class="sk-f-hd"><span class="sk-f-nm">queueLength</span><span class="sk-f-v">8</span></div>
 <p>How long the queue is now: six kept plus two inserted.</p>
 <div class="sk-strip"><span class="k">0</span><span class="k">1</span><span class="k">2</span><span class="c">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div>
-<p class="sk-f-tp">On a rejection this is `0`, meaning <strong>unknown rather than empty</strong>, because the call was refused before the feed was consulted.</p>
+<p class="sk-f-tp">A rejection that consulted the feed still reports the real length. Every boundary rejection does, so <code>boundary_not_found</code> on a nine-item queue returns <code>9</code>, not <code>0</code>. Only a rejection raised <strong>before the feed was consulted</strong> returns <code>0</code>, and there it means unknown rather than empty. Those are <code>invalid_items</code>, an unregistered or destroyed feed, and a surface torn down mid-apply.</p>
 </div>
 
 <div class="sk-f">
 <div class="sk-f-hd"><span class="sk-f-nm">remainingCount</span><span class="sk-f-v">4</span></div>
 <p>Entries ahead of the viewer once the splice has landed. This is the runway left before the feed needs more content.</p>
 <div class="sk-strip"><span class="k o">0</span><span class="k o">1</span><span class="k o">2</span><span class="c o">3</span><span class="k">4</span><span class="b">5</span><span class="i">n1</span><span class="i">n2</span></div>
-<p class="sk-f-tp">Use it to decide whether to paginate. Same `0`-means-unknown caveat as `queueLength`.</p>
+<p class="sk-f-tp">Use it to decide whether to paginate. It carries the real count on a boundary rejection and follows the same <code>0</code>-means-unknown rule as <code>queueLength</code> for rejections raised before the feed was consulted.</p>
 </div>
 
 </div>
