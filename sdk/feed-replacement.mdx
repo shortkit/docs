@@ -259,15 +259,20 @@ Dedup runs against the survivors, which are the kept head plus any tail preserve
 
 ## Rejection reasons
 
-| Reason | Meaning |
-| --- | --- |
-| `feed_not_ready` | The feed is not registered, is empty, is not a custom feed, its view was torn down, or the wait for the feed to settle was exhausted |
-| `boundary_not_found` | `afterId` was not present in the queue at apply time |
-| `until_not_found` | `untilId` was supplied but was not present in the queue |
-| `until_not_after_boundary` | `untilId` resolved at or before `afterId` |
-| `boundary_behind_current` | The boundary fell behind the item on screen, or `keepUpcoming` was negative |
-| `superseded` | The queue was reset between the call and the apply |
-| `invalid_items` | React Native only. The items or options payload was malformed at the bridge |
+<div class="sk-rej">
+<table>
+<thead><tr><th>Reason</th><th>Mode</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td class="rsn"><code>feed_not_ready</code></td><td class="md any">any mode</td><td>The feed is not registered, is empty, is not a custom feed, its view was torn down, or the wait for the feed to settle was exhausted</td></tr>
+<tr><td class="rsn"><code>boundary_behind_current</code></td><td class="md both"><code>afterItem</code> or <code>afterCount</code></td><td>From <code>afterItem</code>, the viewer moved past it. From <code>afterCount</code>, <code>keepUpcoming</code> was negative</td></tr>
+<tr><td class="rsn"><code>boundary_not_found</code></td><td class="md one"><code>afterItem</code></td><td><code>afterId</code> was not present in the queue when the boundary resolved</td></tr>
+<tr><td class="rsn"><code>until_not_found</code></td><td class="md one"><code>afterItem</code></td><td><code>untilId</code> was supplied but was not present in the queue</td></tr>
+<tr><td class="rsn"><code>until_not_after_boundary</code></td><td class="md one"><code>afterItem</code></td><td><code>untilId</code> resolved at or before <code>afterId</code></td></tr>
+<tr><td class="rsn"><code>superseded</code></td><td class="md any">any mode</td><td>The queue was reset between the call and the apply</td></tr>
+<tr><td class="rsn"><code>invalid_items</code></td><td class="md any">any mode</td><td>React Native only. The items or options payload was malformed at the bridge</td></tr>
+</tbody>
+</table>
+</div>
 
 `superseded` warrants explicit handling. It indicates that the queue was replaced between the call and the apply, by a pull-to-refresh, a preload reseed, or your own `setFeedItems`. The replacement was discarded rather than applied to a queue that no longer existed. Re-read the queue state to determine whether the replacement remains appropriate.
 
