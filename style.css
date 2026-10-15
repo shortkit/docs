@@ -704,6 +704,14 @@ html.dark .sk-dg {
    column width for every other row. */
 .sk-rej td.md.both { white-space: normal }
 
+/* ...but each mode name stays atomic: the cell may break between them,
+   never inside one. */
+.sk-rej td.md code {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
 .sk-rej td.md.one code,
 .sk-rej td.md.both code { color: #6d28d9; font-weight: 600 }
 html.dark .sk-rej td.md.one code,
