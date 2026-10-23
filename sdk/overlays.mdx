@@ -179,9 +179,6 @@ Pass a factory closure to `.custom`. The closure returns a view conforming to `F
         overlays: {
           'news': (context, item, state) => NewsOverlay(item: item, state: state),
         },
-        loadingWidget: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
       );
     }
     ```
