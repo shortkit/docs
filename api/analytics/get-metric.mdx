@@ -16,6 +16,10 @@ description: "Returns a single aggregate value for a metric over a timeframe."
   Aggregation function: `sum` or `avg`. Only applies to aggregate metrics (`watch_time`, `playing_time`, `video_startup_time`). Count metrics ignore this parameter.
 </ParamField>
 
+<ParamField query="filters[]" type="string">
+  Narrow the views to one dimension value, as `dimension:value` (for example `sdk_version:0.2.93` or `os_name:iOS`). Repeat to combine dimensions. See [Dimensions](/api/analytics/metrics#dimensions) for the full list.
+</ParamField>
+
 <ParamField query="timeframe[]" type="string" default="7:days">
   Time range. Relative (`7:days`, `24:hours`) or absolute (two Unix timestamps).
 </ParamField>
