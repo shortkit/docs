@@ -9,7 +9,7 @@ All metrics endpoints require a **secret key**.
 
 ## Timeframes
 
-Both endpoints accept a `timeframe[]` query parameter to control the time range.
+All metrics endpoints accept a `timeframe[]` query parameter to control the time range.
 
 | Format | Example | Meaning |
 |--------|---------|---------|
@@ -38,3 +38,64 @@ These support a `measurement` parameter: `sum` or `avg`.
 | `watch_time` | `sum` | Wall-clock watch duration (ms) |
 | `playing_time` | `sum` | Actual playback time excluding buffering (ms) |
 | `video_startup_time` | `avg` | Time from impression to first frame (ms) |
+
+## Filters
+
+Every metrics endpoint accepts `filters[]` entries of the form `dimension:value`. Repeat the parameter to combine dimensions; each dimension takes one value and the conditions are ANDed.
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days&filters[]=sdk_version:0.2.93&filters[]=os_name:iOS" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+The same dimensions group a metric on `GET /v1/metrics/{metric}/breakdown` via the `dimension` query parameter, and `GET /v1/dimensions/{dimension}/values` lists the values a dimension has taken over a timeframe with their view counts.
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/video_startup_time/breakdown?dimension=sdk_version&timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+```json
+{
+  "data": [
+    { "dimension_value": "0.2.93", "metric_value": 418, "total_views": 21560 },
+    { "dimension_value": "0.2.92", "metric_value": 455, "total_views": 9870 },
+    { "dimension_value": "0.2.91", "metric_value": 472, "total_views": 3105 }
+  ],
+  "timeframe": [1778457600, 1781049600],
+  "meta": {
+    "request_id": "req_m003"
+  }
+}
+```
+
+## Dimensions
+
+| Dimension | Group | Meaning | Example value |
+|-----------|-------|---------|---------------|
+| `content_id` | Content | The content item that was viewed. | `d290f1ee-6c54-4b01-90e6-d701748f0851` |
+| `video_title` | Content | Title of the content item. | `Summer Drop Teaser` |
+| `device_category` | Device | Device form factor. | `phone` |
+| `device_manufacturer` | Device | Device maker. | `Apple` |
+| `device_model` | Device | Hardware model identifier. | `iPhone16,2` |
+| `device_name` | Device | Device identifier reported by the platform: the hardware model on iOS, the device codename on Android. | `iPhone16,2` |
+| `os_name` | OS | Operating system of the device: `iOS`, `iPadOS`, or `Android`. Use it to split metrics by platform. | `iOS` |
+| `os_version` | OS | Operating system version. | `18.5` |
+| `connection_type` | Network | Network the view played over, for example `wifi` or `cellular`. | `wifi` |
+| `country` | Location | Two-letter country code, resolved from the viewer's IP address. | `US` |
+| `continent_code` | Location | Two-letter continent code. | `NA` |
+| `region` | Location | Reserved. Views carry no value yet. | — |
+| `city` | Location | Reserved. Views carry no value yet. | — |
+| `viewer_id` | Viewer | The anonymous device ID, or your user ID once linked. See [Identity](/sdk/identity). | `user_48291` |
+| `client_app_name` | App | `clientAppName` passed at SDK init. | `bloom-ios` |
+| `client_app_version` | App | `clientAppVersion` passed at SDK init. From SDK 0.2.91 on iOS and Android (and the packages that bundle them), views carry the app's own version when you pass none. | `3.12.0` |
+| `sdk_version` | App | The ShortKit SDK release that recorded the view. Set for every view from the iOS and Android SDKs; for React Native and Flutter apps it is the native SDK the package bundles. Web SDK views have no value. | `0.2.93` |
+| `custom_1` … `custom_5` | Custom | Your [custom dimensions](/sdk/analytics#custom-dimensions), set at SDK init. | `premium_user` |
+| `captions_enabled` | Flags | Whether captions were on during the view. Filter with `true` or `false`. | `true` |
+| `completed` | Flags | Whether the video played to the end. Filter with `true` or `false`. | `true` |
+| `exit_before_start` | Flags | Whether the viewer left before the first frame rendered. Filter with `true` or `false`. | `false` |
+| `error_code` | Errors | Code of the first playback error in the view. Views without an error have no value. | `playback_failed` |
+
+<Note>
+  `sdk_version` is also returned as a field on each row of `GET /v1/views`, `GET /v1/views/{view_id}`, and the JSON `GET /v1/exports/views` (`null` when the view has none, for example Web SDK views). The CSV export columns are unchanged.
+</Note>
