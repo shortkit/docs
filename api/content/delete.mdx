@@ -14,6 +14,10 @@ Deleting a content item archives it — the content is immediately removed from 
 
 This operation is not reversible through the API.
 
+<Note>
+  Deletion revokes access but retains the content record. For data-subject erasure requests (GDPR "right to be forgotten"), see [Permanent erasure](/api/content/object#permanent-erasure).
+</Note>
+
 <RequestExample>
 ```bash cURL
 curl -X DELETE "https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851" \

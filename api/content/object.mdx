@@ -289,4 +289,14 @@ Content appears in the feed when **all** of these are true:
 
 ## Deletion
 
-Deleting a content item via `DELETE /v1/content/{id}` archives it. Archived content is immediately removed from the feed and excluded from list results by default. The underlying media assets are cleaned up asynchronously.
+Deleting a content item via `DELETE /v1/content/{id}` archives it. Archived content is immediately removed from the feed and excluded from list results by default. The underlying media assets are cleaned up asynchronously. The content record is retained.
+
+### Permanent erasure
+
+Deletion revokes access but is not a permanent erasure. To satisfy a data-subject erasure request (GDPR "right to be forgotten"), ShortKit supports a separate, permanent erasure that destroys a content item's media and scrubs its personal data, retaining only a non-identifying skeleton record for billing and audit continuity. Other content is never affected.
+
+Permanent erasure is an operator-run action, not an API operation. To request it, contact your ShortKit account team with the affected content IDs and a reference for the request.
+
+<Note>
+  Permanent erasure is irreversible and cannot be triggered through the API. Use `DELETE /v1/content/{id}` for routine removal from the feed.
+</Note>
