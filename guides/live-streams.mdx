@@ -157,6 +157,88 @@ For a known set of streams (for example, those currently visible to a viewer in 
 
 ---
 
+## Customizing the live overlay
+
+The SDK ships with a default live overlay — a pulsing `LIVE` badge and an elapsed-time counter — that is applied to any live item in the feed on top of your regular video overlay. When a stream ends while a viewer is watching it, the SDK swaps in an `ENDED` chrome and mounts a non-interactive "stream ended" view below the live overlay.
+
+Customize either layer through `FeedConfig`:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    let config = FeedConfig(
+        videoOverlay: .custom { MyVideoOverlay() },
+        liveOverlay: .custom { MyLiveOverlay() },
+        liveEndedOverlay: .custom { MyLiveEndedOverlay() }
+    )
+    ```
+
+    Conform to `LiveOverlay` and `LiveEndedOverlay` to build your own:
+
+    ```swift
+    public protocol LiveOverlay: AnyObject {
+        func attach(player: ShortKitPlayer)
+        func configure(with item: ContentItem)
+        func activate()
+        func deactivate()
+        func liveStreamStatusDidChange(_ status: LiveStreamStatus)
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val config = FeedConfig(
+        videoOverlay = VideoOverlayMode.Custom { MyVideoOverlay(context) },
+        liveOverlay = LiveOverlayMode.Custom { DemoLiveOverlay(context) },
+        liveEndedOverlay = LiveEndedOverlayMode.Custom { MyLiveEndedOverlay(context) }
+    )
+    ```
+
+    Implement the `LiveOverlay` and `LiveEndedOverlay` interfaces on any `View`:
+
+    ```kotlin
+    interface LiveOverlay {
+        fun attach(player: ShortKitPlayer)
+        fun configure(item: ContentItem)
+        fun activate()
+        fun deactivate()
+        fun liveStreamStatusDidChange(status: LiveStreamStatus)
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The lifecycle callbacks parallel [`FeedOverlay`](/sdk/overlays#the-feedoverlay-protocol): `attach` binds the player, `configure` runs when the cell is bound to a new item, and `activate` / `deactivate` fire as the cell becomes the active playback cell. `liveStreamStatusDidChange` fires each time the underlying stream transitions between `idle`, `active`, and `ended` so you can re-skin your UI (e.g. hide the elapsed timer once the stream ends). Live overlays are not clickable by default — taps pass through to the feed cell underneath.
+
+You can also read the current status directly from the player:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    shortKit.player.liveStreamStatus
+        .receive(on: DispatchQueue.main)
+        .sink { status in
+            // status is LiveStreamStatus? — nil for non-live items
+        }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    lifecycleScope.launch {
+        shortKit.player.liveStreamStatus.collect { status ->
+            // status is LiveStreamStatus? — null for non-live items
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Custom live overlays are supported on iOS and Android. On Flutter, React Native, and Web, live items use the built-in live overlay.
+</Note>
+
+---
+
 ## Surfacing a specific live stream in a custom feed
 
 If you're using [custom feed mode](/sdk/configuration#feedconfig) and want to surface a known stream at a specific position, pass its `playbackId` as a video input — the SDK plays it like any other:
