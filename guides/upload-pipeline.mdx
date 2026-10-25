@@ -6,6 +6,10 @@ keywords: ["upload", "video", "carousel", "content", "processing", "captions", "
 
 ShortKit supports two content types -- videos and carousels -- each with a distinct upload path. Videos go through an asynchronous processing pipeline (transcoding, caption generation, search indexing). Carousels are ready immediately.
 
+<Note>
+If the raw file lives on the end user's device — camera roll, in-app recording, share extension — use the client [Upload SDK](/sdk/upload) instead. It wraps the flow below with chunked, resumable transfers that survive kills, crashes, and network loss. This page covers the REST path for server-to-server uploads.
+</Note>
+
 ## Video upload workflow
 
 A video upload follows a simple flow: create the upload session, PUT the file to the signed URL, and poll until processing completes.

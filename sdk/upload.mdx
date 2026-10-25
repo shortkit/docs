@@ -1,0 +1,184 @@
+---
+title: "Upload"
+description: "Upload videos from the client with a single call. Chunked, resumable, and safe across kills, crashes, and network loss."
+keywords: ["upload", "uploader", "resumable", "chunked", "background upload", "UploadState"]
+---
+
+The Upload SDK is a client-side uploader on iOS, Android, React Native, and Flutter. One call hands off a local video file and the SDK handles chunking, retries, resume after network loss or app kill, and polling until the content reaches `ready`.
+
+Behind the scenes the SDK talks to `POST /v1/content/upload` to mint a session and then streams the file to the returned upload URL. You don't have to wire any of that yourself.
+
+<Note>
+The uploader is **dormant by default**. It spawns no threads, opens no files, and reads no persisted state until your app first touches `uploader`. `ShortKit` initialization stays cheap.
+</Note>
+
+## When to use it
+
+Use the client uploader when your app is the one holding the raw video file — camera-roll uploads, in-app recording, share-extension flows.
+
+Use the [REST upload path](/guides/upload-pipeline) when the file lives on your server and you upload from your backend.
+
+## Kick off an upload
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    import ShortKitSDK
+
+    let handle = try await ShortKit.shared.uploader.upload(
+      file: fileURL,
+      metadata: .init(
+        title: "My clip",
+        description: "Recorded from the app",
+        tags: ["demo"]
+      )
+    )
+
+    for await state in handle.states {
+      switch state {
+      case .queued, .preparing: break
+      case .uploading(let fraction): print("upload \(Int(fraction * 100))%")
+      case .waitingForNetwork: print("parked — offline")
+      case .processing: print("server processing")
+      case .completed(let contentId): print("ready: \(contentId)")
+      case .failed(let error, let retriable): print("failed retriable=\(retriable) \(error)")
+      case .cancelled: break
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    val handle = ShortKit.instance.uploader.upload(
+      file = file,
+      metadata = UploadMetadata(
+        title = "My clip",
+        description = "Recorded from the app",
+        tags = listOf("demo"),
+      ),
+    )
+
+    handle.state.collect { state ->
+      when (state) {
+        is UploadState.Uploading -> println("upload ${(state.fraction * 100).toInt()}%")
+        is UploadState.WaitingForNetwork -> println("parked — offline")
+        is UploadState.Processing -> println("server processing")
+        is UploadState.Completed -> println("ready: ${state.contentId}")
+        is UploadState.Failed -> println("failed retriable=${state.retriable} ${state.error}")
+        else -> Unit
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    final handle = await controller.uploader.upload(
+      file: File(path),
+      metadata: const UploadMetadata(
+        title: 'My clip',
+        description: 'Recorded from the app',
+        tags: ['demo'],
+      ),
+    );
+
+    handle.states.listen((state) {
+      switch (state) {
+        case UploadStateUploading(:final fraction):
+          print('upload ${(fraction * 100).toInt()}%');
+        case UploadStateWaitingForNetwork():
+          print('parked — offline');
+        case UploadStateProcessing():
+          print('server processing');
+        case UploadStateCompleted(:final contentId):
+          print('ready: $contentId');
+        case UploadStateFailed(:final retriable, :final error):
+          print('failed retriable=$retriable $error');
+        default:
+          break;
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    import { useShortKitUploader } from '@shortkitsdk/react-native';
+
+    function UploadButton({ fileUri }: { fileUri: string }) {
+      const { start, uploads } = useShortKitUploader();
+
+      return (
+        <Button
+          title="Upload"
+          onPress={() =>
+            start({
+              file: fileUri,
+              metadata: {
+                title: 'My clip',
+                description: 'Recorded from the app',
+                tags: ['demo'],
+              },
+            })
+          }
+        />
+      );
+    }
+    ```
+
+    Each entry in `uploads` carries its current `state`, `fraction` (0–1), and — once done — `contentId`. Progress and state updates are throttled to 250 ms so they're safe to render directly.
+  </Tab>
+</Tabs>
+
+## Upload states
+
+Every handle emits a stream of typed states. The set is identical across platforms:
+
+| State | Meaning |
+|---|---|
+| `queued` | Waiting for a free slot in the FIFO queue |
+| `preparing` | Fingerprinting the file and creating the server-side session |
+| `uploading(fraction)` | Actively transferring chunks; `fraction` is 0–1 |
+| `waitingForNetwork` | Parked because the device is offline. No retries are burned while parked; the upload resumes automatically when a suitable connection returns |
+| `processing` | All bytes uploaded; the server is transcoding |
+| `completed(contentId)` | The content is `ready`. Use `contentId` to display it in a feed |
+| `failed(error, retriable)` | Transfer failed. `retriable = true` means the app can call `resume()` on the handle to try again |
+| `cancelled` | The host cancelled the upload via `cancel()` |
+
+## Reliability guarantees
+
+- **Chunked and resumable.** Files are cut into 8 MiB chunks. The uploader honors partial commits from the server and probes the committed byte offset before retrying, so it never re-sends bytes the server already has.
+- **Survives kill and crash.** A durable on-disk journal records the committed offset per upload. When your app relaunches, in-flight uploads rehydrate and resume from the last committed byte. Corrupt journal entries are quarantined instead of retried.
+- **Offline aware.** A drop to no-network parks the upload in `waitingForNetwork` — it does not consume the retry budget. Cellular, WiFi, ethernet, and VPN interfaces all count as network.
+- **URL renewal.** Signed upload URLs are valid for 7 days. If a URL does expire mid-transfer, the SDK re-mints it once, adopts the transfer if the server reports it as already completed, and refunds the credit on transient transport errors.
+- **Background-priority networking.** Upload requests run at a lower priority than feed playback, so uploading a large file in the background will not stall video the user is currently watching.
+- **FIFO queue.** Two uploads run concurrently. Additional `upload()` calls queue and start as slots free up.
+
+## Handle controls
+
+The object returned from `upload(...)` exposes:
+
+| Method | Effect |
+|---|---|
+| `pause()` | Pause an in-flight or queued upload. Committed offset is preserved |
+| `resume()` | Resume a paused or failed-retriable upload |
+| `cancel()` | Abort the upload permanently. Any staged bytes are discarded |
+
+<Note>
+On iOS and Android, calling `pause()` or `cancel()` in the narrow window while the SDK is re-minting an expired URL surfaces as `failed(retriable: true)` rather than `paused` or `cancelled`. Call `resume()` or `cancel()` again to reach the intended terminal state — the refunded credit means no retry budget is lost.
+</Note>
+
+## Recovering uploads across relaunches
+
+Listing rehydrated uploads on relaunch (Swift shown; the same API exists on the other platforms):
+
+```swift
+let pending = ShortKit.shared.uploader.pendingUploads()
+for handle in pending {
+  // Attach a listener and (optionally) call resume() to continue from the committed offset.
+}
+```
+
+This surfaces every upload that had not reached a terminal state when the app last exited. Uploads that finished while the app was gone are already `completed`; the server-side content is available via the normal content endpoints.
+
+## Platform minimums
+
+The uploader is available on the standard platform minimums documented on [Installation](/sdk/installation) — iOS 16.0+, Android API 24+, Flutter 3.38+, React Native 0.76+. No additional dependencies.
