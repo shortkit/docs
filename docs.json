@@ -106,6 +106,8 @@
                 "pages": [
                   "api/content/object",
                   "api/content/upload",
+                  "api/content/upload-url",
+                  "api/content/status",
                   "api/content/import",
                   "api/content/list",
                   "api/content/get",

@@ -8,9 +8,9 @@ This is the primary way to get content into ShortKit. Send metadata and get back
 
 This endpoint accepts both **publishable keys** and **secret keys**, making it safe to call directly from mobile apps and browsers.
 
-<Info>
-  **Building client-side uploads?** A guide for integrating direct uploads into your app is coming soon.
-</Info>
+<Note>
+  **Publishable-key uploads are opt-in.** Publishable keys ship inside client app binaries and are extractable, so organizations must explicitly enable the SDK upload feature (`sdk_uploads_enabled`) before publishable-key calls to `POST /v1/content/upload`, `POST /v1/content/{id}/upload-url`, and `GET /v1/content/{id}/status` are accepted. Contact ShortKit support to enable it. Uploads created with a publishable key never auto-publish to the live feed — they land in `unpublished` and require explicit publish (or the org-level `sdk_uploads_auto_publish` setting) as a moderation gate. Secret-key and portal uploads are unaffected.
+</Note>
 
 <Note>
   **Automatic captions and language detection.** ShortKit generates captions for every video automatically — no configuration needed. Once processing completes, the detected language is stored as `customMetadata.language` ([BCP 47](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry) code, e.g. `"en"`, `"es"`). You can use this field to [filter the feed by language](/sdk/configuration#feedfilter).
@@ -51,9 +51,21 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
 </ParamField>
 
 <ParamField body="origin" type="string" default="other">
-  `"ios_upload"` or `"other"`. Set to `"ios_upload"` for videos recorded on iOS devices to enable color-accurate thumbnail extraction. iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.
+  `"ios_upload"`, `"sdk_ios"`, `"sdk_android"`, or `"other"`. Set to `"ios_upload"` for server-uploaded iOS-recorded videos, or `"sdk_ios"`/`"sdk_android"` when the upload was created from the ShortKit mobile SDK. All three enable color-accurate thumbnail extraction — iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.
 
   Only applies to `contentType: "video"`. No effect for image or video carousels. If you also render this content in a custom feed via the SDK, pair with the `origin` field on [`FeedInput.video`](/guides/content-types#custom-feed-input).
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  A stable identifier from your system. Sending the same `externalId` twice for the same organization is **idempotent** — the second call replays the existing content row (with its still-valid `uploadUrl` if one is outstanding) instead of creating a duplicate. Use this to make client retries safe.
+</ParamField>
+
+<ParamField body="fileSizeBytes" type="integer">
+  Expected size of the file you are about to upload, in bytes. Validated against your organization's max (default 4 GiB). Recommended for client SDK uploads so oversized files fail at create time rather than mid-transfer.
+</ParamField>
+
+<ParamField body="uploadedByUserId" type="string">
+  End-user attribution for client SDK uploads. Sent via the `X-User-Id` header on the request. Stored on the content row for moderation and audit.
 </ParamField>
 
 <ParamField body="publishAt" type="string">
@@ -105,7 +117,8 @@ Send a `POST` with `contentType: "video"` and your metadata. The response includ
       "data": {
         "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
         "contentType": "video",
-        "uploadUrl": "https://uploads.shortkit.dev/direct/abc123...?token=eyJhbG...",
+        "uploadUrl": "https://uploads.shortkit.dev/direct/abc123...?token=***
+        "uploadUrlExpiresAt": "2026-07-15T12:00:00Z",
         "uploadStatus": "pending",
         "title": "Morning Headlines",
         "section": "News",
@@ -129,6 +142,12 @@ Send a `POST` with `contentType: "video"` and your metadata. The response includ
     Once the upload completes, ShortKit automatically begins processing. The content's `uploadStatus` transitions from `pending` → `processing` → `ready`.
   </Tab>
 </Tabs>
+
+### Upload URL lifetime
+
+Signed upload URLs stop accepting bytes **7 days** after they are issued. `uploadUrlExpiresAt` on the create response tells you exactly when. If a client goes offline, is killed, or the user picks the upload back up days later, use [`POST /v1/content/{id}/upload-url`](/api/content/upload-url) to re-mint a fresh URL onto the same content row — you don't need to create a new upload. If the previous session actually completed on the storage side but your client never got the final acknowledgement, the re-mint call adopts the completed asset and returns the existing content instead of orphaning a duplicate.
+
+To poll processing from a client without a secret key, use [`GET /v1/content/{id}/status`](/api/content/status).
 
 ---
 
