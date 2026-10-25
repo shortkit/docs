@@ -47,7 +47,7 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
 </ParamField>
 
 <ParamField body="protected" type="boolean">
-  When `true`, playback is gated behind a short-lived signed streaming URL and the item's `streamingUrl` is withheld until one is issued. When omitted, defaults to your organization's default. See [Protected Content](/guides/protected-content).
+  When `true`, playback is gated behind a short-lived signed streaming URL: the SDK feed withholds `streamingUrl` and the SDK issues its own signed URL, while the content API returns a signed URL valid for up to 24 hours. When omitted, defaults to your organization's default. See [Protected Content](/guides/protected-content).
 </ParamField>
 
 <ParamField body="origin" type="string" default="other">

@@ -110,7 +110,7 @@ Each method accepts metadata (title, description, tags, etc.) alongside the medi
 </ResponseField>
 
 <ResponseField name="protected" type="boolean">
-  When `true`, playback is gated behind a short-lived signed streaming URL and `streamingUrl` is withheld (returned as an empty string `""`). Issue a signed URL via the [playback-token endpoint](/api/content/playback-token), or let the SDK handle it automatically. See [Protected Content](/guides/protected-content).
+  When `true`, playback is gated behind a short-lived signed streaming URL. On this endpoint `streamingUrl` is a signed HLS URL valid for up to 24 hours (an empty string `""` only if signed playback is not configured); in the SDK feed it is withheld and the SDK issues its own signed URL. See [Protected Content](/guides/protected-content).
 </ResponseField>
 
 <ResponseField name="thumbnailUrl" type="string | null">
