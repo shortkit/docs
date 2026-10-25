@@ -1,6 +1,6 @@
 ---
 title: "Embedding a Feed"
-keywords: ["feed", "video feed", "ShortKitFeedViewController", "ShortKitFeedView", "FeedItem", "delegate", "pagination"]
+keywords: ["feed", "video feed", "ShortKitFeedViewController", "ShortKitFeedView", "FeedItem", "delegate", "pagination", "setScrollEnabled", "setFeedScrollEnabled", "scroll lock", "scroll-lock", "custom overlay gestures", "scrubber"]
 ---
 
 To embed a video feed, create a `ShortKit` instance and hand it to one of two feed components depending on your UI framework. The feed supports several item types: video, live stream, image carousel, video carousel, survey, and ad slot. For full model definitions, field descriptions, and usage examples across all platforms, see the [Content Types](/guides/content-types) guide.
@@ -291,4 +291,52 @@ var body: some View {
     }
 }
 ```
+
+## Controlling feed scrolling
+
+Lock the feed's user-initiated paging while a custom overlay owns the gesture space, then re-enable it when the interaction ends. A common case is a scrubber: freeze vertical paging while the user drags the playhead so the swipe scrubs instead of advancing the feed, then restore paging on release.
+
+Only user scrolling is affected — programmatic navigation still works. Call these methods on the main thread.
+
+<Tabs>
+  <Tab title="iOS">
+    Call `setScrollEnabled(_:)` on your `ShortKitFeedViewController` instance. No-ops before the view has loaded.
+
+    ```swift
+    // Freeze paging when the drag starts
+    scrubber.onScrubStart = { [weak feedVC] in
+        feedVC?.setScrollEnabled(false)
+    }
+
+    // Restore paging when the drag ends
+    scrubber.onScrubEnd = { [weak feedVC] in
+        feedVC?.setScrollEnabled(true)
+    }
+    ```
+  </Tab>
+  <Tab title="Android">
+    Call `setFeedScrollEnabled(_:)` on your `ShortKitFeedFragment` instance.
+
+    ```kotlin
+    scrubber.onScrubStart = { feedFragment.setFeedScrollEnabled(false) }
+    scrubber.onScrubEnd = { feedFragment.setFeedScrollEnabled(true) }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Call `ShortKitCommands.setFeedScrollEnabled(_)`. This works from inside overlay components, which run in isolated surfaces without provider context.
+
+    ```tsx
+    import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+    <Scrubber
+      onScrubStart={() => ShortKitCommands.setFeedScrollEnabled(false)}
+      onScrubEnd={() => ShortKitCommands.setFeedScrollEnabled(true)}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Chrome positioned below the scrubber stays visible and interactive while paging is locked — scroll-lock affects feed paging only, not overlay hit-testing.
+</Note>
 
