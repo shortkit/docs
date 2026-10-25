@@ -50,6 +50,10 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
 
 ## Single player
 
+<Note>
+  The single player handles [protected content](/guides/protected-content) automatically on iOS and Android. It resolves the signed streaming URL before playback, re-applies a re-minted token before the current one expires without losing playback position, and loads the signed thumbnail for the inactive-card poster — so a protected card shows its real first frame instead of a blank placeholder. No extra integration.
+</Note>
+
 ### PlayerConfig
 
 | Property | Type | Default | Description |
@@ -286,6 +290,17 @@ On React Native, use the `active` prop instead of method calls. It defaults to t
   config={{ clickAction: 'mute' }}
   style={{ width: 200, height: 350 }}
 />
+```
+
+The SwiftUI `ShortKitPlayerView` takes the same `active` parameter, defaulting to `true`. Pass it to drive activation declaratively instead of calling `activate()` and `deactivate()` — matching the React Native and Flutter wrappers.
+
+```swift
+ShortKitPlayerView(
+    shortKit: shortKit,
+    config: PlayerConfig(clickAction: .mute),
+    active: isVisible
+)
+.frame(width: 200, height: 350)
 ```
 
 ---
@@ -796,4 +811,9 @@ Both `PlayerConfig.clickAction` and `WidgetConfig.clickAction` accept the same v
 | --- | --- |
 | `.feed` / `PlayerClickAction.FEED` / `'feed'` | Opens the full-screen feed starting at the tapped item. This is the default. |
 | `.mute` / `PlayerClickAction.MUTE` / `'mute'` | Toggles audio mute. |
+| `.fullscreen` / `PlayerClickAction.FULLSCREEN` / `'fullscreen'` | Expands the single player into a full-screen stage in place, without presenting the feed. The user dismisses it with the back gesture or by dragging down. Single player only — the widget ignores this value. |
 | `.none` / `PlayerClickAction.NONE` / `'none'` | No action. Useful when you handle taps yourself. |
+
+<Note>
+  `.fullscreen` is available on iOS and Android. The expanded stage slides up over the current screen and collapses back to the player's original frame on dismissal. Playback continues across the transition — the same video keeps playing as it expands and collapses.
+</Note>
