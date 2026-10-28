@@ -32,6 +32,10 @@ Each error object contains:
   Human-readable description of what went wrong.
 </ResponseField>
 
+<ResponseField name="details" type="array">
+  Present on some errors with more than one cause. For example, `invalid_images` lists each failed image's `position`, `code`, and `message`.
+</ResponseField>
+
 ## HTTP status codes
 
 | Status | Error code | Description |
@@ -40,9 +44,14 @@ Each error object contains:
 | **401** | `invalid_api_key` | Authentication failed — missing, malformed, or revoked API key. |
 | **403** | `forbidden` | The API key doesn't have permission for this endpoint. Typically a publishable key used on a secret-key endpoint. |
 | **404** | `not_found` | The requested resource doesn't exist, or doesn't belong to your organization. |
+| **408** | `request_timeout` | The request body wasn't received in time. Retry the request. |
 | **409** | `conflict` | The request conflicts with existing state — for example, a duplicate survey response. |
+| **413** | `payload_too_large` | The request body exceeds the endpoint's size limit — for example, [Create Image Carousel](/api/content/images) and [Bulk Update](/api/content/bulk-update). |
+| **415** | `unsupported_media_type` | The request's `Content-Type` isn't one the endpoint accepts. |
+| **422** | `invalid_images` | One or more images in the request can't be used. `details` lists each failed image. See [Create Image Carousel](/api/content/images#errors). |
 | **429** | `rate_limited` | Too many requests. Back off and retry. |
 | **500** | `internal_error` | Something went wrong on our end. If this persists, contact support with the `request_id`. |
+| **503** | `service_unavailable` | A dependency is briefly unavailable. Retry the request. |
 
 ## Error handling
 

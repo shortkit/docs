@@ -239,7 +239,7 @@ The `uploadStatus` field tracks media processing — from the moment you initiat
 
 **Videos** move through the full lifecycle: `pending` → `processing` → `ready`.
 
-**Image carousels** skip processing entirely — images are served directly, so carousels are `ready` immediately after creation.
+**Image carousels** have no transcoding step. A carousel created with [Create Image Carousel](/api/content/images), or with `POST /v1/content`, is `ready` at creation. One created through [Upload](/api/content/upload#uploading-a-carousel) is `queued` until you finalize it, and one created through [Import](/api/content/import) is `queued` until its images are downloaded.
 
 **Video carousels** are also `ready` immediately — they reference existing video content items that are already processed.
 

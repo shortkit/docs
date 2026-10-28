@@ -65,8 +65,8 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
 </ParamField>
 
 <ParamField body="images" type="object[]">
-  **Carousel only.** Defines the image slots for the carousel. Each object can include:
-  - `position` (integer) — Display order (0-indexed). Defaults to array index.
+  **Carousel only.** Defines the image slots for the carousel. Min 1, max 10. Each object can include:
+  - `position` (integer) — Display order (0-indexed). Defaults to array index. Positions must be unique.
   - `altText` (string) — Accessibility text for the image.
 
   The number of objects in this array determines how many signed upload URLs you receive.
@@ -134,19 +134,24 @@ Send a `POST` with `contentType: "video"` and your metadata. The response includ
 
 ## Uploading a carousel
 
-For carousels, specify the image slots you need in the `images` array. The response returns a signed upload URL for each slot.
+A carousel upload takes three steps: create the upload, send each image to its signed URL, then finalize. The carousel stays `queued` until you finalize it.
 
-<Tabs>
-  <Tab title="1. Create upload">
+<Tip>
+  To create a carousel in a single request, use [Create Image Carousel](/api/content/images) instead. Use this flow when the carousel's files total more than 30 MB.
+</Tip>
+
+<Steps>
+  <Step title="Create the upload">
+    Specify the image slots in the `images` array. The response returns a signed upload URL for each slot.
+
     ```bash
     curl -X POST https://api.shortkit.dev/v1/content/upload \
-      -H "X-API-Key: pk_live_your_publishable_key" \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
       -H "Content-Type: application/json" \
       -d '{
         "contentType": "carousel",
         "title": "Top 5 Weekend Destinations",
         "section": "Travel",
-        "autoScrollInterval": 5.0,
         "images": [
           {"position": 0, "altText": "Beach sunset"},
           {"position": 1, "altText": "Mountain vista"},
@@ -159,52 +164,80 @@ For carousels, specify the image slots you need in the `images` array. The respo
     {
       "data": {
         "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "externalId": null,
         "contentType": "carousel",
-        "uploadStatus": "pending",
+        "status": "queued",
         "title": "Top 5 Weekend Destinations",
         "imageSlots": [
           {
             "position": 0,
-            "uploadUrl": "https://storage.googleapis.com/shortkit-images/.../0?signature=...",
+            "uploadUrl": "https://uploads.shortkit.dev/direct/img_7c1d44a9b2?token=eyJhbGciOiJSUzI1NiJ9...",
             "maxSizeBytes": 10485760
           },
           {
             "position": 1,
-            "uploadUrl": "https://storage.googleapis.com/shortkit-images/.../1?signature=...",
+            "uploadUrl": "https://uploads.shortkit.dev/direct/img_9e3f55b1c4?token=eyJhbGciOiJSUzI1NiJ9...",
             "maxSizeBytes": 10485760
           },
           {
             "position": 2,
-            "uploadUrl": "https://storage.googleapis.com/shortkit-images/.../2?signature=...",
+            "uploadUrl": "https://uploads.shortkit.dev/direct/img_2a8b66c2d5?token=eyJhbGciOiJSUzI1NiJ9...",
             "maxSizeBytes": 10485760
           }
-        ]
+        ],
+        "createdAt": "2026-02-05T12:00:00Z"
       },
       "meta": {
         "request_id": "req_upload002"
       }
     }
     ```
-  </Tab>
-  <Tab title="2. Upload each image">
+  </Step>
+  <Step title="Upload each image">
+    `PUT` each image to its slot's signed URL. Images can be uploaded in parallel. Signed URLs are valid for 24 hours.
+
     ```bash
-    # Upload each image to its signed URL
-    curl -X PUT "https://storage.googleapis.com/shortkit-images/.../0?signature=..." \
+    curl -X PUT "https://uploads.shortkit.dev/direct/img_7c1d44a9b2?token=eyJhbGciOiJSUzI1NiJ9..." \
       -H "Content-Type: image/jpeg" \
       --data-binary @beach.jpg
+    ```
+  </Step>
+  <Step title="Finalize">
+    Call finalize once every image is uploaded. Finalize requires a **secret key**.
 
-    curl -X PUT "https://storage.googleapis.com/shortkit-images/.../1?signature=..." \
-      -H "Content-Type: image/jpeg" \
-      --data-binary @mountain.jpg
-
-    curl -X PUT "https://storage.googleapis.com/shortkit-images/.../2?signature=..." \
-      -H "Content-Type: image/jpeg" \
-      --data-binary @city.jpg
+    ```bash
+    curl -X POST https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890/finalize \
+      -H "Authorization: Bearer sk_live_your_secret_key"
     ```
 
-    Images can be uploaded in parallel. Max 10 MB per image. Once all images are uploaded, the carousel is automatically validated and marked as `ready`.
-  </Tab>
-</Tabs>
+    ```json
+    {
+      "data": {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "externalId": null,
+        "status": "ready",
+        "publishStatus": "published",
+        "images": [
+          {"position": 0, "status": "ready", "imageUrl": "https://image.media.shortkit.dev/carousels/0.jpg", "error": null},
+          {"position": 1, "status": "ready", "imageUrl": "https://image.media.shortkit.dev/carousels/1.jpg", "error": null},
+          {"position": 2, "status": "error", "imageUrl": null, "error": "File is not a supported image (JPEG, PNG, WebP or GIF)"}
+        ]
+      },
+      "meta": {
+        "request_id": "req_finalize001"
+      }
+    }
+    ```
+
+    Finalize checks each uploaded file. It must be a JPEG, PNG, WebP, or GIF of at most 10 MB and 40 megapixels; the format is read from the image itself, not from the `Content-Type` you sent with the upload. A file that fails, or a slot that was never uploaded, is reported with an `error`; a rejected file is deleted, and the slot is removed from the carousel so the feed only shows valid images.
+
+    The carousel becomes `ready` if at least one image is valid, otherwise `errored`, and is published automatically if your organization auto-publishes.
+  </Step>
+</Steps>
+
+<Note>
+  If finalize returns `503`, image storage was briefly unavailable and nothing changed — call finalize again. Finalizing a carousel that is no longer awaiting upload, including a second call after a successful one, returns `400`.
+</Note>
 
 ---
 
@@ -353,7 +386,7 @@ Sent if processing fails. The payload includes an `error` field with a human-rea
 
 ### Carousel uploads
 
-A single callback fires once all images have been validated. The `status` is `"ready"` if at least one image processed successfully, or `"errored"` if all images failed. Only successfully processed images are included in the `images` array.
+A single `content.imported` callback fires when you finalize the carousel. The `status` is `"ready"` if at least one image is valid, or `"errored"` if none are. Only valid images are included in the `images` array.
 
 ```json
 {
@@ -364,13 +397,15 @@ A single callback fires once all images have been validated. The `status` is `"r
   "status": "ready",
   "title": "Top 5 Weekend Destinations",
   "images": [
-    { "position": 0, "url": "https://..." },
-    { "position": 1, "url": "https://..." },
-    { "position": 2, "url": "https://..." }
+    { "position": 0, "url": "https://image.media.shortkit.dev/carousels/0.jpg", "alt": null },
+    { "position": 1, "url": "https://image.media.shortkit.dev/carousels/1.jpg", "alt": null }
   ],
+  "customMetadata": {},
   "timestamp": "2026-03-10T14:30:00.000Z"
 }
 ```
+
+A carousel created with [Create Image Carousel](/api/content/images) sends the same `content.imported` callback when it's created, with each image's alt text in `alt`.
 
 <Note>
   `externalId` reflects the value you provided on upload, or `null` if not set.

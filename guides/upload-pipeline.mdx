@@ -285,9 +285,33 @@ See [Callback events](/api/content/upload#callback-events) for full payload shap
 
 ## Carousel creation workflow
 
-Carousels skip the processing pipeline entirely. They are `ready` the moment you create them.
+Carousels have no transcoding step. You can create an image carousel in one request, or build it slide by slide.
 
-### Create the carousel
+### Create in one request
+
+[Create Image Carousel](/api/content/images) takes the metadata and the images — uploaded files, image URLs, or both — and returns the carousel `ready`, published if your organization auto-publishes. A single image is a one-image carousel.
+
+```bash
+curl -X POST https://api.shortkit.dev/v1/content/images \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -F 'metadata={
+    "title": "Spring collection",
+    "customMetadata": {"campaign": "spring-2026"},
+    "images": [
+      {"file": "front", "altText": "Model wearing spring jacket"},
+      {"sourceUrl": "https://cdn.example.com/spring/fabric.jpg", "altText": "Close-up of fabric texture"}
+    ]
+  };type=application/json' \
+  -F front=@photo1.jpg
+```
+
+If any image can't be used, the request returns `422` listing each failed image, and nothing is created. For carousels whose files total more than 30 MB, use [Upload](/api/content/upload#uploading-a-carousel) and finalize instead.
+
+### Build slide by slide
+
+Create an empty carousel, then add images one at a time. A carousel created this way is `ready` immediately, and publishes when you add its first image if your organization auto-publishes.
+
+#### Create the carousel
 
 <Tabs>
   <Tab title="cURL">
@@ -368,7 +392,7 @@ Carousels skip the processing pipeline entirely. They are `ready` the moment you
 
 The response comes back with `status: "ready"` immediately. No polling needed.
 
-### Upload images
+#### Add images
 
 Add images one at a time using multipart form data. Each carousel supports up to 10 images.
 
@@ -433,7 +457,7 @@ Add images one at a time using multipart form data. Each carousel supports up to
 | `position` | integer | No | `0` | 0-based position in the carousel |
 | `altText` | string | No | `null` | Accessibility description |
 
-### Reorder images
+#### Reorder images
 
 Pass all image IDs in the desired order. Each image's position is set to its index in the array.
 
