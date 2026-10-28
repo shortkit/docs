@@ -203,7 +203,7 @@ A carousel upload takes three steps: create the upload, send each image to its s
     ```
   </Step>
   <Step title="Finalize">
-    Call finalize once every image is uploaded. Finalize requires a **secret key**.
+    Call finalize once every image is uploaded. Finalize requires a **secret key**, so call it from your server — an app holding only a publishable key can create the upload and send the images, but can't finish it.
 
     ```bash
     curl -X POST https://api.shortkit.dev/v1/content/a1b2c3d4-e5f6-7890-abcd-ef1234567890/finalize \
@@ -231,12 +231,12 @@ A carousel upload takes three steps: create the upload, send each image to its s
 
     Finalize checks each uploaded file. It must be a JPEG, PNG, WebP, or GIF of at most 10 MB and 40 megapixels; the format is read from the image itself, not from the `Content-Type` you sent with the upload. A file that fails, or a slot that was never uploaded, is reported with an `error`; a rejected file is deleted, and the slot is removed from the carousel so the feed only shows valid images.
 
-    The carousel becomes `ready` if at least one image is valid, otherwise `errored`, and is published automatically if your organization auto-publishes.
+    The carousel becomes `ready` if at least one image is valid, otherwise `errored`, and is published automatically if your organization auto-publishes. A carousel created with a publishable key stays unpublished unless your organization has enabled auto-publish for SDK uploads.
   </Step>
 </Steps>
 
 <Note>
-  If finalize returns `503`, image storage was briefly unavailable and nothing changed — call finalize again. Finalizing a carousel that is no longer awaiting upload, including a second call after a successful one, returns `400`.
+  If finalize returns `503`, image storage was briefly unavailable and the carousel is unchanged — call finalize again. Finalizing a carousel that is no longer awaiting upload, including a second call after a successful one, returns `400`.
 </Note>
 
 ---

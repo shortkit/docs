@@ -228,7 +228,8 @@ The request is all-or-nothing. If any image can't be used, nothing is created an
 
 | Status | Error code | When |
 |--------|------------|------|
-| **400** | `invalid_request` | Invalid metadata JSON, a missing `metadata` part, a `file` that names no part or a part no image uses, 0 or more than 10 images, an image with both or neither of `file` and `sourceUrl`, or a non-string `customMetadata` value. |
+| **400** | `invalid_request` | Invalid metadata JSON, a missing `metadata` part, a form field other than `metadata` and the file parts, an unknown field (such as `contentType`), a `file` that names no part or a part no image uses, 0 or more than 10 images, an image with both or neither of `file` and `sourceUrl`, or a non-string `customMetadata` value. Field errors are listed in `details`. |
+| **401** | `invalid_api_key` | The `Authorization` header is missing or isn't a valid secret key. A publishable key is rejected. |
 | **408** | `request_timeout` | The request body wasn't received within 120 seconds. |
 | **409** | `conflict` | `externalId` already belongs to content that isn't an image carousel. |
 | **413** | `payload_too_large` | The request body is larger than 30 MB. |

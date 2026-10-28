@@ -28,7 +28,7 @@ Use this when you have media hosted elsewhere — migrating from another platfor
 
   **For image carousels:**
   - `images` (object[], required) — Array of 1 to 10 image objects, each with:
-    - `sourceUrl` (string, required) — Public `http` or `https` URL to a JPEG, PNG, WebP, or GIF of at most 10 MB. Private and internal addresses are refused.
+    - `sourceUrl` (string, required) — Public `http` or `https` URL to a JPEG, PNG, WebP, or GIF of at most 10 MB and 40 megapixels. Private and internal addresses are refused.
     - `altText` (string) — Accessibility text.
     - `position` (integer) — Display order (0-indexed).
   - `externalId` (string) — Same idempotency behavior as videos.
@@ -184,7 +184,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 ## Processing behavior
 
 - **Videos** are queued for async processing. They return with `status: "queued"` and transition to `processing` once transcoding begins, then `ready` once it completes. This typically takes 30–120 seconds depending on file size.
-- **Carousels** are also queued. They return with `status: "queued"`; ShortKit then downloads each image and checks that it's a JPEG, PNG, WebP, or GIF of at most 10 MB. The carousel becomes `ready` if at least one image worked — images that failed are left out — and `errored` if none did. A `ready` carousel is published automatically if your organization auto-publishes.
+- **Carousels** are also queued. They return with `status: "queued"`; ShortKit then downloads each image and checks that it's a JPEG, PNG, WebP, or GIF of at most 10 MB and 40 megapixels. The carousel becomes `ready` if at least one image worked — images that failed are left out — and `errored` if none did. A `ready` carousel is published automatically if your organization auto-publishes.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
 
@@ -332,7 +332,7 @@ A carousel item sends one callback when it finishes.
 }
 ```
 
-**`content.import_failed` with `status: "error"`** — no image could be used. `error` describes each failed image.
+**`content.import_failed` with `status: "error"`** — no image could be used, and `error` describes each failed image. It's also sent, with the error `"The import task did not complete; resubmit the import"`, if the carousel's import task couldn't be completed.
 
 ```json
 {
