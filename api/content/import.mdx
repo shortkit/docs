@@ -27,8 +27,8 @@ Use this when you have media hosted elsewhere — migrating from another platfor
   - `priority` (string) — `"high"` or `"normal"`. Defaults to `"normal"`. A `"high"` item is processed ahead of every `"normal"` import. See [Processing priority](#processing-priority).
 
   **For image carousels:**
-  - `images` (object[], required) — Array of image objects, each with:
-    - `sourceUrl` (string, required) — URL to the image file.
+  - `images` (object[], required) — Array of 1 to 10 image objects, each with:
+    - `sourceUrl` (string, required) — Public `http` or `https` URL to a JPEG, PNG, WebP, or GIF of at most 10 MB and 40 megapixels. Private and internal addresses are refused.
     - `altText` (string) — Accessibility text.
     - `position` (integer) — Display order (0-indexed).
   - `externalId` (string) — Same idempotency behavior as videos.
@@ -162,14 +162,11 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
     },
     {
       "id": "f4b2c3d4-e5f6-7890-bcde-f01234567890",
+      "externalId": null,
       "contentType": "carousel",
       "title": "Team Photos",
-      "status": "ready",
-      "error": null,
-      "images": [
-        {"position": 0, "imageUrl": "https://...", "altText": "Engineering team"},
-        {"position": 1, "imageUrl": "https://...", "altText": "Design team"}
-      ]
+      "status": "queued",
+      "error": null
     }
   ],
   "summary": {
@@ -187,7 +184,7 @@ console.log(`Imported ${summary.succeeded} of ${summary.total}`);
 ## Processing behavior
 
 - **Videos** are queued for async processing. They return with `status: "queued"` and transition to `processing` once transcoding begins, then `ready` once it completes. This typically takes 30–120 seconds depending on file size.
-- **Carousels** are processed synchronously. Images are fetched and stored immediately — carousels in the response are already `ready`.
+- **Carousels** are also queued. They return with `status: "queued"`; ShortKit then downloads each image and checks that it's a JPEG, PNG, WebP, or GIF of at most 10 MB and 40 megapixels. The carousel becomes `ready` if at least one image worked — images that failed are left out — and `errored` if none did. A `ready` carousel is published automatically if your organization auto-publishes.
 
 If an individual item fails (bad URL, timeout, invalid format), it's marked with an `error` message in the response. Other items in the batch are not affected.
 
@@ -311,9 +308,46 @@ curl https://api.shortkit.dev/v1/content/d290f1ee-6c54-4b01-90e6-d701748f0851 \
 
 The callback includes the `playbackId` once the video has been accepted for processing. The SDK uses this playback ID to resolve streaming and thumbnail URLs.
 
-<Note>
-  Callbacks are only sent for **video** imports. Carousels are processed synchronously and are already `ready` in the initial import response.
-</Note>
+### Carousel callbacks
+
+A carousel item sends one callback when it finishes.
+
+**`content.imported` with `status: "ready"`** — at least one image was stored. `images` lists the carousel's images; images that failed are left out.
+
+```json
+{
+  "event": "content.imported",
+  "contentId": "f4b2c3d4-e5f6-7890-bcde-f01234567890",
+  "externalId": null,
+  "contentType": "carousel",
+  "status": "ready",
+  "title": "Team Photos",
+  "images": [
+    { "position": 0, "url": "https://image.media.shortkit.dev/carousels/3a91c2d4e5f6.jpg", "alt": "Engineering team" },
+    { "position": 1, "url": "https://image.media.shortkit.dev/carousels/7b02d3e4f5a6.jpg", "alt": "Design team" }
+  ],
+  "customMetadata": {},
+  "source": "url",
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
+
+**`content.import_failed` with `status: "error"`** — no image could be used, and `error` describes each failed image. It's also sent, with the error `"The import task did not complete; resubmit the import"`, if the carousel's import task couldn't be completed.
+
+```json
+{
+  "event": "content.import_failed",
+  "contentId": "f4b2c3d4-e5f6-7890-bcde-f01234567890",
+  "externalId": null,
+  "contentType": "carousel",
+  "status": "error",
+  "error": "No image could be imported (image 0: URL returned HTTP 404; image 1: URL resolves to a non-public address)",
+  "title": "Team Photos",
+  "source": "url",
+  "customMetadata": {},
+  "timestamp": "2026-03-10T14:30:00.000Z"
+}
+```
 
 ## Idempotency
 
