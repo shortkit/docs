@@ -327,14 +327,14 @@ Different filter fields are combined with AND logic — content must match all s
         public var section: String?
         public var author: String?
         public var contentType: String?
-        public var metadata: [String: String]?
+        public var metadata: [String: [String]]?
 
         public init(
             tags: [String]? = nil,
             section: String? = nil,
             author: String? = nil,
             contentType: String? = nil,
-            metadata: [String: String]? = nil
+            metadata: [String: [String]]? = nil
         )
     }
     ```
@@ -346,7 +346,7 @@ Different filter fields are combined with AND logic — content must match all s
         val section: String? = null,
         val author: String? = null,
         val contentType: String? = null,
-        val metadata: Map<String, String>? = null
+        val metadata: Map<String, List<String>>? = null
     )
     ```
   </Tab>
@@ -357,7 +357,7 @@ Different filter fields are combined with AND logic — content must match all s
       String? section,
       String? author,
       String? contentType,
-      Map<String, String>? metadata,
+      Map<String, List<String>>? metadata,
     })
     ```
   </Tab>
@@ -368,9 +368,11 @@ Different filter fields are combined with AND logic — content must match all s
       section?: string;
       author?: string;
       contentType?: string;
-      metadata?: Record<string, string>;
+      metadata?: Record<string, string | string[]>;
     }
     ```
+
+    A plain string metadata value is shorthand for a one-element array.
   </Tab>
   <Tab title="Web">
     ```js
@@ -379,7 +381,7 @@ Different filter fields are combined with AND logic — content must match all s
       section: 'front-page',       // exact match
       author: 'Jane Doe',          // exact match
       contentType: 'video',        // 'video', 'carousel', or 'video_carousel'
-      metadata: { country: 'Japan' }, // all pairs must match (AND)
+      metadata: { country: 'Japan' }, // one value per key; every key must match (AND)
     };
     ```
   </Tab>
@@ -391,7 +393,7 @@ Different filter fields are combined with AND logic — content must match all s
 | `section` | `String?` | Exact match on content section. |
 | `author` | `String?` | Exact match on content author. |
 | `contentType` | `String?` | Filter by content type: `"video"`, `"carousel"`, or `"video_carousel"`. |
-| `metadata` | `[String: String]?` | Filter by custom metadata key-value pairs. All pairs must match (AND). |
+| `metadata` | `[String: [String]]?` | Filter by custom metadata. Each key takes a list of values; content matching any value for a key is included (OR), and every key must match (AND). |
 
 <Tabs>
   <Tab title="Swift">
@@ -408,12 +410,12 @@ Different filter fields are combined with AND logic — content must match all s
 
     // Filter by custom metadata
     let config = FeedConfig(
-        filter: FeedFilter(metadata: ["country": "Japan", "vibe": "cultural"])
+        filter: FeedFilter(metadata: ["country": ["Japan", "Korea"], "vibe": ["cultural"]])
     )
 
     // Filter by detected language
     let config = FeedConfig(
-        filter: FeedFilter(metadata: ["language": "es"])
+        filter: FeedFilter(metadata: ["language": ["es"]])
     )
     ```
   </Tab>
@@ -426,12 +428,12 @@ Different filter fields are combined with AND logic — content must match all s
 
     // Filter by custom metadata
     val config = FeedConfig(
-        filter = FeedFilter(metadata = mapOf("country" to "Japan"))
+        filter = FeedFilter(metadata = mapOf("country" to listOf("Japan", "Korea")))
     )
 
     // Filter by detected language
     val config = FeedConfig(
-        filter = FeedFilter(metadata = mapOf("language" to "es"))
+        filter = FeedFilter(metadata = mapOf("language" to listOf("es")))
     )
     ```
   </Tab>
@@ -449,12 +451,12 @@ Different filter fields are combined with AND logic — content must match all s
 
     // Filter by custom metadata
     final config = FeedConfig(
-      filter: FeedFilter(metadata: {'country': 'Japan', 'vibe': 'cultural'}),
+      filter: FeedFilter(metadata: {'country': ['Japan', 'Korea'], 'vibe': ['cultural']}),
     );
 
     // Filter by detected language
     final config = FeedConfig(
-      filter: FeedFilter(metadata: {'language': 'es'}),
+      filter: FeedFilter(metadata: {'language': ['es']}),
     );
     ```
   </Tab>
@@ -511,7 +513,7 @@ ShortKit automatically detects the spoken language in every video and stores it 
     ```swift
     // Spanish-language feed
     let config = FeedConfig(
-        filter: FeedFilter(metadata: ["language": "es"])
+        filter: FeedFilter(metadata: ["language": ["es"]])
     )
     ```
   </Tab>
@@ -519,7 +521,7 @@ ShortKit automatically detects the spoken language in every video and stores it 
     ```kotlin
     // Spanish-language feed
     val config = FeedConfig(
-        filter = FeedFilter(metadata = mapOf("language" to "es"))
+        filter = FeedFilter(metadata = mapOf("language" to listOf("es")))
     )
     ```
   </Tab>
@@ -527,7 +529,7 @@ ShortKit automatically detects the spoken language in every video and stores it 
     ```dart
     // Spanish-language feed
     final config = FeedConfig(
-      filter: FeedFilter(metadata: {'language': 'es'}),
+      filter: FeedFilter(metadata: {'language': ['es']}),
     );
     ```
   </Tab>
