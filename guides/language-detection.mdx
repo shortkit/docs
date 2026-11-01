@@ -68,21 +68,21 @@ Use `FeedFilter.metadata` to serve a feed that contains only content in a specif
   <Tab title="Swift">
     ```swift
     let config = FeedConfig(
-        filter: FeedFilter(metadata: ["language": "es"])
+        filter: FeedFilter(metadata: ["language": ["es"]])
     )
     ```
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
     val config = FeedConfig(
-        filter = FeedFilter(metadata = mapOf("language" to "es"))
+        filter = FeedFilter(metadata = mapOf("language" to listOf("es")))
     )
     ```
   </Tab>
   <Tab title="Flutter">
     ```dart
     final config = FeedConfig(
-      filter: FeedFilter(metadata: {'language': 'es'}),
+      filter: FeedFilter(metadata: {'language': ['es']}),
     );
     ```
   </Tab>
@@ -111,21 +111,21 @@ You can combine a language filter with other filters. For example, to show only 
   <Tab title="Swift">
     ```swift
     let config = FeedConfig(
-        filter: FeedFilter(tags: ["sports"], metadata: ["language": "es"])
+        filter: FeedFilter(tags: ["sports"], metadata: ["language": ["es"]])
     )
     ```
   </Tab>
   <Tab title="Kotlin">
     ```kotlin
     val config = FeedConfig(
-        filter = FeedFilter(tags = listOf("sports"), metadata = mapOf("language" to "es"))
+        filter = FeedFilter(tags = listOf("sports"), metadata = mapOf("language" to listOf("es")))
     )
     ```
   </Tab>
   <Tab title="Flutter">
     ```dart
     final config = FeedConfig(
-      filter: FeedFilter(tags: ['sports'], metadata: {'language': 'es'}),
+      filter: FeedFilter(tags: ['sports'], metadata: {'language': ['es']}),
     );
     ```
   </Tab>
