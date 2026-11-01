@@ -537,12 +537,12 @@ The exclusion fields (`excludeTags`, `excludeSections`, `excludeAuthors`, `exclu
 
 ### Excluding content
 
-Use the exclusion fields to keep specific content out of a feed — for example a viewer's own posts, authors they've blocked, or content rated above an age limit. ShortKit removes excluded content server-side before it builds each page, so pagination and pull-to-refresh never return it.
+Use the exclusion fields to keep specific content out of a feed, for example a viewer's own posts, authors they've blocked, or content rated above an age limit. ShortKit removes excluded content server-side before it builds each page, so pagination and pull-to-refresh never return it.
 
 - Content matching **any** exclusion is left out. Exclusions take priority over the other fields.
 - Each exclusion matches the same way as its counterpart: `excludeTags` against content tags, `excludeSections`, `excludeAuthors`, and `excludeContentTypes` by exact match, and `excludeMetadata` against custom metadata values.
 - Content that doesn't carry the field is never excluded. An item with no `authorId` metadata key stays in a feed that excludes `authorId: ["user_8f3a2c"]`.
-- A filter that sets only exclusion fields doesn't change how your feed is ordered; excluded items are skipped. Leave the other fields unset rather than empty — an empty list counts as set, and setting any of them returns filtered results instead.
+- A filter that sets only exclusion fields doesn't change how your feed is ordered; excluded items are skipped. Leave the other fields unset rather than empty. An empty list counts as set, and setting any of them returns filtered results instead.
 - Exclusions are sent with every feed request. Keep each list to a few hundred values.
 
 To exclude a viewer's own posts, store the poster's ID in custom metadata when you upload each item (for example `customMetadata: {"authorId": "user_8f3a2c"}`), then exclude that key for the signed-in viewer.
