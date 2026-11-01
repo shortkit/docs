@@ -319,6 +319,8 @@ Set `scrollAxis` to `.horizontal` for a left/right swipe feed instead of the def
 
 Different filter fields are combined with AND logic — content must match all specified fields. Tags use OR logic within the `tags` array — content matching any of the provided tags is included.
 
+The exclusion fields (`excludeTags`, `excludeSections`, `excludeAuthors`, `excludeContentTypes`, `excludeMetadata`) remove content instead: content matching **any** exclusion is left out, even if it matches every other field. See [Excluding content](#excluding-content).
+
 <Tabs>
   <Tab title="Swift">
     ```swift
@@ -328,13 +330,23 @@ Different filter fields are combined with AND logic — content must match all s
         public var author: String?
         public var contentType: String?
         public var metadata: [String: [String]]?
+        public var excludeTags: [String]?
+        public var excludeSections: [String]?
+        public var excludeAuthors: [String]?
+        public var excludeContentTypes: [String]?
+        public var excludeMetadata: [String: [String]]?
 
         public init(
             tags: [String]? = nil,
             section: String? = nil,
             author: String? = nil,
             contentType: String? = nil,
-            metadata: [String: [String]]? = nil
+            metadata: [String: [String]]? = nil,
+            excludeTags: [String]? = nil,
+            excludeSections: [String]? = nil,
+            excludeAuthors: [String]? = nil,
+            excludeContentTypes: [String]? = nil,
+            excludeMetadata: [String: [String]]? = nil
         )
     }
     ```
@@ -346,7 +358,12 @@ Different filter fields are combined with AND logic — content must match all s
         val section: String? = null,
         val author: String? = null,
         val contentType: String? = null,
-        val metadata: Map<String, List<String>>? = null
+        val metadata: Map<String, List<String>>? = null,
+        val excludeTags: List<String>? = null,
+        val excludeSections: List<String>? = null,
+        val excludeAuthors: List<String>? = null,
+        val excludeContentTypes: List<String>? = null,
+        val excludeMetadata: Map<String, List<String>>? = null
     )
     ```
   </Tab>
@@ -360,6 +377,8 @@ Different filter fields are combined with AND logic — content must match all s
       Map<String, List<String>>? metadata,
     })
     ```
+
+    Exclusion fields are not yet supported on Flutter.
   </Tab>
   <Tab title="React Native">
     ```typescript
@@ -369,10 +388,15 @@ Different filter fields are combined with AND logic — content must match all s
       author?: string;
       contentType?: string;
       metadata?: Record<string, string | string[]>;
+      excludeTags?: string[];
+      excludeSections?: string[];
+      excludeAuthors?: string[];
+      excludeContentTypes?: string[];
+      excludeMetadata?: Record<string, string | string[]>;
     }
     ```
 
-    A plain string metadata value is shorthand for a one-element array.
+    A plain string metadata value is shorthand for a one-element array, in both `metadata` and `excludeMetadata`.
   </Tab>
   <Tab title="Web">
     ```js
@@ -384,6 +408,8 @@ Different filter fields are combined with AND logic — content must match all s
       metadata: { country: 'Japan' }, // one value per key; every key must match (AND)
     };
     ```
+
+    Exclusion fields are not yet supported on Web.
   </Tab>
 </Tabs>
 
@@ -394,6 +420,11 @@ Different filter fields are combined with AND logic — content must match all s
 | `author` | `String?` | Exact match on content author. |
 | `contentType` | `String?` | Filter by content type: `"video"`, `"carousel"`, or `"video_carousel"`. |
 | `metadata` | `[String: [String]]?` | Filter by custom metadata. Each key takes a list of values; content matching any value for a key is included (OR), and every key must match (AND). |
+| `excludeTags` | `[String]?` | Leave out content carrying **any** listed tag. |
+| `excludeSections` | `[String]?` | Leave out content in any listed section. Exact match. |
+| `excludeAuthors` | `[String]?` | Leave out content by any listed author. Exact match. |
+| `excludeContentTypes` | `[String]?` | Leave out content of any listed type: `"video"`, `"carousel"`, or `"video_carousel"`. |
+| `excludeMetadata` | `[String: [String]]?` | Leave out content whose custom metadata matches any listed value for a key. Content that doesn't have the key is never left out. |
 
 <Tabs>
   <Tab title="Swift">
@@ -503,6 +534,94 @@ Different filter fields are combined with AND logic — content must match all s
     ```
   </Tab>
 </Tabs>
+
+### Excluding content
+
+Use the exclusion fields to keep specific content out of a feed — for example a viewer's own posts, authors they've blocked, or content rated above an age limit. ShortKit removes excluded content server-side before it builds each page, so pagination and pull-to-refresh never return it.
+
+- Content matching **any** exclusion is left out. Exclusions take priority over the other fields.
+- Each exclusion matches the same way as its counterpart: `excludeTags` against content tags, `excludeSections`, `excludeAuthors`, and `excludeContentTypes` by exact match, and `excludeMetadata` against custom metadata values.
+- Content that doesn't carry the field is never excluded. An item with no `authorId` metadata key stays in a feed that excludes `authorId: ["user_8f3a2c"]`.
+- A filter that sets only exclusion fields doesn't change how your feed is ordered; excluded items are skipped. Leave the other fields unset rather than empty — an empty list counts as set, and setting any of them returns filtered results instead.
+- Exclusions are sent with every feed request. Keep each list to a few hundred values.
+
+To exclude a viewer's own posts, store the poster's ID in custom metadata when you upload each item (for example `customMetadata: {"authorId": "user_8f3a2c"}`), then exclude that key for the signed-in viewer.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // Hide the viewer's own posts and two blocked authors
+    let config = FeedConfig(
+        filter: FeedFilter(
+            excludeAuthors: ["Daily Rumor Desk", "Clickwire"],
+            excludeMetadata: ["authorId": [currentUser.id]]
+        )
+    )
+
+    // Sports content, without anything rated mature
+    let config = FeedConfig(
+        filter: FeedFilter(
+            tags: ["sports"],
+            excludeMetadata: ["rating": ["R", "NC-17"]]
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Hide the viewer's own posts and two blocked authors
+    val config = FeedConfig(
+        filter = FeedFilter(
+            excludeAuthors = listOf("Daily Rumor Desk", "Clickwire"),
+            excludeMetadata = mapOf("authorId" to listOf(currentUser.id))
+        )
+    )
+
+    // Sports content, without anything rated mature
+    val config = FeedConfig(
+        filter = FeedFilter(
+            tags = listOf("sports"),
+            excludeMetadata = mapOf("rating" to listOf("R", "NC-17"))
+        )
+    )
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    Not yet supported on Flutter.
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Hide the viewer's own posts and two blocked authors
+    <ShortKitFeed
+      config={{
+        filter: {
+          excludeAuthors: ['Daily Rumor Desk', 'Clickwire'],
+          excludeMetadata: { authorId: currentUser.id },
+        },
+      }}
+      style={{ flex: 1 }}
+    />
+
+    // Sports content, without anything rated mature
+    <ShortKitFeed
+      config={{
+        filter: {
+          tags: ['sports'],
+          excludeMetadata: { rating: ['R', 'NC-17'] },
+        },
+      }}
+      style={{ flex: 1 }}
+    />
+    ```
+  </Tab>
+  <Tab title="Web">
+    Not yet supported on Web.
+  </Tab>
+</Tabs>
+
+<Note>
+Changing the filter on a feed that's already on screen reloads it from the top. Set exclusions you already know about, such as the signed-in viewer's own posts, on `FeedConfig` when you create the feed.
+</Note>
 
 ### Filtering by language
 
