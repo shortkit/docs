@@ -50,7 +50,7 @@ Emitted as a `playbackFallback` event once per fallback activation. Only fires w
 |--------|------|-------------|
 | `totalSessionTime` | `Double` | Total time the feed was on screen (seconds). |
 | `videosWatched` | `Int` | Number of videos the user viewed during the session. |
-| `entryPoint` | `String` | How the feed was opened: `feed` (your app showed it directly), `widget`, `tileGroup` or `player`. |
+| `entryPoint` | `String` | How the feed was opened: `feed` (your app showed it directly; on Web, `presented` for a feed your page opened full screen), `widget`, `tileGroup` or `player`. |
 | `originSurfaceId` | `String?` | The surface the feed was opened from, when `entryPoint` is not `feed`. |
 | `originSurfaceSessionId` | `String?` | That surface's session, so the feed visit can be joined to the rail that produced it. |
 | `originContentId` | `String?` | The item that was tapped to open the feed. |
@@ -66,15 +66,15 @@ Widgets, tile groups, single players and the web miniplayer report their own eng
 | `inlineImpression` | An item was at least half visible for 500 ms, once per surface session and item | `position` |
 | `inlinePreviewStart` | A preview showed its first frame | `startupMs`, `trigger` |
 | `inlinePreviewEnd` | A preview stopped | `playedMs`, `loops`, `reason` |
-| `inlineTap` | The viewer tapped an item | `action`, `routed`, `previewing`, `previewMs` |
+| `inlineTap` | The viewer tapped an item | `action` (`host` when your tap handler took it), `routed` (the SDK or your handler acted on the tap), `previewing`, `previewMs` |
 | `inlineExit` | The surface left the screen | `dwellMs`, `impressions`, `previews`, `taps`, `reason` |
 
 Each event names its `surface`, `surfaceId`, `surfaceSessionId`, `layout`, `playbackMode` and `source`. See [the event object](/api/analytics/event-object#inline-surfaces) for every field and value.
 
-Click-through for a rail is `inlineTap` where `action` is `feed`, divided by `inlineImpression`, grouped by content.
+Click-through for a rail is taps that opened a feed (`action` of `feed`, or `host` when your app opens the feed itself) divided by `inlineImpression`, grouped by content.
 
 <Note>
-  Reported by SDK releases after 0.2.99. Older SDKs do not send these events.
+  Reported by the iOS, Android and React Native SDKs from the release after 0.2.99 and by the Web SDK from 0.6.0. The Flutter SDK does not report them yet.
 </Note>
 
 ### Ads
