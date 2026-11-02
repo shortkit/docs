@@ -44,7 +44,7 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 </ResponseField>
 
 <ResponseField name="session_id" type="string | null">
-  Session identifier grouping events within a single app session.
+  Session identifier grouping events within a single app session. For inline surface events it is the surface session (see below).
 </ResponseField>
 
 <ResponseField name="view_session_id" type="string | null">
@@ -95,8 +95,40 @@ You don't need to create events manually. The SDK batches and sends them to `POS
 
 | Type | Description | Key `event_data` fields |
 |------|-------------|-------------------|
-| `feedEntry` | User entered the feed | — |
-| `feedExit` | User left the feed | `itemsViewed`, `durationMs` |
+| `feedEntry` | User entered the feed | `entryPoint` (`feed`; on Web also `presented` for a feed your page opened full screen; `widget`, `tileGroup` or `player` when opened from a surface, with `originSurfaceId`, `originSurfaceSessionId`, `originContentId` and `seedPath`) |
+| `feedExit` | User left the feed | `videosWatched`, `totalSessionTime`, plus the same origin fields as the matching `feedEntry` |
+
+### Inline surfaces
+
+Widgets, tile groups, single players and the web miniplayer report their own engagement, separate from the feed. These events have no `view_session_id`: a muted preview is not a video view and does not count toward views or watch time. Their `session_id` is the surface session, one on-screen episode of that surface.
+
+| Type | Description | Key `event_data` fields |
+|------|-------------|-------------------|
+| `inlineEntry` | The surface came on screen | `itemCount` |
+| `inlineImpression` | An item was at least half visible for 500 ms, once per surface session and item | `position` |
+| `inlinePreviewStart` | A muted preview showed its first frame | `position`, `startupMs`, `trigger` (`autoplay`, `rotation`, `pin`, `resume`) |
+| `inlinePreviewEnd` | The preview stopped | `position`, `playedMs`, `loops`, `reason` (`rotated`, `scrolledOut`, `deactivated`, `tapped`, `released`, `background`, `hidden`) |
+| `inlineTap` | The viewer tapped an item | `position`, `action` (`feed`, `fullscreen`, `mute`, `host` when your tap handler took it, `none`; `expand` or `dismiss` on the web miniplayer), `routed` (`true` when the SDK or your handler acted on the tap), `previewing`, `previewMs` |
+| `inlineExit` | The surface left the screen | `dwellMs`, `impressions`, `previews`, `taps`, `reason` (`hidden`, `background`, `released`) |
+
+Every inline event's `event_data` also carries:
+
+| Field | Description |
+|-------|-------------|
+| `surface` | `widget`, `tileGroup`, `player` or `miniplayer` |
+| `surfaceId` | Stable identifier of the surface instance |
+| `surfaceSessionId` | The surface session; equals the event's `session_id` |
+| `layout` | `carousel`, `grid`, `host`, `single` or `floating` |
+| `playbackMode` | `rotating` (one preview at a time), `simultaneous` (all visible previews), `gridAlternating` or `none` |
+| `source` | `algorithmic` (ShortKit chose the items) or `host` (your app supplied them) |
+
+`dwellMs` counts the whole time the surface was on screen, including time under a feed it opened. The web miniplayer reports entry, impressions, taps and exit only.
+
+Click-through for a surface is taps that opened a feed (`inlineTap` with `action` = `feed`, or `host` when your app opens the feed itself) divided by `inlineImpression`, grouped by `content_id`.
+
+<Note>
+  Inline surface events are sent by the iOS, Android and React Native SDKs from the release after 0.2.99 and by the Web SDK from 0.6.0. The Flutter SDK does not report them yet.
+</Note>
 
 ### View lifecycle
 
