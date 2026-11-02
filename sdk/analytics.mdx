@@ -50,6 +50,32 @@ Emitted as a `playbackFallback` event once per fallback activation. Only fires w
 |--------|------|-------------|
 | `totalSessionTime` | `Double` | Total time the feed was on screen (seconds). |
 | `videosWatched` | `Int` | Number of videos the user viewed during the session. |
+| `entryPoint` | `String` | How the feed was opened: `feed` (your app showed it directly), `widget`, `tileGroup` or `player`. |
+| `originSurfaceId` | `String?` | The surface the feed was opened from, when `entryPoint` is not `feed`. |
+| `originSurfaceSessionId` | `String?` | That surface's session, so the feed visit can be joined to the rail that produced it. |
+| `originContentId` | `String?` | The item that was tapped to open the feed. |
+| `seedPath` | `String?` | Which items seeded the feed: `cards`, `host_items` or `algorithmic`. |
+
+### Widgets, tile groups and players
+
+Widgets, tile groups, single players and the web miniplayer report their own engagement, separate from the feed. A muted preview is not a video view: these events carry no view session and do not add to views or watch time.
+
+| Event | When | Key fields |
+|-------|------|------------|
+| `inlineEntry` | The surface came on screen | `itemCount` |
+| `inlineImpression` | An item was at least half visible for 500 ms, once per surface session and item | `position` |
+| `inlinePreviewStart` | A preview showed its first frame | `startupMs`, `trigger` |
+| `inlinePreviewEnd` | A preview stopped | `playedMs`, `loops`, `reason` |
+| `inlineTap` | The viewer tapped an item | `action`, `routed`, `previewing`, `previewMs` |
+| `inlineExit` | The surface left the screen | `dwellMs`, `impressions`, `previews`, `taps`, `reason` |
+
+Each event names its `surface`, `surfaceId`, `surfaceSessionId`, `layout`, `playbackMode` and `source`. See [the event object](/api/analytics/event-object#inline-surfaces) for every field and value.
+
+Click-through for a rail is `inlineTap` where `action` is `feed`, divided by `inlineImpression`, grouped by content.
+
+<Note>
+  Reported by SDK releases after 0.2.99. Older SDKs do not send these events.
+</Note>
 
 ### Ads
 
