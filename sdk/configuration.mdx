@@ -121,6 +121,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         public var muteOnStart: Bool
         public var autoplay: Bool
         public var feedSource: FeedSource
+        public var pullToRefreshEnabled: Bool
         public var filter: FeedFilter?
 
         public init(
@@ -134,6 +135,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
             muteOnStart: Bool = true,
             autoplay: Bool = true,
             feedSource: FeedSource = .algorithmic,
+            pullToRefreshEnabled: Bool = true,
             filter: FeedFilter? = nil
         )
     }
@@ -152,6 +154,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         val muteOnStart: Boolean = true,
         val autoplay: Boolean = true,
         val feedSource: FeedSource = FeedSource.Algorithmic,
+        val pullToRefreshEnabled: Boolean = true,
         val filter: FeedFilter? = null
     )
     ```
@@ -167,6 +170,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       bool? autoplay,                   // default: true
       FeedSource? feedSource,           // FeedSource.algorithmic or FeedSource.custom
       FeedFilter? filter,
+      bool? pullToRefreshEnabled,       // default: true
     })
     ```
 
@@ -198,7 +202,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
     ```
 
     <Note>
-      React Native uses different property names than the native SDKs: `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. See [Overlays](/sdk/overlays) for details.
+      React Native uses different property names than the native SDKs: `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. See [Overlays](/sdk/overlays) for details. `pullToRefreshEnabled` is not yet supported on React Native.
     </Note>
   </Tab>
   <Tab title="Web">
@@ -210,6 +214,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         autoplay: true,
         feedSource: 'algorithmic', // or 'custom'
         filter: { section: 'news', tags: ['breaking'] },
+        pullToRefreshEnabled: true, // off by default on Web
         overlay: (container, { item, player, feed }) => {
           // render callback for custom overlay
         },
@@ -232,6 +237,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | `autoplay` | `Bool` | `true` | Whether video starts playing automatically when the feed loads or when the user swipes to a new item. |
 | `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided items (pass via `feedItems` on `ShortKit.init` or call `setFeedItems()` / `appendFeedItems()`). |
 | `filter` | `FeedFilter?` | `nil` | Server-side content filter. When set, the SDK fetches only content matching the filter criteria. See [FeedFilter](#feedfilter) below. |
+| `pullToRefreshEnabled` | `Bool` | `true` (`false` on Web) | Whether the user can pull down at the top of the feed to refresh it. Algorithmic feeds refetch from the first page; custom feeds wait for you to supply items with `setFeedItems()`. Web defaults to `false`; set `true` to enable the gesture. Feeds opened from a tile group, widget or player never allow pull-to-refresh. |
 
 <Tabs>
   <Tab title="Swift">
