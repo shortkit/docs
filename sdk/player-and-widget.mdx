@@ -1,12 +1,12 @@
 ---
 title: "Widgets & Entry Points"
-description: "Embed individual videos, horizontal video carousels, and vertical video grids anywhere in your app."
-keywords: ["player", "widget", "single player", "carousel", "grid", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
+description: "Embed individual videos, horizontal video carousels, vertical video grids, and your own tile layouts anywhere in your app."
+keywords: ["player", "widget", "single player", "carousel", "grid", "tile group", "tiles", "stories", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "ShortKitTileGroup", "ShortKitTileView", "TileGroupConfig", "TileFeed", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
 ---
 
-The player and widget components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews) and the **widget** for a horizontal carousel or vertical grid of video cards (home screens, dashboards, discovery surfaces).
+The player, widget and tile group components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews), the **widget** for a horizontal carousel or vertical grid of video cards (home screens, dashboards, discovery surfaces), and a **tile group** when you own the layout and want the SDK to own playback (story rings, bespoke grids, tiles mixed into your own collection views).
 
-Both components require content fetched via `fetchContent()`.
+The player and widget require content fetched via `fetchContent()`. A tile group can be host-seeded the same way, or [fetch its own content per tile](#per-tile-feeds).
 
 <Info>
   **Flutter:** Single player and widget components are coming soon for the Flutter SDK. For now, use the full-screen feed via [`ShortKitFeed`](/sdk/feed).
@@ -788,12 +788,148 @@ On all platforms, when the carousel reaches the last card it wraps back to the f
 
 ---
 
+## Tile groups
+
+A tile group is the widget without the layout. You place `ShortKitTileView`s wherever you like — a horizontal stack of story rings, cells in your own `UICollectionView`, a bespoke grid — and `ShortKitTileGroup` owns everything media-related: which tile previews (visibility scan plus the same preview-driven rotation as the widget), player leasing, poster prefetch around the visible window, and tap → full-screen feed with the widget's zoom-from-tile transition.
+
+<Info>
+  Tile groups are available on **iOS**, **Android** and **React Native**. Per-tile feeds (below) are iOS-only for now.
+</Info>
+
+### TileGroupConfig
+
+Every field has the same meaning as its `WidgetConfig` counterpart. There are no layout fields, because you own the layout.
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `playbackMode` | `TilePlaybackMode` | `.singleVisibleRotating` | `.singleVisibleRotating` (one visible tile previews, advancing when its preview ends), `.allVisibleSimultaneous` (every sufficiently visible tile previews, capped) or `.none` (posters only; taps still open the feed). |
+| `previewDuration` | `TimeInterval?` | `nil` | Length of each tile's preview clip in seconds. `nil` lets the server choose per clip (5 s fallback). |
+| `autoplay` | boolean | `true` | Whether a visible tile previews automatically. |
+| `autoplayDelay` | `TimeInterval` | `0` | How long a tile lingers on its poster after being chosen before playback starts. |
+| `muteOnStart` | boolean | `true` | Whether previews start muted. |
+| `loop` | boolean | `true` | Whether a preview loops when it reaches the end. |
+| `clickAction` | enum | `.feed` | Action performed when a tile is tapped. See [click actions](#click-actions). |
+| `feedConfig` | `FeedConfig` | `FeedConfig()` | Config for the full-screen feed opened on tap. With [per-tile feeds](#per-tile-feeds) each tile carries its own instead. |
+| `feedMask` | `FeedMaskMode` | `.none` | Optional host chrome wrapped around the opened feed. |
+| `prefetchAhead` / `prefetchBehind` | integer | `4` / `1` | Poster-prefetch horizon, in items, ahead of and behind the visible window. |
+
+### Embedding tiles
+
+Create one group per surface, hand each `ShortKitTileView` to it, and tell the group which item the tile renders. The group reads each tile's frame to decide what previews; it never moves or sizes a tile.
+
+```swift
+let group = ShortKitTileGroup(shortKit: shortKit, config: TileGroupConfig())
+
+// Host-seeded: fetch, then give the group its ordered item list.
+let items = try await shortKit.fetchContent(limit: 10, filter: FeedFilter(tags: ["sports"]))
+group.setItems(items.compactMap { item in
+    item.playbackId.map { WidgetInput.video(playbackId: $0, contentId: item.id, thumbnailUrl: item.thumbnailUrl) }
+})
+
+// Lay the tiles out however you like; each one is keyed by playback ID.
+for item in items {
+    let tile = ShortKitTileView(group: group)
+    tile.itemId = item.playbackId
+    tile.cornerRadius = 12
+    stack.addArrangedSubview(tile)
+}
+
+// Gate the surface like a widget: `false` releases every player.
+group.setActive(false)   // leaving the screen
+group.setActive(true)    // back on screen
+
+// Required teardown.
+group.release()
+```
+
+A tile that outlives its group falls back to its poster. Keep one autoplaying group per screen: several groups on one screen compete for the same player pool, so gate all but one with `setActive(false)`.
+
+### Per-tile feeds
+
+<Note>
+  **iOS only** (SDK 0.2.100+). Android and React Native parity is planned.
+</Note>
+
+By default every tile in a group opens the *same* feed — `config.feedConfig` — at the tapped item's position, exactly like widget cards. A row of story rings needs the opposite: each ring is an entry point into a **different** feed. "Trending" opens the unfiltered feed, "Baseball" opens `FeedFilter(tags: ["baseball"])`, "Hockey" opens `tags: ["hockey"]`, each starting on the clip the ring was showing.
+
+Build the group from a list of `TileFeed`s instead of seeding items, and the group fetches the first page of each feed itself. Each tile's preview is its feed's first clip, and tapping it opens that feed with the filter already applied, the tapped clip still playing, the rest of the page queued behind it, and pagination continuing on the server with the same filter. Nothing reloads, and every item carries its full metadata.
+
+```swift
+struct TileFeed {
+    var id: String            // your key for the tile ("baseball")
+    var feedConfig: FeedConfig // the feed this tile previews and opens — filter, overlays, presentation
+    var limit: Int = 10        // page size of the one fetch behind the tile
+}
+```
+
+```swift
+let base = FeedConfig(videoOverlay: .custom { ShopOverlayView() }, feedSource: .algorithmic)
+func feed(filter: FeedFilter?) -> FeedConfig { var c = base; c.filter = filter; return c }
+
+let group = ShortKitTileGroup(
+    shortKit: shortKit,
+    config: TileGroupConfig(playbackMode: .singleVisibleRotating, clickAction: .feed),
+    tileFeeds: [
+        TileFeed(id: "trending", feedConfig: feed(filter: nil)),
+        TileFeed(id: "baseball", feedConfig: feed(filter: FeedFilter(tags: ["baseball"]))),
+        TileFeed(id: "hockey",   feedConfig: feed(filter: FeedFilter(tags: ["hockey"]))),
+    ])
+
+// Tiles are keyed by the feed id, not a playback ID — you lay them out before anything is fetched.
+for story in ["trending", "baseball", "hockey"] {
+    let ring = ShortKitTileView(group: group)
+    ring.tileFeedId = story
+    ring.cornerRadius = 39   // a 78pt circle
+    row.addArrangedSubview(ring)
+}
+
+// Which tiles resolved to a clip. Ids missing from the map got nothing
+// (empty feed or failed fetch) — hide those tiles.
+group.onTilesLoaded = { resolved in
+    hideRings(except: Set(resolved.keys))
+}
+
+// Which tile opened the feed, so you can set chrome for it (a sport picker, a title).
+group.onTileFeedOpened = { feedVC, tileId in
+    sportPicker.attach(to: feedVC, preselected: tileId == "trending" ? nil : tileId)
+}
+```
+
+The group gives each tile a clip no earlier tile already shows, so the same item never appears in two rings even when an unfiltered feed overlaps a filtered one. A feed whose page is exhausted by that rule yields no tile and is omitted from `onTilesLoaded`.
+
+On a self-fetching group, `setItems`, `setFeedItems` and `bindContent` are no-ops; the group owns its items.
+
+#### Preview progress
+
+Two callbacks report what the group is doing, so you can draw a progress ring or highlight the active tile without running your own timer:
+
+```swift
+// The tile that is previewing (its id), or nil when none is — rotated away,
+// scrolled out, deactivated, or a feed is open. A hand-off is nil, then the next id.
+group.onAutoplayTileChanged = { tileId in
+    rings.forEach { $0.isActive = ($0.id == tileId) }
+}
+
+// The previewing tile's clock, the same `PlayerTime` the feed's `ShortKitPlayer.time`
+// publishes (~2 Hz). `duration` is the preview's length, so `current / duration` is progress.
+group.onAutoplayTileTime = { tileId, time in
+    rings[tileId]?.progress = time.current / time.duration
+}
+
+// Or subscribe directly, exactly as a feed overlay does.
+group.autoplayPlayer(for: "baseball")?.time.sink { time in … }
+```
+
+`onTileFeedOpened`, `onAutoplayTileChanged` and `onAutoplayTileTime` also fire on host-seeded groups, carrying the playback ID instead of a feed id. They are distinct from `onPreviewTileChanged`, which reports hold-to-preview pins, not rotation.
+
+---
+
 ## Click actions
 
-Both `PlayerConfig.clickAction` and `WidgetConfig.clickAction` accept the same values:
+`PlayerConfig.clickAction`, `WidgetConfig.clickAction` and `TileGroupConfig.clickAction` accept the same values:
 
 | Value | Behavior |
 | --- | --- |
-| `.feed` / `PlayerClickAction.FEED` / `'feed'` | Opens the full-screen feed starting at the tapped item. This is the default. |
+| `.feed` / `PlayerClickAction.FEED` / `'feed'` | Opens the full-screen feed starting at the tapped item. This is the default. On a tile group built with [per-tile feeds](#per-tile-feeds), opens that tile's own feed. |
 | `.mute` / `PlayerClickAction.MUTE` / `'mute'` | Toggles audio mute. |
 | `.none` / `PlayerClickAction.NONE` / `'none'` | No action. Useful when you handle taps yourself. |
