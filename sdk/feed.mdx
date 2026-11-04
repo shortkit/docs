@@ -13,6 +13,8 @@ Live streams render as videos with an `isLive` flag set on the content item — 
 
 When `FeedConfig.filter` is set, the feed only shows content matching the filter criteria. Filtering is handled server-side — the SDK applies the filter automatically on every request (initial load, pagination, pull-to-refresh).
 
+To open a filtered feed from a tapped tile — a row of story rings where each ring is its own filter — give each tile its own `FeedConfig` with [per-tile feeds](/sdk/player-and-widget#per-tile-feeds) rather than calling `applyFilter` after the feed opens. To find out which filter values have enough content to offer, use the [catalogue breakdown endpoint](/api/content/facets).
+
 ## ShortKitFeedViewController (UIKit)
 
 ```swift

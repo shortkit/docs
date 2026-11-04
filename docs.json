@@ -112,6 +112,7 @@
                   "api/content/get",
                   "api/content/playback-token",
                   "api/content/count",
+                  "api/content/facets",
                   "api/content/search",
                   "api/content/update",
                   "api/content/bulk-update",

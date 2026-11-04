@@ -1,0 +1,110 @@
+---
+title: "Get Catalogue Breakdown"
+sidebarTitle: "Catalogue breakdown"
+api: "GET /v1/feed/facets"
+description: "Returns how many feed items match each value of one filter dimension — tags, section, author, content type or a metadata key."
+---
+
+Use this to decide which filters to offer in your app before you offer them: which sports get a story ring, which sections get a tab, which authors get a row. One request replaces probing `/v1/feed/filter` once per value.
+
+The counts are over exactly the content the [feed](/sdk/feed) serves — published, ready, non-deleted items of a supported type — and honour the same `exclude.*` and media-negotiation rules as filtered feeds. For any value `v`, `counts[v]` equals the number of items a feed filtered to `v` would page through.
+
+<Info>
+  Authenticate with a **publishable** key (`X-API-Key: pk_…`). The endpoint is safe to call from client apps on every launch: responses are cached for 60 seconds per organisation and query.
+</Info>
+
+## Query parameters
+
+<ParamField query="by" type="string" required>
+  The dimension to break the catalogue down by. One of `tags`, `section`, `author`, `content_type`, or `metadata.<key>` for a custom metadata field (for example `metadata.sport`). These are the same include dimensions `FeedFilter` accepts.
+</ParamField>
+
+<ParamField query="min" type="integer" default="0">
+  Drop values with fewer than this many matching items. Use it to hide filters that would open a nearly empty feed.
+</ParamField>
+
+<ParamField query="exclude.tags" type="string">
+  Comma-separated values to exclude before counting. Also accepts `exclude.sections`, `exclude.authors`, `exclude.content_types` and `exclude.metadata.<key>`, with the same semantics as the feed's exclusion filters.
+</ParamField>
+
+## Response
+
+<ResponseField name="data.by" type="string">
+  The dimension that was counted, echoed back.
+</ResponseField>
+
+<ResponseField name="data.counts" type="object">
+  A map of value → number of matching items, ordered by count descending, then value ascending. Each item counts once per distinct value it carries, so an item tagged `baseball` and `bats` appears in both counts.
+</ResponseField>
+
+Invalid `by` values return `400`.
+
+<RequestExample>
+```bash cURL
+curl "https://api.shortkit.dev/v1/feed/facets?by=tags&min=10" \
+  -H "X-API-Key: pk_live_your_publishable_key"
+```
+
+```swift Swift
+var request = URLRequest(url: URL(string: "https://api.shortkit.dev/v1/feed/facets?by=tags&min=10")!)
+request.setValue(publishableKey, forHTTPHeaderField: "X-API-Key")
+let (data, _) = try await URLSession.shared.data(for: request)
+struct Facets: Decodable { struct Data: Decodable { let by: String; let counts: [String: Int] }; let data: Data }
+let counts = try JSONDecoder().decode(Facets.self, from: data).data.counts
+// ["baseball": 143, "hockey": 101, "lacrosse": 74, …]
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.shortkit.dev/v1/feed/facets",
+    headers={"X-API-Key": "pk_live_your_publishable_key"},
+    params={"by": "tags", "min": 10},
+)
+resp.raise_for_status()
+counts = resp.json()["data"]["counts"]
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "data": {
+    "by": "tags",
+    "counts": {
+      "baseball": 143,
+      "hockey": 101,
+      "lacrosse": 74,
+      "golf": 52,
+      "football": 26
+    }
+  },
+  "meta": {
+    "request_id": "req_f88e2990fd11"
+  }
+}
+```
+
+```json 400
+{
+  "data": null,
+  "meta": {
+    "request_id": "req_f88e2990fd12"
+  },
+  "errors": [
+    {
+      "code": "invalid_request",
+      "message": "Invalid 'by' value 'bogus' (one of: tags, section, author, content_type, metadata.<key>)."
+    }
+  ]
+}
+```
+</ResponseExample>
+
+## Notes
+
+- Counts are per organisation and reflect the catalogue at the time of the request (up to 60 seconds of caching).
+- Only values that can be requested are listed: string tags with no commas or whitespace, non-empty sections and authors, and string metadata values.
+- Organisations on the discovery feed see counts for the discovery pool (video and live stream content), which match that pool's `X-Pool-Size` header for the same filter.
+- For the SDK side of this — opening a filtered feed from a tapped tile — see [per-tile feeds](/sdk/player-and-widget#per-tile-feeds).
