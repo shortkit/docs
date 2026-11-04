@@ -82,6 +82,12 @@
               "sdk/identity",
               "sdk/analytics"
             ]
+          },
+          {
+            "group": "Monetization",
+            "pages": [
+              "sdk/web-advertising"
+            ]
           }
         ]
       },

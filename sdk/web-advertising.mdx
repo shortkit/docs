@@ -1,0 +1,183 @@
+---
+title: "Web advertising"
+description: "Serve ads inside the Web SDK feed -- consent, placements, direct and Google sources, disclosure labels, and the header-bidding hook for Google Ad Manager display slots."
+keywords: ["advertising", "ads", "web", "placement", "consent", "google ad manager", "gam", "gpt", "header bidding", "prebid", "display", "native", "vast", "pal", "disclosure"]
+---
+
+The Web SDK inserts ads between content items in a feed. You pick the sources a page is allowed to serve, the server decides when and which ad to show, and the SDK renders it as a feed cell with a disclosure label. Ads never appear in `ContentItem` lists, the content index, or organic analytics callbacks.
+
+<Note>
+  This page documents the Web SDK. The iOS, Android and React Native advertising APIs are not documented here yet.
+</Note>
+
+## Prerequisites
+
+- A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Feeds & sources**. Its **Feed placement key** identifies it from the SDK.
+- Analytics consent granted on the SDK instance. `analyticsConsent` defaults to `'granted'`; with `'denied'` no ads are served.
+- For the Google sources, the feed must use the default `swipePaging: 'sdk'`. Ads are not served when `swipePaging` is `'browser'`.
+
+## Enable advertising on a feed
+
+<Steps>
+  <Step title="Grant consent per source">
+    Call `setAdvertisingConsent` on the SDK instance before enabling a placement. Each key allows one source; a source that is missing or `false` is never served, even if the placement is configured for it. Call it again whenever the user's choice changes, for example from your consent management platform.
+
+    ```js app.js
+    import { ShortKit } from '@shortkitsdk/web';
+
+    const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+    sk.setAdvertisingConsent({
+      direct_upload: true,
+      google_native: true,
+      gam_display: true,
+      gam_vast_pal: false,
+    });
+    ```
+  </Step>
+  <Step title="Attach the placement to the feed">
+    Pass the placement key and, for the Google sources, the ad units this page agrees to serve.
+
+    ```js app.js
+    const feed = sk.createFeed(document.getElementById('feed'));
+
+    feed.setAdvertising({
+      placementKey: 'plc_web_home_feed',
+      gptNative: { adUnitIds: ['/12345678/news/feed-native'] },
+      gptDisplay: { adUnitPaths: ['/12345678/news/feed-display'] },
+    });
+    ```
+
+    Calling `setAdvertising` again replaces the configuration.
+  </Step>
+  <Step title="Report when your UI covers the feed">
+    The SDK observes the browser viewport, but not your own overlays. When a modal, drawer or cookie banner covers the feed, call `setAdvertisingVisibility(false)`; call it with `true` when the feed is unobscured again. The default is `true`.
+
+    ```js app.js
+    openSettingsDrawer();
+    feed.setAdvertisingVisibility(false);
+
+    closeSettingsDrawer();
+    feed.setAdvertisingVisibility(true);
+    ```
+  </Step>
+</Steps>
+
+## Ad sources
+
+A placement can serve several sources. The server picks the ad for each slot from the sources that are configured on the placement, consented by the user and allowed by the page.
+
+| Source | Consent key | Page configuration | What renders |
+|---|---|---|---|
+| Direct creatives uploaded in the portal | `direct_upload` | None | A video or image creative from your own campaigns. |
+| Google native | `google_native` | `gptNative.adUnitIds` -- the native ad units this page allows. The server chooses the unit. | A fluid native ad from Google Ad Manager, scrolled and snapped like a content cell. |
+| Google Ad Manager display | `gam_display` | `gptDisplay.adUnitPaths` -- the display ad unit paths this page allows. The server chooses the unit and sizes. | A fixed-size display creative (for example 300x250 or 300x600) centred in the feed cell. Supports host-run header bidding, see below. |
+| Google Ad Manager video (VAST with PAL) | `gam_vast_pal` | None | A video ad from your Ad Manager ad tag. |
+
+The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. The `google_swipeable` consent key belongs to a native-only source; it is never served on web.
+
+## Disclosure label
+
+Every web ad cell shows a disclosure label. The default is `Sponsored`. Set `disclosureLabel` to change it (up to 40 printable characters). A label that breaks this limit, or an empty or malformed ad-unit list, makes the whole `setAdvertising` call be ignored silently, so validate the values you pass:
+
+```js app.js
+feed.setAdvertising({
+  placementKey: 'plc_web_home_feed',
+  disclosureLabel: 'Anzeige',
+  gptDisplay: { adUnitPaths: ['/12345678/news/feed-display'] },
+});
+```
+
+<Warning>
+  Some jurisdictions require the label in the local language and a specific wording -- for example `Anzeige` in Austria and Germany. Check the advertising rules that apply to your audience; the default label is not a legal determination.
+</Warning>
+
+## Header bidding for display slots
+
+For the `gam_display` source the host page runs the auction and the SDK owns the slot. While an ad cell is being prepared, the SDK defines the Google Publisher Tag (GPT) slot, attaches the placement's targeting, then calls your `beforeAdRequest` hook. You run your header-bidding auction for that slot and set the winning bids as targeting. The request to Ad Manager is sent later, when the cell is presented to the viewer -- which may be well after the hook settled, or never if the viewer leaves first. In Ad Manager your direct, programmatic and header-bidding demand compete as on any other page.
+
+### The hook contract
+
+`beforeAdRequest` receives a `GptDisplayAuctionContext`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `slot` | `GptSlotLike` | The GPT slot. Exposes `setTargeting(key, value)` and `getSlotElementId()`. |
+| `elementId` | `string` | The slot's element id (`sk-gpt-*`). Use it as the ad unit code for your auction. |
+| `adUnitPath` | `string` | The Ad Manager ad unit path the slot was defined with. |
+| `sizes` | `ReadonlyArray<readonly [number, number]>` | The sizes to bid on, already filtered to what fits the feed card. |
+| `timeoutMs` | `number` | Your deadline, at most 1500 ms. |
+| `signal` | `AbortSignal` | Aborts when the deadline passes or preparation of the cell is cancelled. |
+
+Rules:
+
+- Return a promise that settles within `timeoutMs`. On timeout or a thrown error the SDK goes ahead without your bids and requests the slot at presentation as usual; it never blocks the feed on the auction.
+- Set targeting on `slot` (or through your wrapper's GPT integration). Do not call `googletag.display`, `pubads().refresh` or `destroySlots` on the slot -- the SDK does. A host-initiated refresh of an SDK slot ends that ad's presentation.
+- Nothing from the ad request (ids, tokens) is passed to the hook, and nothing you return is read.
+- The SDK prepares ad cells ahead of the viewer, so an auction may run for a slot that is never shown. `onAdSlotDestroyed` fires once per defined slot, before the SDK destroys it, so you can release anything you registered for its element id.
+
+### Prebid.js example
+
+```js app.js
+feed.setAdvertising({
+  placementKey: 'plc_web_home_feed',
+  disclosureLabel: 'Anzeige',
+  gptDisplay: {
+    adUnitPaths: ['/12345678/news/feed-display'],
+
+    beforeAdRequest: ({ elementId, sizes, timeoutMs }) =>
+      new Promise((resolve) => {
+        pbjs.que.push(() => {
+          pbjs.addAdUnits([{
+            code: elementId,
+            mediaTypes: { banner: { sizes: sizes.map(([w, h]) => [w, h]) } },
+            bids: [{ bidder: 'appnexus', params: { placementId: 13144370 } }],
+          }]);
+          pbjs.requestBids({
+            adUnitCodes: [elementId],
+            timeout: timeoutMs,
+            bidsBackHandler: () => {
+              pbjs.setTargetingForGPTAsync([elementId]);
+              resolve();
+            },
+          });
+        });
+      }),
+
+    onAdSlotDestroyed: ({ elementId }) => {
+      pbjs.que.push(() => pbjs.removeAdUnit(elementId));
+    },
+  },
+});
+```
+
+`setTargetingForGPTAsync` matches the Prebid ad unit to the GPT slot by element id, which is why the ad unit code is `elementId`. If you use a managed wrapper instead of Prebid directly, run its per-slot auction for `elementId` and let it apply targeting to the slot the same way.
+
+### GPT page notes
+
+- **Initial load disabled is supported.** If your page calls `googletag.pubads().disableInitialLoad()` (or `googletag.setConfig({ disableInitialLoad: true })`), the SDK refreshes its slot after displaying it. Nothing else is needed.
+- **Single request mode.** Pages that enable `enableSingleRequest()` should also disable initial load, so the SDK's request is the only one for its slot.
+- **Page-wide refreshes.** Exclude the SDK's `sk-gpt-*` element ids from `pubads().refresh()` calls that refresh every slot on the page:
+
+  ```js
+  const hostSlots = googletag.pubads().getSlots()
+    .filter((slot) => !slot.getSlotElementId().startsWith('sk-gpt-'));
+  googletag.pubads().refresh(hostSlots);
+  ```
+
+- **Services.** Load GPT and enable services as you normally do. If the page has not enabled them when the first ad is prepared, the SDK enables them.
+
+## Turn advertising off
+
+Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and `onAdSlotDestroyed` fires for each defined display slot; an ad that is currently visible finishes before it is torn down.
+
+```js app.js
+feed.setAdvertising(null);
+```
+
+Revoking consent for a source with `setAdvertisingConsent` stops that source without touching the placement configuration.
+
+## Next steps
+
+- [Configuration](/sdk/configuration) -- the feed options that apply alongside advertising.
+- [Analytics](/sdk/analytics) -- the organic events the SDK reports; ad presentations are never counted as content views.
