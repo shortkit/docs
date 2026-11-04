@@ -7,12 +7,12 @@ keywords: ["advertising", "ads", "web", "placement", "consent", "google ad manag
 The Web SDK inserts ads between content items in a feed. You pick the sources a page is allowed to serve, the server decides when and which ad to show, and the SDK renders it as a feed cell with a disclosure label. Ads never appear in `ContentItem` lists, the content index, or organic analytics callbacks.
 
 <Note>
-  This page covers `@shortkitsdk/web`. Advertising on the native, React Native and Flutter SDKs is not yet available.
+  This page documents the Web SDK. The iOS, Android and React Native advertising APIs are not documented here yet.
 </Note>
 
 ## Prerequisites
 
-- A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Placements**. The placement key identifies it from the SDK.
+- A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Feeds & sources**. Its **Feed placement key** identifies it from the SDK.
 - Analytics consent granted on the SDK instance. `analyticsConsent` defaults to `'granted'`; with `'denied'` no ads are served.
 - For the Google sources, the feed must use the default `swipePaging: 'sdk'`. Ads are not served when `swipePaging` is `'browser'`.
 
@@ -74,11 +74,11 @@ A placement can serve several sources. The server picks the ad for each slot fro
 | Google Ad Manager display | `gam_display` | `gptDisplay.adUnitPaths` -- the display ad unit paths this page allows. The server chooses the unit and sizes. | A fixed-size display creative (for example 300x250 or 300x600) centred in the feed cell. Supports host-run header bidding, see below. |
 | Google Ad Manager video (VAST with PAL) | `gam_vast_pal` | None | A video ad from your Ad Manager ad tag. |
 
-The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source.
+The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. The `google_swipeable` consent key belongs to a native-only source; it is never served on web.
 
 ## Disclosure label
 
-Every web ad cell shows a disclosure label. The default is `Sponsored`. Set `disclosureLabel` to change it (up to 40 printable characters):
+Every web ad cell shows a disclosure label. The default is `Sponsored`. Set `disclosureLabel` to change it (up to 40 printable characters). A label that breaks this limit, or an empty or malformed ad-unit list, makes the whole `setAdvertising` call be ignored silently, so validate the values you pass:
 
 ```js app.js
 feed.setAdvertising({
@@ -94,7 +94,7 @@ feed.setAdvertising({
 
 ## Header bidding for display slots
 
-For the `gam_display` source the host page runs the auction and the SDK owns the slot. The SDK defines the Google Publisher Tag (GPT) slot for a prepared ad cell, attaches the placement's targeting, then calls your `beforeAdRequest` hook. You run your header-bidding auction for that slot and set the winning bids as targeting. Once the hook settles, the SDK sends the request to Ad Manager, where your direct, programmatic and header-bidding demand compete as on any other page.
+For the `gam_display` source the host page runs the auction and the SDK owns the slot. While an ad cell is being prepared, the SDK defines the Google Publisher Tag (GPT) slot, attaches the placement's targeting, then calls your `beforeAdRequest` hook. You run your header-bidding auction for that slot and set the winning bids as targeting. The request to Ad Manager is sent later, when the cell is presented to the viewer -- which may be well after the hook settled, or never if the viewer leaves first. In Ad Manager your direct, programmatic and header-bidding demand compete as on any other page.
 
 ### The hook contract
 
@@ -107,11 +107,11 @@ For the `gam_display` source the host page runs the auction and the SDK owns the
 | `adUnitPath` | `string` | The Ad Manager ad unit path the slot was defined with. |
 | `sizes` | `ReadonlyArray<readonly [number, number]>` | The sizes to bid on, already filtered to what fits the feed card. |
 | `timeoutMs` | `number` | Your deadline, at most 1500 ms. |
-| `signal` | `AbortSignal` | Aborts when the deadline passes. |
+| `signal` | `AbortSignal` | Aborts when the deadline passes or preparation of the cell is cancelled. |
 
 Rules:
 
-- Return a promise that settles within `timeoutMs`. On timeout or a thrown error the SDK requests the slot without your bids; it never blocks the feed on the auction.
+- Return a promise that settles within `timeoutMs`. On timeout or a thrown error the SDK goes ahead without your bids and requests the slot at presentation as usual; it never blocks the feed on the auction.
 - Set targeting on `slot` (or through your wrapper's GPT integration). Do not call `googletag.display`, `pubads().refresh` or `destroySlots` on the slot -- the SDK does. A host-initiated refresh of an SDK slot ends that ad's presentation.
 - Nothing from the ad request (ids, tokens) is passed to the hook, and nothing you return is read.
 - The SDK prepares ad cells ahead of the viewer, so an auction may run for a slot that is never shown. `onAdSlotDestroyed` fires once per defined slot, before the SDK destroys it, so you can release anything you registered for its element id.
@@ -169,7 +169,7 @@ feed.setAdvertising({
 
 ## Turn advertising off
 
-Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and `onAdSlotDestroyed` fires for each defined display slot.
+Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and `onAdSlotDestroyed` fires for each defined display slot; an ad that is currently visible finishes before it is torn down.
 
 ```js app.js
 feed.setAdvertising(null);
