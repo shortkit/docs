@@ -214,11 +214,11 @@ Video carousels are created with `contentType: "video_carousel"`. Unlike regular
 
 Videos are managed through dedicated endpoints after the carousel is created:
 
-- `POST /v1/content/{id}/videos` — Add video references to the carousel (max 10 videos)
+- `POST /v1/content/{id}/videos` — Add video references to the carousel (max 100 videos)
 - `PUT /v1/content/{id}/videos/order` — Reorder videos within the carousel
-- `DELETE /v1/content/{id}/videos/{entry_id}` — Remove a video from the carousel
+- `DELETE /v1/content/{id}/videos/{entry_id}` — Remove a video from the carousel. `entry_id` is the entry's `id` from the add response, not the video's content id
 
-The carousel inherits its own metadata fields (`title`, `description`, `author`, `section`, `articleUrl`) separate from the individual videos it contains. In the feed response, the `videos` array contains full `ContentItem` objects for each referenced video.
+The carousel inherits its own metadata fields (`title`, `description`, `author`, `section`, `articleUrl`) separate from the individual videos it contains. In the feed response, each entry in `videos` is a compact slide (`playbackId`, plus dimensions when known); the SDK expands each one into a full `ContentItem`. Video media loads lazily as the viewer swipes, so long carousels don't cost more up front.
 
 <Note>
   Empty video carousels (no videos added) are automatically excluded from the feed response.
