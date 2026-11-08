@@ -363,6 +363,10 @@ ShortKit imports content directly from TikTok via `POST /v1/content/import/tikto
 
 Each URL you submit is either a **single video** or a **creator profile** (for example `https://www.tiktok.com/@username`). A profile URL is expanded automatically into that creator's most recent videos.
 
+<Note>
+  Need a profile to import on a schedule instead of on demand? ShortKit can enable **recurring profile imports** for your organization. Each run starts the same import as a manual `POST /v1/content/import/tiktok` call, on a fixed interval. Recurring runs skip videos already in your organization and count against your [daily import quota](#tracking-progress), so you only ingest new content. A manual import of the same profile resets the interval. Contact ShortKit to turn this on for specific creator profiles.
+</Note>
+
 ### Request body
 
 <ParamField body="urls" type="string[]">
