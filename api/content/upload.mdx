@@ -283,11 +283,16 @@ Video carousels are containers that reference existing video content items. Crea
       -H "Authorization: Bearer sk_live_your_secret_key" \
       -H "Content-Type: application/json" \
       -d '{
-        "videoContentId": "d290f1ee-6c54-4b01-90e6-d701748f0851"
+        "videos": [
+          {"contentId": "d290f1ee-6c54-4b01-90e6-d701748f0851", "position": 0},
+          {"contentId": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "position": 1}
+        ]
       }'
     ```
 
-    Repeat for each video you want to add (up to 10). Videos appear in the carousel in the order they are added. Use `PUT /v1/content/{id}/videos/order` to reorder.
+    Add up to 100 videos per carousel, in one request or several. `position` sets each video's place in the carousel (0-indexed). A video already in the carousel is skipped. The response lists every entry; its `id` is the `entry_id` used to remove a video.
+
+    To reorder, send the video content ids in the order you want to `PUT /v1/content/{id}/videos/order` as `{"videoIds": ["...", "..."]}`, listing every video in the carousel.
   </Tab>
 </Tabs>
 
