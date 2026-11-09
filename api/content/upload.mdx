@@ -19,7 +19,7 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
 ## Request body
 
 <ParamField body="contentType" type="string" required>
-  `"video"`, `"carousel"`, or `"video_carousel"`.
+  `"video"` or `"carousel"`.
 </ParamField>
 
 <ParamField body="title" type="string" required>
@@ -53,7 +53,7 @@ This endpoint accepts both **publishable keys** and **secret keys**, making it s
 <ParamField body="origin" type="string" default="other">
   `"ios_upload"` or `"other"`. Set to `"ios_upload"` for videos recorded on iOS devices to enable color-accurate thumbnail extraction. iOS HEVC recordings frequently omit color metadata, which can cause default first-frame thumbnails to render with incorrect colors. Marking the origin enables an alternate extraction path that infers the correct color space.
 
-  Only applies to `contentType: "video"`. No effect for image or video carousels. If you also render this content in a custom feed via the SDK, pair with the `origin` field on [`FeedInput.video`](/guides/content-types#custom-feed-input).
+  Only applies to `contentType: "video"`. No effect for carousels. If you also render this content in a custom feed via the SDK, pair with the `origin` field on [`FeedInput.video`](/guides/content-types#custom-feed-input).
 </ParamField>
 
 <ParamField body="publishAt" type="string">
@@ -243,12 +243,12 @@ A carousel upload takes three steps: create the upload, send each image to its s
 
 ## Creating a video carousel
 
-Video carousels are containers that reference existing video content items. Create the carousel first, then add videos to it.
+Video carousels are containers that reference existing video content items. Create the carousel with `POST /v1/content` using a secret key, then add videos to it. The create request accepts `contentType`, `title`, `description`, `tags`, `section` and `author`.
 
 <Tabs>
   <Tab title="1. Create the carousel">
     ```bash
-    curl -X POST https://api.shortkit.dev/v1/content/upload \
+    curl -X POST https://api.shortkit.dev/v1/content \
       -H "Authorization: Bearer sk_live_your_secret_key" \
       -H "Content-Type: application/json" \
       -d '{
@@ -297,7 +297,7 @@ Video carousels are containers that reference existing video content items. Crea
 </Tabs>
 
 <Note>
-  Video carousels reference existing video content — the videos must already be uploaded and in `ready` status. Empty carousels are excluded from the feed.
+  Video carousels reference existing video content — the videos must already be uploaded and in `ready` status, and protected videos can't be added. Empty carousels are excluded from the feed.
 </Note>
 
 ---
