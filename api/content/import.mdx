@@ -34,7 +34,7 @@ Use this when you have media hosted elsewhere — migrating from another platfor
   - `externalId` (string) — Same idempotency behavior as videos.
 
   **For video carousels:**
-  Video carousels cannot be created via the import endpoint — they reference existing video content items. Use [Upload](/api/content/upload) to create the carousel, then add videos via `POST /v1/content/{id}/videos`.
+  Video carousels cannot be created via the import endpoint — they reference existing video content items. Create the carousel with `POST /v1/content`, then add videos via `POST /v1/content/{id}/videos`. See [Creating a video carousel](/api/content/upload#creating-a-video-carousel).
 </ParamField>
 
 <RequestExample>
