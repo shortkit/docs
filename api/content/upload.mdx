@@ -243,10 +243,15 @@ A carousel upload takes three steps: create the upload, send each image to its s
 
 ## Creating a video carousel
 
-Video carousels are containers that reference existing video content items. Create the carousel with `POST /v1/content` using a secret key, then add videos to it. The create request accepts `contentType`, `title`, `description`, `tags`, `section` and `author`.
+A video carousel is a container that references existing video content items. It holds up to 100 videos, and each video can belong to any number of carousels.
 
-<Tabs>
-  <Tab title="1. Create the carousel">
+<Steps>
+  <Step title="Get the videos ready">
+    Upload each video with this endpoint (see [Uploading a video](#uploading-a-video)) or bring it in with [Import](/api/content/import). A video can only be added to a carousel once its `uploadStatus` is `ready`. To know when that happens, pass a `callbackUrl` and wait for the ready event (see [Callback events](#callback-events)), or poll [`GET /v1/content/{id}`](/api/content/get). Protected videos can't be added to a carousel.
+  </Step>
+  <Step title="Create the carousel">
+    Create the carousel with `POST /v1/content` using a secret key. The request accepts `contentType`, `title`, `description`, `tags`, `section` and `author`. The carousel is `ready` as soon as it's created.
+
     ```bash
     curl -X POST https://api.shortkit.dev/v1/content \
       -H "Authorization: Bearer sk_live_your_secret_key" \
@@ -275,11 +280,12 @@ Video carousels are containers that reference existing video content items. Crea
       }
     }
     ```
-  </Tab>
-  <Tab title="2. Add videos">
+  </Step>
+  <Step title="Add videos">
+    Add videos in one request or several. `position` sets each video's place in the carousel (0-indexed); to add a video at the end, use the current number of videos. A video that's already in the carousel is skipped.
+
     ```bash
-    # Add existing video content items to the carousel
-    curl -X POST https://api.shortkit.dev/v1/content/b4c5d6e7.../videos \
+    curl -X POST https://api.shortkit.dev/v1/content/b4c5d6e7-f8a9-0123-bcde-f45678901234/videos \
       -H "Authorization: Bearer sk_live_your_secret_key" \
       -H "Content-Type: application/json" \
       -d '{
@@ -290,15 +296,50 @@ Video carousels are containers that reference existing video content items. Crea
       }'
     ```
 
-    Add up to 100 videos per carousel, in one request or several. `position` sets each video's place in the carousel (0-indexed). A video already in the carousel is skipped. The response lists every entry; its `id` is the `entry_id` used to remove a video.
+    The response lists every video in the carousel. Each entry's `id` is its `entry_id`, which you need to remove that video later, so store it.
 
-    To reorder, send the video content ids in the order you want to `PUT /v1/content/{id}/videos/order` as `{"videoIds": ["...", "..."]}`, listing every video in the carousel.
-  </Tab>
-</Tabs>
+    ```json
+    {
+      "data": [
+        {"id": "5f0c1a2b-3d4e-4f60-8a71-92b3c4d5e6f7", "videoContentId": "d290f1ee-6c54-4b01-90e6-d701748f0851", "position": 0},
+        {"id": "8a9b0c1d-2e3f-4a5b-9c6d-7e8f9a0b1c2d", "videoContentId": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "position": 1}
+      ]
+    }
+    ```
 
-<Note>
-  Video carousels reference existing video content — the videos must already be uploaded and in `ready` status, and protected videos can't be added. Empty carousels are excluded from the feed.
-</Note>
+    Sending `{"videos": []}` returns the current entries without changing the carousel.
+  </Step>
+  <Step title="Publish">
+    If your organization has [auto-publish](/api/content/object#auto-publish) on (the default), the carousel is published when it's created and appears in the feed once it has at least one video. With auto-publish off, publish it yourself:
+
+    ```bash
+    curl -X PATCH https://api.shortkit.dev/v1/content/b4c5d6e7-f8a9-0123-bcde-f45678901234 \
+      -H "Authorization: Bearer sk_live_your_secret_key" \
+      -H "Content-Type: application/json" \
+      -d '{"publishStatus": "published"}'
+    ```
+  </Step>
+</Steps>
+
+### Reordering and removing videos
+
+To reorder, send every video's content id in the order you want. A video left out of the list keeps its old position, so always send the full list.
+
+```bash
+curl -X PUT https://api.shortkit.dev/v1/content/b4c5d6e7-f8a9-0123-bcde-f45678901234/videos/order \
+  -H "Authorization: Bearer sk_live_your_secret_key" \
+  -H "Content-Type: application/json" \
+  -d '{"videoIds": ["7c9e6679-7425-40de-944b-e07fc1f90ae7", "d290f1ee-6c54-4b01-90e6-d701748f0851"]}'
+```
+
+To remove a video, use its `entry_id` from the add response. The remaining videos are renumbered from 0.
+
+```bash
+curl -X DELETE https://api.shortkit.dev/v1/content/b4c5d6e7-f8a9-0123-bcde-f45678901234/videos/5f0c1a2b-3d4e-4f60-8a71-92b3c4d5e6f7 \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Changes to a carousel appear the next time the feed is fetched. Empty carousels are excluded from the feed.
 
 ---
 
