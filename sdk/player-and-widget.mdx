@@ -927,11 +927,11 @@ It fires once per binding. When a tile is bound to a different `itemId`, is rebo
 
     ```kotlin
     val tile = ShortKitTileView(context).apply {
-        group = tileGroup
         itemId = item.playbackId
         cornerRadius = 12f
         onReadyForDisplay = { overlay.isVisible = true }   // reveal your chrome
     }
+    tile.attach(tileGroup)
     ```
 
     Assigning `onReadyForDisplay` to a tile that is already ready does not call it; read `isReadyForDisplay` instead. Changing `itemId` resets readiness, so add your placeholder back before the next binding paints.
