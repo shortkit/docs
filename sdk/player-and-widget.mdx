@@ -1,7 +1,7 @@
 ---
 title: "Widgets & Entry Points"
 description: "Embed individual videos, horizontal video carousels, vertical video grids, and your own tile layouts anywhere in your app."
-keywords: ["player", "widget", "single player", "carousel", "grid", "tile group", "tiles", "stories", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "ShortKitTileGroup", "ShortKitTileView", "TileGroupConfig", "TileFeed", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
+keywords: ["player", "widget", "single player", "carousel", "grid", "tile group", "tiles", "stories", "ShortKitPlayerViewController", "ShortKitPlayerView", "ShortKitWidgetViewController", "ShortKitWidgetView", "ShortKitTileGroup", "ShortKitTileView", "ShortKitTile", "onReadyForDisplay", "isReadyForDisplay", "ready for display", "TileGroupConfig", "TileFeed", "PlayerConfig", "WidgetConfig", "WidgetLayout", "WidgetPlaybackMode", "fetchContent"]
 ---
 
 The player, widget and tile group components let you embed short-form video outside the full-screen feed. Use the **player** for a single video (hero sections, product pages, inline previews), the **widget** for a horizontal carousel or vertical grid of video cards (home screens, dashboards, discovery surfaces), and a **tile group** when you own the layout and want the SDK to own playback (story rings, bespoke grids, tiles mixed into your own collection views).
@@ -896,23 +896,63 @@ Keep one autoplaying group per screen: several groups on one screen compete for 
 
 ### Ready for display
 
+Each tile reports when its media is on screen for its current binding: its poster (or derived first-frame still) has painted, or its preview has revealed over a decoded frame. Use it to show a placeholder in each cell until there is something to show, and to hold back chrome you draw over the tile (titles, gradients, view counts, badges) until there is something under it.
+
+It fires once per binding. When a tile is bound to a different `itemId`, is rebound, or is torn down, its readiness resets and it fires again once the next binding's media shows. A rebind to the *same* `itemId` — a group rebuild, for example — also resets and reports again.
+
+<Warning>
+  **A poster that fails to load never fires.** A host that holds chrome back on this signal keeps it hidden for a tile whose poster `404`s. If you need the chrome regardless, add your own fallback (a timeout, or revealing on the next item).
+</Warning>
+
 <Note>
-  **Web only** (SDK 0.6.0+). iOS, Android and React Native parity is planned.
+  Readiness only moves from not-ready to ready within a binding. A preview that is later deactivated can fall back to its poster; if that poster never loaded, the media rect is empty while the tile is still ready.
 </Note>
-
-Each tile reports when its media is on screen: its poster (or first frame) has loaded, or its preview has started. Use it to show a placeholder in each cell until there is something to show, and to hold back chrome you draw over the tile.
-
-It fires once each time the tile is bound to an item. When a tile is given a different item, it resets and fires again once that item's media shows. If a tile's poster fails to load, it reports ready only once its preview starts; a tile whose poster fails and that never previews stays on its placeholder.
 
 <Tabs>
   <Tab title="iOS (Swift)">
-    Not yet supported on iOS.
+    Set `onReadyForDisplay` on the `ShortKitTileView`. `onReadyForDisplayChanged` reports both directions (`true` as the media paints, `false` when a rebind, `itemId` change or teardown resets a ready tile), and `isReadyForDisplay` is the current value.
+
+    ```swift
+    let tile = ShortKitTileView(group: group)
+    tile.itemId = item.playbackId
+    tile.onReadyForDisplay = { [weak overlay] in
+        overlay?.isHidden = false   // reveal the chrome you draw over the tile
+    }
+    ```
+
+    Assigning `onReadyForDisplay` to a tile that is already ready does not call it; read `isReadyForDisplay` instead. Changing `itemId` resets readiness, so add your placeholder back before the next binding paints.
   </Tab>
   <Tab title="Android">
-    Not yet supported on Android.
+    Set `onReadyForDisplay` on the `ShortKitTileView`. `onReadyForDisplayChanged` reports both directions (`true` as the media paints, `false` when a rebind, `itemId` change or teardown resets a ready tile), and `isReadyForDisplay` is the current value. All callbacks run on the main thread.
+
+    ```kotlin
+    val tile = ShortKitTileView(context).apply {
+        group = tileGroup
+        itemId = item.playbackId
+        cornerRadius = 12f
+        onReadyForDisplay = { overlay.isVisible = true }   // reveal your chrome
+    }
+    ```
+
+    Assigning `onReadyForDisplay` to a tile that is already ready does not call it; read `isReadyForDisplay` instead. Changing `itemId` resets readiness, so add your placeholder back before the next binding paints.
   </Tab>
   <Tab title="React Native">
-    Not yet supported on React Native.
+    Pass `onReadyForDisplay` to `<ShortKitTile>`. A `<ShortKitTile>`'s children render **above** the media, so keep the placeholder there and remove it in the callback rather than fading the media in under it.
+
+    ```tsx
+    import { ShortKitTile } from '@shortkitsdk/react-native';
+
+    function Tile({ playbackId }: { playbackId: string }) {
+      const [ready, setReady] = useState(false);
+      return (
+        <ShortKitTile itemId={playbackId} onReadyForDisplay={() => setReady(true)}>
+          {!ready && <Placeholder />}
+        </ShortKitTile>
+      );
+    }
+    ```
+
+    A subscriber that mounts after its own tile is already ready for the same item is called immediately — a cached poster can paint before the subscription attaches. A remounted or recycled tile, or an `A → B → A` item change, never inherits an earlier binding's readiness.
   </Tab>
   <Tab title="Web">
     Pass `onReadyForDisplay` to `attachTile`. Keep the placeholder as the first child of the tile element, so the media fades in over it:
