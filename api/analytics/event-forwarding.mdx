@@ -200,7 +200,7 @@ All `swipe` fields are part of the committed contract.
 | Field | Definition |
 | --- | --- |
 | `toContentId` | The content swiped to (the content swiped from is the envelope `contentId`) |
-| `watchTimeOnFrom` | Time spent on the content being left, in milliseconds |
+| `watchTimeOnFrom` | Time spent on the content being left, in milliseconds. This is the current visit only. If the app was backgrounded and then returned while this content was on screen, the span is measured from the return, so time spent away is not counted. |
 | `direction` | `"forward"` or `"backward"` |
 
 ### playbackFallback
