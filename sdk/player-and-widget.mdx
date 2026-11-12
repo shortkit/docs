@@ -802,7 +802,7 @@ Every field has the same meaning as its `WidgetConfig` counterpart. There are no
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `playbackMode` | `TilePlaybackMode` | `.singleVisibleRotating` | `.singleVisibleRotating` (one visible tile previews, advancing when its preview ends), `.allVisibleSimultaneous` (every sufficiently visible tile previews, capped) or `.none` (posters only; taps still open the feed). |
+| `playbackMode` | `TilePlaybackMode` | `.singleVisibleRotating` | `.singleVisibleRotating` (one visible tile previews, advancing when its preview ends), `.allVisibleSimultaneous` (every sufficiently visible tile previews, capped), `.gridAlternating` (one tile per row previews, alternating columns — see [Grid-alternating playback](#grid-alternating-playback)) or `.none` (posters only; taps still open the feed). |
 | `previewDuration` | `TimeInterval?` | `nil` | Length of each tile's preview clip in seconds. `nil` lets the server choose per clip (5 s fallback). |
 | `autoplay` | boolean | `true` | Whether a visible tile previews automatically. |
 | `autoplayDelay` | `TimeInterval` | `0` | How long a tile lingers on its poster after being chosen before playback starts. |
@@ -815,6 +815,60 @@ Every field has the same meaning as its `WidgetConfig` counterpart. There are no
 
 <Note>
   **Web:** enum values are strings (`playbackMode: 'singleVisibleRotating'`, `clickAction: 'feed'`), times are in seconds, and the prefetch horizon is one field, `prefetch: { ahead: 4, behind: 1 }`. Web also accepts `filter`, the filter for the feed opened on tap when `feedConfig` sets none, and `presentation`, the placement of that feed.
+</Note>
+
+### Grid-alternating playback
+
+<Note>
+  Available on **iOS**, **Android**, **React Native** and **Web**.
+</Note>
+
+`.gridAlternating` previews one tile per visible row, alternating between the leftmost and rightmost columns on successive rows, capped at 4 simultaneous previews. Middle columns never preview. Use it when you lay tiles out in a grid and want the same staggered preview pattern as the [widget's grid](#playback-mode) while owning the layout yourself. You pass nothing per tile.
+
+The group reads rows and outer columns from the tiles' on-screen frames on every visibility scan. Tiles whose vertical centers line up form a row. The outer columns are the left and right edges shared by the tiles that sit fully inside the viewport, so a short last row never promotes its middle tile to a column.
+
+Each row keeps its side while it stays on screen, so scrolling never flips which tiles preview. When more rows are equally visible, the top rows take priority within the 4-tile cap. A tile-width change (rotation, resize) resets the alternation to `startSide`.
+
+`startSide` selects which column previews in the first row. It is optional and defaults to the leftmost column.
+
+<Tabs>
+  <Tab title="iOS (Swift)">
+    ```swift
+    // startSide is optional; .left is the default.
+    let config = TileGroupConfig(playbackMode: .gridAlternating(startSide: .right))
+    ```
+
+    `GridSide` values: `.left` (default), `.right`. Write the case with parentheses — `.gridAlternating()` — the same as `WidgetPlaybackMode`.
+  </Tab>
+  <Tab title="Android">
+    ```kotlin
+    // gridStartSide is optional; GridSide.LEFT is the default.
+    val config = TileGroupConfig(
+        playbackMode = TilePlaybackMode.GRID_ALTERNATING,
+        gridStartSide = GridSide.RIGHT,
+    )
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    // Pass the mode in the tile group config. startSide is optional; 'left' is the default.
+    config={{ playbackMode: { type: 'gridAlternating', startSide: 'right' } }}
+    ```
+  </Tab>
+  <Tab title="Web">
+    ```js
+    const group = sk.createTileGroup({
+      config: { playbackMode: { type: 'gridAlternating', startSide: 'right' } },
+      content,
+    });
+    ```
+
+    `startSide` values: `'left'` (default), `'right'`.
+  </Tab>
+</Tabs>
+
+<Note>
+  Upgrading host code that exhaustively switches over `TilePlaybackMode` (a Swift `switch`, Kotlin `when`, or TypeScript `never` check with no default branch) needs a new case for `gridAlternating` before it compiles.
 </Note>
 
 ### Embedding tiles
