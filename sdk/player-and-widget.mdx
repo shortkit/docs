@@ -867,6 +867,10 @@ Each row keeps its side while it stays on screen, so scrolling never flips which
   </Tab>
 </Tabs>
 
+<Note>
+  Upgrading host code that exhaustively switches over `TilePlaybackMode` (a Swift `switch`, Kotlin `when`, or TypeScript `never` check with no default branch) needs a new case for `gridAlternating` before it compiles.
+</Note>
+
 ### Embedding tiles
 
 Create one group per surface, hand each tile to it, and tell the group which item the tile renders. The group reads each tile's frame to decide what previews; it never moves or sizes a tile.
