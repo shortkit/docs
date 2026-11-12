@@ -8,6 +8,8 @@ The SDK automatically collects playback and engagement events the moment the fee
 
 Events are batched and delivered in the background. If the app is terminated before a batch is sent, events are persisted to disk and retried on the next launch.
 
+Retries are deduplicated: each batch is tagged so that an identical resend after a lost response is stored once, not twice. This keeps the raw event data you query free of duplicates from retries. Aggregate view metrics were already deduplicated. A later flush that merges the pending events with new ones is a different batch and is delivered in full. Applies to the iOS, Android, and web SDKs.
+
 The SDK collects metrics for every video view. A view session starts when a content item becomes active in the feed and ends when the user swipes away, the feed leaves the screen, or the app backgrounds.
 
 ### Engagement
