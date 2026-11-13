@@ -289,6 +289,10 @@ Commands are fire-and-forget methods that control playback. The SDK routes each 
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (e.g. `"en"`, `"es"`). |
 | `seekThumbnail(at:)` | Returns a storyboard thumbnail for the given time, or `nil` if the storyboard is not yet loaded. |
 
+<Note>
+On React Native and iOS, `seek(to:)` and `seekAndPlay(to:)` set `time.current` to the target the moment the seek starts, rather than waiting for the next `time` update. A scrubber bound to `time.current` stays at the release position instead of briefly snapping back to the pre-seek position. On React Native, time samples still in flight that are more than 1 second from the target are dropped until a sample near the target arrives, or for at most 1 second; a content item change clears the hold. This applies to overlays that observe the feed player `seek()` controls. Overlays bound to their own player, such as widget overlays, report their own player's time and are unaffected.
+</Note>
+
 ## Player state machine
 
 The `playerState` publisher emits one of these values:

@@ -697,6 +697,10 @@ This example shows a draggable scrubber that displays a thumbnail preview at the
 
 The key pattern: guard on `isActive` and `!isScrubbing` in your time stream handler so you only update the scrubber from playback when the overlay is active and the user isn't dragging. During a drag, update the UI from the gesture position instead and call `player.seekAndPlay(to:)` on release.
 
+<Note>
+  On iOS and React Native, `time.current` reflects the seek target the moment you call `seekAndPlay(to:)`, so switching `progress` back to the reported position on release keeps the bar at the release point instead of briefly snapping back. On Android, the reported position catches up shortly after the seek lands. See [PlayerTime](/sdk/player#playertime) for details.
+</Note>
+
 ## Feed scroll control
 
 By default the feed owns vertical swipe: dragging up or down navigates between items. When a custom overlay has its own drag gesture — a horizontal scrubber, a slider, a draggable control — the feed's swipe can capture the touch mid-drag. Toggle feed scroll to give your gesture exclusive priority while it is in flight: disable it when the gesture starts, re-enable it when the gesture ends or is cancelled.
