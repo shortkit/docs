@@ -15,7 +15,7 @@ Returns metric values bucketed over time. Granularity is automatic: hourly for r
 ## Query parameters
 
 <ParamField query="measurement" type="string">
-  Aggregation function: `sum` or `avg`. Only applies to aggregate metrics. Count metrics ignore this parameter.
+  Aggregation function: `sum`, `avg`, `p50`, or `p95`. Only applies to aggregate metrics. Count metrics ignore this parameter. See [Percentile measurements](/api/analytics/metrics#percentile-measurements).
 </ParamField>
 
 <ParamField query="filters[]" type="string">
@@ -86,5 +86,9 @@ curl "https://api.shortkit.dev/v1/metrics/completions/timeseries?timeframe[]=24:
 **Daily total watch time over 7 days:**
 ```bash
 curl "https://api.shortkit.dev/v1/metrics/watch_time/timeseries?measurement=sum&timeframe[]=7:days" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+  -H "Authorization: Bearer sk_liv..._key"
 ```
+
+<Note>
+  For percentile measurements (`p50`, `p95`), the series covers only completed buckets. When the timeframe reaches the current time, the in-progress bucket is omitted rather than returned as a zero point, and the response carries `meta.hist_through` (a Unix timestamp marking the end of the last covered bucket).
+</Note>

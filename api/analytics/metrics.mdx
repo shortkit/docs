@@ -39,6 +39,21 @@ These support a `measurement` parameter: `sum` or `avg`.
 | `playing_time` | `sum` | Actual playback time excluding buffering (ms) |
 | `video_startup_time` | `avg` | Time from impression to first frame (ms) |
 
+### Percentile measurements
+
+Aggregate metrics also accept percentile measurements — `p50` (the median) and `p95` — in place of `sum` or `avg`. Use them for quality metrics such as `video_startup_time`.
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/video_startup_time?measurement=p95&timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_liv..._key"
+```
+
+Percentile values are estimated. Percentile responses carry `meta.approx: true` and a `meta.hist_through` field — a Unix timestamp (seconds) marking the end of the last hour included in the estimate. When the timeframe reaches the current time, the in-progress hour is excluded, so `meta.hist_through` is the end of the last completed hour.
+
+<Note>
+  `meta.hist_through` appears only on percentile responses. `sum`, `avg`, count, and `breakdown` responses do not include it.
+</Note>
+
 ## Filters
 
 Every metrics endpoint accepts `filters[]` entries of the form `dimension:value`. Repeat the parameter to combine dimensions; each dimension takes one value and the conditions are ANDed.
