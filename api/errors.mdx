@@ -52,6 +52,7 @@ Each error object contains:
 | **429** | `rate_limited` | Too many requests. Back off and retry. |
 | **500** | `internal_error` | Something went wrong on our end. If this persists, contact support with the `request_id`. |
 | **503** | `service_unavailable` | A dependency is briefly unavailable. Retry the request. |
+| **504** | `analytics_timeout` | An analytics read query exceeded its time limit and was cancelled. Narrow the timeframe or filters and retry. See [Analytics query timeouts](#analytics-query-timeouts). |
 
 ## Error handling
 
@@ -76,6 +77,35 @@ if response.status_code >= 400:
         # Log and alert
         print(f"Unexpected error: {error['code']} — {error['message']}")
 ```
+
+## Analytics query timeouts
+
+Analytics read endpoints — the metrics, breakdown, timeseries, views, and dimension-values routes — are bounded by a per-query time limit. A query that exceeds the limit is cancelled and the API returns a `504` with the `analytics_timeout` code:
+
+```json
+{
+  "data": null,
+  "meta": {
+    "request_id": "req_tmo001"
+  },
+  "errors": [
+    {
+      "code": "analytics_timeout",
+      "message": "The analytics query exceeded 90000 ms and was cancelled; narrow the timeframe or filters and retry."
+    }
+  ]
+}
+```
+
+This usually means the query spans too much data. To stay under the limit:
+
+- Narrow the `timeframe[]` to a shorter window.
+- Add `filters[]` to scope the query to fewer views.
+- Request one breakdown `dimension` at a time rather than fanning out many in parallel.
+
+<Note>
+  A `504` is safe to retry, but retrying the same query over the same timeframe will usually time out again. Narrow the request first.
+</Note>
 
 ## Rate limiting
 
