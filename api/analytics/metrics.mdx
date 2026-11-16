@@ -90,7 +90,7 @@ curl "https://api.shortkit.dev/v1/metrics/video_startup_time/breakdown?dimension
 | `client_app_name` | App | `clientAppName` passed at SDK init. | `bloom-ios` |
 | `client_app_version` | App | `clientAppVersion` passed at SDK init. From SDK 0.2.91 on iOS and Android (and the packages that bundle them), views carry the app's own version when you pass none. | `3.12.0` |
 | `sdk_version` | App | The ShortKit SDK release that recorded the view. Set for every view from the iOS and Android SDKs; for React Native and Flutter apps it is the native SDK the package bundles. Web SDK views have no value. | `0.2.93` |
-| `custom_1` … `custom_5` | Custom | Your [custom dimensions](/sdk/analytics#custom-dimensions), set at SDK init. | `premium_user` |
+| `custom_1` … `custom_5` | Custom | Legacy custom-dimension slots, populated only by views from SDK releases before [view attributes](/sdk/analytics#view-attributes). Newer views carry an attribute set instead. | `premium_user` |
 | `captions_enabled` | Flags | Whether captions were on during the view. Filter with `true` or `false`. | `true` |
 | `completed` | Flags | Whether the video played to the end. Filter with `true` or `false`. | `true` |
 | `exit_before_start` | Flags | Whether the viewer left before the first frame rendered. Filter with `true` or `false`. | `false` |

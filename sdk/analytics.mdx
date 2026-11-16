@@ -1,7 +1,7 @@
 ---
 title: "Analytics"
 description: ""
-keywords: ["analytics", "events", "tracking", "custom dimensions", "content signals", "identity"]
+keywords: ["analytics", "events", "tracking", "view attributes", "attribute sets", "content signals", "identity"]
 ---
 
 The SDK automatically collects playback and engagement events the moment the feed is displayed. No setup is required.
@@ -96,13 +96,15 @@ Collected once per view and attached automatically.
 | `deviceInfo` | `Object` | Device and connection metadata: OS, device model, connection type. Includes `osName`, `osVersion`, `deviceCategory`, `deviceManufacturer`, `deviceModel`, `connectionType`. |
 | `clientAppName` | `String?` | App name passed at SDK init. |
 | `clientAppVersion` | `String?` | App version passed at SDK init. |
-| `customDimensions` | `Object?` | Custom dimensions (`custom_1` through `custom_5`), if set at init. |
+| `attributeSetId` | `String?` | 32-hex id of the view's effective [attribute set](#view-attributes). Absent when the set is empty. |
 
 All of these metrics are queryable through the [metrics API](/api/analytics/metrics), which supports aggregation, dimension breakdowns, timeseries, filtering, and raw data export.
 
-## Custom dimensions
+## View attributes
 
-Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event and become queryable as dimensions in the [metrics API](/api/analytics/metrics).
+Attach named string attributes to the views the SDK records. Set arbitrary keys — `channel`, `plan`, `experiment` — not fixed slots. Every `viewEnd` carries an `attributeSetId` that identifies the view's effective set, which you then break metrics down by in the [metrics API](/api/analytics/metrics).
+
+Set attributes at the instance level, pass them at init, or change them at runtime with `setAttributes`.
 
 <Tabs>
   <Tab title="Swift">
@@ -112,12 +114,15 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
         config: FeedConfig(),
         clientAppName: "MyNewsApp",
         clientAppVersion: "2.1.0",
-        customDimensions: [
-            "custom_1": "sports",
-            "custom_2": "premium_user",
-            "custom_3": "experiment_hero_v2"
+        attributes: [
+            "channel": "sports",
+            "plan": "premium",
+            "experiment": "hero_v2"
         ]
     )
+
+    // Change them later; views that end after this call carry the new set.
+    shortKit.setAttributes(["channel": "news", "plan": "premium"])
     ```
   </Tab>
   <Tab title="Kotlin">
@@ -127,12 +132,14 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
         config = FeedConfig(),
         clientAppName = "MyNewsApp",
         clientAppVersion = "2.1.0",
-        customDimensions = mapOf(
-            "custom_1" to "sports",
-            "custom_2" to "premium_user",
-            "custom_3" to "experiment_hero_v2"
+        attributes = mapOf(
+            "channel" to "sports",
+            "plan" to "premium",
+            "experiment" to "hero_v2"
         )
     )
+
+    shortKit.setAttributes(mapOf("channel" to "news", "plan" to "premium"))
     ```
   </Tab>
   <Tab title="Flutter">
@@ -141,10 +148,10 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
       apiKey: 'pk_live_...',
       clientAppName: 'MyNewsApp',
       clientAppVersion: '2.1.0',
-      customDimensions: {
-        'custom_1': 'sports',
-        'custom_2': 'premium_user',
-        'custom_3': 'experiment_hero_v2',
+      attributes: {
+        'channel': 'sports',
+        'plan': 'premium',
+        'experiment': 'hero_v2',
       },
       child: MyApp(),
     )
@@ -161,10 +168,10 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
           config={{}}
           clientAppName="MyNewsApp"
           clientAppVersion="2.1.0"
-          customDimensions={{
-            custom_1: 'sports',
-            custom_2: 'premium_user',
-            custom_3: 'experiment_hero_v2',
+          attributes={{
+            channel: 'sports',
+            plan: 'premium',
+            experiment: 'hero_v2',
           }}
         >
           <ShortKitFeed />
@@ -178,21 +185,33 @@ Pass up to 5 string dimensions at SDK init. They attach to every `viewEnd` event
     const sk = new ShortKit({
       apiKey: 'pk_live_...',
       clientAppName: 'MyNewsApp',
-      customDimensions: {
-        custom_1: 'sports',
-        custom_2: 'premium_user',
-        custom_3: 'experiment_hero_v2',
+      attributes: {
+        channel: 'sports',
+        plan: 'premium',
+        experiment: 'hero_v2',
       },
     });
     ```
   </Tab>
 </Tabs>
 
-Keys must be `custom_1` through `custom_5`. Other keys are silently dropped. Values are plain strings.
+Keys and values are plain strings. A set holds up to 32 keys; keys and values are length-bounded and trimmed, and empty sets record no `attributeSetId`.
 
-Custom dimensions are immutable after init. To change them (for example, after a user upgrades their subscription), create a new `ShortKit` instance.
+### Precedence
+
+Attributes resolve per view from three levels, where a more specific level wins per key:
+
+1. **Instance** — passed at init or set with `setAttributes`.
+2. **Feed** — `FeedConfig.attributes`, or `ShortKitFeedViewController.setAttributes(_:)` at runtime.
+3. **Surface** — `attributes` on `WidgetConfig`, `TileGroupConfig` and `PlayerConfig`, merged into the feed a surface opens.
+
+Feed and surface attributes merge over the instance map per key: keys set only on the instance survive, and a key present at both levels takes the more specific value. A view's effective set is frozen when its `viewEnd` is recorded — calling `setAttributes` does not rewrite views that have already ended.
 
 `clientAppName` and `clientAppVersion` are also set at init and included in every `viewEnd` event. Use them to segment analytics by app version.
+
+<Note>
+  Migrating from `customDimensions`? The `custom_1` … `custom_5` slots are replaced by free-form `attributes`. Pass your dimensions as named keys instead of fixed `custom_N` slots, and break down by attribute in the metrics API rather than by `custom_N`.
+</Note>
 
 ## Content signals
 
