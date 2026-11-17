@@ -41,10 +41,34 @@ These support a `measurement` parameter: `sum` or `avg`.
 
 ## Filters
 
-Every metrics endpoint accepts `filters[]` entries of the form `dimension:value`. Repeat the parameter to combine dimensions; each dimension takes one value and the conditions are ANDed.
+Every metrics endpoint accepts `filters[]` entries of the form `dimension:value`. Different dimensions are ANDed. Within a single dimension, you can include several values, exclude values, and match the "(not set)" value.
+
+| Form | Meaning |
+|------|---------|
+| `filters[]=dim:a` | Include views where `dim` is `a`. |
+| `filters[]=dim:a&filters[]=dim:b` | Include views where `dim` is `a` **or** `b`. |
+| `filters[]=dim!:a` | Exclude views where `dim` is `a`. Trailing `!` on the key is the exclude operator. |
+| `filters[]=dim!:a&filters[]=dim!:b` | Exclude views where `dim` is `a` or `b`. |
+| `filters[]=dim:` | Include views where `dim` is not set (empty value). |
+| `filters[]=dim!:` | Exclude views where `dim` is not set. |
+| `filters[]=dim:a&filters[]=dim:` | Include views where `dim` is `a` or not set. |
+
+Rules:
+
+- Repeat the parameter to add dimensions or add values to a dimension.
+- You can include values **or** exclude values on one dimension, not both. Mixing include and exclude on the same dimension returns `400 invalid_request`.
+- Up to 100 values per dimension.
+- The empty value (`dim:`) is the "(not set)" group for every dimension — the views that carry no value for it.
 
 ```bash
-curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days&filters[]=sdk_version:0.2.93&filters[]=os_name:iOS" \
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days&filters[]=sdk_version:0.2.93&filters[]=sdk_version:0.2.92&filters[]=os_name:iOS" \
+  -H "Authorization: Bearer sk_live_your_secret_key"
+```
+
+Exclude a value and filter on not-set:
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days&filters[]=country!:US&filters[]=error_code:" \
   -H "Authorization: Bearer sk_live_your_secret_key"
 ```
 
