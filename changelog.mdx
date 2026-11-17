@@ -35,6 +35,27 @@ rss: true
 */}
 
 <Update
+  label="November 17, 2026"
+  description="SDK 0.4.0"
+  tags={["iOS", "Android", "React Native", "Flutter"]}
+  rss={{
+    title: "SDK 0.4.0: scrub-preview storyboards are built in",
+    description: "The SDK now delivers each cell's scrub-preview frames to its overlay. Custom overlays that fetched them by hand need a small migration.",
+  }}
+>
+  ## SDK 0.4.0: scrub-preview storyboards are built in
+
+  The SDK now fetches each feed cell's scrub-preview storyboard and hands it to that cell's overlay — no manual fetching. Frames are ready a moment after a cell lands, or right away when a viewer grabs the scrubber.
+
+  - Read the storyboard from `storyboardResolved(_:)` (iOS, Android), the `storyboard` field on `OverlayState` (Flutter), or the `storyboard` prop (React Native).
+  - Report scrub-begin so the SDK fetches early: `setStoryboardRequestHandler` (iOS, Android), `ShortKitOverlayCommands.scrubBegan()` (Flutter), or `useOverlayPlayer().scrubBegan()` (React Native).
+
+  <Warning>
+    Breaking change. If your custom overlay fetched scrub-preview storyboards by hand, migrate to the delivered storyboard: iOS, Android and React Native are **0.4.0**; Flutter is **0.3.0**. See [Scrub-preview storyboards](/sdk/overlays#scrub-preview-storyboards).
+  </Warning>
+</Update>
+
+<Update
   label="October 7, 2026"
   description="Usage alerts"
   tags={["Admin portal"]}
