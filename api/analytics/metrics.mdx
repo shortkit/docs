@@ -19,6 +19,61 @@ All metrics endpoints accept a `timeframe[]` query parameter to control the time
 
 Default: `7:days`.
 
+## Comparisons
+
+Pass `compare` to [Get Metric](/api/analytics/get-metric), [Get Metric Timeseries](/api/analytics/get-timeseries), and `POST /v1/metrics/batch` to return a second read of the same metric over a shifted window, under a `compare` key. The comparison window always has the same length as the current window.
+
+| Mode | Comparison window |
+|------|-------------------|
+| `previous_period` | The period immediately before the current window — same length, ending where the current window starts. |
+| `previous_week` | The current window moved back exactly seven days. |
+| `custom` | Same length as the current window, starting at `compare_start`. |
+
+For `custom`, pass `compare_start` as integer epoch seconds — the same format as the absolute `timeframe[]` values. On `GET` requests it is a query parameter; in the batch body it is a JSON integer (or that integer as a string).
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=7:days&compare=previous_period" \
+  -H "Authorization: Bearer ***
+```
+
+```bash
+curl "https://api.shortkit.dev/v1/metrics/views?timeframe[]=1740700800&timeframe[]=1741305600&compare=custom&compare_start=1739491200" \
+  -H "Authorization: Bearer ***
+```
+
+The response adds a `compare` block alongside `data`:
+
+```json
+{
+  "data": {
+    "value": 12450,
+    "total_views": 12450
+  },
+  "timeframe": [1740700800, 1741305600],
+  "compare": {
+    "mode": "custom",
+    "timeframe": [1739491200, 1740096000],
+    "data": {
+      "value": 10980,
+      "total_views": 10980
+    }
+  },
+  "meta": {
+    "request_id": "req_m004"
+  }
+}
+```
+
+The comparison window must end at or before the current window's start. A `compare_start` that would make the two windows overlap returns a `400` `invalid_request`; a window ending exactly at the current window's start is allowed and is equivalent to `previous_period`. The API also returns `400` `invalid_request` when:
+
+- `compare=custom` is sent without `compare_start`;
+- `compare_start` is not a non-negative integer epoch (no sign, spaces, separators, floats, or booleans);
+- `compare_start` is sent with any mode other than `custom`, or with no `compare` at all.
+
+<Note>
+  `compare` is not accepted on `GET /v1/metrics/{metric}/breakdown`.
+</Note>
+
 ## Available metrics
 
 ### Count metrics

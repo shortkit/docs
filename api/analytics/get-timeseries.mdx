@@ -26,6 +26,14 @@ Returns metric values bucketed over time. Granularity is automatic: hourly for r
   Time range. Relative (`7:days`, `24:hours`) or absolute (two Unix timestamps).
 </ParamField>
 
+<ParamField query="compare" type="string">
+  Return a second read of the metric over a shifted window, under a `compare` key. One of `previous_period`, `previous_week`, or `custom`. Buckets are re-based by index so each current bucket lines up with its counterpart. See [Comparisons](/api/analytics/metrics#comparisons).
+</ParamField>
+
+<ParamField query="compare_start" type="integer">
+  Required when `compare=custom`, and rejected otherwise. Integer epoch seconds marking the start of the comparison window, which has the same length as the current window. See [Comparisons](/api/analytics/metrics#comparisons).
+</ParamField>
+
 <RequestExample>
 ```bash cURL
 curl "https://api.shortkit.dev/v1/metrics/views/timeseries?timeframe[]=30:days" \
