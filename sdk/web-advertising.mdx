@@ -1,7 +1,7 @@
 ---
 title: "Web advertising"
 description: "Serve ads inside the Web SDK feed -- consent, placements, direct and Google sources, disclosure labels, and the header-bidding hook for Google Ad Manager display slots."
-keywords: ["advertising", "ads", "web", "placement", "consent", "google ad manager", "gam", "gpt", "header bidding", "prebid", "display", "native", "vast", "pal", "disclosure"]
+keywords: ["advertising", "ads", "web", "placement", "consent", "tcf", "cmp", "iab", "google ad manager", "gam", "gpt", "header bidding", "prebid", "display", "native", "vast", "pal", "disclosure"]
 ---
 
 The Web SDK inserts ads between content items in a feed. You pick the sources a page is allowed to serve, the server decides when and which ad to show, and the SDK renders it as a feed cell with a disclosure label. Ads never appear in `ContentItem` lists, the content index, or organic analytics callbacks.
@@ -62,6 +62,58 @@ The Web SDK inserts ads between content items in a feed. You pick the sources a 
     ```
   </Step>
 </Steps>
+
+## Map consent from a TCF CMP
+
+If your page runs an [IAB TCF v2](https://iabeurope.eu/transparency-consent-framework/) consent management platform (CMP), you can derive the Google sources' consent from it instead of calling `setAdvertisingConsent` by hand. `bindTcfConsent` reads the standard `__tcfapi` that any TCF CMP registers, maps the result onto the consent keys, and calls `setAdvertisingConsent` whenever the user's choice changes.
+
+The helper lives in the advertising entry (`@shortkitsdk/web/advertising`), not the main bundle. In the classic sidecar it is `ShortKitAdvertising.bindTcfConsent`.
+
+```js app.js
+import { ShortKit } from '@shortkitsdk/web';
+import { bindTcfConsent } from '@shortkitsdk/web/advertising';
+
+const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
+
+const unbind = bindTcfConsent(sk, {
+  personalized: true,
+  additional: { direct_upload: true },
+});
+
+// when you tear the SDK down
+unbind();
+```
+
+`bindTcfConsent(sdk, options)` returns an unsubscribe function that removes the CMP listener and leaves the SDK's last consent snapshot in place.
+
+<ParamField path="sources" type="string[]">
+  Narrow the set of Google sources the helper manages. Defaults to all of `gam_display`, `gam_vast_pal`, `google_native` and `google_swipeable`.
+</ParamField>
+
+<ParamField path="personalized" type="boolean" default="false">
+  When `true`, require the extra consent that personalized ads need. Otherwise the helper grants the consent needed for non-personalized ads.
+</ParamField>
+
+<ParamField path="additional" type="object">
+  Consent for sources that the CMP does not cover, merged into every `setAdvertisingConsent` call. `direct_upload` is not an IAB vendor and is never derived from TCF, so pass it here if you serve it.
+</ParamField>
+
+### When a source is granted
+
+A Google source is granted when either the CMP reports `gdprApplies === false`, or the consent data is final (`eventStatus` is `tcloaded` or `useractioncomplete`) and all of the following hold for Google:
+
+- vendor consent for Google,
+- consent for storing and accessing information on the device,
+- for each of the remaining required purposes: consent, or legitimate interest where that basis is allowed,
+- no publisher restriction forbidding the vendor that purpose or legal basis.
+
+`personalized: true` also requires consent for the personalization purposes. Anything else grants nothing: no CMP on the page, a first-visit consent prompt still open (`cmpuishown`), a failed CMP callback, or a missing vendor or purpose. A later change that no longer satisfies the rule revokes the source.
+
+<Note>
+  The helper reads `__tcfapi` once when you call it, so register your CMP (or its stub) before binding. It does not pick up a CMP that registers later.
+</Note>
+
+If your page already owns a TCF listener, call `tcfAdvertisingConsent(tcData, options)` for the full consent object, or `tcfVendorPermission(tcData, source, options)` for a single source, and pass the result to `setAdvertisingConsent` yourself. Both apply the same rule as `bindTcfConsent`.
 
 ## Ad sources
 
@@ -157,6 +209,8 @@ feed.setAdvertising({
 
 - **Initial load disabled is supported.** If your page calls `googletag.pubads().disableInitialLoad()` (or `googletag.setConfig({ disableInitialLoad: true })`), the SDK refreshes its slot after displaying it. Nothing else is needed.
 - **Single request mode.** Pages that enable `enableSingleRequest()` should also disable initial load, so the SDK's request is the only one for its slot.
+- **One GPT tag per page.** If a GPT tag is already in the document -- loaded by your page or by a header-bidding wrapper -- the SDK waits for it through `googletag.cmd` instead of injecting its own copy, and it never removes a tag it did not add. A tag that the browser would not execute (for example a consent-gated `type="text/plain"` placeholder) does not count, so the SDK injects its own copy in that case.
+- **Header-bidding wrappers that own `googletag.display`.** Some wrappers replace `googletag.display` and refresh the slot themselves. When the page had initial load enabled before such a wrapper loaded, the SDK leaves the request to the wrapper for its `gam_display` and `google_native` slots rather than refreshing a second time, so the slot is requested and rendered once.
 - **Page-wide refreshes.** Exclude the SDK's `sk-gpt-*` element ids from `pubads().refresh()` calls that refresh every slot on the page:
 
   ```js
