@@ -177,6 +177,10 @@ feed.setAdvertising(null);
 
 Revoking consent for a source with `setAdvertisingConsent` stops that source without touching the placement configuration.
 
+## Rate limits
+
+The SDK sends its ad delivery requests with your publishable key. These requests are not counted against the [standard API rate limit](/api/errors#rate-limiting), so ad serving scales with your feed's viewer traffic. Requests that fail to authenticate — a missing, malformed, or unknown key — are rate limited and return `429`.
+
 ## Next steps
 
 - [Configuration](/sdk/configuration) -- the feed options that apply alongside advertising.
