@@ -19,8 +19,8 @@ The Web SDK inserts ads between content items in a feed. You pick the sources a 
 ## Enable advertising on a feed
 
 <Steps>
-  <Step title="Grant consent per source">
-    Call `setAdvertisingConsent` on the SDK instance before enabling a placement. Each key allows one source; a source that is missing or `false` is never served, even if the placement is configured for it. Call it again whenever the user's choice changes, for example from your consent management platform.
+  <Step title="Grant consent per vendor or source">
+    Call `setAdvertisingConsent` on the SDK instance before enabling a placement. Consent is keyed by vendor and by source. The two vendor keys are `google`, which covers the Google sources (`google_native`, `gam_display`, `gam_vast_pal`), and `direct`, which covers your own direct campaigns (`direct_upload`). You can also name an individual source to allow just that source. A source that is configured on the placement but not consented is never served. Call it again whenever the user's choice changes, for example from your consent management platform.
 
     ```js app.js
     import { ShortKit } from '@shortkitsdk/web';
@@ -34,6 +34,14 @@ The Web SDK inserts ads between content items in a feed. You pick the sources a 
       gam_vast_pal: false,
     });
     ```
+
+    <Warning>
+      Direct campaigns are allowed by default. The `direct` vendor is on unless you set `direct: false`, so an empty object or a payload that names only Google sources still lets direct campaigns serve. To serve no ads at all, turn both vendors off:
+
+      ```js app.js
+      sk.setAdvertisingConsent({ google: false, direct: false });
+      ```
+    </Warning>
   </Step>
   <Step title="Attach the placement to the feed">
     Pass the placement key and, for the Google sources, the ad units this page agrees to serve.
@@ -175,7 +183,7 @@ Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and
 feed.setAdvertising(null);
 ```
 
-Revoking consent for a source with `setAdvertisingConsent` stops that source without touching the placement configuration.
+Revoking consent for a source with `setAdvertisingConsent` stops that source without touching the placement configuration. Because direct campaigns are on by default, set `direct: false` (and `google: false`) to stop everything through consent alone.
 
 ## Next steps
 
