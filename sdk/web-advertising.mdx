@@ -15,6 +15,35 @@ The Web SDK inserts ads between content items in a feed. You pick the sources a 
 - A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Feeds & sources**. Its **Feed placement key** identifies it from the SDK.
 - Analytics consent granted on the SDK instance. `analyticsConsent` defaults to `'granted'`; with `'denied'` no ads are served.
 - For the Google sources, the feed must use the default `swipePaging: 'sdk'`. Ads are not served when `swipePaging` is `'browser'`.
+- The advertising add-on must be present on the page. See [Load the advertising add-on](#load-the-advertising-add-on).
+
+## Load the advertising add-on
+
+Advertising ships as a separate add-on, not in the main bundle. Make it available before you enable a placement.
+
+<Tabs>
+  <Tab title="npm">
+    Import the advertising entry once, anywhere in your app. The bundler includes it.
+
+    ```js app.js
+    import '@shortkitsdk/web/advertising';
+    ```
+  </Tab>
+  <Tab title="Script tag">
+    Load `shortkit.advertising.js` from the same build as the SDK, after the SDK script. It registers the advertising code; the SDK picks it up.
+
+    ```html
+    <script src="https://sdk.shortkit.dev/web/0.6.0/shortkit.min.js"></script>
+    <script src="https://sdk.shortkit.dev/web/0.6.0/shortkit.advertising.js"></script>
+    ```
+
+    You can also inline the contents of `shortkit.advertising.js` in its own `<script>`. It must come from the same build as the SDK.
+  </Tab>
+</Tabs>
+
+<Warning>
+  A script-tag SDK locates `shortkit.advertising.js` next to its own `<script src>`. If the SDK itself is inlined (a `<script>` with no `src`, or one evaluated from a `blob:` or `data:` URL), it has no script URL to resolve the add-on from. Load or inline the add-on explicitly in that case. When the add-on is missing, advertising stays off and the SDK reports it — see [When the add-on cannot load](#when-the-add-on-cannot-load).
+</Warning>
 
 ## Enable advertising on a feed
 
@@ -166,6 +195,46 @@ feed.setAdvertising({
   ```
 
 - **Services.** Load GPT and enable services as you normally do. If the page has not enabled them when the first ad is prepared, the SDK enables them.
+
+## When the add-on cannot load
+
+If the advertising add-on is not on the page, advertising stays off and the feed stays organic. The SDK does not throw. It logs one `console.warn` per SDK instance naming the cause and the remedy, and the feed emits an `advertisingUnavailable` event once per cause.
+
+Listen for it with `feed.on` or the `onAdvertisingUnavailable` feed option:
+
+```js app.js
+feed.on('advertisingUnavailable', (event) => {
+  console.warn(event.message);
+});
+
+feed.setAdvertising({
+  placementKey: 'plc_web_home_feed',
+  onAdvertisingUnavailable: (event) => reportToMonitoring(event),
+  gptDisplay: { adUnitPaths: ['/12345678/news/feed-display'] },
+});
+```
+
+The event is `{ code, reason, message, url? }`:
+
+<ParamField path="reason" type="string">
+  Why advertising could not load. One of:
+
+  - `no_script_url` — the SDK was inlined (a `<script>` with no `src`, or a `blob:` / `data:` URL), so it has no script URL to find `shortkit.advertising.js` beside. Load or inline the add-on from the same build, or `import '@shortkitsdk/web/advertising'`.
+  - `load_failed` — the add-on was requested but did not load or register. `url` names the file that was tried. Common causes: a missing file, a Content Security Policy block, an integrity mismatch, or an add-on from a different build than the SDK.
+  - `timeout` — the add-on did not load within the SDK's window.
+</ParamField>
+
+<ParamField path="url" type="string">
+  The add-on URL the SDK tried to load. Present only when `reason` is `load_failed`.
+</ParamField>
+
+<ParamField path="message" type="string">
+  A human-readable description of the cause and the remedy, the same text as the `console.warn`.
+</ParamField>
+
+<ParamField path="code" type="string">
+  `advertising_load_failed`, or `advertising_load_timeout` when `reason` is `timeout`.
+</ParamField>
 
 ## Turn advertising off
 
