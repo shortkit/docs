@@ -35,6 +35,24 @@ rss: true
 */}
 
 <Update
+  label="November 19, 2026"
+  description="API"
+  tags={["API"]}
+  rss={{
+    title: "Reliable web ad delivery under high traffic",
+    description: "Web ad calls from your publishable key are no longer throttled alongside unrelated traffic, so ads keep serving during busy periods.",
+  }}
+>
+  ## Reliable web ad delivery under high traffic
+
+  Web ad delivery calls made with your publishable key now serve reliably, even
+  when a site is under heavy load. Previously these calls could be refused with a
+  `429` during traffic spikes, which caused ads to be skipped. Calls that carry a
+  valid publishable key are no longer affected by that limit. No SDK or
+  integration change is needed. See [Web advertising](/sdk/web-advertising).
+</Update>
+
+<Update
   label="October 7, 2026"
   description="Usage alerts"
   tags={["Admin portal"]}
