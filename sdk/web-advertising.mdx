@@ -167,6 +167,49 @@ feed.setAdvertising({
 
 - **Services.** Load GPT and enable services as you normally do. If the page has not enabled them when the first ad is prepared, the SDK enables them.
 
+## When ads are placed
+
+Ads are placed on the viewer's own forward gestures -- a swipe, or a wheel or touch page. Moving the feed by a command does not place an ad. The arrow keys, a host's next or previous button, `navigateDown()` / `navigateUp()`, `skipToNext()` / `skipToPrevious()`, and an animated `scrollToItem()` each give up any prepared ad and request no new decision until the viewer next lands forward by a gesture.
+
+<Note>
+  A viewer who only moves through the feed with keys or buttons sees no ads. If your UI relies on commanded navigation, drive it with gestures where you want ads to appear.
+</Note>
+
+## When advertising cannot start
+
+Advertising needs a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). On a page that is not one -- plain `http` from anything but `localhost`, for example a phone opening your development machine by its LAN address -- the browser APIs the SDK relies on to start a session (`crypto.randomUUID`, the Web Locks API) are missing, and advertising cannot start.
+
+The feed reports this once rather than failing silently: it emits an `advertisingUnavailable` event and logs one `console.warn` naming the cause and the remedy. It does not try again on later ticks. Serve the page over `https`, or from `localhost`, to restore advertising.
+
+```js app.js
+feed.on('advertisingUnavailable', (event) => {
+  console.warn(event.reason, event.message);
+});
+
+feed.setAdvertising({
+  placementKey: 'plc_web_home_feed',
+  onAdvertisingUnavailable: (event) => reportToMonitoring(event),
+  gptDisplay: { adUnitPaths: ['/12345678/news/feed-display'] },
+});
+```
+
+The event is `{ code, reason, message }`:
+
+<ParamField path="code" type="string">
+  `advertising_start_failed`.
+</ParamField>
+
+<ParamField path="reason" type="string">
+  Why advertising could not start. One of:
+
+  - `insecure_context` -- the page is not a secure context, so the browser APIs needed to start a session are missing. Serve the page over `https` or from `localhost`.
+  - `start_failed` -- any other failure to start. `message` carries the underlying error's text.
+</ParamField>
+
+<ParamField path="message" type="string">
+  A human-readable description of the cause and the remedy, the same text as the `console.warn`.
+</ParamField>
+
 ## Turn advertising off
 
 Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and `onAdSlotDestroyed` fires for each defined display slot; an ad that is currently visible finishes before it is torn down.
