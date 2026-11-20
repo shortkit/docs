@@ -167,6 +167,16 @@ feed.setAdvertising({
 
 - **Services.** Load GPT and enable services as you normally do. If the page has not enabled them when the first ad is prepared, the SDK enables them.
 
+## Ad delivery on slow connections
+
+The server prepares an ad for a slot, then answers the SDK's decision request. On a slow or unreliable connection that answer can arrive late or not at all. When the first decision for a slot times out or fails in transport, the SDK sends the same request again instead of giving the slot up. Because it is the same request, the server replies with the ad it already prepared, so the ad is shown once and no second ad is served.
+
+This is automatic and you do not configure it. The viewer never waits on it: if the viewer reaches the slot while a retry is pending, the attempt is abandoned as before. The retry stops if consent or identity changes before it runs, and the time an ad may still be shown in is measured from the first request, so an ad that comes back too late to display is discarded rather than shown.
+
+<Note>
+  A retry only applies to transport failures on the first decision for a slot. An answer that is not a transport failure -- no ad available, or a declined decision -- is final and is not retried.
+</Note>
+
 ## Turn advertising off
 
 Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and `onAdSlotDestroyed` fires for each defined display slot; an ad that is currently visible finishes before it is torn down.
