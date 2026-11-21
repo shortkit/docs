@@ -287,7 +287,7 @@ Commands are fire-and-forget methods that control playback. The SDK routes each 
 | `setMaxBitrate(_:)` | Set the maximum bitrate in bits per second. Pass `0` to uncap. |
 | `setCaptionsEnabled(_:)` | Enable or disable caption rendering. |
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (e.g. `"en"`, `"es"`). |
-| `seekThumbnail(at:)` | Returns a storyboard thumbnail for the given time, or `nil` if the storyboard is not yet loaded. |
+| `seekThumbnail(at:)` | Returns a storyboard thumbnail for the given time, or `nil` if the storyboard is not yet loaded. A miss triggers an immediate fetch of the landed cell's storyboard, so a later call returns a frame. |
 
 ## Player state machine
 

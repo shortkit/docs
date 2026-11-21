@@ -92,6 +92,7 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
         func configure(with item: ContentItem)
         func resetPlaybackProgress()
         func activatePlayback()
+        func storyboardResolved(_ storyboard: StoryboardData?)
     }
     ```
   </Tab>
@@ -102,6 +103,7 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
         fun configure(item: ContentItem)
         fun resetPlaybackProgress()
         fun activatePlayback()
+        fun storyboardResolved(storyboard: StoryboardData?)
     }
     ```
   </Tab>
@@ -129,6 +131,7 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
     | `activeCue` | `VTTCue?` | The active caption cue at the current time, or `null` between cues. |
     | `feedScrollPhase` | `FeedScrollPhase` | Current feed scroll state (`dragging(from:)` or `settled`). |
     | `isActive` | `bool` | Whether this cell is the active playback cell. |
+    | `storyboard` | `StoryboardData?` | The landed cell's scrub-preview storyboard, or `null` before it is fetched. The SDK fetches it after the cell has played for about a second (the settle dwell), or immediately after you call `ShortKitOverlayCommands.scrubBegan()`. |
   </Tab>
 </Tabs>
 
@@ -138,10 +141,118 @@ Custom overlays must conform to `FeedOverlay`. The SDK calls these methods at sp
 | `configure(with:)` | A cell receives a new content item (initial load or cell reuse). | Update labels, thumbnails, and metadata to reflect the new item. |
 | `resetPlaybackProgress()` | The cell is being prepared for new content. | Reset scrubber position, clear caption text, discard stale state from the previous item. |
 | `activatePlayback()` | The cell becomes the active playback cell. | Begin processing `player.time` updates to drive your scrubber, captions, and time-dependent UI. |
+| `storyboardResolved(_:)` | The SDK has fetched the landed cell's scrub-preview storyboard, or cleared it (`nil`). | Store the `StoryboardData` to draw scrub-preview frames. The SDK calls this after the settle dwell, or immediately after you report scrub-begin. |
 
 The SDK calls your factory closure once per cell, lazily on first use. Your overlay is added as a full-screen subview of the cell and persists across cell reuses. Immediately after creation, the SDK calls `attach(player:)` with its `ShortKitPlayer` instance -- this is where you store the player reference and subscribe to its reactive streams.
 
 From that point on, the SDK drives your overlay through the remaining protocol methods. When a cell is reused for new content, it calls `configure(with:)` followed by `resetPlaybackProgress()` so your overlay can update its metadata and clear stale state. When the cell becomes the active playback cell, it calls `activatePlayback()` -- your signal to start processing time updates.
+
+### Scrub-preview storyboards
+
+Scrub-preview frames come from a storyboard sprite the SDK fetches and hands to the overlay bound to each cell. The SDK owns the storyboard and scopes it to the landed cell:
+
+- The SDK fetches the landed cell's storyboard after the cell has played for about a second (the settle dwell), then delivers it to that cell's overlay. The next landing cancels an in-flight fetch.
+- Report scrub-begin when the user grabs your scrubber. The SDK then fetches the storyboard immediately instead of waiting out the dwell, so frames are ready for an early scrub.
+- Storyboards are cached. Returning to a cell reuses the cached sprite with no refetch.
+
+You receive the storyboard through `storyboardResolved(_:)` (iOS and Android), the `storyboard` field on `OverlayState` (Flutter), or the `storyboard` prop (React Native, with an `onOverlayStoryboardChanged` event). A `nil`/`null` delivery means there is no storyboard to draw yet; clear any frames you are showing.
+
+Report scrub-begin as soon as the drag starts:
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    // The SDK installs a request handler on your overlay. Call it when scrubbing begins.
+    feedOverlay.setStoryboardRequestHandler { [weak self] in
+        // the SDK fetches the landed cell's storyboard now, if it hasn't already
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    feedOverlay.setStoryboardRequestHandler {
+        // the SDK fetches the landed cell's storyboard now, if it hasn't already
+    }
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    // In your scrub-start handler:
+    ShortKitOverlayCommands.of(context).scrubBegan();
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    const { scrubBegan } = useOverlayPlayer();
+
+    // In your scrub-start handler:
+    scrubBegan();
+    ```
+  </Tab>
+</Tabs>
+
+#### StoryboardData
+
+The shape delivered to your overlay. `url` is the sprite sheet the SDK fetched (signed for protected items); `tiles` map playback positions to tile coordinates in the sheet.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    public struct StoryboardData {
+        public let url: String        // Sprite sheet URL
+        public let tileWidth: Int     // Tile width in pixels
+        public let tileHeight: Int    // Tile height in pixels
+        public let duration: Double   // Covered duration in seconds
+        public let imageWidth: Int    // Sprite sheet width in pixels
+        public let imageHeight: Int   // Sprite sheet height in pixels
+        public let tiles: [Tile]      // start (seconds), x, y within the sheet
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    data class StoryboardData(
+        val url: String,        // Sprite sheet URL
+        val tileWidth: Int,     // Tile width in pixels
+        val tileHeight: Int,    // Tile height in pixels
+        val duration: Double,   // Covered duration in seconds
+        val imageWidth: Int,    // Sprite sheet width in pixels
+        val imageHeight: Int,   // Sprite sheet height in pixels
+        val tiles: List<Tile>,  // start (seconds), x, y within the sheet
+    )
+    ```
+  </Tab>
+  <Tab title="Flutter">
+    ```dart
+    class StoryboardData {
+      final String url;        // Sprite sheet URL
+      final int tileWidth;     // Tile width in pixels
+      final int tileHeight;    // Tile height in pixels
+      final double duration;   // Covered duration in seconds
+      final int imageWidth;    // Sprite sheet width in pixels
+      final int imageHeight;   // Sprite sheet height in pixels
+      final List<Tile> tiles;  // start (seconds), x, y within the sheet
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx
+    interface StoryboardData {
+      url: string;         // Sprite sheet URL
+      tileWidth: number;   // Tile width in pixels
+      tileHeight: number;  // Tile height in pixels
+      duration: number;    // Covered duration in seconds
+      imageWidth: number;  // Sprite sheet width in pixels
+      imageHeight: number; // Sprite sheet height in pixels
+      tiles: { start: number; x: number; y: number }[];
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The SDK fetches only the landed cell's storyboard — never neighbouring cells. On iOS and Android, `seekThumbnail(at:)` reads from the same cell-scoped storyboard; a miss triggers an immediate fetch, the same as reporting scrub-begin.
+</Note>
 
 ### Registering your overlay
 
@@ -304,7 +415,7 @@ Call these methods from your gesture handlers and buttons to control playback:
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (e.g. "en"). |
 | `sendContentSignal(_:)` | Send a `.positive` or `.negative` signal for the recommendation engine. Call this when a user likes, shares, or otherwise engages with content. |
 | `setMaxBitrate(_:)` | Cap video bitrate in bits per second. Pass 0 to uncap. |
-| `seekThumbnail(at:)` | Returns a thumbnail image at the given time for scrubber preview, or `nil` if unavailable. |
+| `seekThumbnail(at:)` | Returns a thumbnail image at the given time for scrubber preview, or `nil` if unavailable. A miss triggers an immediate fetch of the landed cell's storyboard, so a later call returns a frame. |
 
 ### ContentItem
 
