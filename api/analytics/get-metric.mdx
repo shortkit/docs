@@ -13,7 +13,7 @@ description: "Returns a single aggregate value for a metric over a timeframe."
 ## Query parameters
 
 <ParamField query="measurement" type="string">
-  Aggregation function: `sum` or `avg`. Only applies to aggregate metrics (`watch_time`, `playing_time`, `video_startup_time`). Count metrics ignore this parameter.
+  Aggregation function: `sum`, `avg`, `p50`, or `p95`. Only applies to aggregate metrics (`watch_time`, `playing_time`, `video_startup_time`). Count metrics ignore this parameter. See [Percentile measurements](/api/analytics/metrics#percentile-measurements).
 </ParamField>
 
 <ParamField query="filters[]" type="string">
@@ -80,5 +80,28 @@ curl "https://api.shortkit.dev/v1/metrics/completions?timeframe[]=30:days" \
 **Average startup time over 24 hours:**
 ```bash
 curl "https://api.shortkit.dev/v1/metrics/video_startup_time?measurement=avg&timeframe[]=24:hours" \
-  -H "Authorization: Bearer sk_live_your_secret_key"
+  -H "Authorization: Bearer sk_liv..._key"
+```
+
+**95th percentile startup time over 30 days:**
+```bash
+curl "https://api.shortkit.dev/v1/metrics/video_startup_time?measurement=p95&timeframe[]=30:days" \
+  -H "Authorization: Bearer sk_liv..._key"
+```
+
+A percentile response includes `meta.approx` and `meta.hist_through`:
+
+```json
+{
+  "data": {
+    "value": 642,
+    "total_views": 1284503
+  },
+  "timeframe": [1738368000, 1740960000],
+  "meta": {
+    "request_id": "req_m004",
+    "approx": true,
+    "hist_through": 1740956400
+  }
+}
 ```
