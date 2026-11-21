@@ -1,0 +1,386 @@
+---
+title: "Native advertising"
+description: "Serve ads inside the iOS, Android and React Native feed -- per-source consent, per-feed placements, and the optional Google native and Google Ad Manager display adapters."
+keywords: ["advertising", "ads", "ios", "android", "react native", "placement", "consent", "google ad manager", "gam", "google mobile ads", "ump", "display", "banner", "native ads", "disclosure"]
+---
+
+The iOS, Android and React Native SDKs insert ads between content items in a feed. You grant consent per ad source, opt each feed into a placement, and install an adapter for each Google source you want to serve. The server decides when and which ad to show, and the SDK renders it as a feed cell with a disclosure label. Ads never appear in `ContentItem` lists, the content index, or organic analytics callbacks.
+
+<Note>
+  This page covers iOS, Android and React Native. For the Web SDK, see [Web advertising](/sdk/web-advertising). Feed advertising is not yet supported on Flutter.
+</Note>
+
+## Availability
+
+| Feature | Availability |
+|---|---|
+| Consent, per-feed placements, direct creatives | iOS, Android and React Native SDK 0.3.11 |
+| Google native adapter on React Native iOS | React Native SDK 0.3.11 |
+| Google Ad Manager display (`gam_display`) and its adapters | Available from the next SDK release |
+| Google adapter packages for native iOS (Swift Package Manager / CocoaPods), Android (Gradle) and React Native Android | Available from the next SDK release |
+
+## Prerequisites
+
+- A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Feeds & sources**. Its **Feed placement key** identifies it from the SDK.
+- For a Google source, the source configured on the placement with an ad unit for each platform you serve. A platform without an ad unit is not served that source.
+- For a Google source, your own consent flow (for example Google's User Messaging Platform) and Google Mobile Ads initialization. The adapters never show consent UI or initialize Google for you.
+- Do not pass the `adProvider` initializer parameter on a `ShortKit` instance whose feeds use feed advertising. The two cannot be combined: on iOS `setAdvertising` is ignored, on Android it throws.
+
+## Enable advertising on a feed
+
+<Steps>
+  <Step title="Grant consent per source">
+    Call `setAdvertisingConsent` on the SDK instance. Each key allows one source; a source that is missing or `false` is never served, even if the placement is configured for it and its adapter is installed. Each call replaces the whole previous snapshot, so include every source you allow. Call it again whenever the user's choice changes.
+
+    <Tabs>
+      <Tab title="Swift">
+        ```swift AppDelegate.swift
+        import ShortKitSDK
+
+        shortKit.setAdvertisingConsent([
+            .directUpload: true,
+            .googleNative: true,
+            .gamDisplay: true,
+        ])
+        ```
+      </Tab>
+      <Tab title="Kotlin">
+        ```kotlin MainActivity.kt
+        import com.shortkit.sdk.advertising.AdvertisingSource
+
+        shortKit.setAdvertisingConsent(mapOf(
+            AdvertisingSource.DIRECT_UPLOAD to true,
+            AdvertisingSource.GOOGLE_NATIVE to true,
+            AdvertisingSource.GAM_DISPLAY to true,
+        ))
+        ```
+      </Tab>
+      <Tab title="React Native">
+        ```tsx consent.ts
+        import { ShortKitCommands } from '@shortkitsdk/react-native';
+
+        ShortKitCommands.setAdvertisingConsent({
+          direct_upload: true,
+          google_native: true,
+          gam_display: true,
+        });
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Attach the placement to the feed">
+    Opt the feed into a placement by its key. Each feed is opted in separately; a feed you do not configure never shows ads. Pass `nil` (`null` on Android, omit the prop on React Native) to turn advertising off.
+
+    <Tabs>
+      <Tab title="Swift">
+        ```swift FeedScreen.swift
+        let feedVC = ShortKitFeedViewController(shortKit: shortKit)
+        feedVC.setAdvertising(FeedAdvertisingConfig(placementKey: "plc_ios_home_feed"))
+        ```
+      </Tab>
+      <Tab title="Kotlin">
+        ```kotlin FeedScreen.kt
+        import com.shortkit.sdk.advertising.FeedAdvertisingConfig
+
+        val feed = ShortKitFeedFragment.newInstance(shortKit)
+        feed.setAdvertising(FeedAdvertisingConfig(placementKey = "plc_android_home_feed"))
+        ```
+
+        `placementKey` must be 1 to 128 characters.
+      </Tab>
+      <Tab title="React Native">
+        ```tsx FeedScreen.tsx
+        <ShortKitFeed
+          style={{ flex: 1 }}
+          advertising={{ placementKey: 'plc_app_home_feed' }}
+        />
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Report when your UI covers the feed">
+    The SDK detects its own presentations, but not your overlays. When a drawer, sheet or banner of yours covers the feed, report it so ads are not shown or counted while hidden. The default is unobscured.
+
+    <Tabs>
+      <Tab title="Swift">
+        ```swift FeedScreen.swift
+        feedVC.setAdvertisingVisibility(isUnobscured: false)  // drawer opened
+        feedVC.setAdvertisingVisibility(isUnobscured: true)   // drawer closed
+        ```
+      </Tab>
+      <Tab title="Kotlin">
+        ```kotlin FeedScreen.kt
+        feed.setAdvertisingVisibility(isUnobscured = false)  // drawer opened
+        feed.setAdvertisingVisibility(isUnobscured = true)   // drawer closed
+        ```
+      </Tab>
+      <Tab title="React Native">
+        ```tsx FeedScreen.tsx
+        <ShortKitFeed
+          advertising={{ placementKey: 'plc_app_home_feed' }}
+          advertisingUnobscured={!drawerOpen}
+        />
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+Direct creatives uploaded in the portal need nothing more. Each Google source also needs its adapter, described below.
+
+## Ad sources
+
+| Source | Consent key | Adapter | What renders |
+|---|---|---|---|
+| Direct creatives uploaded in the portal | `direct_upload` | Built in | A video or image creative from your own campaigns. |
+| Google native | `google_native` | Google native adapter | A native ad from Google Ad Manager, laid out as a feed card. |
+| Google Ad Manager display | `gam_display` | Google display adapter | A fixed-size banner centred in the feed card under a **Sponsored** label. See [Display ads](#display-ads). |
+
+The ad unit, and for display the sizes and targeting, come from the placement's source configuration for each platform. There is nothing to configure in the app. The `google_swipeable` and `gam_vast_pal` consent keys belong to sources that this page does not cover.
+
+## Install the Google adapters
+
+The Google adapters ship separately from the core SDK, so apps that do not serve Google ads carry no Google dependency. One package contains both the native and the display adapter. It pins Google Mobile Ads SDK 13.11.0 and User Messaging Platform 3.1.0 on iOS, and the Next-Gen Google Mobile Ads SDK 1.6.0 on Android.
+
+<Tabs>
+  <Tab title="Swift">
+    The `ShortKitGoogleNativeAds` package for Swift Package Manager and CocoaPods is available from the next SDK release.
+
+    Import it alongside the core module:
+
+    ```swift
+    import ShortKitSDK
+    import ShortKitGoogleNativeAds
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    The Google adapter artifact for Gradle is available from the next SDK release. Apps that add it must enable core library desugaring:
+
+    ```kotlin build.gradle.kts
+    android {
+        compileOptions {
+            isCoreLibraryDesugaringEnabled = true
+        }
+    }
+
+    dependencies {
+        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    **iOS.** The npm package includes the adapter as an optional pod. Add it to your `ios/Podfile` with the `ReactNativeCore` subspec, and add the validation hook, which stops `pod install` if the adapter and the SDK are linked in conflicting ways:
+
+    ```ruby ios/Podfile
+    require_relative '../node_modules/@shortkitsdk/react-native/ios/AdvertisingProviders/shortkit_advertising_pods'
+
+    target 'MyApp' do
+      config = use_native_modules!
+      # ...
+      pod 'ShortKitGoogleNativeAds/ReactNativeCore',
+          :path => '../node_modules/@shortkitsdk/react-native/ios/AdvertisingProviders/GoogleNativeAds'
+    end
+
+    pre_install do |installer|
+      ShortKitAdvertisingPods.validate!(installer)
+    end
+    ```
+
+    The 0.3.11 package contains the native adapter only. The display adapter is in the same pod from the next SDK release.
+
+    **Android.** The Google adapter artifact is available from the next SDK release, with the same desugaring requirement as native Android.
+  </Tab>
+</Tabs>
+
+## Register the adapters
+
+You own the order of events: run your consent flow, start Google Mobile Ads, then let ShortKit request ads. Each adapter takes a `canRequestAds` predicate that ShortKit evaluates before every ad request. Return your consent platform's current answer from it, for example UMP's `canRequestAds`.
+
+Installing an adapter does not grant consent or opt a feed in; [consent](#enable-advertising-on-a-feed) and the feed's placement are separate gates. Constructing or installing an adapter makes no ad request and does not initialize Google.
+
+<Tabs>
+  <Tab title="Swift">
+    The iOS adapters also take an `initializationCompleted` predicate. Install them on the `ShortKit` instance on the main thread, and call `readinessDidChange(on:)` whenever either predicate's answer changes -- when Google finishes starting, or when the user changes their choice.
+
+    ```swift AppDelegate.swift
+    import GoogleMobileAds
+    import UserMessagingPlatform
+    import ShortKitSDK
+    import ShortKitGoogleNativeAds
+
+    var googleStarted = false
+    let canRequestAds = { ConsentInformation.shared.canRequestAds }
+
+    let nativeAds = GoogleNativeAdapter(
+        canRequestAds: canRequestAds,
+        initializationCompleted: { googleStarted }
+    )
+    let displayAds = GoogleDisplayAdapter(
+        canRequestAds: canRequestAds,
+        initializationCompleted: { googleStarted }
+    )
+    try nativeAds.install(on: shortKit)
+    try displayAds.install(on: shortKit)
+
+    // After your consent flow has run:
+    MobileAds.shared.start { _ in
+        googleStarted = true
+        nativeAds.readinessDidChange(on: shortKit)
+        displayAds.readinessDidChange(on: shortKit)
+    }
+    ```
+
+    Installing a second adapter for the same source replaces the first.
+
+    `install(on:)` and `readinessDidChange(on:)` are public. The lower-level `ShortKit` methods they call -- `installAdvertisingProvider(_:)`, `advertisingProviderReadinessChanged()` and `removeAdvertisingProviders()` -- are declared under the `Advertising` SPI. You only need them to remove installed adapters or to install an adapter's `sourceAdapter` yourself; import the module with the SPI to see them:
+
+    ```swift
+    @_spi(Advertising) import ShortKitSDK
+
+    shortKit.removeAdvertisingProviders()
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    Register the adapters on the main thread. An adapter reports itself ready once Google Mobile Ads has finished initializing and `canRequestAds` returns `true`; ShortKit reads both before each request, so there is no readiness call to make.
+
+    ```kotlin MainActivity.kt
+    import com.google.android.ump.UserMessagingPlatform
+    import com.shortkit.ads.GoogleDisplayFeedAdapter
+    import com.shortkit.ads.GoogleNativeFeedAdapter
+
+    val consentInfo = UserMessagingPlatform.getConsentInformation(this)
+
+    shortKit.registerFeedAdSourceAdapter(GoogleNativeFeedAdapter { consentInfo.canRequestAds() })
+    shortKit.registerFeedAdSourceAdapter(GoogleDisplayFeedAdapter { consentInfo.canRequestAds() })
+    ```
+
+    The adapters use the Next-Gen Google Mobile Ads SDK (`com.google.android.libraries.ads.mobile.sdk`). Initialize it with `MobileAds.initialize` on a background thread, with your request configuration, after your consent flow has run. Display banners render in an `Activity`. Registering a second adapter for the same source replaces the first. `unregisterFeedAdSourceAdapter(source)` removes one, and releasing the `ShortKit` instance disposes its adapters and any ads they prepared.
+  </Tab>
+  <Tab title="React Native">
+    The React Native SDK creates its native `ShortKit` instance for you, so install the adapters from native code, in a configuration callback that runs for each instance before any feed can use it. Register the callback at app launch, before React Native renders `ShortKitProvider`. Registering it after the SDK is created throws.
+
+    **iOS** (`AppDelegate.swift`):
+
+    ```swift AppDelegate.swift
+    import UserMessagingPlatform
+    import ShortKitSDK
+    import ShortKitReactNative
+    import ShortKitGoogleNativeAds
+
+    var googleStarted = false  // set when MobileAds.shared.start completes
+    weak var currentShortKit: ShortKit?
+    let nativeAds = GoogleNativeAdapter(
+        canRequestAds: { ConsentInformation.shared.canRequestAds },
+        initializationCompleted: { googleStarted }
+    )
+
+    try ShortKitReactNativeHost.configureSDK({ sdk in
+        currentShortKit = sdk
+        try nativeAds.install(on: sdk)
+    }, onError: { error in
+        // Installation failed; the feed keeps playing content without Google ads.
+    })
+
+    // Later, when Google has started or consent changed:
+    if let sdk = currentShortKit { nativeAds.readinessDidChange(on: sdk) }
+    ```
+
+    Hold the `ShortKit` instance weakly. The display adapter (`GoogleDisplayAdapter`) installs the same way from the next SDK release.
+
+    **Android** (`MainApplication.kt`, from the next SDK release):
+
+    ```kotlin MainApplication.kt
+    import com.google.android.ump.UserMessagingPlatform
+    import com.shortkit.reactnative.ShortKitReactNativeHost
+    import com.shortkit.ads.GoogleDisplayFeedAdapter
+    import com.shortkit.ads.GoogleNativeFeedAdapter
+
+    override fun onCreate() {
+        super.onCreate()
+        val consentInfo = UserMessagingPlatform.getConsentInformation(this)
+        ShortKitReactNativeHost.configureSDK({ sdk ->
+            sdk.registerFeedAdSourceAdapter(GoogleNativeFeedAdapter { consentInfo.canRequestAds() })
+            sdk.registerFeedAdSourceAdapter(GoogleDisplayFeedAdapter { consentInfo.canRequestAds() })
+        })
+        // ...
+    }
+    ```
+
+    Create fresh adapter instances inside the callback. If the callback throws, ShortKit removes any adapters it installed and the feed keeps playing content. Consent and the feed's `advertising` prop are still set from JavaScript, as above.
+  </Tab>
+</Tabs>
+
+## Display ads
+
+Display ads (`gam_display`) are fixed-size Google Ad Manager banners, available from the next SDK release.
+
+- **Sizes.** Choose the sizes on the placement's display source in the portal: 300x250, 336x280, 300x600, 320x480 or 320x100. For each ad, the SDK requests only the sizes that fit inside the feed card below the disclosure label, in the order you configured them. If none fit the device, the display source is skipped for that slot.
+- **Layout.** The banner is centred in the feed card on a black background, under a 44-point **Sponsored** label row.
+- **Impressions.** The impression is counted once, when at least half of the banner is on screen and the feed is visible and unobscured. A banner that is prepared but never scrolled into view is never counted.
+- **Turn off refresh.** Disable Ad Manager refresh for the ad units you use here. A refresh replaces the creative ShortKit served, so it ends that ad's presentation.
+- **No header-bidding hook.** Unlike the [Web SDK](/sdk/web-advertising#header-bidding-for-display-slots), the native SDKs have no host auction hook. Configure bidding for these ad units in Ad Manager.
+- **Clicks** open the advertiser's destination through Google Mobile Ads, as for any banner.
+
+## Disclosure label
+
+Google native and display ads show the label **Sponsored**. There is no label parameter on native platforms; to translate the label, localize the string in your app:
+
+- **iOS**: add the key `"Sponsored"` to your app's `Localizable.strings` (for example `"Sponsored" = "Anzeige";`).
+- **Android**: override the string resource `shortkit_advertising_sponsored` in your app's localized `res/values-*/strings.xml`.
+
+<Warning>
+  Some jurisdictions require the label in the local language and a specific wording -- for example `Anzeige` in Austria and Germany. Check the advertising rules that apply to your audience; the default label is not a legal determination.
+</Warning>
+
+## Ad presentation callbacks
+
+Each feed reports which ad, if any, is on screen through `onAdPresentationChanged`, separately from the organic item callbacks. A Google ad is reported with its source and a phase of `visible` or `active`; a direct creative with its decision and creative version. The state returns to none when the viewer leaves the ad.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift FeedScreen.swift
+    feedVC.onAdPresentationChanged = { state in
+        if case .providerAdvertisement(_, let source, let phase) = state {
+            print("Showing \(source.rawValue) ad, \(phase.rawValue)")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin FeedScreen.kt
+    feed.onAdPresentationChanged = { state ->
+        if (state is AdPresentationState.ProviderAdvertisement) {
+            Log.d("Ads", "Showing ${state.source.wireValue} ad, ${state.phase}")
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="React Native">
+    ```tsx FeedScreen.tsx
+    <ShortKitFeed
+      advertising={{ placementKey: 'plc_app_home_feed' }}
+      onAdPresentationChanged={(state) => {
+        if (state.type === 'advertisement' && 'source' in state) {
+          console.log(`Showing ${state.source} ad, ${state.phase}`);
+        }
+      }}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+## Upgrading: new display cases on Android
+
+The next SDK release adds `AdvertisingSource.GAM_DISPLAY` and the request type `FeedAdSourceRequest.Display`. If your Android code has an exhaustive `when` over `AdvertisingSource` or `FeedAdSourceRequest`, add the new cases or an `else` branch, or it will no longer compile.
+
+## Turn advertising off
+
+- **One feed:** `setAdvertising(nil)` on iOS, `setAdvertising(null)` on Android, or remove the `advertising` prop on React Native. An ad that is on screen finishes before it is removed.
+- **One source:** revoke its consent key with `setAdvertisingConsent`. The placement configuration is untouched.
+- **Google sources while consent is withdrawn:** return `false` from `canRequestAds` (and on iOS, call `readinessDidChange(on:)`). ShortKit stops requesting from that adapter.
+
+## Next steps
+
+- [Web advertising](/sdk/web-advertising) -- the same sources in the Web SDK, including the header-bidding hook for display slots.
+- [Embedding a feed](/sdk/feed) -- creating the feed you attach a placement to.
+- [Analytics](/sdk/analytics) -- the organic events the SDK reports; ad presentations are never counted as content views.

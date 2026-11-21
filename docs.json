@@ -86,6 +86,7 @@
           {
             "group": "Monetization",
             "pages": [
+              "sdk/native-advertising",
               "sdk/web-advertising"
             ]
           }
