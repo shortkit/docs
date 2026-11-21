@@ -13,27 +13,34 @@ The Web SDK inserts ads between content items in a feed. You pick the sources a 
 ## Prerequisites
 
 - A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Feeds & sources**. Its **Feed placement key** identifies it from the SDK.
-- Analytics consent granted on the SDK instance. `analyticsConsent` defaults to `'granted'`; with `'denied'` no ads are served.
 - For the Google sources, the feed must use the default `swipePaging: 'sdk'`. Ads are not served when `swipePaging` is `'browser'`.
 
 ## Enable advertising on a feed
 
 <Steps>
-  <Step title="Grant consent per source">
-    Call `setAdvertisingConsent` on the SDK instance before enabling a placement. Each key allows one source; a source that is missing or `false` is never served, even if the placement is configured for it. Call it again whenever the user's choice changes, for example from your consent management platform.
+  <Step title="Grant advertising consent">
+    Advertising needs the viewer's consent, given **per vendor**, the way a consent banner records it. Call `setAdvertisingConsent` on the SDK instance before enabling a placement, and again whenever the viewer's choice changes.
 
     ```js app.js
     import { ShortKit } from '@shortkitsdk/web';
 
     const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
 
-    sk.setAdvertisingConsent({
-      direct_upload: true,
-      google_native: true,
-      gam_display: true,
-      gam_vast_pal: false,
-    });
+    sk.setAdvertisingConsent({ google: true });
     ```
+
+    `google` covers every Google-served source (`gam_display`, `gam_vast_pal`, `google_native`, `google_swipeable`). Direct campaigns from your own portal account (`direct`) are allowed unless you say otherwise: pass `direct: false` to turn them off, and `{ google: false, direct: false }` allows nothing.
+
+    If the page runs an IAB TCF v2.2 consent banner (Didomi, OneTrust, Sourcepoint, any registered CMP), let the SDK read it instead of writing consent code:
+
+    ```js app.js
+    import { bindTcfConsent } from '@shortkitsdk/web/advertising';
+
+    const stop = bindTcfConsent(sk);            // reads __tcfapi, grants google when the banner allows it
+    // bindTcfConsent(sk, { direct: false })   // same, without direct campaigns
+    ```
+
+    The helper follows Google's published TCF requirements (vendor 755 plus purposes 1, 2, 7, 9 and 10) and keeps the SDK in step when the viewer changes their answer. An explicit `setAdvertisingConsent` call always wins over the helper. Call `stop()` before destroying the SDK.
   </Step>
   <Step title="Attach the placement to the feed">
     Pass the placement key and, for the Google sources, the ad units this page agrees to serve.
@@ -74,7 +81,7 @@ A placement can serve several sources. The server picks the ad for each slot fro
 | Google Ad Manager display | `gam_display` | `gptDisplay.adUnitPaths` -- the display ad unit paths this page allows. The server chooses the unit and sizes. | A fixed-size display creative (for example 300x250 or 300x600) centred in the feed cell. Supports host-run header bidding, see below. |
 | Google Ad Manager video (VAST with PAL) | `gam_vast_pal` | None | A video ad from your Ad Manager ad tag. |
 
-The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. The `google_swipeable` consent key belongs to a native-only source; it is never served on web.
+The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. `google_swipeable` is a native-only source; it is never served on web.
 
 ## Disclosure label
 
@@ -175,7 +182,7 @@ Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and
 feed.setAdvertising(null);
 ```
 
-Revoking consent for a source with `setAdvertisingConsent` stops that source without touching the placement configuration.
+Revoking consent with `setAdvertisingConsent` (for example `{ google: false }`) stops those sources without touching the placement configuration.
 
 ## Next steps
 
