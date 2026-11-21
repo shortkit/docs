@@ -69,6 +69,10 @@ curl "https://api.shortkit.dev/v1/metrics/video_startup_time/breakdown?dimension
 }
 ```
 
+<Note>
+  Analytics reads are bounded by a per-query time limit. A query over a wide timeframe — especially a breakdown on a high-cardinality dimension — can exceed it and return a `504` `analytics_timeout`. Narrow the `timeframe[]` or add `filters[]` and retry. See [Analytics query timeouts](/api/errors#analytics-query-timeouts).
+</Note>
+
 ## Dimensions
 
 | Dimension | Group | Meaning | Example value |
