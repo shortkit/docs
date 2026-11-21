@@ -294,3 +294,21 @@ var body: some View {
 }
 ```
 
+## Paging the feed on the web
+
+On the web, the feed pages one item at a time in response to pointer input, matching the behavior of touch and the arrow keys.
+
+### Trackpad
+
+A two-finger trackpad gesture pages the feed the way a touch swipe does. The feed follows your fingers as you drag, and nothing is committed until you lift. On release, the feed moves at most one item, with the same speed and settle as an arrow-key step.
+
+One gesture never moves more than one item. The momentum tail that a trackpad emits after you lift is ignored — to page again, start a new gesture.
+
+### Mouse wheel
+
+A notched mouse wheel steps one item per notch.
+
+### Touch and keyboard
+
+Touch paging is unchanged. The arrow keys continue to step one item per press. See [When ads are placed](/sdk/web-advertising#when-ads-are-placed) for how gestures and commanded navigation differ for advertising.
+
