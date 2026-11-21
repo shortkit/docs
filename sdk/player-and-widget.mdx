@@ -60,6 +60,7 @@ Before displaying videos, fetch `ContentItem` objects from the ShortKit API:
 | `loop` | `Bool` / `Boolean` / `boolean` | `true` | Restart playback from the beginning when the video ends. |
 | `muteOnStart` | `Bool` / `Boolean` / `boolean` | `true` | Begin playback muted. |
 | `videoOverlay` | `VideoOverlayMode` / `OverlayConfig` | `.none` / `'none'` | Overlay rendered on top of the video. On React Native the property is named `overlay`. |
+| `attributes` | `[String: String]?` | `nil` | Named string [view attributes](/sdk/analytics#view-attributes) merged into the feed this player opens, where the surface value wins per key. |
 
 ### Embedding a player
 
@@ -311,6 +312,7 @@ The widget displays a horizontal carousel or vertical grid of video cards with m
 | `playbackMode` | `WidgetPlaybackMode` | `.singleVisibleRotating` | How the widget activates preview playback across cells. See [Playback mode](#playback-mode). |
 | `previewDuration` | `TimeInterval` | `5` | Duration in seconds of the looping preview clip shown on each card. |
 | `filter` | `FeedFilter?` | `nil` | Filter applied when the widget fetches content automatically. Same format as the `filter` parameter in `fetchContent()`. |
+| `attributes` | `[String: String]?` | `nil` | Named string [view attributes](/sdk/analytics#view-attributes) merged into the feed this widget opens, where the surface value wins per key. |
 
 ### Layout
 
@@ -812,6 +814,7 @@ Every field has the same meaning as its `WidgetConfig` counterpart. There are no
 | `feedConfig` | `FeedConfig` | `FeedConfig()` | Config for the full-screen feed opened on tap. With [per-tile feeds](#per-tile-feeds) each tile carries its own instead. |
 | `feedMask` | `FeedMaskMode` | `.none` | Optional host chrome wrapped around the opened feed. |
 | `prefetchAhead` / `prefetchBehind` | integer | `4` / `1` | Poster-prefetch horizon, in items, ahead of and behind the visible window. |
+| `attributes` | `[String: String]?` | `nil` | Named string [view attributes](/sdk/analytics#view-attributes) merged into the feed this tile group opens, where the surface value wins per key. |
 
 <Note>
   **Web:** enum values are strings (`playbackMode: 'singleVisibleRotating'`, `clickAction: 'feed'`), times are in seconds, and the prefetch horizon is one field, `prefetch: { ahead: 4, behind: 1 }`. Web also accepts `filter`, the filter for the feed opened on tap when `feedConfig` sets none, and `presentation`, the placement of that feed.

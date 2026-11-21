@@ -19,7 +19,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
             adProvider: ShortKitAdProvider? = nil,
             clientAppName: String? = nil,
             clientAppVersion: String? = nil,
-            customDimensions: [String: String]? = nil,
+            attributes: [String: String]? = nil,
             feedItems: [FeedInput]? = nil
         )
     }
@@ -34,7 +34,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
         adProvider: ShortKitAdProvider? = null,
         clientAppName: String? = null,
         clientAppVersion: String? = null,
-        customDimensions: Map<String, String>? = null,
+        attributes: Map<String, String>? = null,
         feedItems: List<FeedInput>? = null
     )
     ```
@@ -46,7 +46,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
       String? userId,
       String? clientAppName,
       String? clientAppVersion,
-      Map<String, String>? customDimensions,
+      Map<String, String>? attributes,
     })
 
     // Or use the provider shorthand:
@@ -54,7 +54,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
       apiKey: 'pk_live_...',
       userId: 'user-123',          // optional
       clientAppName: 'MyApp',      // optional
-      customDimensions: {'custom_1': 'sports'}, // optional
+      attributes: {'channel': 'sports'}, // optional
       child: const ShortKitFeed(),
     )
     ```
@@ -73,7 +73,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
       userId?: string;
       clientAppName?: string;
       clientAppVersion?: string;
-      customDimensions?: Record<string, string>;
+      attributes?: Record<string, string>;
       children: React.ReactNode;
     }
     ```
@@ -84,8 +84,8 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
       apiKey: 'pk_live_your_publishable_key',
       userId: 'user-123',           // optional
       clientAppName: 'MyApp',       // optional
-      customDimensions: {           // optional
-        custom_1: 'sports',
+      attributes: {                 // optional
+        channel: 'sports',
       },
     });
     ```
@@ -100,7 +100,7 @@ Every configuration field has a sensible default. `FeedConfig()` with no argumen
 | `adProvider` | `ShortKitAdProvider?` | `nil` | Ad provider for monetization. Pass `nil` to disable ads. |
 | `clientAppName` | `String?` | `nil` | App name included in analytics metadata. |
 | `clientAppVersion` | `String?` | `nil` | App version included in analytics metadata. |
-| `customDimensions` | `[String: String]?` | `nil` | Custom key-value pairs for analytics segmentation. Keys must be `"custom_1"` through `"custom_5"`. |
+| `attributes` | `[String: String]?` | `nil` | Named string attributes attached to every view this instance records. Set arbitrary keys, not fixed slots. See [View attributes](/sdk/analytics#view-attributes). |
 | `feedItems` | `[FeedInput]?` | `nil` | Content items to preload when using custom feed mode (`feedSource: .custom`). See [Custom feed input](/guides/content-types#custom-feed-input) for the shape. |
 
 On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN connection, and begins HLS preroll for the first video. The feed view controller can render immediately without a loading spinner.
@@ -123,6 +123,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         public var feedSource: FeedSource
         public var pullToRefreshEnabled: Bool
         public var filter: FeedFilter?
+        public var attributes: [String: String]?
 
         public init(
             feedHeight: FeedHeight = .fullscreen,
@@ -136,7 +137,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
             autoplay: Bool = true,
             feedSource: FeedSource = .algorithmic,
             pullToRefreshEnabled: Bool = true,
-            filter: FeedFilter? = nil
+            filter: FeedFilter? = nil,
+            attributes: [String: String]? = nil
         )
     }
     ```
@@ -155,7 +157,8 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
         val autoplay: Boolean = true,
         val feedSource: FeedSource = FeedSource.Algorithmic,
         val pullToRefreshEnabled: Boolean = true,
-        val filter: FeedFilter? = null
+        val filter: FeedFilter? = null,
+        val attributes: Map<String, String>? = null
     )
     ```
   </Tab>
@@ -171,6 +174,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
       FeedSource? feedSource,           // FeedSource.algorithmic or FeedSource.custom
       FeedFilter? filter,
       bool? pullToRefreshEnabled,       // default: true
+      Map<String, String>? attributes,  // view attributes for this feed
     })
     ```
 
@@ -238,6 +242,7 @@ On initialization, the SDK pre-fetches the first feed page, pre-warms the CDN co
 | `feedSource` | `FeedSource` | `.algorithmic` | `.algorithmic` fetches content from ShortKit's recommendation engine. `.custom` uses client-provided items (pass via `feedItems` on `ShortKit.init` or call `setFeedItems()` / `appendFeedItems()`). |
 | `filter` | `FeedFilter?` | `nil` | Server-side content filter. When set, the SDK fetches only content matching the filter criteria. See [FeedFilter](#feedfilter) below. |
 | `pullToRefreshEnabled` | `Bool` | `true` (`false` on Web) | Whether the user can pull down at the top of the feed to refresh it. Algorithmic feeds refetch from the first page; custom feeds wait for you to supply items with `setFeedItems()`. Web defaults to `false`; set `true` to enable the gesture. Feeds opened from a tile group, widget or player never allow pull-to-refresh. |
+| `attributes` | `[String: String]?` | `nil` | Named string attributes attached to every view this feed records. Merged over the instance-level attributes, where the feed value wins per key. See [View attributes](/sdk/analytics#view-attributes). |
 
 <Tabs>
   <Tab title="Swift">
@@ -707,7 +712,7 @@ A full initialization with all configuration options set explicitly.
                 config: config,
                 clientAppName: "MyNewsApp",
                 clientAppVersion: "2.4.1",
-                customDimensions: ["custom_1": "sports"]
+                attributes: ["channel": "sports"]
             )
         }
 
@@ -742,7 +747,7 @@ A full initialization with all configuration options set explicitly.
                 config: config,
                 clientAppName: "MyNewsApp",
                 clientAppVersion: "2.4.1",
-                customDimensions: ["custom_1": "sports"]
+                attributes: ["channel": "sports"]
             )
 
             let feedVC = ShortKitFeedViewController(shortKit: shortKit)
@@ -780,7 +785,7 @@ A full initialization with all configuration options set explicitly.
                 config = config,
                 clientAppName = "MyNewsApp",
                 clientAppVersion = "2.4.1",
-                customDimensions = mapOf("custom_1" to "sports")
+                attributes = mapOf("channel" to "sports")
             )
 
             val feedView = ShortKitFeedView(this, shortKit)
@@ -812,7 +817,7 @@ A full initialization with all configuration options set explicitly.
             apiKey: 'pk_live_your_publishable_key',
             clientAppName: 'MyNewsApp',
             clientAppVersion: '2.4.1',
-            customDimensions: {'custom_1': 'sports'},
+            attributes: {'channel': 'sports'},
             child: Scaffold(
               body: ShortKitFeed(config: config),
             ),
@@ -841,7 +846,7 @@ A full initialization with all configuration options set explicitly.
           config={config}
           clientAppName="MyNewsApp"
           clientAppVersion="2.4.1"
-          customDimensions={{ custom_1: 'sports' }}
+          attributes={{ channel: 'sports' }}
         >
           <ShortKitFeed style={{ flex: 1 }} />
         </ShortKitProvider>
@@ -863,7 +868,7 @@ A full initialization with all configuration options set explicitly.
         const sk = new ShortKit({
           apiKey: 'pk_live_your_publishable_key',
           clientAppName: 'MyNewsApp',
-          customDimensions: { custom_1: 'sports' },
+          attributes: { channel: 'sports' },
         });
 
         sk.createFeed(document.getElementById('feed'), {
