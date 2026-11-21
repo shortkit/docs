@@ -7,6 +7,8 @@ Events are created automatically by the SDK as users interact with your feed. Ea
 
 You don't need to create events manually. The SDK batches and sends them to `POST /v1/events` using your publishable key. This reference documents the event shape and types so you can query and filter them via the API.
 
+If a batch's response is lost and the SDK resends it, the server deduplicates the identical batch, so retries don't inflate the raw events you query.
+
 ## The event object
 
 ```json
