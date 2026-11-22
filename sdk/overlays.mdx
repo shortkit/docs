@@ -1107,9 +1107,9 @@ When your custom overlay includes actions like likes, shares, or saves, report t
 
 Custom overlays handle their own user interaction callbacks and report engagement through content signals.
 
-## Carousel, survey, and ad overlay modes
+## Carousel and survey overlay modes
 
-Image carousels, video carousels, surveys, and native ads follow the same overlay pattern as video content. Each has a mode enum with `.none` and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
+Image carousels, video carousels, and surveys follow the same overlay pattern as video content. Each has a mode enum with `.none` and `.custom { ... }`. The relationship is the same: the SDK owns the cell lifecycle, and the overlay provides the UI.
 
 <Tabs>
   <Tab title="Swift">
@@ -1118,8 +1118,7 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
         videoOverlay: .custom { MyVideoOverlay() },
         carouselOverlay: .custom { MyCarouselOverlay() },
         videoCarouselOverlay: .custom { MyVideoCarouselOverlay() },
-        surveyOverlay: .custom { MySurveyOverlay() },
-        adOverlay: .custom { MyAdOverlay() }
+        surveyOverlay: .custom { MySurveyOverlay() }
     )
     ```
   </Tab>
@@ -1129,8 +1128,7 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
         videoOverlay = VideoOverlayMode.Custom { MyVideoOverlay(context) },
         carouselOverlay = CarouselOverlayMode.Custom { MyCarouselOverlay(context) },
         videoCarouselOverlay = VideoCarouselOverlayMode.Custom { MyVideoCarouselOverlay(context) },
-        surveyOverlay = SurveyOverlayMode.Custom { MySurveyOverlay(context) },
-        adOverlay = AdOverlayMode.Custom { MyAdOverlay(context) }
+        surveyOverlay = SurveyOverlayMode.Custom { MySurveyOverlay(context) }
     )
     ```
   </Tab>
@@ -1151,7 +1149,7 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
     ```
 
     <Note>
-      React Native uses `overlay` (not `videoOverlay`), `surveyMode` (not `surveyOverlay`), and does not support `adOverlay`. Survey overlays in React Native only support a built-in template — custom survey components are available on iOS and Android only.
+      React Native uses `overlay` (not `videoOverlay`), and `surveyMode` (not `surveyOverlay`). Survey overlays in React Native only support a built-in template — custom survey components are available on iOS and Android only.
     </Note>
   </Tab>
 </Tabs>
@@ -1164,8 +1162,6 @@ Image carousels, video carousels, surveys, and native ads follow the same overla
 | | `.none` | SDK renders the native video pager with built-in page indicators. No custom overlay. |
 | `SurveyOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the survey UI and report responses via callbacks. |
 | | `.none` | No survey UI. Developer accesses raw `SurveyItem` data. |
-| `AdOverlayMode` | `.custom { ... }` | SDK creates your overlay per cell and manages its lifecycle. You own the ad UI and must handle policy compliance. |
-| | `.none` | No ad overlay UI. Developer accesses raw `NativeAdContent` data. |
 
 ### Custom carousel overlays
 
