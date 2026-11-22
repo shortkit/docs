@@ -1,7 +1,7 @@
 ---
 title: "Overlays"
 description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, SurveyOverlay, and AdOverlay protocols."
-keywords: ["overlays", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
+keywords: ["overlays", "styling hooks", "css", "state class", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
@@ -1383,3 +1383,70 @@ Custom ad overlays conform to `AdOverlay`. They apply to native ads only -- ads 
 <Warning>
 **Ad policy compliance.** When building a custom ad overlay, you are responsible for rendering the required policy elements: an "Ad" badge and a tappable AdChoices icon (minimum 15x15pt). Verify your implementation meets your ad provider's display requirements.
 </Warning>
+
+## Styling hooks (Web)
+
+On Web, your own chrome sits in the page around the SDK's presented feed: the full-screen feed that opens when a viewer taps a widget, a tile group or a player. The Web SDK sets class names and CSS custom properties on its elements so your stylesheet can follow the feed's state. Use them to hide a page header while the feed is open, keep a button below the status bar, or fade a control during a minimize.
+
+```css site.css
+html:has(.sk-presented.sk-presented--in:not(.sk-presented--dragging, .sk-presented--settling, .sk-presented--minimized, .sk-presented--pip)) .site-header {
+  visibility: hidden;
+}
+
+/* Keep your own button below the status-bar band, and fade it with the SDK's chrome during a minimize. */
+.sk-presented .back-button {
+  top: calc(var(--sk-bleed-top, 0px) + 12px);
+  opacity: var(--sk-chrome-alpha, 1);
+}
+```
+
+The first rule hides your page header while the feed is open and at rest. The header comes back when the viewer drags the card, the card springs back, you minimize it, the feed moves to a Picture-in-Picture window, or a dismiss begins.
+
+<Note>
+  The hooks apply from Web SDK 0.6.2. The names listed below keep their names and meanings across patch and minor releases. Every other `sk-` class and `--sk-` property is internal and can change in any release. The SDK sets every hook: select the classes and read the properties, and do not set them yourself.
+</Note>
+
+<AccordionGroup>
+  <Accordion title="State classes">
+
+| Class | Element | Set when |
+|---|---|---|
+| `sk-presented--animating` | `.sk-presented` | The open or close transition is running. Set when the root is created. Removed when the open transition settles, before `presented` fires. Set again when a dismiss begins, after `willDismiss` fires, and kept until the root is removed. |
+| `sk-presented--in` | `.sk-presented` | The feed is open. Added on the first painted frame, after `willAnimate` fires. Removed when a dismiss begins, after `willDismiss` fires. |
+| `sk-presented--dragging` | `.sk-presented` | The viewer is dragging the card to dismiss it. Added when the drag is recognised: 8 px of movement in a dismiss direction. Removed when the pointer is released or cancelled, or when `setMinimizeFrame` takes the card over. |
+| `sk-presented--settling` | `.sk-presented` | A drag was released without dismissing and the card is springing back to full size. Removed when the spring ends. |
+| `sk-presented--minimized` | `.sk-presented` | A minimize frame is applied with `setMinimizeFrame(frame)`. Removed by `setMinimizeFrame(null)` and when a dismiss begins. Matches `isMinimized`. |
+| `sk-presented--document` | `.sk-presented` | `presentation.placement` is `'document'`. Set when the root is created and kept until the root is removed. |
+| `sk-presented--pip` | `.sk-presented`, or an embedded feed's `miniplayerRoot` (its container when none is given) | The element is in a Document Picture-in-Picture window. Added before `pictureInPictureChange` fires with a window. Removed before it fires with `null`. |
+| `sk-feed-item--ambient` | `.sk-feed-item` | The cell has an ambient footer: `videoPresentation: 'ambientFooter'`, not a live stream, not a landscape source. Removed if the source later measures as landscape. |
+| `sk-feed-item--staged` | `.sk-feed-item` | The cell shows a landscape source (aspect above 1.05) in a stage: `horizontalVideoDisplay: 'fit'`, the default. Added or removed when the source aspect is first known or corrected. |
+
+The event order in each row holds within one synchronous step: the class change and the event happen in the same task.
+
+  </Accordion>
+  <Accordion title="Elements">
+
+| Class | Element |
+|---|---|
+| `sk-presented` | The root of a presented feed (`presentedFeed.root`). Carries the `sk-presented--*` state classes. |
+| `sk-presented-card` | The card inside the root that holds the feed (`presentedFeed.card`). The SDK writes `transform` and `clip-path` on it during transitions, drags and minimize. Do not set those two. |
+| `sk-feed` | The feed element inside the card of a presented feed. |
+| `sk-feed-item` | One feed cell. Carries the `sk-feed-item--*` state classes. |
+| `sk-document-mini-placeholder` | The shell left in the page while the feed is in a Picture-in-Picture window (`pictureInPicturePlaceholder`). It holds no media. For a presented feed it is a copy of the root without its children, so it carries the root's other classes as they were on entry, and it contains a copy of the card. For an embedded feed it is a copy of the feed's box. The SDK removes it on return. |
+| `sk-document-mini-notice` | Inside the placeholder: the box that holds the icon, the status text and the return button. |
+| `sk-document-mini-status` | Inside the notice: the status text. |
+| `sk-document-mini-restore` | Inside the notice: the button that returns the feed to the page. |
+
+  </Accordion>
+  <Accordion title="CSS custom properties">
+
+| Property | Set by | Element | Meaning |
+|---|---|---|---|
+| `--sk-chrome-alpha` | SDK | `.sk-presented` | Opacity for chrome during a minimize, from `1` to `0`. It is `1 − progress / 0.25`, clamped. Set while a minimize frame is applied and removed when it is cleared, so read it with a fallback: `var(--sk-chrome-alpha, 1)`. |
+| `--sk-bleed-top` | SDK | `.sk-presented` | Under `placement: 'document'`: how far the root extends above the viewport, in px. Not set under `placement: 'fixed'`. `0px` in a Picture-in-Picture window. |
+| `--sk-bleed-bottom` | SDK | `.sk-presented` | Under `placement: 'document'`: how far the root extends below the viewport, in px. Not set under `placement: 'fixed'`. `0px` in a Picture-in-Picture window. |
+| `--sk-stage-top` | SDK | `.sk-feed-item--staged` | Distance from the top of the cell to the top of the stage, in px. Removed when the cell stops being staged. |
+| `--sk-stage-height` | SDK | `.sk-feed-item--staged` | Height of the stage, in px. Removed when the cell stops being staged. |
+
+  </Accordion>
+</AccordionGroup>
