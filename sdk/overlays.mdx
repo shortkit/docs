@@ -1,7 +1,7 @@
 ---
 title: "Overlays"
-description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, SurveyOverlay, and AdOverlay protocols."
-keywords: ["overlays", "styling hooks", "css", "state class", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "AdOverlay", "player", "publishers", "commands"]
+description: "Configure the UI layer on top of ShortKit's feed cells -- use built-in templates or build your own with the FeedOverlay, CarouselOverlay, VideoCarouselOverlay, and SurveyOverlay protocols."
+keywords: ["overlays", "styling hooks", "css", "state class", "overlay mode", "news template", "custom overlay", "FeedOverlay", "CarouselOverlay", "VideoCarouselOverlay", "SurveyOverlay", "player", "publishers", "commands"]
 ---
 
 Overlays are full-screen views layered on top of the video player in each feed cell. They read state from `ShortKitPlayer` reactive streams and issue commands back to the player. The SDK manages the overlay lifecycle -- creating instances per cell, configuring them with content, and coordinating transitions as the user swipes between videos.
@@ -1337,52 +1337,6 @@ Custom survey overlays conform to `SurveyOverlay`. The protocol includes two cal
 | `resetState()` | The cell is being prepared for new content. | Cancel any pending auto-advance timers, clear selection state, reset button styling. |
 | `onSurveyResponse` | Set by SDK after creation. | Call this with the survey ID and selected option when the user taps an answer. |
 | `onAutoAdvance` | Set by SDK after creation. | Call this after a short delay following selection (e.g. 500ms). The SDK scrolls to the next feed item. |
-
-### Custom ad overlays
-
-Custom ad overlays conform to `AdOverlay`. They apply to native ads only -- ads where the video plays through ShortKit's own `PlayerPool` and the SDK provides creative metadata via `NativeAdContent`. System-defined ads (IMA/VAST) render their own UI through the ad provider and are unaffected by this setting.
-
-<Tabs>
-  <Tab title="Swift">
-    ```swift
-    public protocol AdOverlay: AnyObject {
-        func configure(with content: NativeAdContent)
-        func resetState()
-    }
-    ```
-  </Tab>
-  <Tab title="Kotlin">
-    ```kotlin
-    interface AdOverlay {
-        fun configure(content: NativeAdContent)
-        fun resetState()
-    }
-    ```
-  </Tab>
-</Tabs>
-
-| Method | When the SDK calls it | What your overlay should do |
-|--------|----------------------|----------------------------|
-| `configure(with:)` | A cell receives native ad content. | Display the headline, sponsor logo, CTA button, Ad badge, and AdChoices icon from the `NativeAdContent`. Call `content.recordImpression?()` when the ad becomes visible. |
-| `resetState()` | The cell is being prepared for new content. | Clear creative assets, reset impression state. |
-
-`NativeAdContent` provides all creative assets and action handlers:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `headline` | `String?` | Ad headline text. |
-| `body` | `String?` | Description text. |
-| `callToAction` | `String?` | CTA label (e.g. "Learn More", "Shop Now"). |
-| `advertiser` | `String?` | Advertiser or sponsor name. |
-| `sponsorIcon` | `UIImage?` | Sponsor logo. |
-| `adChoicesIcon` | `UIImage?` | AdChoices icon from the ad SDK. |
-| `ctaClickHandler` | `(() -> Void)?` | Call when the user taps the CTA. |
-| `adChoicesClickHandler` | `(() -> Void)?` | Call when the user taps the AdChoices icon. |
-| `recordImpression` | `(() -> Void)?` | Call when the ad becomes visible. |
-
-<Warning>
-**Ad policy compliance.** When building a custom ad overlay, you are responsible for rendering the required policy elements: an "Ad" badge and a tappable AdChoices icon (minimum 15x15pt). Verify your implementation meets your ad provider's display requirements.
-</Warning>
 
 ## Styling hooks (Web)
 
