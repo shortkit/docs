@@ -71,6 +71,7 @@
             "pages": [
               "sdk/player",
               "sdk/overlays",
+              "sdk/web-styling-hooks",
               "sdk/carousel",
               "sdk/feed-replacement",
               "guides/language-detection"
