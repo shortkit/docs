@@ -138,6 +138,18 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     Sync your project. In Android Studio, click **Sync Now** when prompted, or go to **File** then **Sync Project with Gradle Files**.
 
     No custom repository URL is needed — ShortKit is published to Maven Central, which is included by default in Android projects.
+
+    <Note>
+      From `0.3.20`, the default Android artifact is minified. Its public API is unchanged, but non-public classes and members are renamed. If your integration references SDK internals that are not part of the public API, depend on the matching `-compat` build instead:
+
+      ```kotlin build.gradle.kts
+      dependencies {
+          implementation("dev.shortkit:shortkit:0.3.20-compat")
+      }
+      ```
+
+      A plain version range resolves to the minified build. The `-compat` build is unminified and reports its SDK version as `0.3.20-compat` in analytics. Versions up to `0.3.19` are unaffected.
+    </Note>
   </Tab>
   <Tab title="Flutter">
     Add ShortKit to your `pubspec.yaml`:
@@ -195,6 +207,16 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     ```bash
     cd ios && pod install
     ```
+
+    <Note>
+      From `0.3.20`, the bundled Android SDK inside this package is minified. Its public API is unchanged, but non-public classes and members are renamed. If your integration reaches Android SDK internals that are not part of the public API, install the matching `-compat` build instead:
+
+      ```bash
+      npm install @shortkitsdk/react-native@compat
+      ```
+
+      The `latest` tag serves the minified build; the `compat` tag serves the unminified `0.3.20-compat` build. iOS is identical in both. Versions up to `0.3.19` are unaffected.
+    </Note>
   </Tab>
   <Tab title="Expo">
     Install the package using the Expo CLI:
