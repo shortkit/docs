@@ -1,0 +1,116 @@
+---
+title: "Feed masks"
+description: "Render your own chrome over a React Native feed with a bottom dock or a full-screen layer."
+keywords: ["feed mask", "createFeedMask", "contentLayout", "dock", "screen", "React Native", "drawer"]
+---
+
+A feed mask lets you render your own React chrome over a ShortKit feed — a bottom dock, inline drawers, or controls that sit above the video. Pass the mask to a player, widget, or tile group through `config.feedMask`, and the SDK mounts your component over the feed it opens.
+
+<Note>
+  `createFeedMask` is a React Native API. On iOS and Android, pass a `FeedMaskMode` to the component's config instead.
+</Note>
+
+## Content layouts
+
+A mask renders in one of two layouts, set by `contentLayout`:
+
+| Value | Description |
+|---|---|
+| `dock` | Default. React renders inside a native bottom dock reserved by `height`. The native feed occupies the remaining space above it. |
+| `screen` | React fills the owning feed screen, while `height` still reserves the same bottom dock. Use this when a mask needs inline drawers or other controls over the feed. |
+
+Both layouts are supported on iOS and Android. Omitting `contentLayout`, or setting it to `'dock'`, keeps the dock layout and its safe-area defaults.
+
+<Note>
+  The `screen` layout mounts your React tree over the feed on both platforms. On Android, the surface mounts in a transparent layer above the feed; each gesture goes to React only where React drew a control, and otherwise to the feed. Previous SDK versions ignored `contentLayout` on Android and always used the dock.
+</Note>
+
+## Create a mask
+
+```tsx
+import { createFeedMask, type FeedMaskProps } from '@shortkitsdk/react-native';
+import { View } from 'react-native';
+
+const DOCK_HEIGHT = 96;
+
+function ScreenChrome(props: FeedMaskProps & { contentId: string }) {
+  return (
+    <View style={{ flex: 1 }} pointerEvents="box-none">
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: DOCK_HEIGHT }}>
+        <MyDock {...props} />
+      </View>
+      <MyInlineDrawers contentId={props.contentId} />
+    </View>
+  );
+}
+
+const feedMask = createFeedMask({
+  name: 'screenChrome',
+  height: DOCK_HEIGHT,
+  contentLayout: 'screen',
+  component: ScreenChrome,
+});
+// Pass feedMask to a ShortKitPlayer, ShortKitWidget, or ShortKitTileGroup config.
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `name` | `string` | — | Identifier for the mask. |
+| `component` | `React.ComponentType<FeedMaskProps>` | — | The component rendered over the feed. |
+| `height` | `number` | `96` | Reserved bottom dock height, in points, in either layout. |
+| `contentLayout` | `'dock' \| 'screen'` | `'dock'` | Where React renders. See [Content layouts](#content-layouts). |
+| `layout` | `'feed' \| 'perItem'` | `'feed'` | Opt into full-height pages with footer space reserved inside each cell. |
+| `hiddenItemTypes` | `FeedItemType[]` | — | Per-item layout only: these cell types fill the page and have no footer. |
+
+## Passing touches through
+
+In the `screen` layout your React tree covers the feed, so blank areas must forward swipes and taps to the video.
+
+- Keep full-screen layout wrappers `pointerEvents="box-none"` so blank regions yield feed gestures, while rendered buttons and open drawer panels keep their normal hit testing.
+- A transparent background color alone does not make a React Native view pass touches through.
+- Closed drawers should render nothing or disable their hit testing.
+
+<Warning>
+  On Android, `pointerEvents` reaches only `<View>` natively, so a container without a background counts as a touch target only through a child that has one. Give a transparent touch-catching region `pointerEvents="box-only"`.
+</Warning>
+
+`createFeedMask` seeds the optional safe-area provider and makes its own screen wrappers `box-none`. Your host still controls padding and safe-area handling inside the dock or drawer.
+
+## Per-item footer space
+
+Set `layout: 'perItem'` with `hiddenItemTypes` to reclaim footer space for pages that should fill the screen — for example, locked pages. The pager stays full-height; each native cell receives its content inset before display (the configured `height`, or zero for a hidden type), so settling a swipe does not resize the pager.
+
+Wrap only the footer in `FeedMaskDock`, keeping drawers outside that wrapper:
+
+```tsx
+import { createFeedMask, FeedMaskDock, type FeedMaskProps } from '@shortkitsdk/react-native';
+import { View } from 'react-native';
+
+const DOCK_HEIGHT = 96;
+
+function PerItemChrome(props: FeedMaskProps) {
+  return (
+    <View style={{ flex: 1 }} pointerEvents="box-none">
+      <FeedMaskDock style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: DOCK_HEIGHT }}>
+        <MyDock {...props} />
+      </FeedMaskDock>
+      <MyInlineDrawers contentId={props.item.id} />
+    </View>
+  );
+}
+
+const perItemMask = createFeedMask({
+  name: 'perItemChrome',
+  height: DOCK_HEIGHT,
+  layout: 'perItem',
+  hiddenItemTypes: ['locked'],
+  contentLayout: 'screen', // inline drawers over the feed on both platforms
+  component: PerItemChrome,
+});
+```
+
+Keep `FeedMaskDock` mounted across item changes and let the SDK control its visibility. The footer fades out on the departing half of a swipe, switches identity at the midpoint, and fades in on the arriving half only after React has committed matching content. Hidden types and empty feeds have no interactive footer.
+
+## Minimizing the feed behind a drawer
+
+The per-mask screen transform — which minimizes the feed behind an open drawer — is available on **iOS only**. iOS screen masks receive an immutable `screenMaskId` in `FeedMaskProps`; pass it when creating a transform driver scoped to that mask instance. On Android, masks keep the dock transform behavior.
