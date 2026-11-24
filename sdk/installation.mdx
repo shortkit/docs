@@ -140,7 +140,9 @@ Get ShortKit installed and verified in your app. Choose your platform below.
     No custom repository URL is needed — ShortKit is published to Maven Central, which is included by default in Android projects.
 
     <Note>
-      From `0.3.20`, the default Android artifact is minified. Its public API is unchanged, but non-public classes and members are renamed. If your integration references SDK internals that are not part of the public API, depend on the matching `-compat` build instead:
+      The latest Android version available on Maven Central is `0.3.19`. `0.3.20` is not yet published to Maven Central — Gradle cannot resolve `dev.shortkit:shortkit:0.3.20`. Stay on `0.3.19` until `0.3.20` is published.
+
+      From `0.3.20`, the default Android artifact is minified. Its public API is unchanged, but non-public classes and members are renamed. Once `0.3.20` is published to Maven Central, a plain version range resolves to the minified build. If your integration references SDK internals that are not part of the public API, depend on the matching `-compat` build instead:
 
       ```kotlin build.gradle.kts
       dependencies {
@@ -148,7 +150,7 @@ Get ShortKit installed and verified in your app. Choose your platform below.
       }
       ```
 
-      A plain version range resolves to the minified build. The `-compat` build is unminified and reports its SDK version as `0.3.20-compat` in analytics. Versions up to `0.3.19` are unaffected.
+      The `-compat` build is unminified and reports its SDK version as `0.3.20-compat` in analytics. Versions up to `0.3.19` are unaffected.
     </Note>
   </Tab>
   <Tab title="Flutter">
