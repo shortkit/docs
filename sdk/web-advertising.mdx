@@ -86,7 +86,7 @@ Ad slots are positions in the feed. The server sets the cadence -- how many cont
 Jumps skip ads. `scrollToItem` and `navigateTo(index)` land on the requested item exactly; ad positions they pass over are not shown, and an ad prepared for the position you leave is given up. The cadence counts only the item a jump lands on, and the next position is claimed after the next forward step.
 
 <Note>
-  `ViewerStepOptions` and its `userInitiated` option are deprecated. The option is still accepted and is now ignored. Through `0.6.2` a programmatic step placed ads only when you passed `{ userInitiated: true }` from a live user activation, so host buttons that did not pass it never showed ads on button paging. Steps now place ads at the cadence regardless, so you can drop the option.
+  The `userInitiated` option on a programmatic step is deprecated. It is still accepted and is now ignored. A step without it previously skipped the ad position, so host buttons that did not pass `{ userInitiated: true }` never placed ads on button paging. Steps now place ads at the cadence regardless, so you can drop the option.
 </Note>
 
 ## Disclosure label
@@ -179,7 +179,6 @@ feed.setAdvertising({
   ```
 
 - **Services.** Load GPT and enable services as you normally do. If the page has not enabled them when the first ad is prepared, the SDK enables them.
-- **Lazy loading.** If your page enables `googletag.pubads().enableLazyLoad()`, a display ad the viewer reaches and then leaves before its creative renders is not rendered by GPT, and its card leaves the feed about 8 seconds later instead of filling. Expect fewer filled display slots when the viewer scrolls quickly with lazy loading on.
 
 ## Turn advertising off
 
