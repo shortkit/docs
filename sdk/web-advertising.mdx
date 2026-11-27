@@ -76,6 +76,19 @@ A placement can serve several sources. The server picks the ad for each slot fro
 
 The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. The `google_swipeable` consent key belongs to a native-only source; it is never served on web.
 
+## Navigation and the ad cadence
+
+Ad slots are positions in the feed. The server sets the cadence -- how many content items fall between ads -- and any move to the adjacent row lands on an ad when one is due, then counts toward the next position. This holds whoever makes the move:
+
+- A swipe, a trackpad or wheel scroll, and the SDK's Arrow keys.
+- A programmatic step: `navigateDown()` / `navigateUp()` and `skipToNext()` / `skipToPrevious()`. Your own next and previous buttons, and an auto-advance at the end of a clip, place ads at the cadence exactly as a swipe does.
+
+Jumps skip ads. `scrollToItem` and `navigateTo(index)` land on the requested item exactly; ad positions they pass over are not shown, and an ad prepared for the position you leave is given up. The cadence counts only the item a jump lands on, and the next position is claimed after the next forward step.
+
+<Note>
+  `ViewerStepOptions` and its `userInitiated` option are deprecated. The option is still accepted and is now ignored. Through `0.6.2` a programmatic step placed ads only when you passed `{ userInitiated: true }` from a live user activation, so host buttons that did not pass it never showed ads on button paging. Steps now place ads at the cadence regardless, so you can drop the option.
+</Note>
+
 ## Disclosure label
 
 Every web ad cell shows a disclosure label. The default is `Sponsored`. Set `disclosureLabel` to change it (up to 40 printable characters). A label that breaks this limit, or an empty or malformed ad-unit list, makes the whole `setAdvertising` call be ignored silently, so validate the values you pass:
@@ -166,6 +179,7 @@ feed.setAdvertising({
   ```
 
 - **Services.** Load GPT and enable services as you normally do. If the page has not enabled them when the first ad is prepared, the SDK enables them.
+- **Lazy loading.** If your page enables `googletag.pubads().enableLazyLoad()`, a display ad the viewer reaches and then leaves before its creative renders is not rendered by GPT, and its card leaves the feed about 8 seconds later instead of filling. Expect fewer filled display slots when the viewer scrolls quickly with lazy loading on.
 
 ## Turn advertising off
 
