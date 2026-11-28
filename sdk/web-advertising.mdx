@@ -13,27 +13,36 @@ The Web SDK inserts ads between content items in a feed. You pick the sources a 
 ## Prerequisites
 
 - A **placement** created in the [Admin Portal](https://portal.shortkit.dev) under **Advertising** then **Feeds & sources**. Its **Feed placement key** identifies it from the SDK.
-- Analytics consent granted on the SDK instance. `analyticsConsent` defaults to `'granted'`; with `'denied'` no ads are served.
 - For the Google sources, the feed must use the default `swipePaging: 'sdk'`. Ads are not served when `swipePaging` is `'browser'`.
 
 ## Enable advertising on a feed
 
 <Steps>
-  <Step title="Grant consent per source">
-    Call `setAdvertisingConsent` on the SDK instance before enabling a placement. Each key allows one source; a source that is missing or `false` is never served, even if the placement is configured for it. Call it again whenever the user's choice changes, for example from your consent management platform.
+  <Step title="Grant advertising consent">
+    Advertising needs the viewer's consent. You give it per ad company, the same way a cookie banner records it. Call `setAdvertisingConsent` before you enable a placement. Call it again whenever the viewer changes their choice.
 
     ```js app.js
     import { ShortKit } from '@shortkitsdk/web';
 
     const sk = new ShortKit({ apiKey: 'pk_live_your_publishable_key' });
 
-    sk.setAdvertisingConsent({
-      direct_upload: true,
-      google_native: true,
-      gam_display: true,
-      gam_vast_pal: false,
-    });
+    sk.setAdvertisingConsent({ google: true });
     ```
+
+    `google` covers every source that Google serves (`gam_display`, `gam_vast_pal`, `google_native` and `google_swipeable`).
+
+    `direct` covers direct campaigns, the creatives you upload in the portal. Direct campaigns are allowed unless you pass `direct: false`. To allow no ads at all, pass `{ google: false, direct: false }`.
+
+    If your page uses a cookie banner such as Didomi, OneTrust or Sourcepoint, let the SDK read it instead of writing consent code. This works with any banner that supports IAB Europe's consent standard (TCF v2.2), which most ad-funded publishers' banners do.
+
+    ```js app.js
+    import { bindTcfConsent } from '@shortkitsdk/web/advertising';
+
+    const stop = bindTcfConsent(sk);            // reads the banner, allows google when the viewer agreed
+    // bindTcfConsent(sk, { direct: false })   // same, without direct campaigns
+    ```
+
+    The helper allows `google` only when the banner's answer meets Google's consent requirements. When the viewer changes their answer, the helper updates the SDK. An explicit `setAdvertisingConsent` call always wins over the helper. Call `stop()` before you destroy the SDK.
   </Step>
   <Step title="Attach the placement to the feed">
     Pass the placement key and, for the Google sources, the ad units this page agrees to serve.
@@ -69,12 +78,12 @@ A placement can serve several sources. The server picks the ad for each slot fro
 
 | Source | Consent key | Page configuration | What renders |
 |---|---|---|---|
-| Direct creatives uploaded in the portal | `direct_upload` | None | A video or image creative from your own campaigns. |
-| Google native | `google_native` | `gptNative.adUnitIds` -- the native ad units this page allows. The server chooses the unit. | A fluid native ad from Google Ad Manager, scrolled and snapped like a content cell. |
-| Google Ad Manager display | `gam_display` | `gptDisplay.adUnitPaths` -- the display ad unit paths this page allows. The server chooses the unit and sizes. | A fixed-size display creative (for example 300x250 or 300x600) centred in the feed cell. Supports host-run header bidding, see below. |
-| Google Ad Manager video (VAST with PAL) | `gam_vast_pal` | None | A video ad from your Ad Manager ad tag. |
+| Direct campaigns (`direct_upload`) | `direct` | None | A video or image creative from your own campaigns. |
+| Google native (`google_native`) | `google` | `gptNative.adUnitIds` -- the native ad units this page allows. The server chooses the unit. | A fluid native ad from Google Ad Manager, scrolled and snapped like a content cell. |
+| Google Ad Manager display (`gam_display`) | `google` | `gptDisplay.adUnitPaths` -- the display ad unit paths this page allows. The server chooses the unit and sizes. | A fixed-size display creative (for example 300x250 or 300x600) centred in the feed cell. Supports host-run header bidding, see below. |
+| Google Ad Manager video, VAST with PAL (`gam_vast_pal`) | `google` | None | A video ad from your Ad Manager ad tag. |
 
-The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. The `google_swipeable` consent key belongs to a native-only source; it is never served on web.
+The `gptNative` and `gptDisplay` allowlists are an agreement from the page, not a request: the SDK only renders an ad whose unit is in the list. Leave a key out to opt the page out of that source. `google_swipeable` is a native-only source; it is never served on web.
 
 ## Disclosure label
 
@@ -175,7 +184,7 @@ Pass `null` to stop serving ads on the feed. Prepared ad cells are torn down and
 feed.setAdvertising(null);
 ```
 
-Revoking consent for a source with `setAdvertisingConsent` stops that source without touching the placement configuration.
+Revoking consent with `setAdvertisingConsent` (for example `{ google: false }`) stops those sources without touching the placement configuration.
 
 ## Next steps
 
