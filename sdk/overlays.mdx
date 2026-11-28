@@ -143,6 +143,53 @@ The SDK calls your factory closure once per cell, lazily on first use. Your over
 
 From that point on, the SDK drives your overlay through the remaining protocol methods. When a cell is reused for new content, it calls `configure(with:)` followed by `resetPlaybackProgress()` so your overlay can update its metadata and clear stale state. When the cell becomes the active playback cell, it calls `activatePlayback()` -- your signal to start processing time updates.
 
+### Loading storyboard previews yourself
+
+The SDK exposes scrub-preview frames through `player.seekThumbnail(at:)`. To drive that method, the SDK downloads and decodes the full storyboard image before it hands anything to your overlay.
+
+If your overlay loads the storyboard image itself -- for example, an overlay that renders scrub previews in its own view layer -- set `loadsStoryboardSheet` to `true`. The SDK then fetches only the storyboard tile map (a few KB) and delivers it through `storyboardResolved(_:)` as soon as the cell lands, without downloading the image first. Your overlay loads the image once, from the URL on the delivered storyboard. The property defaults to `false`.
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    final class StoryboardPreviewOverlay: UIView, FeedOverlay {
+
+        // Opt out of the SDK's image download.
+        var loadsStoryboardSheet: Bool { true }
+
+        // Called with the tile map as soon as the cell lands.
+        func storyboardResolved(_ storyboard: StoryboardData?) {
+            guard let storyboard else { return }
+            // Load the storyboard image yourself from `storyboard.url`,
+            // then render preview tiles using the tile map.
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    class StoryboardPreviewOverlay(context: Context) : FrameLayout(context), FeedOverlay {
+
+        // Opt out of the SDK's image download.
+        override val loadsStoryboardSheet: Boolean get() = true
+
+        // Called with the tile map as soon as the cell lands.
+        override fun storyboardResolved(storyboard: StoryboardData?) {
+            storyboard ?: return
+            // Load the storyboard image yourself from `storyboard.url`,
+            // then render preview tiles using the tile map.
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+React Native and Flutter overlays load the storyboard image in your own render layer, so the SDK enables this behavior for them automatically -- you do not set anything.
+
+<Note>
+When `loadsStoryboardSheet` is `true`, `player.seekThumbnail(at:)` returns `nil` for that item until your overlay has fetched the storyboard image, because the SDK no longer downloads it for you. Leave the property at its `false` default if you rely on `seekThumbnail(at:)`.
+</Note>
+
 ### Registering your overlay
 
 Pass a factory closure to `.custom`. The closure returns a view conforming to `FeedOverlay`. The SDK calls `attach(player:)` immediately after to provide the player:
@@ -304,7 +351,7 @@ Call these methods from your gesture handlers and buttons to control playback:
 | `selectCaptionTrack(language:)` | Select a caption track by BCP 47 language code (e.g. "en"). |
 | `sendContentSignal(_:)` | Send a `.positive` or `.negative` signal for the recommendation engine. Call this when a user likes, shares, or otherwise engages with content. |
 | `setMaxBitrate(_:)` | Cap video bitrate in bits per second. Pass 0 to uncap. |
-| `seekThumbnail(at:)` | Returns a thumbnail image at the given time for scrubber preview, or `nil` if unavailable. |
+| `seekThumbnail(at:)` | Returns a thumbnail image at the given time for scrubber preview, or `nil` if unavailable. Returns `nil` for an item whose overlay loads the storyboard image itself (see [Loading storyboard previews yourself](#loading-storyboard-previews-yourself)). |
 
 ### ContentItem
 
