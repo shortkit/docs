@@ -510,3 +510,13 @@ ShortKit extracts and fills in the following fields automatically. You can chang
 | `description` | Caption text (up to 2,000 chars) |
 | `author` | Creator username |
 | `customMetadata` | `tiktok_id`, `tiktok_url`, `tiktok_likes`, `tiktok_views`, `tiktok_comments`, `tiktok_handle`, `tiktok_caption`, `tiktok_author_name` (creator display name), `tiktok_upload_date` (`YYYYMMDD`), `tiktok_timestamp` (unix seconds), `tiktok_sec_uid` + `tiktok_uploader_id` (stable creator identifiers that survive handle changes), `tiktok_avatar_url` (creator avatar, re-hosted to a durable public URL), `tiktok_follower_count`, `tiktok_following_count`, `tiktok_heart_count` (total likes the creator has received), `tiktok_video_count` (creator-level counts — a point-in-time snapshot captured at import; rounded display values, e.g. `49600000`), `tiktok_is_ad` + `tiktok_is_ai` (booleans — branded content and AI-generated flags) |
+
+### Ordering by post time
+
+By default, an imported video's `createdAt` is the time ShortKit created the record, which can be hours or months after the video was originally posted on TikTok. Feeds and the [content list](/api/content/list), which sort newest-first, therefore order TikTok imports by when you imported them, not when they were posted.
+
+ShortKit can order an organization's TikTok imports by original post time instead. When enabled, each import's `createdAt` is set to the video's original posting time — the same value as the `tiktok_timestamp` metadata field — so feeds and the content list read in posting order.
+
+<Note>
+  This is an organization-level setting, off by default. [Contact ShortKit](mailto:support@shortkit.dev) to enable it. It applies to imports going forward, and only ever moves `createdAt` earlier.
+</Note>
